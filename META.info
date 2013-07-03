@@ -1,0 +1,8 @@
+{
+     "name"        : "Zef"
+    ,"version"     : "*"
+    ,"description" : "Perl6 Module Management"
+    ,"author"      : "cpan:UGEXE"
+    ,"depends"     : []
+    #,"source-url"  : ""
+}

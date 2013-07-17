@@ -23,6 +23,12 @@ class EZRest::Response {
         if $content == 0 {
           %.headers{ $line.split(':')[0] } = $line.split(':', 2)[1];
         } else {
+          if !defined %!headers<Transfer-Encoding> || %!headers<Transfer-Encoding> eq 'chunked' {
+            $data ~= $line;
+            $flag = 0;
+            next;
+          }
+          last if $line !~~ / \w+ /;
           $len = :16( $line ) , next if $len == 0 && $content == 1;
           $line = "\n" if $line eq '';
           $data ~= $line;

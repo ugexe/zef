@@ -53,19 +53,32 @@ multi sub MAIN('push', Bool :$verbose) {
 
 multi sub MAIN('login', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
-  my $req = EZRest.new;
-  say from-json($req.req( 
+  my $req  = EZRest.new;
+  my $data = from-json($req.req( 
     :data( "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
     :endpoint( '/rest/login' )
-   ).data).perl; 
+  ).data);
+
+  if defined $data<success> && $data<success> eq '1' {
+    say $data<newkey>;
+  } else {
+    say $data<reason>;
+  }
 }
 
 
 multi sub MAIN('register', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
-  my $req = EZRest.new;
-  say $req.req( 
+  my $req  = EZRest.new;
+  my $data = $req.req( 
     :data(     "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
     :endpoint( '/rest/register' )
-   ); 
+  ).data;
+  $data = from-json( $data );
+
+  if defined $data<success> && $data<success> eq '1' {
+    say $data<newkey>;
+  } else {
+    say $data<reason>;
+  }
 }

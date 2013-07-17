@@ -1,5 +1,8 @@
 #!/usr/bin/env perl6
-use Zef;
+#use Zef;
+use lib './lib';
+use EZRest;
+
 
 my $home ~= %*ENV<HOME> if defined %*ENV<HOME>; 
 $home ~= %*ENV<USERPROFILE> if defined %*ENV<USERPROFILE>;
@@ -12,14 +15,14 @@ unless ( $home.IO ~~ :e ) {
   mkdir $home ~ '/lib' or die "Couldn't create directory: $home/lib";
 };
 
-my %args = @*ARGS;
+#my %args = @*ARGS;
 
 multi sub MAIN('install', *@modules, Bool :$verbose) {
   for @modules -> $module {
     say $module if :$verbose;
-    Zef->install($module)
-      ??say "installation for $module successful"
-      !!say "installatoin for $module failed";      
+    #Zef.install($module)
+    #  ??say "installation for $module successful"
+    #  !!say "installatoin for $module failed";      
     # go to perl eco system and download meta file
     # check EVERY fucking repo's meta file for it's module name and store them in a hash with TLD edit distance, push matching distances into hash (dont override last entry)
     # if %hash{0}, then download that modules repo
@@ -46,3 +49,21 @@ multi sub MAIN('push', Bool :$verbose) {
   # Save git to latest commit id with version and authority
 }
 
+multi sub MAIN('login', *$username, *$password, Bool :$verbose) {
+  # get a unique key for our username and write to local config
+  my $req = EZRest.new;
+  say $req.req( 
+    :data( "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
+    :endpoint( '/rest/login' )
+   ); 
+}
+
+
+multi sub MAIN('register', *$username, *$password, Bool :$verbose) {
+  # get a unique key for our username and write to local config
+  my $req = EZRest.new;
+  say $req.req( 
+    :data(     "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
+    :endpoint( '/rest/register' )
+   ); 
+}

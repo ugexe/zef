@@ -15,27 +15,29 @@ class EZRest::Response {
     $len     = 0;
     $flag    = 1;
     while ( $flag > 0 && ( @chunker = $pinksock.recv.split("\n") ) ) {
-      for @chunker -> $lines {
-        $line    = $lines.subst(/[\r]/, '');
-        $content = 1 if $content == 2;
-        $content = 2 , next if $content == 0 && $line eq '';
-        $flag = 0, last if $line eq '0';
-        if $content == 0 {
-          %.headers{ $line.split(':')[0] } = $line.split(':', 2)[1];
-        } else {
-          if !defined %!headers<Transfer-Encoding> || %!headers<Transfer-Encoding> eq 'chunked' {
-            $data ~= $line;
-            $flag = 0;
-            next;
-          }
-          last if $line !~~ / \w+ /;
-          $len = :16( $line ) , next if $len == 0 && $content == 1;
-          $line = "\n" if $line eq '';
+      if $flag == 1 { 
+        $len = 1;
+        for @chunker -> $lines {
+          $line    = $lines.subst(/[\r]/, '');
+          $flag = 2 , last if $line eq '';
+          %.headers{ $line.split(':')[0] } = $line.split(':', 2)[1] if $line ne '';
+          $len++;
+        }
+        @chunker.splice( 0 , $len ) if $flag == 2;
+        $len = 0;
+      }
+
+      #say "DATA\n--\n" ~ @chunker.join("\n");
+      if $flag == 2 { #parse chunks
+        for @chunker -> $lines {
+          $line    = $lines.subst(/[\r]/, '');
+          $len = :16( $line ) , next if $len == 0 && $line ne '';
+          $flag = 0 if $len eq 0;
           $data ~= $line;
           $len  -= $line.chars;
-          $flag = 0 if $len == 0;
         }
       }
+
     }    
     $.data = $data;
   }

@@ -18,6 +18,8 @@ unless ( $home.IO ~~ :e ) {
 };
 
 my $prefs = from-json(($home ~ '/.zefrc').IO ~~ :e ?? slurp $home ~ '/.zefrc' !! '{}');
+$prefs<base> = '/rest'  if !defined $prefs<base>;
+$prefs<host> = 'zef.pm' if !defined $prefs<host>;
 
 multi sub MAIN('install', *@modules, Bool :$verbose) {
   for @modules -> $module {
@@ -54,22 +56,26 @@ multi sub MAIN('push', Bool :$verbose) {
 multi sub MAIN('search', *$module, Bool :$verbose) {
   # display a list of modules for a query
   my $req  = EZRest.new;
-  say $prefs.perl;
-  my $data = from-json($req.req(
-    :host(     defined $prefs<host> ?? $prefs<host> !! 'zef.pm' ),
+  my $data = $req.req(
+    :host(     $prefs<host> ),
+    :endpoint( $prefs<base> ~ '/search' ),
     :data(     "\{ \"query\" : \"$module\" \}"),
-    :endpoint( (defined $prefs<base> ?? $prefs<base> !! '/rest') ~ '/login' )
-  ).data);
-  say $data.perl;
+  );
+  $data = from-json( $data.data );
+
+  say 'No results.' if @( $data ).elems == 0;
+  for @( $data ) -> $hash {
+    say $hash.perl;
+  }
 }
 
 multi sub MAIN('login', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
   my $req  = EZRest.new;
   my $data = from-json($req.req( 
-    :host(     defined $prefs<host> ?? $prefs<host> !! 'zef.pm' ),
+    :host(     $prefs<host> ),
+    :endpoint( $prefs<base> ~ '/login' ),
     :data(     "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
-    :endpoint( (defined $prefs<base> ?? $prefs<base> !! '/rest') ~ '/login' )
   ).data);
 
   if defined $data<success> && $data<success> eq '1' {
@@ -86,9 +92,9 @@ multi sub MAIN('register', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
   my $req  = EZRest.new;
   my $data = $req.req( 
-    :host(     defined $prefs<host> ?? $prefs<host> !! 'zef.pm' ),
+    :host(     $prefs<host> ),
+    :endpoint( $prefs<base> ~ '/register' ),
     :data(     "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
-    :endpoint( (defined $prefs<base> ?? $prefs<base> !! '/rest') ~ '/login' )
   ).data;
   $data = from-json( $data );
 

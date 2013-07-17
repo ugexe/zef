@@ -8,8 +8,8 @@ use JSON::Tiny;
 
 my $home ~= %*ENV<HOME> if defined %*ENV<HOME>; 
 $home ~= %*ENV<USERPROFILE> if defined %*ENV<USERPROFILE>;
-$home ~= '/.ppac';
-die 'Could not locate user\'s home directory.' unless $home ne '/.ppac';
+$home ~= '/.zef';
+die 'Could not locate user\'s home directory.' unless $home ne '/.zef';
 
 unless ( $home.IO ~~ :e ) {
   mkdir $home or die "Couldn't create directory: $home";
@@ -17,7 +17,7 @@ unless ( $home.IO ~~ :e ) {
   mkdir $home ~ '/lib' or die "Couldn't create directory: $home/lib";
 };
 
-#my %args = @*ARGS;
+my $prefs = from-json(($home ~ '/.zefrc').IO ~~ :e ?? slurp $home ~ '/.zefrc' !! '{}');
 
 multi sub MAIN('install', *@modules, Bool :$verbose) {
   for @modules -> $module {
@@ -61,6 +61,10 @@ multi sub MAIN('login', *$username, *$password, Bool :$verbose) {
 
   if defined $data<success> && $data<success> eq '1' {
     say $data<newkey>;
+    $prefs<ukey> = $data<newkey>;
+    my $fh = open "$home/.zefrc", :w;
+    $fh.say( to-json( $prefs ) );
+    $fh.close;
   } else {
     say $data<reason>;
   }
@@ -78,6 +82,10 @@ multi sub MAIN('register', *$username, *$password, Bool :$verbose) {
 
   if defined $data<success> && $data<success> eq '1' {
     say $data<newkey>;
+    $prefs<ukey> = $data<newkey>;
+    my $fh = open "$home/.zefrc", :w;
+    $fh.say( to-json( $prefs ) );
+    $fh.close;
   } else {
     say $data<reason>;
   }

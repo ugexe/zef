@@ -2,6 +2,7 @@
 #use Zef;
 use lib './lib';
 use EZRest;
+use JSON::Tiny;
 
 
 my $home ~= %*ENV<HOME> if defined %*ENV<HOME>; 
@@ -52,10 +53,10 @@ multi sub MAIN('push', Bool :$verbose) {
 multi sub MAIN('login', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
   my $req = EZRest.new;
-  say $req.req( 
+  say from-json($req.req( 
     :data( "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
     :endpoint( '/rest/login' )
-   ); 
+   ).data).perl; 
 }
 
 

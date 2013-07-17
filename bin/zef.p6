@@ -1,6 +1,6 @@
 #!/usr/bin/env perl6
 
-use Zef;
+#use Zef;
 use lib './lib';
 use EZRest;
 use JSON::Tiny;

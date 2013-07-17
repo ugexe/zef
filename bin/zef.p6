@@ -51,20 +51,31 @@ multi sub MAIN('push', Bool :$verbose) {
   # Save git to latest commit id with version and authority
 }
 
+multi sub MAIN('search', *$module, Bool :$verbose) {
+  # display a list of modules for a query
+  my $req  = EZRest.new;
+  say $prefs.perl;
+  my $data = from-json($req.req(
+    :host(     defined $prefs<host> ?? $prefs<host> !! 'zef.pm' ),
+    :data(     "\{ \"query\" : \"$module\" \}"),
+    :endpoint( (defined $prefs<base> ?? $prefs<base> !! '/rest') ~ '/login' )
+  ).data);
+  say $data.perl;
+}
+
 multi sub MAIN('login', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
   my $req  = EZRest.new;
   my $data = from-json($req.req( 
-    :data( "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
-    :endpoint( '/rest/login' )
+    :host(     defined $prefs<host> ?? $prefs<host> !! 'zef.pm' ),
+    :data(     "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
+    :endpoint( (defined $prefs<base> ?? $prefs<base> !! '/rest') ~ '/login' )
   ).data);
 
   if defined $data<success> && $data<success> eq '1' {
-    say $data<newkey>;
     $prefs<ukey> = $data<newkey>;
-    my $fh = open "$home/.zefrc", :w;
-    $fh.say( to-json( $prefs ) );
-    $fh.close;
+    saveprefs;
+    say 'Success.';
   } else {
     say $data<reason>;
   }
@@ -75,18 +86,23 @@ multi sub MAIN('register', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
   my $req  = EZRest.new;
   my $data = $req.req( 
+    :host(     defined $prefs<host> ?? $prefs<host> !! 'zef.pm' ),
     :data(     "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
-    :endpoint( '/rest/register' )
+    :endpoint( (defined $prefs<base> ?? $prefs<base> !! '/rest') ~ '/login' )
   ).data;
   $data = from-json( $data );
 
   if defined $data<success> && $data<success> eq '1' {
-    say $data<newkey>;
     $prefs<ukey> = $data<newkey>;
-    my $fh = open "$home/.zefrc", :w;
-    $fh.say( to-json( $prefs ) );
-    $fh.close;
+    saveprefs;
+    say 'Success.';
   } else {
     say $data<reason>;
   }
 }
+
+sub saveprefs ( ) {
+  my $fh = open "$home/.zefrc", :w;
+  $fh.say( to-json( $prefs ) );
+  $fh.close;
+};

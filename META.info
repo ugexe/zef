@@ -4,5 +4,5 @@
     ,"description" : "Perl6 Module Management"
     ,"author"      : "cpan:UGEXE"
     ,"depends"     : []
-    #,"source-url"  : ""
+    ,"source-url"  : "git@github.com:ugexe/zef.git" 
 }

@@ -51,6 +51,24 @@ multi sub MAIN('push', Bool :$verbose) {
   # Open local meta.info file and read info
   # Get latest commit id from repo in meta.info
   # Save git to latest commit id with version and authority
+  if ( 'META.info'.IO ~~ :e ) {
+    my $meta = from-json slurp( 'META.info' );
+    my %pushdata;
+    %pushdata<key>              = $prefs<ukey>;
+    %pushdata<meta>             = { };
+    %pushdata<meta><name>       = $meta<name>;
+    %pushdata<meta><repository> = $meta<source-url>;
+    my $req = EZRest.new;
+    my $data = $req.req(
+      :host(     $prefs<host> ),
+      :endpoint( $prefs<base> ~ '/push' ),
+      :data(     to-json( %pushdata ) )
+    );
+    $data = from-json $data.data;
+    say $data.perl;
+  } else { 
+    say ' cannot read . .. . . .';
+  }
 }
 
 multi sub MAIN('search', *$module, Bool :$verbose) {

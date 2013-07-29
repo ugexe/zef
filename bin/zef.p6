@@ -1,7 +1,14 @@
 #!/usr/bin/env perl6
 
 #use Zef;
-use lib './lib';
+BEGIN {
+  my $fsflag     = $?FILE.path.directory.index('/') >= 0 ?? '/' !! '\\';
+  my $dynamicinc = $?FILE.path.directory.split($fsflag);
+  $dynamicinc.pop();
+  $dynamicinc = $dynamicinc.join( $fsflag );
+  $dynamicinc ~= ( $dynamicinc.substr(0, 1) eq '.' ?? $fsflag !! '') ~ 'lib';
+  @*INC.push( $dynamicinc );
+}
 use EZRest;
 use JSON::Tiny;
 

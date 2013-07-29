@@ -66,11 +66,14 @@ multi sub MAIN('push', Bool :$verbose) {
     %pushdata<meta><name>       = $meta<name>;
     %pushdata<meta><repository> = $meta<source-url>;
     my $req = EZRest.new;
+    say %pushdata.perl;
+    say to-json( %pushdata );
     my $data = $req.req(
       :host(     $prefs<host> ),
       :endpoint( $prefs<base> ~ '/push' ),
       :data(     to-json( %pushdata ) )
     );
+    say $data.perl;
     $data = from-json $data.data;
     say $data.perl;
   } else { 

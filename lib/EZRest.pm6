@@ -27,7 +27,6 @@ class EZRest::Response {
         $len = 0;
       }
 
-      #say "DATA\n--\n" ~ @chunker.join("\n");
       if $flag == 2 { #parse chunks
         for @chunker -> $lines {
           $line    = $lines.subst(/[\r]/, '');

@@ -1,6 +1,5 @@
 #!/usr/bin/env perl6
 
-#use Zef;
 BEGIN {
   my $fsflag     = $?FILE.path.directory.index('/') >= 0 ?? '/' !! '\\';
   my $dynamicinc = $?FILE.path.directory.split($fsflag);

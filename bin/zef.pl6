@@ -117,7 +117,8 @@ multi sub MAIN('push', Bool :$verbose) {
       :data(     to-json( %pushdata ) )
     );
     $data = from-json $data.data;
-    say 'Pushed package \'' ~ $meta<name> ~ '\' version: ' ~ $data<version>;
+    say 'Pushed package \'' ~ $meta<name> ~ '\' version: ' ~ $data<version> if not defined $data<error>;
+    say 'Error: ' ~ $data<error> if defined $data<error>;
   } else { 
     say 'Could not find META.info';
   }

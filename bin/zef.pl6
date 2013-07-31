@@ -1,6 +1,8 @@
 #!/usr/bin/env perl6
 
 BEGIN {
+#following line has unimplemented features and would replace up to @*INC.push..
+#  $dynamicinc = "{$?FILE.path.directory}/../lib".IO.path.resolve;
   my $fsflag     = $?FILE.path.directory.index('/') >= 0 ?? '/' !! '\\';
   my $dynamicinc = $?FILE.path.directory.split($fsflag);
   $dynamicinc.pop();

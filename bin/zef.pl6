@@ -30,6 +30,7 @@ $prefs<base> = '/rest'  if !defined $prefs<base>;
 $prefs<host> = 'zef.pm' if !defined $prefs<host>;
 
 sub recursive_rmdir ( $path ) {
+  return if $path.IO !~~ :e;
   for $path.IO.path.contents -> $tmppath {
     if $tmppath.Str.IO ~~ :f {
       unlink $tmppath.Str;
@@ -115,7 +116,6 @@ multi sub MAIN('push', Bool :$verbose) {
       :endpoint( $prefs<base> ~ '/push' ),
       :data(     to-json( %pushdata ) )
     );
-    say $data.data.perl;
     $data = from-json $data.data;
     say 'Pushed package \'' ~ $meta<name> ~ '\' version: ' ~ $data<version>;
   } else { 

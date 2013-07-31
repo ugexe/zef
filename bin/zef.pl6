@@ -135,7 +135,7 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
 
   say 'No results.' if @( $data ).elems == 0;
   for @( $data ) -> $hash {
-    say $hash.perl;
+    say "{$hash<package>}\t\t\t{$hash<version>}\t\t{$hash<submitted>} by {$hash<author>}";
   }
 }
 

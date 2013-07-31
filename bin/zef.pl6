@@ -28,9 +28,31 @@ my $prefs = from-json(($home ~ '/.zefrc').IO ~~ :e ?? slurp $home ~ '/.zefrc' !!
 $prefs<base> = '/rest'  if !defined $prefs<base>;
 $prefs<host> = 'zef.pm' if !defined $prefs<host>;
 
-multi sub MAIN('install', *@modules, Bool :$verbose) {
+sub recursive_rmdir ( $path ) {
+  for $path.IO.path.contents -> $tmppath {
+    if $tmppath.Str.IO ~~ :f {
+      unlink $tmppath.Str;
+    } elsif $tmppath.Str.IO ~~ :d {
+      recursive_rmdir( $tmppath.Str );
+      rmdir $tmppath.Str;
+    }
+  }
+};
+
+sub recursive_copy ( $path, $destination ) {
+  for $path.IO.path.contents -> $tmppath {
+    if $tmppath.Str.IO ~~ :f {
+      $tmppath.copy( "{$destination.Str}/$tmppath" );
+    } elsif $path.Str.IO ~~ :d {
+      mkdir "$destination/$tmppath" if "$destination/$tmppath".IO !~~ :e;
+      recursive_copy( "{$path.Str}/{$tmppath.Str}" , $destination );
+    }
+  }
+}
+
+multi sub MAIN('install', *@modules, Bool :$verbose = False) {
   for @modules -> $module {
-    say $module if :$verbose;
+    #say $module if :$verbose;
     #Zef.install($module)
     #  ??say "installation for $module successful"
     #  !!say "installatoin for $module failed";      
@@ -40,6 +62,26 @@ multi sub MAIN('install', *@modules, Bool :$verbose) {
     # if !%hash{0}.exists and %hash{$lowest_num} = $module, suggest module to user. if %hash{$loweset_num} = @modules, suggest them all
     # This will all be slow as shit, especially the module naming suggesting. No need to TLD if an exact match is found, so dont run TLD until all names are stored.
     # Save the module to whatever directory
+    my $req = EZRest.new;
+    for @modules -> $module {
+      my $data = $req.req(
+        :host(     $prefs<host> ),
+        :endpoint( $prefs<base> ~ '/download' ),
+        :data(     "\{ \"name\" : \"$module\" \}"),
+      );
+      $data = from-json( $data.data );
+      chdir $home ~ "/src";
+      my $clone = "git clone \"{$data<repo>}\" \"{$module.subst('::','_')}\"";
+      my $revrt = "git checkout \"{$data<commit>}\"";
+      recursive_rmdir( $module.subst('::', '_') );
+      qqx{$clone}; 
+      chdir "{$module.subst('::', '_')}";
+      qqx{$revrt};
+      say "ERROR: No lib/ directory found for $module" , next if "lib".IO !~~ :e;
+      chdir "lib";
+      recursive_copy  '.', "$home/lib";
+      say "$module was successfully installed to: $home/lib/";
+    }
   }
 }
 
@@ -61,16 +103,18 @@ multi sub MAIN('push', Bool :$verbose) {
   if ( 'META.info'.IO ~~ :e ) {
     my $meta = from-json slurp( 'META.info' );
     my %pushdata;
-    %pushdata<key>              = $prefs<ukey>;
-    %pushdata<meta>             = { };
-    %pushdata<meta><name>       = $meta<name>;
-    %pushdata<meta><repository> = $meta<source-url>;
+    %pushdata<key>                = $prefs<ukey>;
+    %pushdata<meta>               = { };
+    %pushdata<meta><name>         = $meta<name>;
+    %pushdata<meta><repository>   = $meta<source-url>;
+    %pushdata<meta><dependencies> = $meta<dependencies>;
     my $req = EZRest.new;
     my $data = $req.req(
       :host(     $prefs<host> ),
       :endpoint( $prefs<base> ~ '/push' ),
       :data(     to-json( %pushdata ) )
     );
+    say $data.data.perl;
     $data = from-json $data.data;
     say 'Pushed package \'' ~ $meta<name> ~ '\' version: ' ~ $data<version>;
   } else { 

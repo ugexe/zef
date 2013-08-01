@@ -11,26 +11,23 @@ class EZRest::Response {
   has Str $.statustext is rw;
 
   method make ( $pinksock ) {
-    my Str $line    = '';
     my Int $len     = 0;
     my Int $flag    = 1;
-    $.data          = '';
+    $.data;
     $.status        = -1;
-    $.statustext    = '';
-    $.httpvs        = '';
+    $.statustext;
+    $.httpvs;
 
     while  $flag > 0 && my Str @chunker = $pinksock.recv.split("\n") {
+      my Str $line;
+
       if $flag == 1 { 
         $len = 1;
         for @chunker -> Str $lines {
-
-          if $.status == -1 {
-            my $s = $lines.split(' ', 3);
-            $.status     = :10( $s[1] );
-            $.statustext = $s[2];
-            $.httpvs     = $s[0];
-            next;
-          }
+          map {   $.status      = :10( $_[1] );
+                  $.statustext  = $_[2];
+                  $.httpvs      = $_[0];
+          } $lines.split(' ', 3), next unless $.status;
 
           $line = $lines.subst(/[\r]/, '');
           $flag = 2 , last if $line eq '';
@@ -45,13 +42,13 @@ class EZRest::Response {
         $len = %.headers<Content-Length> if %.headers<Transfer-Encoding>.defined && 
                                             %.headers<Transfer-Encoding> ne 'chunked' &&
                                             %.headers<Content-Length>.defined;
-        @chunker.shift if $len == 0;
+
         for @chunker -> Str $lines {
           $line  = $lines.subst(/[\r]/, '');
-          $len    = :16( $line ) , next if $len == 0 && $line ne '';
-          $flag   = 0 if $len eq 0;
+          $len   = :16( $line ) , next if $len == 0 && $line ne '';
+          $flag  = 0 if $len eq 0;
           $.data ~= $line;
-          $len   -= $line.chars;
+          $len  -= $line.chars;
         }
       }
 
@@ -68,11 +65,11 @@ class EZRest {
     my $host     = @urld.join(':'); 
     my $pinksock = IO::Socket::INET.new( :$host , :$port );
     my $reqbody  = "POST $endpoint HTTP/1.1\n";
-    $reqbody    ~= "Host: $host:$port\n";
-    $reqbody    ~= "Accept: */*\n";
-    $reqbody    ~= "Content-Type: application/json\n";
-    $reqbody    ~= "Content-Length: {$data.chars}\n\n";
-    $reqbody    ~= "$data";
+                 ~ "Host: $host:$port\n";
+                 ~ "Accept: */*\n";
+                 ~ "Content-Type: application/json\n";
+                 ~ "Content-Length: {$data.chars}\n\n";
+                 ~ "$data";
     $pinksock.send( $reqbody );
     my $resp = EZRest::Response.new;
     $resp.make( $pinksock );

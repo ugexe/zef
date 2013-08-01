@@ -4,23 +4,37 @@ use JSON::Tiny;
 
 
 class EZRest::Response {
-  has %.headers is rw;
-  has $.data    is rw;
+  has Int $.status     is rw;
+  has Str $.data       is rw;
+  has Str %.headers    is rw;
+  has Str $.httpvs     is rw;
+  has Str $.statustext is rw;
 
   method make ( $pinksock ) {
-    my ( $content, $flag, @chunker, $line , $data , $len);
-    $data    = '';
-    $content = '';
-    $line    = '';
-    $len     = 0;
-    $flag    = 1;
-    while ( $flag > 0 && ( @chunker = $pinksock.recv.split("\n") ) ) {
+    my Str $line    = '';
+    my Int $len     = 0;
+    my Int $flag    = 1;
+    $.data          = '';
+    $.status        = -1;
+    $.statustext    = '';
+    $.httpvs        = '';
+
+    while  $flag > 0 && my Str @chunker = $pinksock.recv.split("\n") {
       if $flag == 1 { 
         $len = 1;
-        for @chunker -> $lines {
-          $line    = $lines.subst(/[\r]/, '');
+        for @chunker -> Str $lines {
+
+          if $.status == -1 {
+            my $s = $lines.split(' ', 3);
+            $.status     = :10( $s[1] );
+            $.statustext = $s[2];
+            $.httpvs     = $s[0];
+            next;
+          }
+
+          $line = $lines.subst(/[\r]/, '');
           $flag = 2 , last if $line eq '';
-          %.headers{ $line.split(':')[0] } = $line.split(':', 2)[1] if $line ne '';
+          %.headers{ $line.split(':')[0] } = $line.split(':', 2)[1].trim if $line ne '';
           $len++;
         }
         @chunker.splice( 0 , $len ) if $flag == 2;
@@ -28,17 +42,20 @@ class EZRest::Response {
       }
 
       if $flag == 2 { #parse chunks
-        for @chunker -> $lines {
-          $line    = $lines.subst(/[\r]/, '');
-          $len = :16( $line ) , next if $len == 0 && $line ne '';
-          $flag = 0 if $len eq 0;
-          $data ~= $line;
+        $len = %.headers<Content-Length> if %.headers<Transfer-Encoding>.defined && 
+                                            %.headers<Transfer-Encoding> ne 'chunked' &&
+                                            %.headers<Content-Length>.defined;
+
+        for @chunker -> Str $lines {
+          $line  = $lines.subst(/[\r]/, '');
+          $len   = :16( $line ) , next if $len == 0 && $line ne '';
+          $flag  = 0 if $len eq 0;
+          $.data ~= $line;
           $len  -= $line.chars;
         }
       }
 
     }    
-    $.data = $data;
   }
 };
 

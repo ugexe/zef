@@ -132,9 +132,13 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
     :endpoint( $prefs<base> ~ '/search' ),
     :data(     "\{ \"query\" : \"$module\" \}"),
   );
+  say $data.perl;
   $data = from-json( $data.data );
 
-  say 'No results.' if @( $data ).elems == 0;
+  if @( $data ).elems == 0 or @( $data ) !~~ Array {
+    say 'No results.';
+    return;
+  }
   for @( $data ) -> $hash {
     say "{$hash<package>}\t\t\t{$hash<version>}\t\t{$hash<submitted>} by {$hash<author>}";
   }

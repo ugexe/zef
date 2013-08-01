@@ -20,7 +20,7 @@ $prefs<host> = 'zef.pm' if !defined $prefs<host>;
 
 class Zef {
 
-  method register ( $username , $password ) {
+  method register ( $username , $password , Bool $autoupdate = True ) {
     my $req  = EZRest.new;
     my $data = $req.req( 
       :host\   ( $prefs<host> ),
@@ -32,7 +32,7 @@ class Zef {
       $data.data = from-json( $data.data );
       if defined $data<success> && $data<success> eq '1' {
         $prefs<ukey> = $data<newkey>;
-        saveprefs;
+        saveprefs if $autoupdate;
       }
       CATCH { default {
         #ignore the error
@@ -41,7 +41,7 @@ class Zef {
     return $data;
   }
 
-  method login ( $username , $password ) {
+  method login ( $username , $password , Bool $autoupdate = True ) {
     my $req  = EZRest.new;
     my $data = $req.req( 
       :host\   ( $prefs<host> ),
@@ -52,7 +52,7 @@ class Zef {
       $data.data = from-json( $data.data );
       if defined $data<success> && $data<success> eq '1' {
         $prefs<ukey> = $data<newkey>;
-        saveprefs;
+        saveprefs if $autoupdate;
       }
       CATCH { default { 
         #ignore the error

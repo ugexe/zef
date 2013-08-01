@@ -5,7 +5,7 @@ BEGIN {
 #  $dynamicinc = "{$?FILE.path.directory}/../lib".IO.path.resolve;
   my $fsflag     = $?FILE.path.directory.index('/') >= 0 ?? '/' !! '\\';
   my $dynamicinc = $?FILE.path.directory.split($fsflag);
-  $dynamicinc    = $dynamicinc.splice(0, $dynamicinc.elems -1).join( $fsflag ) ~ "{$fsflag}lib";
+  $dynamicinc    = $dynamicinc.splice(0, $dynamicinc.elems -1).join( $fsflag ) ~ "{$dynamicinc.IO.path.is-relative ?? '' !! $fsflag}lib";
   @*INC.push( $dynamicinc );
 }
 use Zef;

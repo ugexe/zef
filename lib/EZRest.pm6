@@ -4,31 +4,40 @@ use JSON::Tiny;
 
 
 class EZRest::Response {
-  has Str $.status     is rw;
+  has Int $.status     is rw;
   has Str $.data       is rw;
+  has Str %.headers    is rw;
   has Str $.httpvs     is rw;
-  has     %.headers    is rw;
+  has Str $.statustext is rw;
 
   method make ( $pinksock ) {
+    my Str $line    = '';
     my Int $len     = 0;
     my Int $flag    = 1;
-    $.data;
-    $.status;
-    $.httpvs;
+    $.data          = '';
+    $.status        = -1;
+    $.statustext    = '';
+    $.httpvs        = '';
 
     while  $flag > 0 && my Str @chunker = $pinksock.recv.split("\n") {
-      my Str $line;
       if $flag == 1 { 
         $len = 1;
-        for @chunker -> $lines {
-          ($.httpvs, $.status) = $lines.split(' ', 2) , next if $.status == -1;
+        for @chunker -> Str $lines {
+
+          if $.status == -1 {
+            my $s = $lines.split(' ', 3);
+            $.status     = :10( $s[1] );
+            $.statustext = $s[2];
+            $.httpvs     = $s[0];
+            next;
+          }
 
           $line = $lines.subst(/[\r]/, '');
           $flag = 2 , last if $line eq '';
           %.headers{ $line.split(':')[0] } = $line.split(':', 2)[1].trim if $line ne '';
           $len++;
         }
-        @chunker.splice( 0 , $len + 1 ) if $flag == 2;
+        @chunker.splice( 0 , $len ) if $flag == 2;
         $len = 0;
       }
 
@@ -36,13 +45,13 @@ class EZRest::Response {
         $len = %.headers<Content-Length> if %.headers<Transfer-Encoding>.defined && 
                                             %.headers<Transfer-Encoding> ne 'chunked' &&
                                             %.headers<Content-Length>.defined;
-
+        @chunker.shift if $len == 0;
         for @chunker -> Str $lines {
           $line  = $lines.subst(/[\r]/, '');
-          $len   = :16( $line ) , next if $len == 0 && $line ne '';
-          $flag  = 0 if $len == 0;
+          $len    = :16( $line ) , next if $len == 0 && $line ne '';
+          $flag   = 0 if $len eq 0;
           $.data ~= $line;
-          $len  -= $line.chars;
+          $len   -= $line.chars;
         }
       }
 
@@ -58,12 +67,12 @@ class EZRest {
     my $port     = +( @urld.pop );
     my $host     = @urld.join(':'); 
     my $pinksock = IO::Socket::INET.new( :$host , :$port );
-    my $reqbody  = "POST $endpoint HTTP/1.1\n"
-                 ~ "Host: $host:$port\n"
-                 ~ "Accept: */*\n"
-                 ~ "Content-Type: application/json\n"
-                 ~ "Content-Length: {$data.chars}\n\n"
-                 ~ "$data";
+    my $reqbody  = "POST $endpoint HTTP/1.1\n";
+    $reqbody    ~= "Host: $host:$port\n";
+    $reqbody    ~= "Accept: */*\n";
+    $reqbody    ~= "Content-Type: application/json\n";
+    $reqbody    ~= "Content-Length: {$data.chars}\n\n";
+    $reqbody    ~= "$data";
     $pinksock.send( $reqbody );
     my $resp = EZRest::Response.new;
     $resp.make( $pinksock );
@@ -71,4 +80,3 @@ class EZRest {
     return $resp;
   }
 };
-

@@ -112,15 +112,16 @@ class Zef {
     );
 
 
-    $data = from-json( $data.data );
+    my $json = from-json( $data.data );
 
-    if @( $data ).elems == 0 or @( $data ) !~~ Array {
+    if @( $json ).elems == 0 or @( $json ) !~~ Array {
       say 'No results.';
-      return;
+      return $data;
     }
-    for @( $data ) -> $hash {
+    for @( $json ) -> $hash {
       say "{$hash<package>}\t\t\t{$hash<version>}\t\t{$hash<submitted>} by {$hash<author>}";
     }
+    return $data;
   }
 
   sub recursive_rmdir ( $path ) {

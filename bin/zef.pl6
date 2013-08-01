@@ -3,7 +3,7 @@
 BEGIN {
 #following line has unimplemented features and would replace up to @*INC.push..
 #  $dynamicinc = "{$?FILE.path.directory}/../lib".IO.path.resolve;
-  my $fsflag     = $?FILE.path.directory.index('/') >= 0 ?? '/' !! '\\';
+  my $fsflag     = $?FILE.path.index('/') >= 0 ?? '/' !! '\\';
   my $dynamicinc = $?FILE.path.directory.split($fsflag);
   $dynamicinc    = $dynamicinc.splice(0, $dynamicinc.elems -1).join( $fsflag ) ~ "{$dynamicinc.IO.path.is-relative ?? '' !! $fsflag}lib";
   @*INC.push( $dynamicinc );

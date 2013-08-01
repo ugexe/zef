@@ -45,13 +45,13 @@ class EZRest::Response {
         $len = %.headers<Content-Length> if %.headers<Transfer-Encoding>.defined && 
                                             %.headers<Transfer-Encoding> ne 'chunked' &&
                                             %.headers<Content-Length>.defined;
-
+        @chunker.shift if $len == 0;
         for @chunker -> Str $lines {
           $line  = $lines.subst(/[\r]/, '');
-          $len   = :16( $line ) , next if $len == 0 && $line ne '';
-          $flag  = 0 if $len eq 0;
+          $len    = :16( $line ) , next if $len == 0 && $line ne '';
+          $flag   = 0 if $len eq 0;
           $.data ~= $line;
-          $len  -= $line.chars;
+          $len   -= $line.chars;
         }
       }
 

@@ -132,7 +132,8 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
     :endpoint( $prefs<base> ~ '/search' ),
     :data(     "\{ \"query\" : \"$module\" \}"),
   );
-  say $data.perl;
+
+
   $data = from-json( $data.data );
 
   if @( $data ).elems == 0 or @( $data ) !~~ Array {

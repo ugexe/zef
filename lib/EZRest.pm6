@@ -5,7 +5,7 @@ use JSON::Tiny;
 
 class EZRest::Response {
   has Int $.status     is rw;
-  has Str $.data       is rw;
+  has     $.data       is rw;
   has Str %.headers    is rw;
   has Str $.httpvs     is rw;
   has Str $.statustext is rw;

@@ -23,61 +23,72 @@ class Zef {
   method register ( $username , $password ) {
     my $req  = EZRest.new;
     my $data = $req.req( 
-      :host(     $prefs<host> ),
+      :host\   ( $prefs<host> ),
       :endpoint( $prefs<base> ~ '/register' ),
-      :data(     "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
-    ).data;
-    $data = from-json( $data );
-
-    if defined $data<success> && $data<success> eq '1' {
-      $prefs<ukey> = $data<newkey>;
-      saveprefs;
-      say 'Success.';
-    } else {
-      say $data<reason>;
+      :data\   ( "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
+    );
+    
+    {
+      $data.data = from-json( $data.data );
+      if defined $data<success> && $data<success> eq '1' {
+        $prefs<ukey> = $data<newkey>;
+        saveprefs;
+      }
+      CATCH { default {
+        #ignore the error
+      } }
     }
+    return $data;
   }
 
   method login ( $username , $password ) {
     my $req  = EZRest.new;
-    my $data = from-json($req.req( 
-      :host(     $prefs<host> ),
+    my $data = $req.req( 
+      :host\   ( $prefs<host> ),
       :endpoint( $prefs<base> ~ '/login' ),
-      :data(     "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
-    ).data);
-
-    if defined $data<success> && $data<success> eq '1' {
-      $prefs<ukey> = $data<newkey>;
-      saveprefs;
-      say 'Success.';
-    } else {
-      say $data<reason>;
+      :data\   ( "\{ \"username\" : \"$username\" , \"password\" : \"$password\" \}"),
+    );
+    {
+      $data.data = from-json( $data.data );
+      if defined $data<success> && $data<success> eq '1' {
+        $prefs<ukey> = $data<newkey>;
+        saveprefs;
+      }
+      CATCH { default { 
+        #ignore the error
+      } }
     }
+    return $data;
   }
 
-	method install ( @modules ) {
+	method install ( $module ) {
 		# install shit
     my $req = EZRest.new;
-    for @modules -> $module {
-      my $data = $req.req(
-        :host\   ( $prefs<host> ),
-        :endpoint( $prefs<base> ~ '/download' ),
-        :data\   ( "\{ \"name\" : \"$module\" \}"),
-      );
-      $data = from-json( $data.data );
+    my $data = $req.req(
+      :host\   ( $prefs<host> ),
+      :endpoint( $prefs<base> ~ '/download' ),
+      :data\   ( "\{ \"name\" : \"$module\" \}"),
+    );
+    {
+      $data.data = from-json( $data.data );
       chdir $home ~ "/src";
-      my $clone = "git clone \"{$data<repo>}\" \"{$module.subst('::','_')}\"";
-      my $revrt = "git checkout \"{$data<commit>}\"";
+      my $clone = "git clone \"{$data.data<repo>}\" \"{$module.subst('::','_')}\"";
+      my $revrt = "git checkout \"{$data.data<commit>}\"";
       recursive_rmdir( $module.subst('::', '_') );
       qqx{$clone}; 
       chdir "{$module.subst('::', '_')}";
       qqx{$revrt};
-      say "ERROR: No lib/ directory found for $module" , next if "lib".IO !~~ :e;
+      die "ERROR: No lib/ directory found for $module" , next if "lib".IO !~~ :e;
       chdir "lib";
       recursive_copy  '.', "$home/lib";
-      say "$module was successfully installed to: $home/lib/";
- 
+
+      CATCH { default { 
+        #ignore the error
+        say $_;
+        $data = { error => $_ , module => $module };
+      } }
     }
+    return $data;
 	}	
 
   method push ( ) { 
@@ -91,35 +102,38 @@ class Zef {
       %pushdata<meta><dependencies> = $meta<dependencies>;
       my $req = EZRest.new;
       my $data = $req.req(
-        :host(     $prefs<host> ),
+        :host\   ( $prefs<host> ),
         :endpoint( $prefs<base> ~ '/push' ),
-        :data(     to-json( %pushdata ) )
+        :data\   ( to-json( %pushdata ) )
       );
-      $data = from-json $data.data;
-      say 'Pushed package \'' ~ $meta<name> ~ '\' version: ' ~ $data<version> if not defined $data<error>;
-      say 'Error: ' ~ $data<error> if defined $data<error>;
-    } else { 
-      say 'Could not find META.info';
+      {
+        $data.data = from-json $data.data;
+        die 'error' if defined $data<error>;
+        CATCH { default { 
+          $data = { error => $data<error> };
+        } }
+      }
+      return $data;
     }
+    return { error => 'No META.info found.' };
   }
   
   method search ( $module ) {
     my $req  = EZRest.new;
     my $data = $req.req(
-      :host(     $prefs<host> ),
+      :host\   ( $prefs<host> ),
       :endpoint( $prefs<base> ~ '/search' ),
-      :data(     "\{ \"query\" : \"$module\" \}"),
+      :data\   ( "\{ \"query\" : \"$module\" \}"),
     );
 
+    try {
+      $data.data = from-json( $data.data );
 
-    my $json = from-json( $data.data );
+      die 'No results found' if @( $data.data ).elems == 0 or @( $data.data ) !~~ Array;
 
-    if @( $json ).elems == 0 or @( $json ) !~~ Array {
-      say 'No results.';
-      return $data;
-    }
-    for @( $json ) -> $hash {
-      say "{$hash<package>}\t\t\t{$hash<version>}\t\t{$hash<submitted>} by {$hash<author>}";
+      CATCH { default { 
+        $data = { error => $_ };
+      } }
     }
     return $data;
   }

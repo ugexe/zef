@@ -63,7 +63,13 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
   my @lengths = 40, 10, 30;
   if $zef.status == 200 && $zef.data ~~ Array {
     @( $zef.data ) ==> map {
-      say "{$_<package>}{
+      my $INSTALLFLAG = ' ';
+      {
+        require ::($_<package>);
+        $INSTALLFLAG = 'i';
+        CATCH { default { } }
+      }
+      say "({$INSTALLFLAG})  {$_<package>}{
             ' 'x(@lengths[0]-$_<package>.chars)
            }{$_<version>}{
             ' 'x(@lengths[1]-$_<version>.chars)

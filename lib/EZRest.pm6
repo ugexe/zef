@@ -47,25 +47,24 @@ class EZRest::Response {
           $line   = $lines.trim;
           $len    = :16( $line ) , next if $len == 0 && $line ne '';
           $flag   = 0 , last if $len <= 0;
-          $.data ~= $lines ~ "\n";
-          $len   -= $lines.chars + 1;
+          $.data ~= $lines ~ ( $len == 0 ?? "\n" !! '' );
+          $len   -= $lines.chars + ( $len == 0 ?? 1 !! 0 );
         }
       }
-
     }    
   }
 };
 
 #this package is local to ZEF only
 class EZRest {
-  method req ( :$url = 'zef.pm' , :$endpoint = '/rest/' , :$data ) {
-    my @urld     = $url.split(':');
+  method req ( :$host = 'zef.pm' , :$endpoint = '/rest/' , :$data ) {
+    my @urld     = $host.split(':');
     @urld.push(80) if @urld[@urld.elems-1] !~~ /\d+/;
-    my $port     = +( @urld.pop );
-    my $host     = @urld.join(':'); 
-    my $pinksock = IO::Socket::INET.new( :$host , :$port );
+    my $rport    = +( @urld.pop );
+    my $rhost    = @urld.join(':'); 
+    my $pinksock = IO::Socket::INET.new( :host($rhost) , :port($rport) );
     my $reqbody  = "POST $endpoint HTTP/1.1\n"
-                 ~ "Host: $host:$port\n"
+                 ~ "Host: $rhost:$rport\n"
                  ~ "Accept: */*\n"
                  ~ "Content-Type: application/json\n"
                  ~ "Content-Length: {$data.chars}\n\n"

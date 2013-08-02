@@ -56,6 +56,7 @@ class Zef {
       }
       CATCH { default { 
         #ignore the error
+        say $_;
       } }
     }
     return $data;
@@ -163,7 +164,7 @@ class Zef {
 
   sub saveprefs ( ) {
     my $fh = open "$home/.zefrc", :w;
-    $fh.say( to-json( $prefs ) );
+    $fh.say( to-json( $prefs ).subst(/'",'/, "\",\n\t") );
     $fh.close;
   }
 }

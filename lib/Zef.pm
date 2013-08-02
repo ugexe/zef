@@ -99,7 +99,7 @@ class Zef {
       %pushdata<meta>               = { };
       %pushdata<meta><name>         = $meta<name>;
       %pushdata<meta><repository>   = $meta<source-url>;
-      %pushdata<meta><dependencies> = $meta<dependencies>;
+      %pushdata<meta><dependencies> = $meta<dependencies> or $meta<depends> or ();
       my $req = EZRest.new;
       my $data = $req.req(
         :host\   ( $prefs<host> ),

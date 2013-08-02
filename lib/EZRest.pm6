@@ -39,6 +39,10 @@ class EZRest::Response {
       }
 
       if $flag == 2 { #parse chunks
+        $len = %.headers<Content-Length> if %.headers<Transfer-Encoding>.defined && 
+                                            %.headers<Transfer-Encoding> ne 'chunked' &&
+                                            %.headers<Content-Length>.defined;
+        @chunker.shift if $len == 0;
         for @chunker -> Str $lines {
           $line  = $lines.subst(/[\r]/, '');
           $len    = :16( $line ) , next if $len == 0 && $line ne '';

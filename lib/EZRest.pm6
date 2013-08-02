@@ -76,7 +76,6 @@ Content-Length: {$data.chars}
 END
 ;
     $reqbody = $reqbody.subst(rx{ "\n" }, "\r\n", :g) ~ $data;
-    say $reqbody.perl;
     $pinksock.send( $reqbody );
     my $resp = EZRest::Response.new;
     $resp.make( $pinksock );

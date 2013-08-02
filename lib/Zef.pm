@@ -56,7 +56,6 @@ class Zef {
       }
       CATCH { default { 
         #ignore the error
-        say $_;
       } }
     }
     return $data;

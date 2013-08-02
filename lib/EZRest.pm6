@@ -22,16 +22,13 @@ class EZRest::Response {
     while  $flag > 0 && my Str @chunker = $pinksock.recv.split("\n") {
       if $flag == 1 { 
         $len = 1;
+
+        my @s = @chunker.unshift.split(' ', 3);
+        $.status     = @s[1].Int;
+        $.statustext = @s[2];
+        $.httpvs     = @s[0];
+
         for @chunker -> Str $lines {
-
-          if $.status == -1 {
-            my $s = $lines.split(' ', 3);
-            $.status     = :10( $s[1] );
-            $.statustext = $s[2];
-            $.httpvs     = $s[0];
-            next;
-          }
-
           $line = $lines.subst(/[\r]/, '');
           $flag = 2 , last if $line eq '';
           %.headers{ $line.split(':')[0] } = $line.split(':', 2)[1].trim if $line ne '';
@@ -42,10 +39,6 @@ class EZRest::Response {
       }
 
       if $flag == 2 { #parse chunks
-        $len = %.headers<Content-Length> if %.headers<Transfer-Encoding>.defined && 
-                                            %.headers<Transfer-Encoding> ne 'chunked' &&
-                                            %.headers<Content-Length>.defined;
-        @chunker.shift if $len == 0;
         for @chunker -> Str $lines {
           $line  = $lines.subst(/[\r]/, '');
           $len    = :16( $line ) , next if $len == 0 && $line ne '';
@@ -67,12 +60,12 @@ class EZRest {
     my $port     = +( @urld.pop );
     my $host     = @urld.join(':'); 
     my $pinksock = IO::Socket::INET.new( :$host , :$port );
-    my $reqbody  = "POST $endpoint HTTP/1.1\n";
-    $reqbody    ~= "Host: $host:$port\n";
-    $reqbody    ~= "Accept: */*\n";
-    $reqbody    ~= "Content-Type: application/json\n";
-    $reqbody    ~= "Content-Length: {$data.chars}\n\n";
-    $reqbody    ~= "$data";
+    my $reqbody  = "POST $endpoint HTTP/1.1\n"
+                 ~ "Host: $host:$port\n"
+                 ~ "Accept: */*\n"
+                 ~ "Content-Type: application/json\n"
+                 ~ "Content-Length: {$data.chars}\n\n"
+                 ~ "$data";
     $pinksock.send( $reqbody );
     my $resp = EZRest::Response.new;
     $resp.make( $pinksock );

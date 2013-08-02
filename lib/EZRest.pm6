@@ -67,12 +67,12 @@ class EZRest {
     my $port     = +( @urld.pop );
     my $host     = @urld.join(':'); 
     my $pinksock = IO::Socket::INET.new( :$host , :$port );
-    my $reqbody  = "POST $endpoint HTTP/1.1\n";
-    $reqbody    ~= "Host: $host:$port\n";
-    $reqbody    ~= "Accept: */*\n";
-    $reqbody    ~= "Content-Type: application/json\n";
-    $reqbody    ~= "Content-Length: {$data.chars}\n\n";
-    $reqbody    ~= "$data";
+    my $reqbody  = "POST $endpoint HTTP/1.1\n"
+                 ~ "Host: $host:$port\n"
+                 ~ "Accept: */*\n"
+                 ~ "Content-Type: application/json\n"
+                 ~ "Content-Length: {$data.chars}\n\n"
+                 ~ "$data";
     $pinksock.send( $reqbody );
     my $resp = EZRest::Response.new;
     $resp.make( $pinksock );

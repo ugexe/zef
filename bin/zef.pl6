@@ -49,11 +49,11 @@ multi sub MAIN('push', Bool :$verbose) {
   # Save git to latest commit id with version and authority
   my $zef = Zef.push;
   if $zef.data.defined && $zef.data<error>.defined {
-    say "Failed to push module, reason: {$zef.data<error>}";
+    say "[{color 'ERROR', 'red'}]: Failed to push module, reason: {$zef.data<error>}";
   } elsif $zef.data.defined && $zef.data<version> {
-    say "Successfully pushed module, version: {$zef.data<version>}";
+    say "[{color 'INFO', 'green'} ]: Successfully pushed module, version: {$zef.data<version>}";
   } else {
-    say 'Unknown error';
+    say "[{color 'ERROR', 'red'}]: Unknown error";
   }
 }
 
@@ -71,7 +71,7 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
             ' 'x(@lengths[2]-$_<author>.chars)
            }{$_<submitted>}";
     } if $zef.data.elems > 0;
-    say "No results found for: $module" if $zef.data.elems == 0;
+    say "[{color 'WARN', 'yellow'} ]: No results found for: $module" if $zef.data.elems == 0;
   } else {
 
 #NEED TO DO SOMETHING HERE WITH ERROR HANDLES
@@ -84,9 +84,9 @@ multi sub MAIN('login', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
   my $zef = Zef.login( $username , $password );
   if $zef.data ~~ Hash && $zef.data<success>.defined {
-    say 'Login was successful';
+    say "[{color 'INFO', 'green'} ]: Login was successful";
   } else {
-    say ( $zef.data.defined && $zef.data<failure> ??
+    say "[{color 'ERROR', 'red'}]: " ~ ( $zef.data.defined && $zef.data<failure> ??
           $zef.data<reason> !!
           'Unknown error'
         );
@@ -98,9 +98,9 @@ multi sub MAIN('register', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
   my $zef = Zef.register( $username , $password );
   if $zef.data ~~ Hash && $zef.data<success>.defined {
-    say 'Registration was successful';
+    say "[{color 'INFO', 'green'} ]: Registration was successful";
   } else {
-    say ( $zef.data.defined && $zef.data<failure> ??
+    say "[{color 'ERROR', 'red'}]: " ~ ( $zef.data.defined && $zef.data<failure> ??
           $zef.data<reason> !!
           'Unknown error'
         );

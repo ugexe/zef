@@ -3,6 +3,6 @@
     ,"version"     : "*"
     ,"description" : "Perl6 Module Management"
     ,"author"      : "cpan:UGEXE"
-    ,"depends"     : []
+    ,"depends"     : { "CSV::Query": "*" , "HTTP::Easy": "*" }
     ,"source-url"  : "git@github.com:ugexe/zef.git" 
 }

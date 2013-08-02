@@ -17,6 +17,8 @@ unless ( $home.IO ~~ :e ) {
 my $prefs = from-json(($home ~ '/.zefrc').IO ~~ :e ?? slurp $home ~ '/.zefrc' !! '{}');
 $prefs<base> = '/rest'  if !defined $prefs<base>;
 $prefs<host> = 'zef.pm' if !defined $prefs<host>;
+@*INC.push( $prefs<lib> ) if $prefs<lib>.defined;
+@*INC.push( "$home/lib" ) if !$prefs<lib>.defined;
 
 class Zef {
 
@@ -71,21 +73,33 @@ class Zef {
     );
     {
       $data.data = from-json( $data.data );
+      my @unsatisfieddepends;
+      my @satisfieddepends;
+      if $data.data<dependencies>.defined && $data.data<dependencies> ~~ Hash {
+        for %( $data.data<dependencies> ).keys -> Str $t {
+          require ::($t);
+          @satisfieddepends.push( $t );
+          CATCH { default { 
+            @unsatisfieddepends.push( $t );
+          } }
+        }
+        return { error => 'Unsatisfied dependencies' , unsat => @unsatisfieddepends , sat => @satisfieddepends } if @unsatisfieddepends.elems > 0;
+      }
+      die "Module not found in zef: $module" if !$data.data<repo>.defined;
       chdir $home ~ "/src";
       my $clone = "git clone \"{$data.data<repo>}\" \"{$module.subst('::','_')}\"";
       my $revrt = "git checkout \"{$data.data<commit>}\"";
-      recursive_rmdir( $module.subst('::', '_') );
+      recursive_rmdir( "$home/src/{$module.subst('::', '_')}" );
       qqx{$clone}; 
       chdir "{$module.subst('::', '_')}";
       qqx{$revrt};
-      die "ERROR: No lib/ directory found for $module" , next if "lib".IO !~~ :e;
+      die "ERROR: No 'lib/' directory found for $module" , next if "lib".IO !~~ :e;
       chdir "lib";
-      recursive_copy  '.', "$home/lib";
+      recursive_copy  '.', $prefs<lib> || "$home/lib";
 
       CATCH { default { 
-        #ignore the error
-        say $_;
-        $data = { error => $_ , module => $module };
+        my %hash =  error => $_ ;
+        $data = %hash;
       } }
     }
     return $data;
@@ -99,7 +113,7 @@ class Zef {
       %pushdata<meta>               = { };
       %pushdata<meta><name>         = $meta<name>;
       %pushdata<meta><repository>   = $meta<source-url>;
-      %pushdata<meta><dependencies> = $meta<dependencies> or $meta<depends> or ();
+      %pushdata<meta><dependencies> = $meta<dependencies> || $meta<depends> || ();
       my $req = EZRest.new;
       my $data = $req.req(
         :host\   ( $prefs<host> ),
@@ -141,7 +155,7 @@ class Zef {
   sub recursive_rmdir ( $path ) {
     return if $path.IO !~~ :e;
     for $path.IO.path.contents -> $tmppath {
-      if $tmppath.Str.IO ~~ :f {
+      if $tmppath.Str.IO !~~ :d {
         unlink $tmppath.Str;
       } elsif $tmppath.Str.IO ~~ :d {
         recursive_rmdir( $tmppath.Str );
@@ -152,8 +166,8 @@ class Zef {
 
   sub recursive_copy ( $path, $destination ) {
     for $path.IO.path.contents -> $tmppath {
-      if $tmppath.Str.IO ~~ :f {
-        $tmppath.copy( "{$destination.Str}/$tmppath" );
+      if $tmppath.Str.IO !~~ :d {
+        copy $tmppath.Str, "{$destination.Str}/$tmppath";
       } elsif $path.Str.IO ~~ :d {
         mkdir "$destination/$tmppath" if "$destination/$tmppath".IO !~~ :e;
         recursive_copy( "{$path.Str}/{$tmppath.Str}" , $destination );

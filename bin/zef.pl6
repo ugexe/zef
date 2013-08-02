@@ -10,11 +10,31 @@ BEGIN {
 }
 use Zef;
 
+my $colorlookup = { black => 30, red => 31, green => 32, yellow => 33, blue => 34, magenta => 35, cyan => 36, white => 37 };
+sub color ( Str $s , $color is copy ) {
+  $color = $colorlookup{$color} if $color !~~ rx{\d+};
+  return "\o33[0;{$color}m{$s}\o33[0;{$colorlookup<white>}m";
+}
+
 multi sub MAIN('install', *@modules, Bool :$verbose = False) {
-  for @modules -> $module {
+  while @modules.elems > 0 && my Str $module = @modules.shift {
+    say "[{color 'INFO', 'blue'} ]: Downloading META data for $module";
     my $zef = Zef.install( $module );
-    say "Error installing <<$module>>: {$zef.data<error>}" if !$zef.data.defined or $zef.data<error>.defined;
-    say "Installed <<$module>>" if $zef.data.defined and not $zef.data<error>.defined;
+    if $zef<error>.defined {
+      if $zef<unsat>.defined {
+        @modules.unshift( $module );
+        for @( $zef<unsat> ) -> Str $m {
+          @modules.unshift( $m ); 
+          say "[{color 'INFO', 'blue'} ]: $module depends on $m, downloading...";
+        }
+        next;
+      } else {
+        say "[{color 'ERROR', 'red'}]: {$zef<error>.Str}";
+        return;
+      }
+    }
+    say "[{color 'ERROR', 'red'}]: Error installing <<$module>>: {$zef<error>}" if $zef<error>.defined;
+    say "[{color 'INFO', 'green'} ]: Installed <<$module>>" if not $zef<error>.defined && $zef.data.defined;
   }
 }
 

@@ -20,7 +20,7 @@ $prefs<host> = 'zef.pm' if !defined $prefs<host>;
 
 class Zef {
 
-  method register ( $username , $password , Bool $autoupdate = True ) {
+  method register ( $username , $password , Bool $autoupdate? = True ) {
     my $req  = EZRest.new;
     my $data = $req.req( 
       :host\   ( $prefs<host> ),
@@ -30,8 +30,8 @@ class Zef {
     
     {
       $data.data = from-json( $data.data );
-      if defined $data<success> && $data<success> eq '1' {
-        $prefs<ukey> = $data<newkey>;
+      if defined $data.data<success> && $data.data<success> eq '1' {
+        $prefs<ukey> = $data.data<newkey>;
         saveprefs if $autoupdate;
       }
       CATCH { default {
@@ -41,7 +41,7 @@ class Zef {
     return $data;
   }
 
-  method login ( $username , $password , Bool $autoupdate = True ) {
+  method login ( $username , $password , Bool $autoupdate? = True ) {
     my $req  = EZRest.new;
     my $data = $req.req( 
       :host\   ( $prefs<host> ),
@@ -50,8 +50,8 @@ class Zef {
     );
     {
       $data.data = from-json( $data.data );
-      if defined $data<success> && $data<success> eq '1' {
-        $prefs<ukey> = $data<newkey>;
+      if defined $data.data<success> && $data.data<success> eq '1' {
+        $prefs<ukey> = $data.data<newkey>;
         saveprefs if $autoupdate;
       }
       CATCH { default { 
@@ -161,9 +161,15 @@ class Zef {
     }
   }
 
-  sub saveprefs ( ) {
-    my $fh = open "$home/.zefrc", :w;
-    $fh.say( to-json( $prefs ).subst(/'",'/, "\",\n\t") );
-    $fh.close;
-  }
+}
+
+sub saveprefs ( ) {
+  my $fh      = open "$home/.zefrc", :w;
+  my $prefstr = to-json( $prefs );
+  $prefstr = $prefstr.subst(rx{\}$},  "\n}")\
+                     .subst(rx{^\{},  "\{\n\t")\
+                     .subst(rx{'",'}, "\",\n\t", :g);
+                     
+  $fh.say( $prefstr );
+  $fh.close;
 }

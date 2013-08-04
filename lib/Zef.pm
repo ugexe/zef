@@ -110,7 +110,6 @@ class Zef {
       my $meta = from-json slurp( 'META.info' );
       my %pushdata = (
         key                => $prefs<ukey>,
-        meta               => { },
         meta               => (
           name         => $meta<name>,
           repository   => $meta<source-url>,

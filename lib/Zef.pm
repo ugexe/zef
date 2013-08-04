@@ -108,12 +108,16 @@ class Zef {
   method push ( ) { 
     if ( 'META.info'.IO ~~ :e ) {
       my $meta = from-json slurp( 'META.info' );
-      my %pushdata;
-      %pushdata<key>                = $prefs<ukey>;
-      %pushdata<meta>               = { };
-      %pushdata<meta><name>         = $meta<name>;
-      %pushdata<meta><repository>   = $meta<source-url>;
-      %pushdata<meta><dependencies> = $meta<dependencies> || $meta<depends> || ();
+      my %pushdata = (
+        key                => $prefs<ukey>,
+        meta               => { },
+        meta               => (
+          name         => $meta<name>,
+          repository   => $meta<source-url>,
+          dependencies => $meta<dependencies> || $meta<depends> || (),
+        ),
+      );
+
       my $req = EZRest.new;
       my $data = $req.req(
         :host\   ( $prefs<host> ),

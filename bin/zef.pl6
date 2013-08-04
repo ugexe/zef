@@ -1,4 +1,5 @@
 #!/usr/bin/env perl6
+use v6;
 
 BEGIN {
 #following line has unimplemented features and would replace up to @*INC.push..
@@ -8,6 +9,7 @@ BEGIN {
   $dynamicinc    = $dynamicinc.splice(0, $dynamicinc.elems -1).join( $fsflag ) ~ "{$fsflag}lib";
   @*INC.push( $dynamicinc );
 }
+use lib 'lib';
 use Zef;
 
 my $colorlookup = { black => 30, red => 31, green => 32, yellow => 33, blue => 34, magenta => 35, cyan => 36, white => 37 };

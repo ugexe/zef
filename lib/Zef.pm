@@ -63,7 +63,7 @@ class Zef {
     return $data;
   }
 
-	method install ( $module ) {
+	method install ( $module , Bool $test = True ) {
 		# install shit
     my $req = EZRest.new;
     my $data = $req.req(
@@ -94,6 +94,32 @@ class Zef {
       chdir "{$module.subst('::', '_')}";
       qqx{$revrt};
       die "ERROR: No 'lib/' directory found for $module" , next if "lib".IO !~~ :e;
+      if $test && 't'.IO ~~ :d {
+        my $test = 'prove -e \'perl6 -Ilib\' t/';
+        $test    = qqx{$test}.trim;
+        #report information
+        my %testhash = {
+          package       => $module,
+          results       => $test,
+          os            => $*OS,
+          perlversion   => $*PERL,
+          moduleversion => $data.data<commit>,
+          tester        => $prefs<ukey>
+        };
+
+        my $report = EZRest.new;
+        my $reporthash = to-json(%testhash);
+        my $reportdata = $req.req(
+          :host\   ( $prefs<host> ),
+          :endpoint( $prefs<base> ~ '/testresult' ),
+          :data\   ( $reporthash )
+        );
+        
+        # I don't care if the report makes it or not
+
+        die 'Failed test, not installing: ' ~ $module if $test !~~ rx{"\nResult: PASS"}
+      
+      }
       chdir "lib";
       recursive_copy  '.', $prefs<lib> || "$home/lib";
 
@@ -110,11 +136,11 @@ class Zef {
       my $meta = from-json slurp( 'META.info' );
       my %pushdata = (
         key                => $prefs<ukey>,
-        meta               => (
+        meta               => {
           name         => $meta<name>,
           repository   => $meta<source-url>,
-          dependencies => $meta<dependencies> || $meta<depends> || (),
-        ),
+          dependencies => $meta<dependencies> || $meta<depends> || Array.new,
+        },
       );
 
       my $req = EZRest.new;
@@ -127,12 +153,12 @@ class Zef {
         $data.data = from-json $data.data;
         die 'error' if defined $data<error>;
         CATCH { default { 
-          $data = { error => $data<error> };
+          $data = ( error => $data<error> );
         } }
       }
       return $data;
     }
-    return { error => 'No META.info found.' };
+    return ( error => 'No META.info found.' );
   }
   
   method search ( $module ) {

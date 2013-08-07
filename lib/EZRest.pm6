@@ -60,18 +60,19 @@ class EZRest::Response {
 
 #this package is local to ZEF only
 class EZRest {
-  method req ( :$host = 'zef.pm' , :$endpoint = '/rest/' , :$data ) {
+  method req ( :$host = 'zef.pm' , :$endpoint = '/rest/' , Str :$data ) {
     my @urld     = $host.split(':');
     @urld.push(80) if @urld[@urld.elems-1] !~~ /\d+/;
     my $rport    = +( @urld.pop );
     my $rhost    = @urld.join(':'); 
     my $pinksock = IO::Socket::INET.new( :host($rhost) , :port($rport) );
+    my $datalen  = $data.chars;
     my $reqbody  = qq:to/END/
 POST $endpoint HTTP/1.1
 Host: $rhost:$rport
 Accept: */*
 Content-Type: application/json
-Content-Length: {$data.chars}
+Content-Length: {$datalen}
 
 END
 ;

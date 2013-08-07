@@ -146,10 +146,8 @@ class Zef {
     try {
       $data.data = from-json( $data.data );
 
-      die 'No results found' if @( $data.data ).elems == 0 or @( $data.data ) !~~ Array;
-
       CATCH { default { 
-        $data = { error => $_ };
+        $data = ( error => $_ );
       } }
     }
     return $data;

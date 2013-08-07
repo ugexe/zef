@@ -63,7 +63,8 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
   # display a list of modules for a query
   my $zef     = Zef.search( $module );
   my @lengths = 40, 10, 30;
-  if $zef.status == 200 && $zef.data ~~ Array {
+
+  if $zef.data.defined && $zef.data ~~ Array && $zef.status == 200 {
     @( $zef.data ) ==> map {
       my $INSTALLFLAG = ' ';
       {
@@ -79,11 +80,11 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
             ' 'x(@lengths[2]-$_<author>.chars)
            }{$_<submitted>}";
     } if $zef.data.elems > 0;
-    say "[{color 'WARN', 'yellow'} ]: No results found for: $module" if $zef.data.elems == 0;
+    say "[{color 'INFO', 'yellow'} ]: No results found for: $module" if $zef.data.elems == 0;
   } else {
 
 #NEED TO DO SOMETHING HERE WITH ERROR HANDLES
-
+    
     say $zef.perl;
   }
 }

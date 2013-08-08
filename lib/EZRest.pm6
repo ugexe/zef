@@ -66,7 +66,7 @@ class EZRest {
     my $rport    = +( @urld.pop );
     my $rhost    = @urld.join(':'); 
     my $pinksock = IO::Socket::INET.new( :host($rhost) , :port($rport) );
-    my $datalen  = $data.chars;
+    my $datalen  = $data.chars; # $data.encode('UTF-8').bytes; 
     my $reqbody  = qq:to/END/
 POST $endpoint HTTP/1.1
 Host: $rhost:$rport

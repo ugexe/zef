@@ -1,12 +1,12 @@
-# NAME
+## NAME
 
 Zef - Perl6 Module Management
 
-# DESCRIPTION
+## DESCRIPTION
 
 CPAN but better. Maybe?
 
-# MODULE MANAGEMENT
+## MODULE MANAGEMENT
 
     zef install CSV::Parser
     # duh
@@ -20,7 +20,7 @@ CPAN but better. Maybe?
     zef push
     # upload module in cwd using meta.info
 
-# SOCIAL
+## SOCIAL
 
 	zef register sbalmer winrtlol
 	# register <username> <password>
@@ -39,10 +39,11 @@ CPAN but better. Maybe?
 	zef comment Zef 'literal trash for idiots'
 	# dont let others make the same mistake!!
 
-# OTHER FEATURES
+## OTHER FEATURES
+
  * Test reporting to Zef servers
 
-# AUTHORS
+## AUTHORS
 
-Nick Logan <`ugexe@cpan.org`\>
-Tony O'Dell <`tonyo@cpan.org`\>
+Nick Logan `ugexe@cpan.org`
+Tony O'Dell `tonyo@cpan.org`

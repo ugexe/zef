@@ -21,7 +21,7 @@ sub color ( Str $s , $color is copy ) {
 multi sub MAIN('install', *@modules, Bool :$verbose = False) {
   while @modules.elems > 0 && my Str $module = @modules.shift {
     say "[{color 'INFO', 'blue'} ]: Downloading META data for $module";
-    my $zef = Zef.install( $module );
+    my $zef = Zef.install(module => $module );
     if $zef<error>.defined {
       if $zef<unsat>.defined {
         @modules.unshift( $module );
@@ -61,7 +61,7 @@ multi sub MAIN('push', Bool :$verbose) {
 
 multi sub MAIN('search', *$module, Bool :$verbose) {
   # display a list of modules for a query
-  my $zef     = Zef.search( $module );
+  my $zef     = Zef.search( module => $module );
   my @lengths = 40, 10, 30;
 
   if $zef.data.defined && $zef.data ~~ Array && $zef.status == 200 {
@@ -91,7 +91,7 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
 
 multi sub MAIN('login', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
-  my $zef = Zef.login( $username , $password );
+  my $zef = Zef.login( username => $username, password => $password );
   if $zef.data ~~ Hash && $zef.data<success>.defined {
     say "[{color 'INFO', 'green'} ]: Login was successful";
   } else {
@@ -105,7 +105,7 @@ multi sub MAIN('login', *$username, *$password, Bool :$verbose) {
 
 multi sub MAIN('register', *$username, *$password, Bool :$verbose) {
   # get a unique key for our username and write to local config
-  my $zef = Zef.register( $username , $password );
+  my $zef = Zef.register( username => $username, password => $password );
   if $zef.data ~~ Hash && $zef.data<success>.defined {
     say "[{color 'INFO', 'green'} ]: Registration was successful";
   } else {

@@ -31,7 +31,7 @@ method install ( Str :$module, Bool :$test = True ) {
       }
       return { error => 'Unsatisfied dependencies' , unsat => @unsatisfieddepends , sat => @satisfieddepends } if @unsatisfieddepends.elems > 0;
     }
-
+    
     die "Module not found in zef: $module" if !$data.data<repo>.defined;
     chdir $home ~ "/src";
     my $clone = "git clone \"{$data.data<repo>}\" \"{$module.subst('::','_')}\"";
@@ -42,7 +42,7 @@ method install ( Str :$module, Bool :$test = True ) {
     qqx{$revrt};
     die "ERROR: No 'lib/' directory found for $module" , next if "lib".IO !~~ :e;
 
-    if $test  { die "Failed to install $module" unless Zef::Test.new.test( $module ); }
+    if $test  { die "Failed to install $module" unless Zef::Test.test( module => $module ); }
 
     chdir "lib";
     recursive_copy  '.', $prefs<lib> || "$home/lib";

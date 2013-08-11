@@ -1,9 +1,11 @@
 class Zef;
-use Zef::Utils;
-use Zef::Install;
-use Zef::Test;
 use Zef::Auth;
-use Zef::EZRest;
+use Zef::Install;
+use Zef::Push;
+use Zef::Search;
+use Zef::Test;
+
+use Zef::Utils;
 use JSON::Tiny;
 
 
@@ -31,57 +33,27 @@ method login ( Str :$username, Str :$password , Bool :$autoupdate = True ) {
 
 method install ( Str :$module, Bool :$test = True ) {
   # test should be done outside of .install, also method test for just testing
+  # [i.e.] if $test { return 'test failed' unless Zef::Test.test( module => $module) }; return Zef::Install.install( module => $module);
+  # This will require splitting the module fetching out of the Install module, so test can be sent a target without calling .install
   my $install = Zef::Install.install( module => $module, test => $test);
   return $install;
 }	
 
 
-method push ( ) { 
-  if ( 'META.info'.IO ~~ :e ) {
-    my $meta = from-json slurp( 'META.info' );
-    my %pushdata = (
-      key                => $prefs<ukey>,
-      meta               => {
-        name         => $meta<name>,
-        repository   => $meta<source-url>,
-        dependencies => $meta<dependencies> || $meta<depends> || Array.new,
-      },
-    );
+method test ( Str :$module ) {
+  my $test = Zef::Test.test( module => $module );
+  return $test??'Tests passed'!!'TESTS FAILED';
+} 
 
-    my $req = EZRest.new;
-    my $data = $req.req(
-      :host\   ( $prefs<host> ),
-      :endpoint( $prefs<base> ~ '/push' ),
-      :data\   ( to-json( %pushdata ) )
-    );
-    {
-      $data.data = from-json $data.data;
-      die 'error' if defined $data<error>;
-      CATCH { default { 
-        $data = ( error => $data<error> );
-      } }
-    }
-    return $data;
-  }
-  return ( error => 'No META.info found.' );
+
+method push ( ) { 
+  my $data = Zef::Push.push( );
+  return $data;
 }
 
 
 method search ( Str :$module ) {
-  my $req  = EZRest.new;
-  my $data = $req.req(
-    :host\   ( $prefs<host> ),
-    :endpoint( $prefs<base> ~ '/search' ),
-    :data\   ( "\{ \"query\" : \"$module\" \}"),
-  );
-
-  try {
-    $data.data = from-json( $data.data );
-
-    CATCH { default { 
-      $data = ( error => $_ );
-    } }
-  }
+  my $data = Zef::Search.search( module => $module );
   return $data;
 }
 

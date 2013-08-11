@@ -8,7 +8,15 @@ my Str $home  = gethome();
 my $prefs = getprefs( $home );
 
 
-method test ( $module ) {
+method test ( Str :$module ) {
+  my $req = EZRest.new;
+  my $data = $req.req(
+  :host\   ( $prefs<host> ),
+    :endpoint( $prefs<base> ~ '/download' ),
+    :data\   ( "\{ \"name\" : \"$module\" \}"),
+  );
+  $data.data = from-json( $data.data );
+  
   my $test = 'prove -e \'perl6 -Ilib\' t/';
   $test    = qqx{$test}.trim;
   #report information
@@ -18,13 +26,12 @@ method test ( $module ) {
     os            => $*OS,
     perlversion   => $*PERL,
     #moduleversion => $data.data<commit>,
-    #tester        => $prefs<ukey>
+    tester        => $prefs<ukey>
   };
 
 
-  my $report = EZRest.new;
   my $reporthash = to-json(%testhash);
-  my $reportdata = $report.req(
+  my $reportdata = $req.req(
     :host\   ( $prefs<host> ),
     :endpoint( $prefs<base> ~ '/testresult' ),
     :data\   ( $reporthash )

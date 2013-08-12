@@ -18,10 +18,11 @@ sub color ( Str $s , $color is copy ) {
   return "\o33[0;{$color}m{$s}\o33[0;{$colorlookup<white>}m";
 }
 
-multi sub MAIN('install', *@modules, Bool :$verbose = False) {
+multi sub MAIN('install', *@modules, Bool :$verbose = False, Bool :$test = True) {
+  say "test: $test";
   while @modules.elems > 0 && my Str $module = @modules.shift {
     say "[{color 'INFO', 'blue'} ]: Downloading META data for $module";
-    my $zef = Zef.install(module => $module );
+    my $zef = Zef.install(module => $module, test => $test);
     if $zef<error>.defined {
       if $zef<unsat>.defined {
         @modules.unshift( $module );

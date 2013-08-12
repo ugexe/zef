@@ -10,6 +10,7 @@ my $prefs = getprefs( $home );
 
 
 method install ( Str :$module, Bool :$test = True ) {
+  say $test;
   my $req = EZRest.new;
   my $data = $req.req(
   :host\   ( $prefs<host> ),

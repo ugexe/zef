@@ -16,12 +16,15 @@ sub recursive_rmdir ( Str $path ) is export {
 
 
 sub recursive_copy ( Str $path, Str $destination ) is export {
+  say "checking $path";
+  return if $path.IO !~~ :e;
   for $path.IO.path.contents -> $tmppath {
     if $tmppath.Str.IO !~~ :d {
       copy $tmppath.Str, "{$destination.Str}/$tmppath";
+      say "copy {$tmppath.Str}, {$destination.Str}/$tmppath";
     } elsif $path.Str.IO ~~ :d {
       mkdir "$destination/$tmppath" if "$destination/$tmppath".IO !~~ :e;
-      recursive_copy( "{$path.Str}/{$tmppath.Str}" , $destination );
+      recursive_copy( "{$tmppath.Str}" , $destination );
     }
   }
 }

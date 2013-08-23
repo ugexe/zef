@@ -69,16 +69,16 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
     @( $zef.data ) ==> map {
       my $INSTALLFLAG = ' ';
       {
-        require ::($_<package>);
+        require ::($_<name>);
         $INSTALLFLAG = 'i';
         CATCH { default { } }
       }
-      say "({$INSTALLFLAG})  {$_<package>}{
-            ' 'x(@lengths[0]-$_<package>.chars)
+      say "({$INSTALLFLAG})  {$_<name>}{
+            ' 'x(@lengths[0]-$_<name>.chars)
            }{$_<version>}{
             ' 'x(@lengths[1]-$_<version>.chars)
-           }{$_<author>}{
-            ' 'x(@lengths[2]-$_<author>.chars)
+           }{$_<owner>}{
+            ' 'x(@lengths[2]-$_<owner>.chars)
            }{$_<submitted>}";
     } if $zef.data.elems > 0;
     say "[{color 'INFO', 'yellow'} ]: No results found for: $module" if $zef.data.elems == 0;

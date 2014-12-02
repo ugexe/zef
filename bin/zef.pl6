@@ -5,7 +5,7 @@ BEGIN {
 #following line has unimplemented features and would replace up to @*INC.push..
 #  $dynamicinc = "{$?FILE.path.directory}/../lib".IO.path.resolve;
   my $fsflag     = $?FILE.path.index('/') >= 0 ?? '/' !! '\\';
-  my $dynamicinc = $?FILE.path.directory.split($fsflag);
+  my $dynamicinc = $?FILE.path.dirname.split($fsflag);
   $dynamicinc    = $dynamicinc.splice(0, $dynamicinc.elems -1).join( $fsflag ) ~ "{$fsflag}lib";
   @*INC.push( $dynamicinc );
 }
@@ -69,16 +69,16 @@ multi sub MAIN('search', *$module, Bool :$verbose) {
     @( $zef.data ) ==> map {
       my $INSTALLFLAG = ' ';
       {
-        require ::($_<name>);
+        require ::($_<package>);
         $INSTALLFLAG = 'i';
         CATCH { default { } }
       }
-      say "({$INSTALLFLAG})  {$_<name>}{
-            ' 'x(@lengths[0]-$_<name>.chars)
+      say "({$INSTALLFLAG})  {$_<package>}{
+            ' 'x(@lengths[0]-$_<package>.chars)
            }{$_<version>}{
             ' 'x(@lengths[1]-$_<version>.chars)
-           }{$_<owner>}{
-            ' 'x(@lengths[2]-$_<owner>.chars)
+           }{$_<author>}{
+            ' 'x(@lengths[2]-$_<author>.chars)
            }{$_<submitted>}";
     } if $zef.data.elems > 0;
     say "[{color 'INFO', 'yellow'} ]: No results found for: $module" if $zef.data.elems == 0;

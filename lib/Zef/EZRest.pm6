@@ -39,12 +39,12 @@ class EZRest::Response {
       }
 
       if $flag == 2 { #parse chunks
-        $len = -1 if %.headers<Transfer-Encoding>.defined && %.headers<Transfer-Encoding> ne 'chunked'; 
+        $len = -1 if not %.headers<Transfer-Encoding>.defined or %.headers<Transfer-Encoding> ne 'chunked'; 
         $len = :10( %.headers<Content-Length> ) if ( ( %.headers<Transfer-Encoding>.defined && 
                                                    %.headers<Transfer-Encoding> ne 'chunked' ) ||
                                                    %.headers<Content-Length>.defined ) &&
                                                    $len == 0;
-        my $mlen = $len; 
+
         $flag = 0, $.data = @chunker.join("\n") if $len == -1;
         for @chunker -> Str $lines {
           $line   = $lines.trim;
@@ -53,7 +53,6 @@ class EZRest::Response {
           $.data ~= $lines ~ ( $len == 0 ?? "\n" !! '' );
           $len   -= $lines.chars + ( $len == 0 ?? 1 !! 0 );
         }
-        $flag = 0 if $.data.chars >= $mlen;
       }
     }    
   }

@@ -1,4 +1,5 @@
 class Zef;
+
 use Zef::Auth;
 use Zef::Install;
 use Zef::Push;
@@ -56,4 +57,3 @@ method search ( Str :$module ) {
   my $data = Zef::Search.search( module => $module );
   return $data;
 }
-

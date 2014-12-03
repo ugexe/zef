@@ -22,22 +22,22 @@ CPAN but better. Maybe?
 
 ## SOCIAL
 
-	zef register sbalmer winrtlol
-	# register <username> <password>
+    zef register sbalmer winrtlol
+    # register <username> <password>
 
-	zef login sbalmer winrtlol
-	# login <username> <password>
+    zef login sbalmer winrtlol
+    # login <username> <password>
 
-	# ok, now...
+    # ok, now...
 
-	zef like Zef
-	# Oops
+    zef like Zef
+    # Oops
 
-	zef unlike Zef
-	# thats better
+    zef unlike Zef
+    # thats better
 
-	zef comment Zef 'literal trash for idiots'
-	# dont let others make the same mistake!!
+    zef comment Zef 'literal trash for idiots'
+    # dont let others make the same mistake!!
 
 ## OTHER FEATURES
 

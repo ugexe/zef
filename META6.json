@@ -1,0 +1,24 @@
+{
+    "name"        : "Zef",
+    "version"     : "*",
+    "description" : "CPAN but better. Maybe?",
+    "provides"    : {
+        "Zef" : "lib/Zef.pm6",
+        "Zef::App" : "lib/Zef::App.pm6",
+        "Zef::Getter"       : "lib/Zef/Getter.pm6",
+        "Zef::Getter::Git"  : "lib/Zef/Getter/Git.pm6",
+        "Zef::Getter::HTTP" : "lib/Zef/Getter/HTTP.pm6",
+        "Zef::Compiler" : "lib/Zef/Compiler.pm6",
+        "Zef::Tester"          : "lib/Zef/Tester.pm6",
+        "Zef::Tester::P5Prove" : "lib/Zef/Tester/P5Prove.pm6",
+        "Zef::Installer" : "lib/Zef/Installer.pm6",
+        "Zef::Reporter" : "lib/Zef/Reporter.pm6",
+        "Zef::Reporter::Feather" : "lib/Zef/Reporter/Feather.pm6",
+        "Zef::Reporter::Zef"     : "lib/Zef/Reporter/Zef.pm6"
+    },
+    "authors" : [
+        "Nick Logan <ugexe>",
+        "Tony O'Dell <tony-o>"       
+    ],
+    "source-url"  : "git@github.com:ugexe/zef.git" 
+}

@@ -1,0 +1,2 @@
+module Zef::App;
+

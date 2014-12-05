@@ -1,13 +1,6 @@
 #!/usr/bin/env perl6
-use Zef;
 use Zef::App;
 
+my $zef = Zef::App.new(%*OPTS) or die;
 
-
-
-multi sub MAIN('install', *@install_us, Bool :$verbose = False, Bool :$notest = False) {
-    say "test: $test";
-
-    my $zef = Zef::App.new;
-    $zef.install(:$notest, @install_us);
-}
+exit 0;

@@ -5,6 +5,7 @@
     "provides"    : {
         "Zef" : "lib/Zef.pm6",
         "Zef::App" : "lib/Zef::App.pm6",
+        "Zef::Exception" : "lib/Zef/Exception.pm6",
         "Zef::Getter"       : "lib/Zef/Getter.pm6",
         "Zef::Getter::Git"  : "lib/Zef/Getter/Git.pm6",
         "Zef::Getter::HTTP" : "lib/Zef/Getter/HTTP.pm6",

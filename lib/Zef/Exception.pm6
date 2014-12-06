@@ -5,8 +5,8 @@ class X::Zef is Exception {
     has $.reason;
 
     method new($stage, $reason is copy) {
-        if $description ~~ Failure {
-            $message = $description.exception.message
+        if $reason ~~ Failure {
+            $.reason = $reason.exception.message;
         }
         self.bless(:$stage, :$reason)
     }

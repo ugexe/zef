@@ -1,17 +1,14 @@
-module Zef::App;
+class Zef::App;
 use Zef::Tester;
 
-has %.opts is rw;
+has $.tester = Zef::Tester.new;
+has %.args;
 
-# we want this to be imported into bin/zef so the command:
-# `zef test t/` gets pulled from here and works
-
-sub MAIN('test', *@paths) {
-    my $tester = Zef::Tester.new;
-    $tester.test($_) for @paths;
+multi method MAIN('test', *@paths) {
+    $.tester.test($_) for @paths;
     
     CATCH { 
         when X::Zef { say 'Try and handle these' }
-        default     { say 'ERROR'                }
+        default     { say "ERROR: $_"            }
     }
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env perl6
 use Zef::App;
 
-my $zef = Zef::App.new.MAIN('test',$*CWD);
+my $zef = Zef::App.new.MAIN('test', $*CWD);
 
 exit 0;

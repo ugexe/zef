@@ -1,4 +1,5 @@
 class Zef::App;
+use Zef::Exception;
 use Zef::Tester;
 
 has $.tester = Zef::Tester.new;

@@ -1,9 +1,10 @@
 class Zef::Tester;
 use Zef::Exception;
+use Zef::Config;
 
 submethod BUILD( ) {
     use Zef::Role::Test;
-
+    %config.perl.say;
     my @plugins = <Zef::Role::P5Prove>;
     for @plugins -> $plugin {
         require ::($plugin);

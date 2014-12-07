@@ -1,17 +1,18 @@
-module Zef::Installer;
+class Zef::Installer;
 use JSON::Tiny;
 
-sub install(
+
+method install(
     @metafiles, 
     CompUnitRepo::Local::Installation $repo = {
         try { mkdir('~/.zef/depot'); };
         .new("~/.zef/depot".IO.abs_path);
     },
-    |%options
+    *%options
 ) is export {
     for @metafiles -> $file {
         my %data = %(from-json($file.IO.slurp));
-        if !%opts.exists_key<force> {
+        if !%options.exists_key<force> {
             for @($repo.candidates(%data<name>)) -> $mod {
                 if $mod<name> eq %data<name> &&
                    $mod<ver>  eq Version.new(%data.exists_key('vers')    ?? %data<vers> !!
@@ -21,7 +22,7 @@ sub install(
                                  (%data.exists_key('author') ?? %data<author> !!
                                  (%data.exists_key('authority') ?? %data<authority> !!
                                  ''))) {
-                    "==> Skipping {%data<name>} already installed ref:<$meta>".say;
+                    "==> Skipping {%data<name>} already installed ref:<$mod>".say;
                     next;
                 }
             }
@@ -36,3 +37,4 @@ sub install(
         ) or die "Unable to install $file in $repo";
     }
 }
+

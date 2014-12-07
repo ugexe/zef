@@ -1,7 +1,4 @@
 module Zef::Reporter;
-use Zef::Reporter::Zef;
-use Zef::Reporter::Feather;
+use Zef::Role::Zef;
+use Zef::Role::Feather;
 
-has @.reporters = <Zef Feather>;
-
-# default report to stdout/file

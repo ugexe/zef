@@ -1,7 +1,4 @@
-use Zef::Tester;
-
-class Zef::Tester::P5Prove does Zef::Tester {
-    proto method test() {*}
+role Zef::Role::P5Prove {
     multi method test(Str $dir) { self.test($dir.IO) }
     multi method test(IO::Path $dir) {
         shell "prove -V";

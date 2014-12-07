@@ -3,6 +3,7 @@ module Zef::Exception;
 class X::Zef is Exception {
     has $.stage;
     has $.reason;
+    has $.error;
 
     method new($stage, $reason is copy) {
         if $reason ~~ Failure {

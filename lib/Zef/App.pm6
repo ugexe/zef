@@ -14,7 +14,7 @@ multi MAIN('test') is export {
 #| Test modules in the specified directories
 multi MAIN('test', *@paths) is export {
     my $tester = Zef::Tester.new;
-    $tester.test($_) for @paths;
+    $tester.*test($_) for @paths;
 }
 
 #| Install freshness

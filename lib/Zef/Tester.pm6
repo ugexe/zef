@@ -1,24 +1,19 @@
+class Zef::Tester;
 use Zef::Exception;
 
-role Testing { # base testing role for plugins
-    submethod BUILD( ) {
-        # Doesn't work...?
-        # my @roles = <Zef::Role::P5Prove>;
-        # for @roles -> $role {
-        #    require ::($role);
-        #    self does ::($role);
-        # }
+submethod BUILD( ) {
+    use Zef::Role::Test;
 
-        use Zef::Role::P5Prove;
-        self does Zef::Role::P5Prove;
+    my @plugins = <Zef::Role::P5Prove>;
+    for @plugins -> $plugin {
+        require ::($plugin);
+        next unless ::($plugin) ~~ Zef::Role::Test;
+        self does ::($plugin);
     }
 }
 
-class Zef::Tester { 
-    also does Testing;
+CATCH { 
+    when X::Zef { say 'Try and handle these' }
+    default     { say "ERROR: $_"            }
+}    
 
-    CATCH { 
-        when X::Zef { say 'Try and handle these' }
-        default     { say "ERROR: $_"            }
-    }    
-};

@@ -1,3 +1,5 @@
+use Zef::Exception;
+
 role Testing { # base testing role for plugins
     submethod BUILD( ) {
         # Doesn't work...?
@@ -14,4 +16,9 @@ role Testing { # base testing role for plugins
 
 class Zef::Tester { 
     also does Testing;
+
+    CATCH { 
+        when X::Zef { say 'Try and handle these' }
+        default     { say "ERROR: $_"            }
+    }    
 };

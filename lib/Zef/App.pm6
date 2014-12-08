@@ -22,10 +22,3 @@ multi MAIN('install', *@modules) is export {
     my $installer = Zef::Installer.new;
     $installer.install($_) for @modules;
 }
-
-END {
-    CATCH { 
-        when X::Zef { say 'Try and handle these' }
-        default     { say "ERROR: $_"            }
-    }    
-}

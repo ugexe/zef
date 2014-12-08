@@ -8,8 +8,8 @@ use Zef::Config;
 
 #load plugins for extra justice
 for @($config<plugins>) {
-  $_.perl.say;
-  require $_;
+    $_.perl.say;
+    require $_;
 }
 
 #| Test modules in cwd

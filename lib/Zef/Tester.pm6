@@ -1,14 +1,13 @@
-class Zef::Tester {
-    use Zef::Phase::Testing;
-    
+use Zef::Phase::Testing;
+class Zef::Tester does Zef::Phase::Testing {
     has @.plugins;
 
-    submethod BUILD(:@!plugins) {
+    submethod BUILD(:@!plugins?) {
         for @!plugins -> $plugin {
             require ::($plugin);
-            my $loaded = ::($plugin).new;
-            $loaded:delete andthen next unless $loaded.isa(::('Zef::Phase::Testing'));
-            self does $loaded;
+            say "require $plugin";
+            my $mod = ::($plugin);
+            self does ::($plugin);
         }
     }
 }

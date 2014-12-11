@@ -1,1 +1,0 @@
-module Zef::Getter::HTTP;

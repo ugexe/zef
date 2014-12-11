@@ -1,18 +1,13 @@
-class Zef::Tester;
-use Zef::Exception;
-use Zef::Config;
+use Zef::Phase::Testing;
+class Zef::Tester does Zef::Phase::Testing {
+    has @.plugins;
 
-submethod BUILD( ) {
-    use Zef::Role::Test;
-    for @($config<plugins>) -> $plugin {
-        require ::($plugin);
-        next unless ::($plugin) ~~ Zef::Role::Test;
-        self does ::($plugin);
+    submethod BUILD(:@!plugins?) {
+        for @!plugins -> $plugin {
+            require ::($plugin);
+            say "require $plugin";
+            my $mod = ::($plugin);
+            self does ::($plugin);
+        }
     }
 }
-
-CATCH { 
-    when X::Zef { say 'Try and handle these' }
-    default     { say "ERROR: $_"            }
-}    
-

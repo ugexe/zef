@@ -4,12 +4,10 @@ class Zef::App;
 use Zef::Exception;
 use Zef::Tester;
 use Zef::Installer;
-use Zef::Config;
 
-#load plugins for extra justice
-for @($config<plugins>) {
-    $_.perl.say;
-    require $_;
+our @plugins = BEGIN {
+    use Zef::Config;
+    $config<plugins>.list;
 }
 
 #| Test modules in cwd
@@ -21,7 +19,7 @@ multi MAIN('test') is export {
 
 #| Test modules in the specified directories
 multi MAIN('test', *@paths) is export {
-    my $tester = Zef::Tester.new;
+    my $tester = Zef::Tester.new(:@plugins);
     $tester.*test($_) for @paths;
 }
 

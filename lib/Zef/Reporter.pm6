@@ -1,4 +1,4 @@
 module Zef::Reporter;
-use Zef::Role::Zef;
-use Zef::Role::Feather;
+use Zef::Plugin::Zef;
+use Zef::Plugin::Feather;
 

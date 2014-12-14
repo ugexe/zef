@@ -42,8 +42,4 @@ CPAN but better. Maybe?
 ## OTHER FEATURES
 
  * Test reporting to Zef servers
-
-## AUTHORS
-
-Nick Logan `ugexe@cpan.org`
-Tony O'Dell `tonyo@cpan.org`
+ 

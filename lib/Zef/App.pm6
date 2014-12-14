@@ -3,6 +3,7 @@ class Zef::App;
 #core modes 
 use Zef::Tester;
 use Zef::Installer;
+use Zef::Getter;
 
 # load plugins from config file
 our @plugins = BEGIN {
@@ -39,6 +40,13 @@ multi MAIN('test', *@paths) is export {
 
 #| Install freshness
 multi MAIN('install', *@modules) is export {
-    my $installer = Zef::Installer.new;
+    my $installer = Zef::Installer.new(:@plugins);
     $installer.install($_) for @modules;
+}
+
+
+#| Get the freshness
+multi MAIN('get', *@modules) is export {
+    my $getter = Zef::Getter.new(:@plugins);
+    $getter.get($_, $*CWD) for @modules;
 }

@@ -5,6 +5,7 @@ class Zef::Tester does Zef::Phase::Testing {
     submethod BUILD(:@!plugins?) {
         for @!plugins -> $plugin {
             require ::($plugin);
+            next unless ::($plugin).does(Zef::Phase::Testing);
             self does ::($plugin);
         }
     }

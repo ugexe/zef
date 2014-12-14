@@ -5,4 +5,3 @@ role Zef::Plugin::P5Prove does Zef::Phase::Testing {
         my $prove = shell "(cd $*CWD && prove -v -e 'perl6 -Iblib/lib -Ilib' {~@dirs})";
     }
 }
-

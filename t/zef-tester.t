@@ -1,8 +1,7 @@
 use v6;
 use Zef::Tester;
-
-use Test;
 plan 7;
+use Test;
 
 
 # Basic tests on the base class
@@ -34,8 +33,8 @@ is $tester.plugins.elems, 0, 'plugins cleared';
 
     ok $tester.does(::('Zef::Phase::Testing')), 'Zef::Tester has Zef::Phase::Testing applied';
     
-    # Passes, but technically fails prove. Something to do with reloading TAP::Harness again?
-    #ok $tester.test("t/00-load.t"), 'passed basic test using `prove` shell command (exit code 0)';
+    # Passes, but technically fails. Test.pm6 or TAP::Harness get confused on plan count
+    # ok $tester.test("t/00-load.t")), 'passed basic test using `prove` shell command (exit code 0)';
 }
 
 
@@ -43,3 +42,5 @@ is $tester.plugins.elems, 0, 'plugins cleared';
 {
 #    ...
 }
+
+done();

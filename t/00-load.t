@@ -6,3 +6,4 @@ use Zef;
 
 ok 1, 'Zef loaded.';
 
+done();

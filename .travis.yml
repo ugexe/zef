@@ -1,0 +1,30 @@
+language: perl
+perl:
+    - '5.20'
+env:
+    - BACKEND=moar
+    - BACKEND=jvm
+    - BACKEND=parrot
+matrix:
+    allow_failures:
+        - env: BACKEND=jvm
+        - env: BACKEND=parrot
+    fast_finish: true
+before_install:
+    - git config --global user.name "TravisCI"
+    - git config --global user.email $HOSTNAME":not-for-mail@travis-ci.org"
+    - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
+    - source ~/travis-perl-helpers/init # helpers for parallel testing/testing dirs
+    - git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew
+    - export PATH=~/.rakudobrew/bin:$PATH
+    - rakudobrew build $BACKEND
+    - perl6 -v
+    - rakudobrew build-panda
+install:
+    # bootstrapping our test process with panda for now :)
+    - panda-fetch .
+    - panda-build
+before_script:
+    - panda list --installed --verbose # modules installed before panda-install
+script:
+    - perl6 -Ilib bin/zef test t/

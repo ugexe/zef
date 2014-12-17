@@ -22,8 +22,7 @@ before_install:
     - rakudobrew build-panda
 install:
     # bootstrapping our test process with panda for now :)
-    - panda-fetch .
-    - panda-build
+    - panda install LWP::Simple
 before_script:
     - panda list --installed --verbose # modules installed before panda-install
 script:

@@ -5,7 +5,7 @@ env:
     - BACKEND=moar
     - BACKEND=jvm
     - BACKEND=parrot
-matrix:0e2757e82ccb22df8cfd4b64ccc02fc87d590c9c
+matrix:
     allow_failures:
         - env: BACKEND=jvm
         - env: BACKEND=parrot

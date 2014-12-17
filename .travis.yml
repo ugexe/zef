@@ -5,7 +5,7 @@ env:
     - BACKEND=moar
     - BACKEND=jvm
     - BACKEND=parrot
-matrix:
+matrix:0e2757e82ccb22df8cfd4b64ccc02fc87d590c9c
     allow_failures:
         - env: BACKEND=jvm
         - env: BACKEND=parrot
@@ -26,4 +26,6 @@ install:
 before_script:
     - panda list --installed --verbose # modules installed before panda-install
 script:
-    - perl6 -Ilib bin/zef test t/
+    - prove -v -s -j$(test-jobs) -e "perl6 --ll-exception -Ilib" $(test-files)
+after_success:
+    - perl6 -Ilib bin/zef test t/ # check things run without prove

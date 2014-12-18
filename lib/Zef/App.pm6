@@ -4,6 +4,7 @@ class Zef::App;
 use Zef::Tester;
 use Zef::Installer;
 use Zef::Getter;
+use Zef::Builder;
 
 # load plugins from config file
 our @plugins = BEGIN {
@@ -22,21 +23,14 @@ submethod BUILD(:@!plugins) {
 
 
 
-# need to find a way for each &MAIN to link to a class method
-# or for method MAIN to 'is export' to work with long signature
-
 #| Test modules in cwd
-multi MAIN('test') is export { 
-    # Zef::Tester should instead be able to detect the 
-    # default so there is no error if there is no t/ folder
-    &MAIN('test', 't/') 
-}
-
+multi MAIN('test') is export { &MAIN('test', 't/') }
 #| Test modules in the specified directories
 multi MAIN('test', *@paths) is export {
     my $tester = Zef::Tester.new(:@plugins);
     $tester.test($_) for @paths;
 }
+
 
 #| Install freshness
 multi MAIN('install', *@modules) is export {
@@ -49,4 +43,13 @@ multi MAIN('install', *@modules) is export {
 multi MAIN('get', *@modules) is export {
     my $getter = Zef::Getter.new(:@plugins);
     $getter.get($_, $*CWD) for @modules;
+}
+
+
+#| Build modules in cwd
+multi MAIN('build') is export { &MAIN('build', $*CWD) }
+#| Build modules in the specified directories
+multi MAIN('build', $path) {
+    my $builder = Zef::Builder.new(:@plugins);
+    $builder.pre-compile($path);
 }

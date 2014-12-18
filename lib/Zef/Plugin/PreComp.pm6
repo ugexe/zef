@@ -12,7 +12,7 @@ role Zef::Plugin::PreComp does Zef::Phase::Building {
             elsif $_.IO ~~ :f {
                 say "found file: $_";
                 my $dest = "blib/{$_.dirname}/{$_.basename}.{$*VM.precomp-ext}";
-                fail "couldnt mkdir" unless shell("mkdir -p {$dest}").exit == 0;
+                fail "couldnt mkdir" unless mkdir($dest.IO.dirname);
                 my $cmd  = "$*EXECUTABLE -Ilib --target={$*VM.precomp-target} --output=$dest $_";
                 say "shell: $cmd";
 

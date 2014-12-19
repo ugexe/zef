@@ -34,7 +34,7 @@ is $tester.plugins.elems, 0, 'plugins cleared';
     ok $tester.does(::('Zef::Phase::Testing')), 'Zef::Tester has Zef::Phase::Testing applied';
     
     # Passes, but technically fails. Test.pm6 or TAP::Harness get confused on plan count
-    # ok $tester.test("t/00-load.t")), 'passed basic test using `prove` shell command (exit code 0)';
+    # ok $tester.test("t/00-load.t"), 'passed basic test using `prove` shell command (exit code 0)';
 }
 
 

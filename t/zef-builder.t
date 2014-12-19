@@ -1,6 +1,6 @@
 use v6;
 use Zef::Builder;
-plan 2;
+plan 3;
 use Test;
 
 
@@ -10,6 +10,7 @@ use Test;
     my $builder = Zef::Builder.new(:plugins(["Zef::Plugin::PreComp"]));
 
     ok $builder.does(::('Zef::Phase::Building')), 'Zef::Builder has Zef::Phase::Building applied';
+    ok $builder.can('pre-compile'), 'Zef::Builder can pre-compile';
 }
 
 done();

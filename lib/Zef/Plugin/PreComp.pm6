@@ -9,7 +9,6 @@ role Zef::Plugin::PreComp does Zef::Phase::Building {
         $supply.act: {
             given $_.IO {
                 when :d {
-                    dir($_)>>
                     for dir($_) -> $dir {
                         $supply.emit($dir);
                     }

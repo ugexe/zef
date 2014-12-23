@@ -1,7 +1,7 @@
 use Zef::Phase::Building;
 role Zef::Plugin::PreComp does Zef::Phase::Building {
     # todo: allow explicit VM target (and use appropriate exension)
-    multi method pre-compile($path) {
+    multi method pre-compile(*@paths) {
         # todo: compile to temp directory, delete old blib if exists, 
         # then rename temp to blib and move (so we don't) delete old 
         # blib if everything doesn't compile...?
@@ -12,10 +12,11 @@ role Zef::Plugin::PreComp does Zef::Phase::Building {
                     dir($_).map: -> $d { $supply.emit($d) };
                 } 
                 when :f & /pm6?$/ {
-                    my $dest = IO::Path.new("blib/{$_.relative}.{$*VM.precomp-ext}")
-                        or fail "couldnt mkdir" unless mkdir($dest.IO.dirname);
+                    my $dest = IO::Path.new("blib/{$_.relative}.{$*VM.precomp-ext}");
+                    mkdir($dest.IO.dirname) or fail "couldnt mkdir" ;
                     my $cmd  = "$*EXECUTABLE -Ilib --target={$*VM.precomp-target} --output=$dest $_";
                     my $precomp = shell($cmd).exit == 0 ?? True  !! False;
+                    say $cmd;
                     CATCH { default { say "Error: $_" } }
                 }
             }
@@ -23,7 +24,7 @@ role Zef::Plugin::PreComp does Zef::Phase::Building {
 
         # todo: check all exit values in supplu and throw appropriate exceptions if needed
         # as sometimes we may be able to build groups of modules in paralell (todo: build order)
-        my $promise = $supply.emit($path);
+        my $promise = await @paths.map: { $supply.emit($_) };
     }
 }
 

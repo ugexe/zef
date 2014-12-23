@@ -1,6 +1,6 @@
 use v6;
 use Zef::Tester;
-plan 7;
+plan 8;
 use Test;
 
 
@@ -24,10 +24,18 @@ $tester.plugins.shift;
 is $tester.plugins.elems, 0, 'plugins cleared';
 
 
-# Plugin::P5Prove
+# Test default tester
 {
-    # Plugins should have their own unit tests, but until a more appropriate default
-    # is added we need a plugin to actually test Zef::Tester 
+    temp $tester = Zef::Tester.new;
+
+    ok $tester.can('test'), 'Zef::Tester can do default tester method';
+
+    # fails for loading a second plan
+    # ok $tester.test("t/00-load.t"), 'passed basic test using perl6 shell command';
+}
+
+# Test another tester: Plugin::P5Prove
+{
     lives_ok { use Zef::Plugin::P5Prove; }, 'Zef::Plugin::P5Prove `use`-able to test with';
     temp $tester = Zef::Tester.new(:plugins(["Zef::Plugin::P5Prove"]));
 

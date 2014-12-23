@@ -1,6 +1,6 @@
 use Zef::Phase::Testing;
 role Zef::Plugin::P5Prove does Zef::Phase::Testing {
-    multi method test(*@dirs --> Bool) {
+    multi method test(*@dirs) {
         my $cmd = 
             "prove -V && "
            ~"(cd $*CWD && "

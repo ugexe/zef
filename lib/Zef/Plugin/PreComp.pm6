@@ -11,7 +11,7 @@ role Zef::Plugin::PreComp does Zef::Phase::Building {
                 when :d {
                     dir($_).map: -> $d { $supply.emit($d) };
                 } 
-                when :f & /pm6?$/ {
+                when :f & /\.pm6?$/ {
                     my $dest = IO::Path.new("blib/{$_.relative}.{$*VM.precomp-ext}");
                     mkdir($dest.IO.dirname) or fail "couldnt mkdir" ;
                     my $cmd  = "$*EXECUTABLE -Ilib --target={$*VM.precomp-target} --output=$dest $_";

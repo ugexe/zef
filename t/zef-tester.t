@@ -1,15 +1,12 @@
 use v6;
 use Zef::Tester;
-plan 8;
+plan 6;
 use Test;
 
 
 # Basic tests on the base class
 my $tester = Zef::Tester.new;
 is $tester.plugins.elems, 0, 'no plugins loaded';
-
-$tester.plugins.push("Not-Real");
-is $tester.plugins.elems, 1, 'can add new plugins';
 
 # more of an example of plugin passing than actual test
 {
@@ -19,9 +16,6 @@ is $tester.plugins.elems, 1, 'can add new plugins';
     @plugins = <Zef::Plugin::P5Prove>;
     is Zef::Tester.new(:@plugins).plugins.elems, 1, 'added a plugin'
 }
-
-$tester.plugins.shift;
-is $tester.plugins.elems, 0, 'plugins cleared';
 
 
 # Test default tester

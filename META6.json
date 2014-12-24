@@ -2,24 +2,38 @@
     "name"        : "Zef",
     "version"     : "*",
     "description" : "CPAN but better. Maybe?",
+    "depends"     : [
+        "LWP::Simple"
+    ],
     "provides"    : {
         "Zef" : "lib/Zef.pm6",
+
         "Zef::App" : "lib/Zef::App.pm6",
+
         "Zef::Exception" : "lib/Zef/Exception.pm6",
+
         "Zef::Getter"       : "lib/Zef/Getter.pm6",
-        "Zef::Getter::Git"  : "lib/Zef/Getter/Git.pm6",
-        "Zef::Getter::HTTP" : "lib/Zef/Getter/HTTP.pm6",
-        "Zef::Compiler" : "lib/Zef/Compiler.pm6",
+        "Zef::Plugin::Git"  : "lib/Zef/Plugin/Git.pm6",
+        "Zef::Plugin::LWP"  : "lib/Zef/Plugin/LWP.pm6",
+
+        "Zef::Builder"          : "lib/Zef/Builder.pm6",
+        "Zef::Plugin::PreComp"  : "lib/Zef/PreComp.pm6",
+
         "Zef::Tester"          : "lib/Zef/Tester.pm6",
-        "Zef::Tester::P5Prove" : "lib/Zef/Tester/P5Prove.pm6",
+        "Zef::Plugin::P5Prove" : "lib/Zef/Plugin/P5Prove.pm6",
+
         "Zef::Installer" : "lib/Zef/Installer.pm6",
-        "Zef::Reporter" : "lib/Zef/Reporter.pm6",
-        "Zef::Reporter::Feather" : "lib/Zef/Reporter/Feather.pm6",
-        "Zef::Reporter::Zef"     : "lib/Zef/Reporter/Zef.pm6"
+
+        "Zef::Reporter"        : "lib/Zef/Reporter.pm6",
+        "Zef::Plugin::Feather" : "lib/Zef/Plugin/Feather.pm6",
+        "Zef::Plugin::Zef"     : "lib/Zef/Plugin/Zef.pm6"
     },
     "authors" : [
-        "Nick Logan <ugexe>",
-        "Tony O'Dell <tony-o>"       
+        "Nick Logan",
+        "Tony O'Dell"       
     ],
-    "source-url"  : "git@github.com:ugexe/zef.git" 
+    "support" : {
+        "source-url"  : "git@github.com:ugexe/zef.git",
+        "bugtracker"  : "https://github.com/ugexe/zef/issues"
+    }
 }

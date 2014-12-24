@@ -12,14 +12,17 @@
 
         "Zef::Exception" : "lib/Zef/Exception.pm6",
 
-        "Zef::Getter"       : "lib/Zef/Getter.pm6",
-        "Zef::Plugin::Git"  : "lib/Zef/Plugin/Git.pm6",
-        "Zef::Plugin::LWP"  : "lib/Zef/Plugin/LWP.pm6",
+        "Zef::Getter"          : "lib/Zef/Getter.pm6",
+        "Zef::Phase::Getting"  : "lib/Zef/Phase/Getting.pm6",
+        "Zef::Plugin::Git"     : "lib/Zef/Plugin/Git.pm6",
+        "Zef::Plugin::LWP"     : "lib/Zef/Plugin/LWP.pm6",
 
         "Zef::Builder"          : "lib/Zef/Builder.pm6",
+        "Zef::Phase::Building"  : "lib/Zef/Phase/Building.pm6",
         "Zef::Plugin::PreComp"  : "lib/Zef/PreComp.pm6",
 
         "Zef::Tester"          : "lib/Zef/Tester.pm6",
+        "Zef::Phase::Testing"  : "lib/Zef/Phase/Testing.pm6",
         "Zef::Plugin::P5Prove" : "lib/Zef/Plugin/P5Prove.pm6",
 
         "Zef::Installer" : "lib/Zef/Installer.pm6",

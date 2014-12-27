@@ -1,41 +1,37 @@
 module Zef::Config;
 use JSON::Tiny;
-my $fs   = $*DISTRO.is-win ?? '\\' !! '/';
-my $path = (%*ENV<zefconfig> // ($*DISTRO.is-win ?? 
-           ?? "{%*ENV<HOMEDRIVE>}$fs{%*ENV<HOMEPATH>}$fs"
-           !! "{%*ENV<HOME>}$fs")
-           ~  ".zef");
 
-mkdir("$path") if "$path".IO !~~ :d;
-"{$path ~ $fs}config".IO.spurt('{
-    "plugins": [ ]
-}') if "{$path ~ $fs}config".IO !~~ :f;
+our $*ZEF_CONFIG_FILE = BEGIN {
+    # todo: properly handle volume argument for all .catpath method calls
+    my $*ZEF_DIR = $*SPEC.catpath('', %*ENV<zefconfig> // ($*DISTRO.is-win
+                    ?? $*SPEC.catdir(%*ENV<HOMEDRIVE>, %*ENV<HOMEPATH>)
+                    !! %*ENV<HOME>)
+                ,".zef");
 
-our $config is export = from-json(
-    (%*ENV<zefconfig> // "{$path ~ $fs}config").IO.slurp
-);
+    mkdir($*ZEF_DIR) unless $*ZEF_DIR.IO.d;
+    $*SPEC.catpath('', $*ZEF_DIR, 'config');
+}
+
+# todo: validate config file
+$*ZEF_CONFIG_FILE.IO.spurt('{"plugins": [ ]}') 
+    unless $*ZEF_CONFIG_FILE.IO ~~ :f;
+
+our $config is export = from-json($*ZEF_CONFIG_FILE.IO.slurp);
 
 sub save-config is export {
-    "{$path ~ $fs}config".IO.spurt(to-json($config));
+    $*ZEF_CONFIG_FILE.IO.spurt: to-json($config);
 }
 
 multi MAIN('config') is export {
-    "{$path ~ $fs}config".say;
+    say $*ZEF_CONFIG_FILE;
 }
 
 multi MAIN('plugin', *@plugins) is export {
-    for @plugins {
-        say $_ ~~ $config<plugins>.any ?? "$_ true" !! "$_ false";
-        $config<plugins>.push($_) unless $_ ~~ $config<plugins>.any;
-    }
+    $config<plugins> = uniq($config<plugins>, @plugins);
     save-config;
 }
 
 multi MAIN('unplug', *@plugins) is export {
-    my @newplugins;
-    for @($config<plugins>) {
-        @newplugins.push($_) unless $_ ~~ @plugins.any;
-    }
-    $config<plugins> = @newplugins;
+    $config<plugins>.map({ :delete if $_ ~~ @plugins.any});
     save-config;
 }

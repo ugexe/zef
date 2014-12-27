@@ -3,7 +3,8 @@
     "version"     : "*",
     "description" : "CPAN but better. Maybe?",
     "depends"     : [
-        "LWP::Simple"
+        "HTTP::UA",
+        "IO::Socket::SSL"
     ],
     "provides"    : {
         "Zef" : "lib/Zef.pm6",
@@ -15,7 +16,7 @@
         "Zef::Getter"          : "lib/Zef/Getter.pm6",
         "Zef::Phase::Getting"  : "lib/Zef/Phase/Getting.pm6",
         "Zef::Plugin::Git"     : "lib/Zef/Plugin/Git.pm6",
-        "Zef::Plugin::LWP"     : "lib/Zef/Plugin/LWP.pm6",
+        "Zef::Plugin::UA"      : "lib/Zef/Plugin/UA.pm6",
 
         "Zef::Builder"          : "lib/Zef/Builder.pm6",
         "Zef::Phase::Building"  : "lib/Zef/Phase/Building.pm6",

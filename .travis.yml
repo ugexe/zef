@@ -22,9 +22,7 @@ before_install:
     - rakudobrew build-panda
 install:
     # bootstrapping our test process with panda for now :)
-    - panda install LWP::Simple
-before_script:
-    - panda list --installed --verbose # modules installed before panda-install
+    - panda install HTTP::UserAgent IO::Socket::SSL
 script:
     - prove -v -s -j$(test-jobs) -e "perl6 --ll-exception -Ilib" $(test-files)
 after_success:

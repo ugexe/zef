@@ -3,6 +3,7 @@
     "version"     : "*",
     "description" : "CPAN but better. Maybe?",
     "depends"     : [
+        "JSON::Tiny",
         "HTTP::UA",
         "IO::Socket::SSL"
     ],

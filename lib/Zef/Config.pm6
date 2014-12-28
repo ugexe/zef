@@ -2,12 +2,18 @@ module Zef::Config;
 use JSON::Tiny;
 
 our $*ZEF_CONFIG_FILE = BEGIN {
-    # todo: properly handle volume argument for all .catpath method calls
-    my $*ZEF_DIR = $*SPEC.catpath('', %*ENV<zefconfig> // ($*DISTRO.is-win
-                    ?? $*SPEC.catdir(%*ENV<HOMEDRIVE>, %*ENV<HOMEPATH>)
-                    !! %*ENV<HOME>)
-                ,".zef");
+    my @catpath = $*DISTRO.is-win
+        ?? (%*ENV<HOMEDRIVE>, %*ENV<HOMEPATH>)
+        !! (Any, %*ENV<HOME>);
 
+    our $*HOME = homedir( $*SPEC.catpath(@catpath[0], @catpath[1], '' );
+
+    # todo: properly handle volume argument for all .catpath method calls
+    my $*ZEF_DIR = $*SPEC.catpath(
+        |$*HOME.split.hash.<volume directory basenme>, 
+        '.zef'
+    );
+    die "zefdir: $*ZEF_DIR";
     mkdir($*ZEF_DIR) unless $*ZEF_DIR.IO.d;
     $*SPEC.catpath('', $*ZEF_DIR, 'config');
 }

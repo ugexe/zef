@@ -7,4 +7,3 @@ use Zef::Tester;
 use Zef::Installer;
 use Zef::Reporter;
 
-

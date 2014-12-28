@@ -1,11 +1,17 @@
 class Zef::Installer;
 use JSON::Tiny;
 
+# hacky until $*HOME works properly in core
+BEGIN our $HOME = # $*HOME = homedir(
+    ($*DISTRO.is-win
+        ?? $*SPEC.catpath(%*ENV<HOMEDRIVE>, %*ENV<HOMEPATH>,'')
+        !! $*SPEC.catpath('', %*ENV<HOME>,''));
+#);
 
 method install( *@metafiles, *%options ) is export {
     my CompUnitRepo::Local::Installation $repo = INIT {
-        try { mkdir('~/.zef/depot'); };
-        .new("~/.zef/depot".IO.absolute);
+        try { mkdir("$HOME/.zef/depot"); };
+        .new("$HOME/.zef/depot");
     }
 
     META: for @metafiles -> $file {

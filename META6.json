@@ -4,7 +4,7 @@
     "description" : "CPAN but better. Maybe?",
     "depends"     : [
         "JSON::Tiny",
-        "HTTP::UA",
+        "HTTP::UserAgent",
         "IO::Socket::SSL"
     ],
     "provides"    : {

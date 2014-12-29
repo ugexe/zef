@@ -37,6 +37,7 @@ is $getter.plugins.elems, 0, 'no plugins loaded';
     ok $getter.can('get'), 'Zef::Getter can get()';
 
     my $file = "$*CWD/zef-get-plugin-ua.zip";
+    
     lives_ok { 
         $getter.get('http://github.com/ugexe/zef/archive/master.zip', $file);
     }, 'Used HTTP::UserAgent plugin .get method';  

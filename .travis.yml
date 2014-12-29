@@ -11,6 +11,7 @@ matrix:
         - env: BACKEND=parrot
     fast_finish: true
 before_install:
+    - 'if [[ $BACKEND -eq "parrot" ]]; apt-get install icu; fi;'
     - git config --global user.name "TravisCI"
     - git config --global user.email $HOSTNAME":not-for-mail@travis-ci.org"
     - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers

@@ -24,7 +24,7 @@ before_install:
     - rakudobrew build-panda
 install:
     # bootstrapping our test process with panda for now :)
-    - panda install HTTP::UserAgent IO::Socket::SSL
+    - panda install HTTP::UserAgent IO::Socket::SSL --notests
 script:
     - prove -v -s -j$(test-jobs) -e "perl6 --ll-exception -Ilib" $(test-files)
 after_success:

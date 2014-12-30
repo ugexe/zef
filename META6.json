@@ -10,7 +10,7 @@
     "provides"    : {
         "Zef" : "lib/Zef.pm6",
 
-        "Zef::App" : "lib/Zef::App.pm6",
+        "Zef::App" : "lib/Zef/App.pm6",
 
         "Zef::Exception" : "lib/Zef/Exception.pm6",
 
@@ -21,7 +21,7 @@
 
         "Zef::Builder"          : "lib/Zef/Builder.pm6",
         "Zef::Phase::Building"  : "lib/Zef/Phase/Building.pm6",
-        "Zef::Plugin::PreComp"  : "lib/Zef/PreComp.pm6",
+        "Zef::Plugin::PreComp"  : "lib/Zef/Plugin/PreComp.pm6",
 
         "Zef::Tester"          : "lib/Zef/Tester.pm6",
         "Zef::Phase::Testing"  : "lib/Zef/Phase/Testing.pm6",

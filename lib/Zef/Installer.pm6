@@ -8,11 +8,9 @@ BEGIN our $HOME = # $*HOME = homedir(
         !! $*SPEC.catpath('', %*ENV<HOME>,''));
 #);
 
-method install( *@metafiles, *%options ) is export {
-    my CompUnitRepo::Local::Installation $repo = INIT {
-        try { mkdir("$HOME/.zef/depot"); };
-        .new("$HOME/.zef/depot");
-    }
+method install(:$save_to = "$HOME/.zef/depot", *@metafiles, *%options ) is export {
+    try { mkdir($save_to) };
+    my CompUnitRepo::Local::Installation $repo .= new($save_to);
 
     META: for @metafiles -> $file {
         my %data = %(from-json($file.IO.slurp));

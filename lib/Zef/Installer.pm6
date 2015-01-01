@@ -10,9 +10,9 @@ BEGIN our $HOME = # $*HOME = homedir(
 
 method install(:$save_to = "$HOME/.zef/depot", *@metafiles, *%options ) is export {
     try { mkdir($save_to) };
-    my CompUnitRepo::Local::Installation $repo .= new($save_to);
+    my CompUnitRepo::Local::Installation $repo .= new($save_to.);
 
-    META: for @metafiles -> $file {
+    for @metafiles -> $file {
         my %data = %(from-json($file.IO.slurp));
         if %options<force>.defined:!exists {
             for $repo.candidates(%data<name>).list -> $mod {
@@ -21,7 +21,7 @@ method install(:$save_to = "$HOME/.zef/depot", *@metafiles, *%options ) is expor
                    && $mod{"auth" & "author" & "authority"} eq %data{"auth" & "author" & "authority"} {
                     
                     "==> Skipping {%data<name>} already installed ref:<$mod>".say;
-                    next META;
+                    next;
                 }
             }
         } 

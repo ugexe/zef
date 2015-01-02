@@ -42,4 +42,6 @@ CPAN but better. Maybe?
 ## OTHER FEATURES
 
  * Test reporting to Zef servers
- 
+ * Rotating OS smoke testing server integration
+ * Super bad role plugin based; fix problems easily 
+   and give noobs a babbys first module easy outlet

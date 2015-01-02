@@ -29,9 +29,8 @@
 
         "Zef::Installer" : "lib/Zef/Installer.pm6",
 
-        "Zef::Reporter"        : "lib/Zef/Reporter.pm6",
-        "Zef::Plugin::Feather" : "lib/Zef/Plugin/Feather.pm6",
-        "Zef::Plugin::Zef"     : "lib/Zef/Plugin/Zef.pm6"
+        "Zef::Reporter"            : "lib/Zef/Reporter.pm6",
+        "Zef::Plugin::ZefReporter" : "lib/Zef/Plugin/ZefReporter.pm6"
     },
     "authors" : [
         "Nick Logan",

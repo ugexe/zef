@@ -1,4 +1,6 @@
 use Zef::Phase::Building;
+# todo: turn this into a panda compatability thing
+
 role Zef::Plugin::PreComp does Zef::Phase::Building {
     # todo: allow explicit VM target (and use appropriate exension)
     multi method pre-compile(*@paths) {

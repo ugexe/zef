@@ -30,6 +30,7 @@
         "Zef::Installer" : "lib/Zef/Installer.pm6",
 
         "Zef::Reporter"            : "lib/Zef/Reporter.pm6",
+        "Zef::Phase::Reporting"    : "lib/Zef/Phase/Reporting.pm6",
         "Zef::Plugin::ZefReporter" : "lib/Zef/Plugin/ZefReporter.pm6"
     },
     "authors" : [

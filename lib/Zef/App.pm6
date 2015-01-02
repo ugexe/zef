@@ -47,7 +47,7 @@ multi MAIN('get', *@modules) is export {
 
 
 #| Build modules in cwd
-multi MAIN('build') is export { &MAIN('build', $*CWD) }
+multi MAIN('build') is export { &MAIN('build', $*SPEC.catdir($*CWD, 'lib')) }
 #| Build modules in the specified directories
 multi MAIN('build', $path) {
     my $builder = Zef::Builder.new(:@plugins);

@@ -19,11 +19,18 @@ class Zef::Builder does Zef::Phase::Building {
                     dir($_).map: -> $d { $supply.emit($d) };
                 } 
                 when :f & /\.pm6?$/ {
+                    say "";
+                    say '--------------------------';
+                    say "file is p6 module: $_";
+                    say '@*INC[0]:'; say @*INC[0].join: "\n"; 
+                    say "";
+
                     my $precomp-path = $_.path ~ '.' ~ $*VM.precomp-ext;
                     unlink $precomp-path if $precomp-path.IO.e;
                     my $curlf = CompUnit.new($_.path).precomp;
-                    say $precomp-path.IO.e ?? "ok" !! "not ok";
-
+                    
+                    say $precomp-path.IO.e ?? "precomp ok" !! "precomp not ok";
+                    say '--------------------------';
                     CATCH { default { say "Error: $_" } }
                 }
             }

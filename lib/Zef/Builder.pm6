@@ -11,36 +11,28 @@ class Zef::Builder does Zef::Phase::Building {
         }
     }
 
-    multi method pre-compile(*@paths) {
-        my $supply = Supply.new;
-        $supply.act: {
-            given $_.IO {
-                when :d {
-                    dir($_).map: -> $d { $supply.emit($d) };
-                } 
-                when :f & /\.pm6?$/ {
-                    say "";
-                    say '--------------------------';
-                    say "file is p6 module: $_";
-                    say '@*INC[0]:'; say @*INC[0].join: "\n"; 
-                    say "";
+    multi method pre-compile(*@paths is copy) {
+        my @dirs = @paths;
+        my @modules;
+        my @precompiled;
 
-                    my $precomp-path = $_.path ~ '.' ~ $*VM.precomp-ext;
-                    unlink $precomp-path if $precomp-path.IO.e;
-                    my $curlf = CompUnit.new($_.path).precomp;
-                    
-                    say $precomp-path.IO.e ?? "precomp ok" !! "precomp not ok";
-                    say '--------------------------';
-                    CATCH { default { say "Error: $_" } }
-                }
-            }
+        while @dirs.shift -> $path {
+            given $path.IO {
+                when :d { for .dir -> $io { @dirs.push: $io } }
+                when :f & /\.pm6?$/ { @modules.push($_) }
+            }            
         }
 
-        my $promise = await @paths.map: { 
-            temp %*ENV<PERL6LIB> = $_.IO.path;
-            # temp %*ENV<RAKUDO_PRECOMP_WITH> = $_;
+        for @modules -> $module {
+            my $precomp-path = $module.path ~ '.' ~ $*VM.precomp-ext;
+            try { $precomp-path.IO.unlink } if $precomp-path.IO.e;
+            CompUnit.new($module.path, :INC(@paths) ).precomp;
+            
+            $precomp-path.IO.e 
+                ?? @precompiled.push($precomp-path) && say "precomp ok" 
+                !! "precomp not ok";
+        }
 
-            $supply.emit($_);
-        };
+        return @precompiled;
     }
 }

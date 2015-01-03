@@ -1,4 +1,6 @@
 use Zef::Phase::Building;
+use JSON::Tiny;
+
 class Zef::Builder does Zef::Phase::Building {
 
     has @.plugins;
@@ -17,9 +19,9 @@ class Zef::Builder does Zef::Phase::Building {
                     dir($_).map: -> $d { $supply.emit($d) };
                 } 
                 when :f & /\.pm6?$/ {
-                    my $precomp-path = $_ ~ '.' ~ $*VM.precomp-ext;
+                    my $precomp-path = $_.path ~ '.' ~ $*VM.precomp-ext;
                     unlink $precomp-path if $precomp-path.IO.e;
-                    my $curlf = CompUnit.new($_.IO.path).precomp;
+                    my $curlf = CompUnit.new($_.path).precomp;
                     say $precomp-path.IO.e ?? "ok" !! "not ok";
 
                     CATCH { default { say "Error: $_" } }
@@ -28,7 +30,9 @@ class Zef::Builder does Zef::Phase::Building {
         }
 
         my $promise = await @paths.map: { 
-            temp %*ENV<RAKUDO_PRECOMP_WITH> = $*SPEC.catdir($_, 'lib'); 
+            temp %*ENV<PERL6LIB> = $_.IO.path;
+            # temp %*ENV<RAKUDO_PRECOMP_WITH> = $_;
+
             $supply.emit($_);
         };
     }

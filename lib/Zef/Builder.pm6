@@ -26,7 +26,10 @@ class Zef::Builder does Zef::Phase::Building {
         for @modules -> $module {
             my $precomp-path = $module.path ~ '.' ~ $*VM.precomp-ext;
             try { $precomp-path.IO.unlink } if $precomp-path.IO.e;
-            CompUnit.new($module.path, :INC(@paths) ).precomp;
+            
+            # :INC patch reverted for now in rakudo
+            # CompUnit.new($module.path, :INC(@paths) ).precomp;
+            CompUnit.new($module.path).precomp;
             
             $precomp-path.IO.e 
                 ?? @precompiled.push($precomp-path) && say "precomp ok" 

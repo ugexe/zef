@@ -5,12 +5,10 @@ use Zef::Tester;
 use Zef::Installer;
 use Zef::Getter;
 use Zef::Builder;
+use Zef::Config;
 
 # load plugins from config file
-our @plugins = BEGIN {
-    use Zef::Config;
-    $config<plugins>.list
-}
+BEGIN our @plugins := $config<plugins>.list;
 
 # when invoked as a class, we have the usual @.plugins
 has @.plugins;

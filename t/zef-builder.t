@@ -14,7 +14,7 @@ use Test;
     my @precompiled = $builder.pre-compile($*CWD);
     todo 'CompUnit.precomp still has bugs';
     is any(@precompiled), "$*CWD/lib/Zef.pm6.{$*VM.precomp-ext}", 'Zef::Builder default pre-compile works';
-    LEAVE { unlink $_ for @precompiled }
+    LEAVE { @precompiled>>.grep({ $_.IO.e && $_.IO.f })>>.IO>>.unlink }
 }
 
 
@@ -28,7 +28,10 @@ use Test;
 
     my @precompiled = $builder.pre-compile($*CWD);
     is any(@precompiled), "$*CWD/blib/lib/Zef.pm6.{$*VM.precomp-ext}", 'Zef::Builder default pre-compile works';
-    LEAVE { unlink $_ for @precompiled }
+    LEAVE { 
+        @precompiled>>.grep({ $_.IO.e && $_.IO.f })>>.IO>>.unlink; 
+        @precompiled>>.IO>>.dirname>>.grep({ $_.IO.e && $_.IO.d })>>.IO>>.rmdir; 
+    }
 }
 
 

@@ -27,13 +27,13 @@ class Zef::Builder does Zef::Phase::Building {
             my $precomp-path = $module.path ~ '.' ~ $*VM.precomp-ext;
             try { $precomp-path.IO.unlink } if $precomp-path.IO.e;
             
-            # :INC patch reverted for now in rakudo
-            # CompUnit.new($module.path, :INC(@paths) ).precomp;
-            %*ENV<PERL6LIB> = "$*CWD/lib";
 
             say "";
             say "---DEBUG precomp---";
-            CompUnit.new($module.path).precomp;
+            #%*ENV<PERL6LIB> = "$*CWD/lib";
+            #CompUnit.new($module.path).precomp;
+            CompUnit.new($module.path, :INC(@paths)).precomp;
+
             say $precomp-path;
             $precomp-path.IO.e 
                 ?? @precompiled.push($precomp-path) && say "precomp ok" 

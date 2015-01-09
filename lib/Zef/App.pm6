@@ -104,3 +104,61 @@ multi MAIN('search', *@terms) {
         }
     }
 }
+
+multi MAIN('push', :$force?) {
+    use MIME::Base64;
+    my $data = '';
+    sub list ($dir, $prefix = '/') {
+        my @paths;
+        for $dir.dir.grep({ .basename !~~ any(/^'.git'$/,/^'.gitignore'/) }) -> $dir {
+            if $dir ~~ :f {
+                @paths.push($prefix ~ $dir.basename);
+            } elsif $dir ~~ :d {
+                @paths.push(|list($dir, "{$prefix}{$dir.basename}/"));
+            }
+        }
+        return @paths;
+    };
+    my @paths = list($*CWD);
+    my @failures;
+    my $buff;
+    for @paths -> $path {
+        $buff = Any;
+        try {
+            $buff = $buff // MIME::Base64.encode-str(".$path".IO.slurp);
+            CATCH { default { } }
+        }
+        try {
+            my $b = Buf.new;
+            my $f = open ".$path", :r;
+            while !$f.eof { 
+                $b ~= $f.read(1024); 
+            }
+            $f.close;
+            $buff = MIME::Base64.encode($b);
+            CATCH { default { .say if $path eq '/md5sum' } }
+        }
+        if $buff !~~ Str {
+            @failures.push($path);
+        } else {
+            $data ~= "{$path}\r\n$buff\r\n";
+        }
+    }
+    if !$force && @failures.elems {
+        print "Failed to package the following files:\r\n\t";
+        @failures.join("\n\t").say;
+    } else {
+        my $metf = 'META.info'.IO ~~ :f ?? 'META.info'.IO !! 'META6.json'.IO ~~ :f ?? 'META6.json'.IO !! die 'Couldn\'t find META6.json or META.info';
+        my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf.slurp)) });
+        my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
+        $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n$json");
+        my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+        if %result<version> // False {
+            "Successfully pushed version '{%result<version>}' to server".say;
+        } elsif %result<error> // False {
+            "Error pushing module to server: {%result<error>}".say;
+        } else {
+            "Unknown error - {%result.perl}".say;
+        }
+    }
+}

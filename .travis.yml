@@ -22,7 +22,6 @@ before_install:
     - rakudobrew build $BACKEND
     - perl6 -v
     - rakudobrew build-panda
-    - perl6 -MJSON::Tiny -e 'shell("panda install "~from-json("META6.json".IO.slurp).<depends>)'
 install:
     # bootstrapping our test process with panda for now :)
     - panda install HTTP::UserAgent IO::Socket::SSL --notests

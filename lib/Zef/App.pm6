@@ -53,9 +53,7 @@ multi MAIN('build', $path) {
 }
 
 multi MAIN('login', $user, $password?) {
-    "Username: $user".say;
     my $pass = $password // prompt 'Password: ';
-    "Password: {'*' x $pass.chars}".say;
     use IO::Socket::SSL;
     my $data = to-json({ username => $user, password => $pass, });
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
@@ -74,9 +72,7 @@ multi MAIN('login', $user, $password?) {
 }
 
 multi MAIN('register', $user, $password?) {
-    "Username: $user".say;
     my $pass = $password // prompt 'Password: ';
-    "Password: {'*' x $pass.chars}".say;
     use IO::Socket::SSL;
     my $data = to-json({ username => $user, password => $pass, });
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));

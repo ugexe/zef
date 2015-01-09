@@ -6,4 +6,4 @@ use Zef::Builder;
 use Zef::Tester;
 use Zef::Installer;
 use Zef::Reporter;
-
+use Zef::Config;

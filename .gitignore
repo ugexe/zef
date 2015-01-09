@@ -1,3 +1,4 @@
-.pir
-.moarvm
-.jar
+*.pir
+*.moarvm
+*.jar
+blib/

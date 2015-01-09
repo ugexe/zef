@@ -15,6 +15,7 @@ class Zef::Builder does Zef::Phase::Building {
         my @dirs = @paths;
         my @modules;
         my @precompiled;
+        my %retry-me;
 
         while @dirs.shift -> $path {
             given $path.IO {
@@ -23,23 +24,36 @@ class Zef::Builder does Zef::Phase::Building {
             }            
         }
 
-        for @modules -> $module {
+        while @modules.shift -> $module {
+        #for @modules -> $module {
             my $precomp-path = $module.path ~ '.' ~ $*VM.precomp-ext;
             try { $precomp-path.IO.unlink } if $precomp-path.IO.e;
             
 
             say "";
             say "---DEBUG precomp---";
-            #%*ENV<PERL6LIB> = "$*CWD/lib";
-            #CompUnit.new($module.path).precomp;
-            CompUnit.new($module.path, :INC(@paths)).precomp;
+            CompUnit.new($module.path, :INC(@dirs) ).precomp;
 
             say $precomp-path;
-            $precomp-path.IO.e 
-                ?? @precompiled.push($precomp-path) && say "precomp ok" 
-                !! "precomp not ok";
+            my $precomp-result = $precomp-path.IO.e;
+
+            if $precomp-result {
+                @precompiled.push($precomp-path);
+                say "precomp ok";
+            }
+            else {
+                # this is bad and i should feel bad
+                # todo: build dependency tree instead
+                %retry-me{$module}++;
+                @modules.push($module) if %retry-me{$module} <= 3;
+                
+
+                say "precomp not ok";
+            }
+
             say "---/DEBUG precomp---";
             say "";
+
         }
 
         return @precompiled;

@@ -93,3 +93,17 @@ multi MAIN('register', $user, $password?) {
     %result.perl.say;
   }
 }
+
+multi MAIN('search', *@terms) {
+  use IO::Socket::SSL;
+  for @terms -> $term {
+    my $data = to-json({ query => $term });
+    my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
+    $sock.send("POST /search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
+    my @results = @(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+    "Results for $term".say;
+    for @results -> %result {
+      "%result<package>\t%result<author>\t%result<version>".say;
+    }
+  }
+}

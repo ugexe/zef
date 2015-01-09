@@ -102,8 +102,9 @@ multi MAIN('search', *@terms) {
     $sock.send("POST /search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
     my @results = @(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
     "Results for $term".say;
+    "Package\tAuthor\tVersion".say;
     for @results -> %result {
-      "%result<package>\t%result<author>\t%result<version>".say;
+      "%result<name>\t%result<owner>\t%result<version>".say;
     }
   }
 }

@@ -12,7 +12,6 @@ use Test;
     ok $builder.can('pre-compile'), 'Zef::Builder can pre-compile';
 
     my @precompiled = $builder.pre-compile($*CWD);
-    todo 'CompUnit.precomp still has bugs';
     is any(@precompiled), "$*CWD/lib/Zef.pm6.{$*VM.precomp-ext}", 'Zef::Builder default pre-compile works';
     LEAVE { @precompiled>>.grep({ $_.IO.e && $_.IO.f })>>.IO>>.unlink }
 }

@@ -51,3 +51,45 @@ multi MAIN('build', $path) {
     my $builder = Zef::Builder.new(:@plugins);
     $builder.pre-compile($path);
 }
+
+multi MAIN('login', $user, $password?) {
+  "Username: $user".say;
+  my $pass = $password // prompt 'Password: ';
+  "Password: {'*' x $pass.chars}".say;
+  use IO::Socket::SSL;
+  my $data = to-json({ username => $user, password => $pass, });
+  my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
+  $sock.send("POST /login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
+  my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+  if %result<success> // False {
+    say 'Login successful.';
+    $config<session-key> = %result<newkey>;
+    save-config;
+  } elsif %result<failure> // False {
+    say "Login failed with error: %result<reason>";
+  } else {
+    say 'Unknown problem -';
+    %result.perl.say;
+  }
+}
+
+multi MAIN('register', $user, $password?) {
+  "Username: $user".say;
+  my $pass = $password // prompt 'Password: ';
+  "Password: {'*' x $pass.chars}".say;
+  use IO::Socket::SSL;
+  my $data = to-json({ username => $user, password => $pass, });
+  my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
+  $sock.send("POST /register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
+  my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+  if %result<success> // False {
+    say 'Welcome to Zef.';
+    $config<sessionkey> = %result<newkey>;
+    save-config;
+  } elsif %result<failure> // False {
+    say "Registration failed with error: %result<reason>";
+  } else {
+    say 'Unknown problem -';
+    %result.perl.say;
+  }
+}

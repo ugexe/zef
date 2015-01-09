@@ -21,8 +21,9 @@ $*ZEF_CONFIG_FILE.IO.spurt('{"plugins": [ ]}')
 
 our $config is export = from-json($*ZEF_CONFIG_FILE.IO.slurp);
 
+my $ZEF_CONFIG_FILE = $*ZEF_CONFIG_FILE;
 sub save-config is export {
-    $*ZEF_CONFIG_FILE.IO.spurt: to-json($config);
+    $ZEF_CONFIG_FILE.IO.spurt(to-json($config));
 }
 
 multi MAIN('config') is export {

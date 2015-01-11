@@ -112,7 +112,7 @@ multi MAIN('search', *@terms) {
 }
 
 multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
-    use MIME::Base64;
+    require MIME::Base64;
     my $data = '';
     my @paths = $target.dir;
     my @files;

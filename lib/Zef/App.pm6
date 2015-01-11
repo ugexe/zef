@@ -58,7 +58,7 @@ multi MAIN('login', $user, $password?) {
     use IO::Socket::SSL;
     my $data = to-json({ username => $user, password => $pass, });
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-    $sock.send("POST /login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
+    $sock.send("POST /login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
     my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
     
     if %result<success> {
@@ -67,11 +67,11 @@ multi MAIN('login', $user, $password?) {
         save-config;
     } 
     elsif %result<failure> {
-        say "Login failed with error: %result<reason>";
+        say "Login failed with error: {%result<reason>}";
     } 
     else {
         say 'Unknown problem -';
-        %result.perl.say;
+        say %result.perl;
     }
 }
 
@@ -80,7 +80,7 @@ multi MAIN('register', $user, $password?) {
     use IO::Socket::SSL;
     my $data = to-json({ username => $user, password => $pass, });
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-    $sock.send("POST /register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
+    $sock.send("POST /register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
     my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
     
     if %result<success> {
@@ -89,7 +89,7 @@ multi MAIN('register', $user, $password?) {
         save-config;
     } 
     elsif %result<failure> {
-        say "Registration failed with error: %result<reason>";
+        say "Registration failed with error: {%result<reason>}";
     } 
     else {
         say 'Unknown problem -';
@@ -102,12 +102,12 @@ multi MAIN('search', *@terms) {
     for @terms -> $term {
         my $data = to-json({ query => $term });
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-        $sock.send("POST /search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
+        $sock.send("POST /search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
         my @results = @(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
         say "Results for $term";
         say "Package\tAuthor\tVersion";
         for @results -> %result {
-            say "%result<name>\t%result<owner>\t%result<version>";
+            say "{%result<name>}\t{%result<owner>}\t{%result<version>}";
         }
     }
 }
@@ -148,7 +148,7 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
             @failures.push($path);
         } 
         else {
-            $data ~= "{$path}\r\n$buff\r\n";
+            $data ~= "{$path}\r\n{$buff}\r\n";
         }
     }
 
@@ -160,7 +160,7 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
         my $metf = 'META.info'.IO ~~ :f ?? 'META.info'.IO !! 'META6.json'.IO ~~ :f ?? 'META6.json'.IO !! die 'Couldn\'t find META6.json or META.info';
         my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf.slurp)) });
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-        $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n$json");
+        $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
         my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
         
         if %result<version> {

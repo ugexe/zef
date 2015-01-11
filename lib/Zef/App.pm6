@@ -112,9 +112,10 @@ multi MAIN('search', *@terms) {
     }
 }
 
-multi MAIN('push', :@exclude?, :$force?, *@targets = $*CWD) {
+multi MAIN('push', @targets = $*CWD, :@exclude?, :$force?) {
+    require MIME::Base64;
+    
     for @targets -> $target {
-        require MIME::Base64;
         my $data = '';
         my @paths = $target.dir;
         my @files;
@@ -124,13 +125,13 @@ multi MAIN('push', :@exclude?, :$force?, *@targets = $*CWD) {
             next if $path ~~ @exclude.any;
             given $path.IO {
                 when :d { for .dir -> $io { @paths.push: $io } }
-                when :f & { @files.push($_) }
+                when :f { @files.push($_) }
             }            
         }
 
         FILES: for @files -> $path {
             my $buff = try { 
-                    MIME::Base64.encode-str(".$path".IO.slurp) 
+                    MIME::Base64.encode-str: $*SPEC.catdir('.',$path).IO.slurp;
                 } or try {
                     my $b = Buf.new;
                     my $f = $path.open(:r);
@@ -149,15 +150,13 @@ multi MAIN('push', :@exclude?, :$force?, *@targets = $*CWD) {
             $data ~= "{$path}\r\n{$buff}\r\n";
         }
 
-        if !$force && @failures.elems {
+        if !$force && @failures {
             print "Failed to package the following files:\n\t";
             say @failures.join("\n\t");
             exit 1;
         } 
 
-        my $metf = try {'META.info'.IO.slurp} 
-                    or try {'META6.json'.IO.slurp} 
-                    or die "Couldn't find META6.json or META.info";
+        my $metf = try {'META.info'.IO.slurp} or try {'META6.json'.IO.slurp} or die "Couldn't find META6.json or META.info";
         my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf)) });
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
         $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");

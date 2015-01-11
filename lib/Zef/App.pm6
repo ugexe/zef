@@ -54,6 +54,7 @@ multi MAIN('build', $path) {
 
 multi MAIN('login', $user, $password?) {
     my $pass = $password // prompt 'Password: ';
+    say "Password required" && exit(1) unless $pass;
     use IO::Socket::SSL;
     my $data = to-json({ username => $user, password => $pass, });
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));

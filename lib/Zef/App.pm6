@@ -117,35 +117,32 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
     my $data = '';
     my @paths = $target.dir;
     my @files;
+    my @failures;
 
     while @paths.shift -> $path {
+        next if $path ~~ @exclude.any;
         given $path.IO {
-            when @exclude { say "skipping $path" }
             when :d { for .dir -> $io { @paths.push: $io } }
             when :f & { @files.push($_) }
         }            
     }
 
-    my @failures;
-    for @files -> $path {
-        my $buff;
-        try {
-            $buff = MIME::Base64.encode-str(".$path".IO.slurp);
-            CATCH { default { say "Error: $_" } }
-        }
-        try {
-            my $b = Buf.new;
-            my $f = $path.open(:r);
-            while !$f.eof { 
-                $b ~= $f.read(1024); 
-            }
-            $f.close;
-            $buff = MIME::Base64.encode($b);
-            CATCH { when $path eq '/md5sum' { .say } default { say "Error: $_" } }
-        }
+    FILES: for @files -> $path {
+        my $buff = try { 
+                MIME::Base64.encode-str(".$path".IO.slurp) 
+            } or try {
+                my $b = Buf.new;
+                my $f = $path.open(:r);
+                while !$f.eof { 
+                    $b ~= $f.read(1024); 
+                }
+                $f.close;
+                MIME::Base64.encode($b);
+            } or fail "Failed to encode data";
 
         if $buff !~~ Str {
             @failures.push($path);
+            last FILES unless $force;
         } 
         else {
             $data ~= "{$path}\r\n{$buff}\r\n";
@@ -158,8 +155,10 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
         exit 1;
     } 
 
-    my $metf = 'META.info'.IO ~~ :f ?? 'META.info'.IO !! 'META6.json'.IO ~~ :f ?? 'META6.json'.IO !! die 'Couldn\'t find META6.json or META.info';
-    my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf.slurp)) });
+    my $metf = try {'META.info'.IO.slurp} 
+                or try {'META6.json'.IO.slurp} 
+                or die "Couldn't find META6.json or META.info";
+    my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf)) });
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
     $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
     my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));

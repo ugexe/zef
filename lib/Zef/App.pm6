@@ -155,22 +155,22 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
     if !$force && @failures.elems {
         print "Failed to package the following files:\n\t";
         say @failures.join("\n\t");
+        exit 1;
+    } 
+
+    my $metf = 'META.info'.IO ~~ :f ?? 'META.info'.IO !! 'META6.json'.IO ~~ :f ?? 'META6.json'.IO !! die 'Couldn\'t find META6.json or META.info';
+    my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf.slurp)) });
+    my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
+    $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
+    my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+    
+    if %result<version> {
+        say "Successfully pushed version '{%result<version>}' to server";
+    } 
+    elsif %result<error> {
+        say "Error pushing module to server: {%result<error>}";
     } 
     else {
-        my $metf = 'META.info'.IO ~~ :f ?? 'META.info'.IO !! 'META6.json'.IO ~~ :f ?? 'META6.json'.IO !! die 'Couldn\'t find META6.json or META.info';
-        my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf.slurp)) });
-        my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-        $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
-        my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-        
-        if %result<version> {
-            say "Successfully pushed version '{%result<version>}' to server";
-        } 
-        elsif %result<error> {
-            say "Error pushing module to server: {%result<error>}";
-        } 
-        else {
-            say "Unknown error - {%result.perl}";
-        }
+        say "Unknown error - {%result.perl}";
     }
 }

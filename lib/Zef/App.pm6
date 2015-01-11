@@ -130,18 +130,18 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
     for @files -> $path {
         my $buff;
         try {
-            $buff = $buff // MIME::Base64.encode-str(".$path".IO.slurp);
+            $buff = MIME::Base64.encode-str(".$path".IO.slurp);
             CATCH { default { say "Error: $_" } }
         }
         try {
             my $b = Buf.new;
-            my $f = open ".$path", :r;
+            my $f = $path.open(:r);
             while !$f.eof { 
                 $b ~= $f.read(1024); 
             }
             $f.close;
             $buff = MIME::Base64.encode($b);
-            CATCH { when $path eq '/md5sum' { .say } }
+            CATCH { when $path eq '/md5sum' { .say } default { say "Error: $_" } }
         }
 
         if $buff !~~ Str {

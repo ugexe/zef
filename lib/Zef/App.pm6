@@ -131,7 +131,7 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
         my $buff;
         try {
             $buff = $buff // MIME::Base64.encode-str(".$path".IO.slurp);
-            CATCH { default { } }
+            CATCH { default { say "Error: $_" } }
         }
         try {
             my $b = Buf.new;

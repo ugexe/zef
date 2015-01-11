@@ -126,9 +126,8 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
     }
 
     my @failures;
-    my $buff;
     for @files -> $path {
-        $buff = Any;
+        my $buff;
         try {
             $buff = $buff // MIME::Base64.encode-str(".$path".IO.slurp);
             CATCH { default { } }

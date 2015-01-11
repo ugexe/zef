@@ -144,9 +144,8 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
             @failures.push($path);
             last FILES unless $force;
         } 
-        else {
-            $data ~= "{$path}\r\n{$buff}\r\n";
-        }
+
+        $data ~= "{$path}\r\n{$buff}\r\n";
     }
 
     if !$force && @failures.elems {

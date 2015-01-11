@@ -59,13 +59,16 @@ multi MAIN('login', $user, $password?) {
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
     $sock.send("POST /login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
     my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+    
     if %result<success> {
         say 'Login successful.';
         $config<session-key> = %result<newkey>;
         save-config;
-    } elsif %result<failure> {
+    } 
+    elsif %result<failure> {
         say "Login failed with error: %result<reason>";
-    } else {
+    } 
+    else {
         say 'Unknown problem -';
         %result.perl.say;
     }
@@ -78,13 +81,16 @@ multi MAIN('register', $user, $password?) {
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
     $sock.send("POST /register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
     my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+    
     if %result<success> {
         say 'Welcome to Zef.';
         $config<sessionkey> = %result<newkey>;
         save-config;
-    } elsif %result<failure> {
+    } 
+    elsif %result<failure> {
         say "Registration failed with error: %result<reason>";
-    } else {
+    } 
+    else {
         say 'Unknown problem -';
         %result.perl.say;
     }
@@ -137,26 +143,32 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
             $buff = MIME::Base64.encode($b);
             CATCH { when $path eq '/md5sum' { .say } }
         }
+
         if $buff !~~ Str {
             @failures.push($path);
         } else {
             $data ~= "{$path}\r\n$buff\r\n";
         }
     }
+
     if !$force && @failures.elems {
         print "Failed to package the following files:\r\n\t";
         @failures.join("\n\t").say;
-    } else {
+    } 
+    else {
         my $metf = 'META.info'.IO ~~ :f ?? 'META.info'.IO !! 'META6.json'.IO ~~ :f ?? 'META6.json'.IO !! die 'Couldn\'t find META6.json or META.info';
         my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf.slurp)) });
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
         $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n$json");
         my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+        
         if %result<version> {
             "Successfully pushed version '{%result<version>}' to server".say;
-        } elsif %result<error> {
+        } 
+        elsif %result<error> {
             "Error pushing module to server: {%result<error>}".say;
-        } else {
+        } 
+        else {
             "Unknown error - {%result.perl}".say;
         }
     }

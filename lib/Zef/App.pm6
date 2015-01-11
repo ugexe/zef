@@ -59,11 +59,11 @@ multi MAIN('login', $user, $password?) {
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
     $sock.send("POST /login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
     my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-    if %result<success> // False {
+    if %result<success> {
         say 'Login successful.';
         $config<session-key> = %result<newkey>;
         save-config;
-    } elsif %result<failure> // False {
+    } elsif %result<failure> {
         say "Login failed with error: %result<reason>";
     } else {
         say 'Unknown problem -';
@@ -78,11 +78,11 @@ multi MAIN('register', $user, $password?) {
     my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
     $sock.send("POST /register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
     my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-    if %result<success> // False {
+    if %result<success> {
         say 'Welcome to Zef.';
         $config<sessionkey> = %result<newkey>;
         save-config;
-    } elsif %result<failure> // False {
+    } elsif %result<failure> {
         say "Registration failed with error: %result<reason>";
     } else {
         say 'Unknown problem -';
@@ -108,6 +108,7 @@ multi MAIN('search', *@terms) {
 multi MAIN('push', :$force?) {
     use MIME::Base64;
     my $data = '';
+    
     sub list ($dir, $prefix = '/') {
         my @paths;
         for $dir.dir.grep({ .basename !~~ any(/^'.git'$/,/^'.gitignore'/) }) -> $dir {
@@ -119,6 +120,7 @@ multi MAIN('push', :$force?) {
         }
         return @paths;
     };
+
     my @paths = list($*CWD);
     my @failures;
     my $buff;
@@ -136,7 +138,7 @@ multi MAIN('push', :$force?) {
             }
             $f.close;
             $buff = MIME::Base64.encode($b);
-            CATCH { default { .say if $path eq '/md5sum' } }
+            CATCH { when $path eq '/md5sum' { .say } }
         }
         if $buff !~~ Str {
             @failures.push($path);
@@ -153,9 +155,9 @@ multi MAIN('push', :$force?) {
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
         $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n$json");
         my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-        if %result<version> // False {
+        if %result<version> {
             "Successfully pushed version '{%result<version>}' to server".say;
-        } elsif %result<error> // False {
+        } elsif %result<error> {
             "Error pushing module to server: {%result<error>}".say;
         } else {
             "Unknown error - {%result.perl}".say;

@@ -105,26 +105,23 @@ multi MAIN('search', *@terms) {
     }
 }
 
-multi MAIN('push', :$force?) {
+multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
     use MIME::Base64;
     my $data = '';
-    
-    sub list ($dir, $prefix = '/') {
-        my @paths;
-        for $dir.dir.grep({ .basename !~~ any(/^'.git'$/,/^'.gitignore'/) }) -> $dir {
-            if $dir ~~ :f {
-                @paths.push($prefix ~ $dir.basename);
-            } elsif $dir ~~ :d {
-                @paths.push(|list($dir, "{$prefix}{$dir.basename}/"));
-            }
-        }
-        return @paths;
-    };
+    my @paths = $target.dir;
+    my @files;
 
-    my @paths = list($*CWD);
+    while @paths.shift -> $path {
+        given $path.IO {
+            when @exclude { say "skipping $path" }
+            when :d { for .dir -> $io { @paths.push: $io } }
+            when :f & { @files.push($_) }
+        }            
+    }
+
     my @failures;
     my $buff;
-    for @paths -> $path {
+    for @files -> $path {
         $buff = Any;
         try {
             $buff = $buff // MIME::Base64.encode-str(".$path".IO.slurp);

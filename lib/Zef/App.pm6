@@ -156,8 +156,8 @@ multi MAIN('push', @targets = $*CWD, :@exclude?, :$force?) {
             exit 1;
         } 
 
-        my $metf = try {'META.info'.IO.slurp}\ 
-            or try {'META6.json'.IO.slurp}\ 
+        my $metf = try {'META.info'.IO.slurp} \ 
+            or try {'META6.json'.IO.slurp}    \ 
             or die "Couldn't find META6.json or META.info";
         my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf)) });
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));

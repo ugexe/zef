@@ -92,7 +92,7 @@ multi MAIN('register', $user, $password?) {
     } 
     else {
         say 'Unknown problem -';
-        %result.perl.say;
+        say %result.perl;
     }
 }
 
@@ -103,10 +103,10 @@ multi MAIN('search', *@terms) {
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
         $sock.send("POST /search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data");
         my @results = @(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-        "Results for $term".say;
-        "Package\tAuthor\tVersion".say;
+        say "Results for $term";
+        say "Package\tAuthor\tVersion";
         for @results -> %result {
-            "%result<name>\t%result<owner>\t%result<version>".say;
+            say "%result<name>\t%result<owner>\t%result<version>";
         }
     }
 }
@@ -145,14 +145,15 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
 
         if $buff !~~ Str {
             @failures.push($path);
-        } else {
+        } 
+        else {
             $data ~= "{$path}\r\n$buff\r\n";
         }
     }
 
     if !$force && @failures.elems {
-        print "Failed to package the following files:\r\n\t";
-        @failures.join("\n\t").say;
+        print "Failed to package the following files:\n\t";
+        say @failures.join("\n\t");
     } 
     else {
         my $metf = 'META.info'.IO ~~ :f ?? 'META.info'.IO !! 'META6.json'.IO ~~ :f ?? 'META6.json'.IO !! die 'Couldn\'t find META6.json or META.info';
@@ -162,13 +163,13 @@ multi MAIN('push', :$target = $*CWD, :@exclude?, :$force?) {
         my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
         
         if %result<version> {
-            "Successfully pushed version '{%result<version>}' to server".say;
+            say "Successfully pushed version '{%result<version>}' to server";
         } 
         elsif %result<error> {
-            "Error pushing module to server: {%result<error>}".say;
+            say "Error pushing module to server: {%result<error>}";
         } 
         else {
-            "Unknown error - {%result.perl}".say;
+            say "Unknown error - {%result.perl}";
         }
     }
 }

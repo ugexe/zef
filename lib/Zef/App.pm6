@@ -23,7 +23,7 @@ submethod BUILD(:@!plugins) {
 
 
 #| Test modules in cwd
-multi MAIN('test') is export { &MAIN('test/', 'tests/', 't/', 'xt/') }
+multi MAIN('test') is export { &MAIN('test', |('test/', 'tests/', 't/', 'xt/')) }
 #| Test modules in the specified directories
 multi MAIN('test', *@paths) is export {
     my $tester = Zef::Tester.new(:@plugins);

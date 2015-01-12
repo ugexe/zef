@@ -6,9 +6,10 @@ use Zef::Installer;
 use Zef::Getter;
 use Zef::Builder;
 use Zef::Config;
+use Zef::Authority;
 
 # load plugins from config file
-BEGIN our @plugins := $config<plugins>.list;
+BEGIN our @plugins := %config<plugins>.list;
 
 # when invoked as a class, we have the usual @.plugins
 has @.plugins;
@@ -22,7 +23,7 @@ submethod BUILD(:@!plugins) {
 
 
 #| Test modules in cwd
-multi MAIN('test') is export { &MAIN('test', 't/') }
+multi MAIN('test') is export { &MAIN('test/', 'tests/', 't/', 'xt/') }
 #| Test modules in the specified directories
 multi MAIN('test', *@paths) is export {
     my $tester = Zef::Tester.new(:@plugins);
@@ -52,126 +53,31 @@ multi MAIN('build', $path) {
     $builder.pre-compile($path);
 }
 
-multi MAIN('login', $user, $password?) {
-    my $pass = $password // prompt 'Password: ';
-    say "Password required" && exit(1) unless $pass;
-    use IO::Socket::SSL;
-    my $data = to-json({ username => $user, password => $pass, });
-    my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-    $sock.send("POST /login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-    my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-    
-    if %result<success> {
-        say 'Login successful.';
-        $config<session-key> = %result<newkey>;
-        save-config;
-    } 
-    elsif %result<failure> {
-        say "Login failed with error: {%result<reason>}";
-    } 
-    else {
-        say 'Unknown problem -';
-        say %result.perl;
-    }
+multi MAIN('login', Str $username, Str $password?) {
+    $password //= prompt 'Password: ';
+    say "Password required" && exit(1) unless $password;
+    my $auth = Zef::Authority.new;
+    $auth.login(:$username, :$password);
+    %config<session-key> = $auth.session-key;
+    save-config;
 }
 
-multi MAIN('register', $user, $password?) {
-    my $pass = $password // prompt 'Password: ';
-    use IO::Socket::SSL;
-    my $data = to-json({ username => $user, password => $pass, });
-    my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-    $sock.send("POST /register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-    my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-    
-    if %result<success> {
-        say 'Welcome to Zef.';
-        $config<sessionkey> = %result<newkey>;
-        save-config;
-    } 
-    elsif %result<failure> {
-        say "Registration failed with error: {%result<reason>}";
-    } 
-    else {
-        say 'Unknown problem -';
-        say %result.perl;
-    }
+multi MAIN('register', Str $username, Str $password?) {
+    $password //= prompt 'Password: ';
+    say "Password required" && exit(1) unless $password;
+    my $auth = Zef::Authority.new;
+    $auth.login(:$username, :$password);
+    %config<session-key> = $auth.session-key;
+    save-config;
 }
 
 multi MAIN('search', *@terms) {
-    use IO::Socket::SSL;
-    for @terms -> $term {
-        my $data = to-json({ query => $term });
-        my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-        $sock.send("POST /search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my @results = @(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-        say "Results for $term";
-        say "Package\tAuthor\tVersion";
-        for @results -> %result {
-            say "{%result<name>}\t{%result<owner>}\t{%result<version>}";
-        }
-    }
+    my $auth = Zef::Authority.new;
+    $auth.search(@terms);
 }
 
-multi MAIN('push', @targets = $*CWD, :@exclude?, :$force?) {
-    require MIME::Base64;
-    
-    for @targets -> $target {
-        my $data = '';
-        my @paths = $target.dir;
-        my @files;
-        my @failures;
-
-        while @paths.shift -> $path {
-            next if $path ~~ @exclude.any;
-            given $path.IO {
-                when :d { for .dir -> $io { @paths.push: $io } }
-                when :f { @files.push($_) }
-            }            
-        }
-
-        FILES: for @files -> $path {
-            my $buff = try { 
-                    MIME::Base64.encode-str: $*SPEC.catdir('.',$path).IO.slurp;
-                } or try {
-                    my $b = Buf.new;
-                    my $f = $path.open(:r);
-                    while !$f.eof { 
-                        $b ~= $f.read(1024); 
-                    }
-                    $f.close;
-                    MIME::Base64.encode($b);
-                } or fail "Failed to encode data";
-
-            if $buff !~~ Str {
-                @failures.push($path);
-                last FILES unless $force;
-            } 
-
-            $data ~= "{$path}\r\n{$buff}\r\n";
-        }
-
-        if !$force && @failures {
-            print "Failed to package the following files:\n\t";
-            say @failures.join("\n\t");
-            exit 1;
-        } 
-
-        my $metf = try {'META.info'.IO.slurp} \ 
-            or try {'META6.json'.IO.slurp}    \ 
-            or die "Couldn't find META6.json or META.info";
-        my $json = to-json({ key => $config<session-key>, data => $data, meta => %(from-json($metf)) });
-        my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-        $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
-        my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-        
-        if %result<version> {
-            say "Successfully pushed version '{%result<version>}' to server";
-        } 
-        elsif %result<error> {
-            say "Error pushing module to server: {%result<error>}";
-        } 
-        else {
-            say "Unknown error - {%result.perl}";
-        }
-    }
+multi MAIN('push', @targets, Str :$session-key = %config<session-key>, :@exclude?, Bool :$force?) {
+    @targets.push($*CWD) unless @targets;
+    my $auth = Zef::Authority.new;
+    $auth.push(:@targets, :$session-key, :@exclude, :$force);
 }

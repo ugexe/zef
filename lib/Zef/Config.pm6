@@ -19,10 +19,10 @@ try { mkdir($ZEF_DIR) } unless $ZEF_DIR.IO.d;
 $ZEF_CONFIG_FILE.IO.spurt('{"plugins": [ ]}') 
     unless $ZEF_CONFIG_FILE.IO ~~ :f;
 
-our $config is export = from-json($ZEF_CONFIG_FILE.IO.slurp);
+our %config is export = %( from-json($ZEF_CONFIG_FILE.IO.slurp) );
 
 sub save-config is export {
-    $ZEF_CONFIG_FILE.IO.spurt(to-json($config));
+    $ZEF_CONFIG_FILE.IO.spurt(to-json(%config));
 }
 
 multi MAIN('config') is export {
@@ -30,11 +30,11 @@ multi MAIN('config') is export {
 }
 
 multi MAIN('plugin', *@plugins) is export {
-    $config<plugins> = uniq($config<plugins>, @plugins);
+    %config<plugins> = uniq(%config<plugins>, @plugins);
     save-config;
 }
 
 multi MAIN('unplug', *@plugins) is export {
-    $config<plugins>.map({ :delete if $_ ~~ @plugins.any});
+    %config<plugins>.map({ :delete if $_ ~~ @plugins.any});
     save-config;
 }

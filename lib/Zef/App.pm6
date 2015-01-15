@@ -76,7 +76,7 @@ multi MAIN('search', *@terms) {
     $auth.search(@terms);
 }
 
-multi MAIN('push', @targets, Str :$session-key = %config<session-key>, :@exclude?, Bool :$force?) {
+multi MAIN('push', @targets?, Str :$session-key = %config<session-key>, :@exclude?, Bool :$force?) {
     @targets.push($*CWD) unless @targets;
     my $auth = Zef::Authority.new;
     $auth.push(:@targets, :$session-key, :@exclude, :$force);

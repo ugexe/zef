@@ -25,20 +25,27 @@ class Zef::Builder does Zef::Phase::Building {
         }
 
         while @modules.shift -> $module {
-        #for @modules -> $module {
-            my $precomp-path = $module.path ~ '.' ~ $*VM.precomp-ext;
-            try { $precomp-path.IO.unlink } if $precomp-path.IO.e;
-            
-
             say "";
             say "---DEBUG precomp---";
-            CompUnit.new($module.path, :INC(@dirs) ).precomp;
+            my $cu = CompUnit.new($module.path, :INC(@dirs) );
 
-            say $precomp-path;
-            my $precomp-result = $precomp-path.IO.e;
+            # Not exactly happy with this current solution. If something 
+            # should fail before everything is precompiled we would be 
+            # left with precompiled modules from 2 different versions.
+            # Sure, there are bigger problems if something fails in the middle, 
+            # but it would still be ideal to first delete all the precompiled 
+            # copies of a module's sub modules. As this requires a (current 
+            # unimplemented) dependency tree builder, we won't bother to 
+            # just delete them here as encountered as it will lead to 
+            # the same problem. (i.e. we want to delete all precompiled
+            # versions before we build any specific module of the repo)
+            $cu.precomp(:force);
 
-            if $precomp-result {
-                @precompiled.push($precomp-path);
+            # if $cu.has-precomp { # has-precomp will return True if you
+                                   # delete a previously existing precompiled
+                                   # file after the CompUnit.new above
+            if $cu.precomp-path.IO.e { # so just check for the file's existence
+                @precompiled.push($cu.precomp-path);
                 say "precomp ok";
             }
             else {

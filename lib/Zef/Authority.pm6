@@ -119,7 +119,6 @@ class Zef::Authority {
             if !$force && @failures {
                 print "Failed to package the following files:\n\t";
                 say @failures.join("\n\t");
-                exit 1;
             } 
 
             my $metf = try {'META.info'.IO.slurp} \ 

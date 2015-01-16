@@ -1,4 +1,5 @@
 {
+    "perl"        : "v6.0.0",
     "name"        : "Zef",
     "version"     : "*",
     "description" : "CPAN but better. Maybe?",

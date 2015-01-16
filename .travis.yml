@@ -16,7 +16,8 @@ before_install:
     - git config --global user.name "TravisCI"
     - git config --global user.email $HOSTNAME":not-for-mail@travis-ci.org"
     - git clone git://github.com/travis-perl/helpers ~/travis-perl-helpers
-    - source ~/travis-perl-helpers/init # helpers for parallel testing/testing dirs
+    # helpers for parallel testing/testing dirs
+    - source ~/travis-perl-helpers/init
     - git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew
     - export PATH=~/.rakudobrew/bin:$PATH
     - rakudobrew build $BACKEND
@@ -28,4 +29,6 @@ install:
 script:
     - prove -v -s -j$(test-jobs) -e "perl6 --ll-exception -Ilib" $(test-files)
 after_success:
+    # runs tests again, but catches some heisenbugs
+    - PANDA_SUBMIT_TESTREPORTS=yes panda install .
     - perl6 -Ilib bin/zef test t/ # check things run without prove

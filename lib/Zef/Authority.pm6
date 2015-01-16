@@ -1,13 +1,17 @@
 class Zef::Authority {
 
-    has $.session-key;
+    has $.session-key is rw;
 
     method login(:$username, :$password) {
         use IO::Socket::SSL;
         my $data = to-json({ username => $username, password => $password });
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-        $sock.send("POST /login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+        $sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
+        my $recv = $sock.recv.decode('UTF-8');
+        my %result = try {
+            CATCH { default { %(); } }
+            %(from-json($recv.split("\r\n\r\n")[1]));
+        }
         
         if %result<success> {
             say 'Login successful.';
@@ -20,6 +24,7 @@ class Zef::Authority {
         else {
             say 'Unknown problem -';
             say %result.perl;
+            say $recv;
             return False;
         }
 
@@ -30,8 +35,11 @@ class Zef::Authority {
         use IO::Socket::SSL;
         my $data = to-json({ username => $username, password => $password });
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-        $sock.send("POST /register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+        $sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
+        my %result = try {
+            CATCH { default { %(); } }
+            %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+        }
         
         if %result<success> {
             say 'Welcome to Zef.';
@@ -55,8 +63,12 @@ class Zef::Authority {
         for @terms -> $term {
             my $data = to-json({ query => $term });
             my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-            $sock.send("POST /search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-            my @results = @(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+            $sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
+            my @results = try {
+                CATCH { default { .say; @(); } }
+                my $recv = $sock.recv.decode('UTF-8');
+                @(from-json($recv.split("\r\n\r\n")[1]));
+            }
             say "Results for $term";
             say "Package\tAuthor\tVersion";
             for @results -> %result {
@@ -66,41 +78,42 @@ class Zef::Authority {
     }
 
     method push(*@targets, :$session-key, :@exclude?, :$force?) {
-        require MIME::Base64;
-        
+        use MIME::Base64;
         for @targets -> $target {
             my $data = '';
-            my @paths = $target.dir;
+            my @paths = $target.IO.dir;
             my @files;
             my @failures;
 
             while @paths.shift -> $path {
-                next if $path ~~ @exclude.any;
+                next if $path ~~ any @exclude;
                 given $path.IO {
                     when :d { for .dir -> $io { @paths.push: $io } }
                     when :f { @files.push($_) }
                 }            
             }
 
-            FILES: for @files -> $path {
+            for @files -> $path {
                 my $buff = try { 
-                        MIME::Base64.encode-str: $*SPEC.catdir('.', $path).IO.slurp;
-                    } or try {
+                        CATCH { default { } }
+                        MIME::Base64.encode-str($path.IO.slurp);
+                    } // try {
                         my $b = Buf.new;
-                        my $f = $path.open(:r);
+                        my $f = open $path, :r;
                         while !$f.eof { 
                             $b ~= $f.read(1024); 
                         }
                         $f.close;
-                        MIME::Base64.encode($b);
-                    } or fail "Failed to encode data";
+                        CATCH { default { } }
+                        MIME::Base64.encode($b, one-line => True);
+                    } // fail "Failed to encode data";
 
                 if $buff !~~ Str {
                     @failures.push($path);
-                    last FILES unless $force;
+                    last unless $force;
                 } 
 
-                $data ~= "{$path}\r\n{$buff}\r\n";
+                $data ~= "{$path.Str.subst(/ ^ $target /, '')}\r\n{$buff}\r\n";
             }
 
             if !$force && @failures {
@@ -115,8 +128,12 @@ class Zef::Authority {
 
             my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
             my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-            $sock.send("POST /push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
-            my %result = %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+            $sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
+            my $recv   = $sock.recv.decode('UTF-8');
+            my %result = try {
+                CATCH { default { %() } }
+                %(from-json($recv.split("\r\n\r\n")[1]));
+            };
             
             if %result<version> {
                 say "Successfully pushed version '{%result<version>}' to server";
@@ -126,7 +143,7 @@ class Zef::Authority {
                 return False;
             } 
             else {
-                say "Unknown error - {%result.perl}";
+                say "Unknown error - Reply from server:\n{%result.perl}";
                 return False;
             }
 

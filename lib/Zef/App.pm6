@@ -53,7 +53,7 @@ multi MAIN('build', $path) {
     $builder.pre-compile($path);
 }
 
-multi MAIN('login', Str $username, Str $password?) {
+multi MAIN('login', Str $username, Str $password? is copy) {
     $password //= prompt 'Password: ';
     say "Password required" && exit(1) unless $password;
     my $auth = Zef::Authority.new;
@@ -62,11 +62,11 @@ multi MAIN('login', Str $username, Str $password?) {
     save-config;
 }
 
-multi MAIN('register', Str $username, Str $password?) {
+multi MAIN('register', Str $username, Str $password? is copy) {
     $password //= prompt 'Password: ';
     say "Password required" && exit(1) unless $password;
     my $auth = Zef::Authority.new;
-    $auth.login(:$username, :$password);
+    $auth.register(:$username, :$password);
     %config<session-key> = $auth.session-key;
     save-config;
 }
@@ -76,8 +76,8 @@ multi MAIN('search', *@terms) {
     $auth.search(@terms);
 }
 
-multi MAIN('push', @targets, Str :$session-key = %config<session-key>, :@exclude?, Bool :$force?) {
-    @targets.push($*CWD) unless @targets;
+multi MAIN('push', *@targets, Str :$session-key = %config<session-key>, :@exclude? = (/'.git'/,/'.gitignore'/), Bool :$force?) {
+    @targets.push($*CWD.Str) unless @targets.elems;
     my $auth = Zef::Authority.new;
-    $auth.push(:@targets, :$session-key, :@exclude, :$force);
+    $auth.push(@targets, :$session-key, :@exclude, :$force);
 }

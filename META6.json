@@ -6,7 +6,8 @@
     "depends"     : [
         "JSON::Tiny",
         "HTTP::UserAgent",
-        "IO::Socket::SSL"
+        "IO::Socket::SSL",
+        "MIME::Base64"
     ],
     "provides"    : {
         "Zef" : "lib/Zef.pm6",

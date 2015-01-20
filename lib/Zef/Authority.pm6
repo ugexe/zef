@@ -59,26 +59,29 @@ class Zef::Authority {
     }
 
     method search(*@terms) {
+        say "Please provide at least 1 search term" && return False unless @terms;
         use IO::Socket::SSL;
+        my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
+
+        my %results;
         for @terms -> $term {
-            CATCH { default { fail "Search error: $_" } }
-
             my $data = to-json({ query => $term });
-            my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
             $sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-            my $recv = $sock.recv.decode('UTF-8');
-            
-            my @results = @(from-json($recv.split("\r\n\r\n")[1])) // fail "Bad JSON";
-            say "No results for $term" && return False unless @results;
+            my $recv = $sock.recv.decode('UTF-8').split("\r\n\r\n").[1] or fail "No data received";
+            my @term-results = @(from-json($recv)) // fail "Bad JSON";
+            %results{$term} = @term-results;
+        }
 
+        for %results.kv -> $term, @term-results {
+            say "No results for $term" and next unless @term-results;
             say "Results for $term";
             say "Package\tAuthor\tVersion";
-            for @results -> %result {
+            for @term-results -> %result {
                 say "{%result<name>}\t{%result<owner>}\t{%result<version>}";
             }
-
-            return True;
         }
+
+        return [] ~~ all(%results.values) ?? False !! True;
     }
 
     method push(*@targets, :$session-key, :@exclude?, :$force?) {

@@ -1,10 +1,11 @@
 use v6;
 use Zef::Authority;
-plan 1;
+plan 2;
 use Test;
 
 my $authority = Zef::Authority.new;
 
-ok $authority.search("zef"), 'Got modules';
+ok $authority.search('zef'), "Got modules (search: zef)";
+nok $authority.search("''"), "Got 0 modules (search: '')";
 
 done();

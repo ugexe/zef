@@ -65,7 +65,7 @@ class Zef::Authority {
             my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
             $sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
             my @results = try {
-                CATCH { default { .say; @(); } }
+                UNDO { return False }
                 my $recv = $sock.recv.decode('UTF-8');
                 @(from-json($recv.split("\r\n\r\n")[1]));
             }

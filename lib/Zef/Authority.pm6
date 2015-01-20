@@ -59,7 +59,7 @@ class Zef::Authority {
     }
 
     method search(*@terms) {
-        say "Please provide at least 1 search term" && return False unless @terms;
+        return False unless @terms;
         use IO::Socket::SSL;
         my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
 

@@ -2,7 +2,7 @@ use IO::Socket::SSL;
 
 class Zef::Authority {
     has $.session-key is rw;
-    has $!sock handles 'send';
+    has $!sock;
 
     submethod BUILD( IO::Socket::SSL :$ssl-sock ) {
         $!sock = $ssl-sock // IO::Socket::SSL.new(:host<zef.pm>, :port(443));

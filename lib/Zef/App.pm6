@@ -57,8 +57,8 @@ multi MAIN('login', Str $username, Str $password? is copy) {
     $password //= prompt 'Password: ';
     say "Password required" && exit(1) unless $password;
     my $auth = Zef::Authority.new;
-    $auth.login(:$username, :$password);
-    %config<session-key> = $auth.session-key;
+    $auth.login(:$username, :$password) or exit(2);
+    %config<session-key> = $auth.session-key // exit(3);
     save-config;
 }
 
@@ -66,14 +66,23 @@ multi MAIN('register', Str $username, Str $password? is copy) {
     $password //= prompt 'Password: ';
     say "Password required" && exit(1) unless $password;
     my $auth = Zef::Authority.new;
-    $auth.register(:$username, :$password);
-    %config<session-key> = $auth.session-key;
+    $auth.register(:$username, :$password) or exit(5);
+    %config<session-key> = $auth.session-key or exit(6);
     save-config;
 }
 
 multi MAIN('search', *@terms) {
     my $auth = Zef::Authority.new;
-    $auth.search(@terms);
+    my %results = $auth.search(@terms) or exit(4);
+
+    for %results.kv -> $term, @term-results {
+        say "No results for $term" and next unless @term-results;
+        say "Results for $term";
+        say "Package\tAuthor\tVersion";
+        for @term-results -> %result {
+            say "{%result<name>}\t{%result<owner>}\t{%result<version>}";
+        }
+    }
 }
 
 multi MAIN('push', *@targets, Str :$session-key = %config<session-key>, :@exclude? = (/'.git'/,/'.gitignore'/), Bool :$force?) {

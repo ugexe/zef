@@ -4,65 +4,52 @@ class Zef::Authority {
     has $.session-key is rw;
     has $!sock;
 
-    submethod BUILD(IO::Socket::SSL :$ssl-sock) {
-        $!sock = $ssl-sock // $ssl-sock.new(:host<zef.pm>, :port(443));
+    submethod BUILD( IO::Socket::SSL :$ssl-sock ) {
+        $!sock = $ssl-sock // IO::Socket::SSL.new(:host<zef.pm>, :port(443));
     } 
 
     method login(:$username, :$password) {
-        my $data = to-json({ username => $username, password => $password });
+        my $data = to-json({ username => $username, password => $password }) // fail "Bad JSON";
         $!sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my $recv = $!sock.recv.decode('UTF-8');
-        my %result = try {
-            CATCH { default { %(); } }
-            %(from-json($recv.split("\r\n\r\n")[1]));
-        }
+        sleep 1;
+        my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1];
+        sleep 1;
+        say $recv.perl;
+        sleep 1;
+        #say $recv.perl;
+        my %result = %(from-json($recv)) // fail "Bad JSON";
         
         if %result<success> {
-            say 'Login successful.';
-            $.session-key = %result<newkey>;
+            $.session-key = %result<newkey> // fail "Session-key problem";
+            return True;
         } 
         elsif %result<failure> {
-            say "Login failed with error: {%result<reason>}";
             return False;
+            #fail "Login failed with error: {%result<reason>}";
         } 
-        else {
-            say 'Unknown problem -';
-            say %result.perl;
-            say $recv;
-            return False;
-        }
 
-        return True;
+        fail "Problem receiving data";
     }
 
     method register(:$username, :$password) {
         my $data = to-json({ username => $username, password => $password });
         $!sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my %result = try {
-            CATCH { default { %(); } }
-            %(from-json($!sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
-        }
+        my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1];
+        my %result = %(from-json($recv)) // fail "Bad JSON";
         
         if %result<success> {
-            say 'Welcome to Zef.';
-            $.session-key = %result<newkey>;
+            $.session-key = %result<newkey> // fail "Session-key problem";            
+            return True;
         } 
         elsif %result<failure> {
-            say "Registration failed with error: {%result<reason>}";
             return False;
+            #fail "Registration failed with error: {%result<reason>}";
         } 
-        else {
-            say 'Unknown problem -';
-            say %result.perl;
-            return False;
-        }
 
-        return True;
+        fail "Problem receiving data";
     }
 
     method search(*@terms) {
-        return False unless @terms;
-
         my %results;
         for @terms -> $term {
             my $data = to-json({ query => $term });
@@ -72,16 +59,8 @@ class Zef::Authority {
             %results{$term} = @term-results;
         }
 
-        for %results.kv -> $term, @term-results {
-            say "No results for $term" and next unless @term-results;
-            say "Results for $term";
-            say "Package\tAuthor\tVersion";
-            for @term-results -> %result {
-                say "{%result<name>}\t{%result<owner>}\t{%result<version>}";
-            }
-        }
-
-        return [] ~~ all(%results.values) ?? False !! True;
+        return False if 'failure' ~~ any(%results.values);
+        return [] ~~ all(%results.values) ?? False !! %results;
     }
 
     method push(*@targets, :$session-key, :@exclude?, :$force?) {

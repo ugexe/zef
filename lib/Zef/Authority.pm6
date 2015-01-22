@@ -1,13 +1,17 @@
-class Zef::Authority {
+use IO::Socket::SSL;
 
+class Zef::Authority {
     has $.session-key is rw;
+    has $!sock;
+
+    submethod BUILD(IO::Socket::SSL :$ssl-sock) {
+        $!sock = $ssl-sock // $ssl-sock.new(:host<zef.pm>, :port(443));
+    } 
 
     method login(:$username, :$password) {
-        use IO::Socket::SSL;
         my $data = to-json({ username => $username, password => $password });
-        my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-        $sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my $recv = $sock.recv.decode('UTF-8');
+        $!sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
+        my $recv = $!sock.recv.decode('UTF-8');
         my %result = try {
             CATCH { default { %(); } }
             %(from-json($recv.split("\r\n\r\n")[1]));
@@ -32,13 +36,11 @@ class Zef::Authority {
     }
 
     method register(:$username, :$password) {
-        use IO::Socket::SSL;
         my $data = to-json({ username => $username, password => $password });
-        my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-        $sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
+        $!sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
         my %result = try {
             CATCH { default { %(); } }
-            %(from-json($sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
+            %(from-json($!sock.recv.decode('UTF-8').split("\r\n\r\n")[1]));
         }
         
         if %result<success> {
@@ -60,14 +62,12 @@ class Zef::Authority {
 
     method search(*@terms) {
         return False unless @terms;
-        use IO::Socket::SSL;
-        my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
 
         my %results;
         for @terms -> $term {
             my $data = to-json({ query => $term });
-            $sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-            my $recv = $sock.recv.decode('UTF-8').split("\r\n\r\n").[1] or fail "No data received";
+            $!sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
+            my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1] or fail "No data received";
             my @term-results = @(from-json($recv)) // fail "Bad JSON";
             %results{$term} = @term-results;
         }
@@ -133,9 +133,8 @@ class Zef::Authority {
                 or die "Couldn't find META6.json or META.info";
 
             my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
-            my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-            $sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
-            my $recv   = $sock.recv.decode('UTF-8');
+            $!sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
+            my $recv   = $!sock.recv.decode('UTF-8');
             my %result = try {
                 CATCH { default { %() } }
                 %(from-json($recv.split("\r\n\r\n")[1]));

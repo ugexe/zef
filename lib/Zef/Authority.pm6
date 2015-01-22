@@ -2,7 +2,7 @@ use IO::Socket::SSL;
 
 class Zef::Authority {
     has $.session-key is rw;
-    has $!sock;
+    has $!sock handles 'send';
 
     submethod BUILD( IO::Socket::SSL :$ssl-sock ) {
         $!sock = $ssl-sock // IO::Socket::SSL.new(:host<zef.pm>, :port(443));
@@ -11,12 +11,7 @@ class Zef::Authority {
     method login(:$username, :$password) {
         my $data = to-json({ username => $username, password => $password }) // fail "Bad JSON";
         $!sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        sleep 1;
         my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1];
-        sleep 1;
-        say $recv.perl;
-        sleep 1;
-        #say $recv.perl;
         my %result = %(from-json($recv)) // fail "Bad JSON";
         
         if %result<success> {
@@ -59,8 +54,8 @@ class Zef::Authority {
             %results{$term} = @term-results;
         }
 
-        return False if 'failure' ~~ any(%results.values);
-        return [] ~~ all(%results.values) ?? False !! %results;
+        return [] ~~ all(%results.values) ?? Hash !! %results;
+        return %results // False;
     }
 
     method push(*@targets, :$session-key, :@exclude?, :$force?) {

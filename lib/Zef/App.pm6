@@ -41,7 +41,7 @@ multi MAIN('install', *@modules) is export {
 #| Get the freshness
 multi MAIN('get', *@modules) is export {
     my $getter = Zef::Getter.new(:@plugins);
-    $getter.get($_, $*CWD) for @modules;
+    $getter.get($_) for @modules;
 }
 
 

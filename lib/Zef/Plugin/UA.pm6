@@ -8,14 +8,16 @@ require IO::Socket::SSL;
 role Zef::Plugin::UA does Zef::Phase::Getting {
     has $.ua = HTTP::UserAgent.new(useragent => 'firefox_linux');
 
-    multi method get($url, $file) {
-        my $response = $.ua.get($url);
+    multi method get(:$save-to = "$*TMPDIR.path/{time}", *@urls) {
+        for @urls -> $url {
+            my $response = $.ua.get($url);
 
-        if $response.is-success {
-            $file.IO.open(:bin, :w).write($response.content);
-        }
-        else {
-            fail $response.status-line;
+            if $response.is-success {
+                $save-to.IO.open(:bin, :w).write($response.content);
+            }
+            else {
+                fail $response.status-line;
+            }
         }
     }
 }

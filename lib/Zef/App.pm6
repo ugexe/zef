@@ -39,9 +39,11 @@ multi MAIN('install', *@modules) is export {
 
 
 #| Get the freshness
-multi MAIN('get', *@modules) is export {
+multi MAIN('get', :$save-to = "$*CWD/{time}", *@modules) is export {
+    # {time} can be removed when we fetch actual versioned archives
+    # so we dont accidently overwrite files in $*CWD
     my $getter = Zef::Getter.new(:@plugins);
-    $getter.get($_) for @modules;
+    $getter.get(:$save-to, |@modules);
 }
 
 

@@ -1,8 +1,7 @@
 use v6;
 use Test;
-use Zef;
+plan 1;
 
-
-ok 1, 'Zef loaded.';
+lives_ok { use Zef; }, "Can `use Zef`";
 
 done();

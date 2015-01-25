@@ -12,8 +12,8 @@ class Zef::Authority {
         my $data = to-json({ username => $username, password => $password }) // fail "Bad JSON";
         $!sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
         my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1];
-        my %result = %(from-json($recv)) // fail "Bad JSON";
-        
+        my %result = try %(from-json($recv));
+
         if %result<success> {
             $.session-key = %result<newkey> // fail "Session-key problem";
             return True;
@@ -30,7 +30,7 @@ class Zef::Authority {
         my $data = to-json({ username => $username, password => $password });
         $!sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
         my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1];
-        my %result = %(from-json($recv)) // fail "Bad JSON";
+        my %result = try %(from-json($recv));
         
         if %result<success> {
             $.session-key = %result<newkey> // fail "Session-key problem";            
@@ -50,7 +50,7 @@ class Zef::Authority {
             my $data = to-json({ query => $term });
             $!sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
             my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1] or fail "No data received";
-            my @term-results = @(from-json($recv)) // fail "Bad JSON";
+            my @term-results = try @(from-json($recv));
             %results{$term} = @term-results;
         }
 
@@ -109,10 +109,7 @@ class Zef::Authority {
             my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
             $!sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
             my $recv   = $!sock.recv.decode('UTF-8');
-            my %result = try {
-                CATCH { default { %() } }
-                %(from-json($recv.split("\r\n\r\n")[1]));
-            };
+            my %result = try %(from-json($recv.split("\r\n\r\n")[1]));
             
             if %result<version> {
                 say "Successfully pushed version '{%result<version>}' to server";

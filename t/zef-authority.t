@@ -1,10 +1,13 @@
 use v6;
 use Zef::Authority;
-plan 4;
+plan 5;
 use Test;
 
 my $authority = Zef::Authority.new;
 nok $authority.register(username => 'zef', password => 'pass'), "Username already registered";
+
+$authority = Zef::Authority.new;
+ok $authority.login(username => 'zef', password => 'pass'), "Login failed";
 
 $authority = Zef::Authority.new;
 ok $authority.login(username => 'zef', password => 'zef'), "Login worked";

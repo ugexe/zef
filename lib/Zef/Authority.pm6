@@ -55,7 +55,6 @@ class Zef::Authority {
         }
 
         return [] ~~ all(%results.values) ?? Hash !! %results;
-        return %results // False;
     }
 
     method push(*@targets, :$session-key, :@exclude?, :$force?) {

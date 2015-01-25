@@ -19,8 +19,8 @@ role Zef::Plugin::PreComp does Zef::Phase::Building {
                     my $precomp = shell($cmd).exit == 0 ?? True  !! False;
 
                     $dest.IO.e 
-                        ?? @precompiled.push($*SPEC.catdir($*CWD,$dest)) && say "precomp ok" 
-                        !! "precomp not ok";
+                        ?? @precompiled.push($*SPEC.catdir($*CWD,$dest)) && "precomp ok".say 
+                        !! "precomp not ok".say;
                 }
             }
         }

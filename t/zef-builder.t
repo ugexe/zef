@@ -29,7 +29,7 @@ use Test;
     is any(@precompiled), "$*CWD/blib/lib/Zef.pm6.{$*VM.precomp-ext}", 'Zef::Builder default pre-compile works';
     LEAVE { 
         @precompiled>>.grep({ $_.IO.e && $_.IO.f })>>.IO>>.unlink; 
-        @precompiled>>.IO>>.dirname>>.grep({ $_.IO.e && $_.IO.d })>>.IO>>.rmdir; 
+        @precompiled>>.IO>>.dirname>>.grep({ $_.IO.e && $_.IO.d })>>.IO>>.rmdir;
     }
 }
 

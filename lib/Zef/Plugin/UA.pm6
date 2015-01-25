@@ -8,8 +8,14 @@ require IO::Socket::SSL;
 role Zef::Plugin::UA does Zef::Phase::Getting {
     has $.ua = HTTP::UserAgent.new(useragent => 'firefox_linux');
 
-    multi method get(:$save-to = "$*TMPDIR.path/{time}", *@urls) {
+    multi method get(:$save-to = $*TMPDIR, *@urls) {
+        my @fetched;
+        my @failed;
+
         for @urls -> $url {
+            KEEP @fetched.push($url);
+            UNDO @failed.push($url);
+
             my $response = $.ua.get($url);
 
             if $response.is-success {
@@ -19,5 +25,7 @@ role Zef::Plugin::UA does Zef::Phase::Getting {
                 fail $response.status-line;
             }
         }
+
+        return %(@fetched.map({ $_ => True }), @failed.map({ $_ => False }));
     }
 }

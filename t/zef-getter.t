@@ -1,28 +1,31 @@
 use v6;
 use Zef::Getter;
-plan 22;
+plan 3;
 use Test;
 
+my $save-to = $*CWD;
 
-# (5) test default getter
-{
-    BEGIN my $save-to = $*SPEC.catdir($*CWD, "{time}");    
-    UNDO { try { shell("rm -rf $save-to") } if $save-to.IO.e };
+# 5 
+subtest {
+    temp $save-to = $*SPEC.catdir($save-to, ~time);    
+    LAST try { shell("rm -rf $save-to") }
 
     my $getter;
     lives_ok { $getter = Zef::Getter.new }, "Created getter";
     is $getter.plugins.elems, 0, 'no plugins loaded';
 
     # todo: nearly empty module for testing 
-    ok $getter.get(:$save-to, "DB::ORM::Quicky"), 'Used default .get method';
+    my $x = $getter.get(:$save-to, "DB::ORM::Quicky");
+
+    ok $x, 'Used default .get method';
     ok $save-to.IO.e, 'Modules were fetched';
     is shell("rm -rf $save-to").exit, 0, 'deleted test modules';
-}
+}, "Default Getter";
 
-# (8) Plugin::Git
-{
-    BEGIN my $save-to = $*SPEC.catdir($*CWD, "{time}");    
-    UNDO { try { shell("rm -rf $save-to") } if $save-to.IO.e };
+# 8
+subtest {
+    temp $save-to = $*SPEC.catdir($save-to, ~time);    
+    LAST try { shell("rm -rf $save-to") }
 
     lives_ok { use Zef::Plugin::Git; }, 'Zef::Plugin::Git `use`-able to test with';
 
@@ -37,12 +40,13 @@ use Test;
     ok $save-to.IO.e, 'Repo was created';
 
     is shell("rm -rf $save-to").exit, 0, 'deleted test repo';
-}
+}, 'Plugin::Git';
 
-# (9) Plugin::UA (HTTP::UserAgent)
-{
-    BEGIN my $save-to = $*SPEC.catpath('', $*SPEC.catdir($*CWD, "{time}"),'zef-get-plugin-ua.zip');    
-    UNDO { try { $save-to.IO.unlink } if $save-to.IO.e };
+# 9
+subtest {
+    temp $save-to = $*SPEC.catpath('', $*SPEC.catdir($save-to, ~time),'zef-get-plugin-ua.zip');    
+    try { mkdir $save-to.IO.dirname } or fail "Failed to create save-to directory";
+    LAST try { shell("rm -rf {$save-to.IO.dirname}") }
 
     lives_ok { use Zef::Plugin::UA; }, 'Zef::Plugin::UA `use`-able to test with';
 
@@ -62,7 +66,8 @@ use Test;
 
     ok $save-to.IO.e, 'Module archive exists';
     ok $save-to.IO.unlink, 'Module archive delete';
-}
+    ok $save-to.IO.dirname.IO.rmdir, 'Delete save-to directory';
+}, 'Plugin::UA';
 
 
 done();

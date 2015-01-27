@@ -1,6 +1,6 @@
 use Zef::Phase::Getting;
 use JSON::Tiny;
-use IO::Socket::SSL;
+require IO::Socket::SSL;
 use MIME::Base64;
 
 class Zef::Getter does Zef::Phase::Getting {

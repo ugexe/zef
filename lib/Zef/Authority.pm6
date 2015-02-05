@@ -11,7 +11,7 @@ class Zef::Authority {
     method login(:$username, :$password) {
         my $data = to-json({ username => $username, password => $password }) // fail "Bad JSON";
         $!sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1];
+        my $recv = $!sock.recv.split("\r\n\r\n").[1];
         my %result = try %(from-json($recv));
 
         if %result<success> {
@@ -29,7 +29,7 @@ class Zef::Authority {
     method register(:$username, :$password) {
         my $data = to-json({ username => $username, password => $password });
         $!sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1];
+        my $recv = $!sock.recv.split("\r\n\r\n").[1];
         my %result = try %(from-json($recv));
         
         if %result<success> {
@@ -49,7 +49,7 @@ class Zef::Authority {
         for @terms -> $term {
             my $data = to-json({ query => $term });
             $!sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-            my $recv = $!sock.recv.decode('UTF-8').split("\r\n\r\n").[1] or fail "No data received";
+            my $recv = $!sock.recv.split("\r\n\r\n").[1] or fail "No data received";
             my @term-results = try @(from-json($recv));
             %results{$term} = @term-results;
         }

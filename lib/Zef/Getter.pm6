@@ -1,6 +1,6 @@
 use Zef::Phase::Getting;
 use JSON::Tiny;
-require IO::Socket::SSL;
+use IO::Socket::SSL;
 use MIME::Base64;
 
 class Zef::Getter does Zef::Phase::Getting {
@@ -26,13 +26,9 @@ class Zef::Getter does Zef::Phase::Getting {
             my $data   = to-json({
                 name => $module,
             });
-            my $recv   = '';
-            my $buf;
+
             $sock.send("POST /api/download HTTP/1.0\r\nConnection: close\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data\r\n");
-            while $buf = $sock.recv { 
-                $recv ~= $buf.decode('UTF-8');  
-            }
-            $recv  = $recv.split("\r\n\r\n",2)[1].substr(0, *-2);
+            my $recv  = $sock.recv.split("\r\n\r\n",2)[1].substr(0, *-2);
             try { mkdir $save-to } or fail "error: $_";
             for @($recv.split("\r\n")) -> $path, $enc {
                 KEEP @fetched.push($path);

@@ -44,6 +44,14 @@ subtest {
 
 # 9
 subtest {
+    ENTER {
+        try { require HTTP::UserAgent } or do {
+            print("ok 3 - # Skip: HTTP::UserAgent not available\n");
+            return;
+        };
+    }
+
+
     temp $save-to = $*SPEC.catpath('', $*SPEC.catdir($save-to, ~time),'zef-get-plugin-ua.zip');    
     try { mkdir $save-to.IO.dirname } or fail "Failed to create save-to directory";
     LAST try { shell("rm -rf {$save-to.IO.dirname}") }

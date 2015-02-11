@@ -5,7 +5,6 @@
     "description" : "CPAN but better. Maybe?",
     "depends"     : [
         [ "JSON::Tiny", "JSON5::Tiny" ],
-        "HTTP::UserAgent",
         "IO::Socket::SSL",
         "MIME::Base64"
     ],

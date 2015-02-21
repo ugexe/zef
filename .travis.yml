@@ -4,15 +4,11 @@ perl:
 env:
     - BACKEND=moar
     - BACKEND=jvm
-    - BACKEND=parrot
 matrix:
     allow_failures:
         - env: BACKEND=jvm
-        - env: BACKEND=parrot
     fast_finish: true
 before_install:
-    - 'if [ "$BACKEND" == "parrot" ]; then sudo apt-get update -qq; fi;'
-    - 'if [ "$BACKEND" == "parrot" ]; then sudo apt-get install -qq libicu48 libicu-dev; fi;'
     - git config --global user.name "TravisCI"
     - git config --global user.email $HOSTNAME":not-for-mail@travis-ci.org"
     - git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew

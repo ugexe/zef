@@ -34,6 +34,24 @@ method ls($dir) {
   return @files;
 }
 
+method compress(@tree is copy) {
+  my @ctree;
+  my ($i, $level) = 0, 0;
+  for @tree -> $n {
+    for $i == 0 ?? () !! @tree[0..$i-1] -> $l {
+      $level++ if $n<dependencies>.grep($l<name>);
+    }
+    while $level > @ctree.elems {
+      @ctree.push([]);
+    }
+    @ctree[$level].push($n);
+    $i++;
+    $level = 0;
+  }
+
+  return @ctree.grep({ $_.elems > 0 });
+}
+
 method comb($dir) {
   die "$dir does not exist" unless $dir.IO ~~ :d;
   my @minimeta;

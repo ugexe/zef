@@ -12,7 +12,7 @@ method build(@metas is copy) {
           $visit($m2, $meta<name>);
         }
       }
-      $meta<marked> == 2;
+      $meta<marked> = 2;
       @tree.push($meta);
     }
   };

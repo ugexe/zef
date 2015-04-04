@@ -13,7 +13,7 @@ class Zef::Builder does Zef::Phase::Building {
     }
 
     multi method pre-compile(*@paths is copy) {
-        my @dirs = @paths;
+        my @dirs = @paths.map({CompUnitRepo::Local::File.new($_);});
         my @modules;
         my @precompiled;
         my %retry-me;
@@ -21,7 +21,7 @@ class Zef::Builder does Zef::Phase::Building {
         for @paths.shift -> $path {
             @modules = Zef::Depends.comb($path);
             for @modules -> $module {
-                my $cu = CompUnit.new($module<file>, :INC(@dirs) );
+                my $cu = CompUnit.new($module<file>);
 
 
                 # Not exactly happy with this current solution. If something 
@@ -37,7 +37,7 @@ class Zef::Builder does Zef::Phase::Building {
                 my $out = $path.IO.dirname;
                 $out ~= $module<file>.subst($out, '/blib') ~ ".{$*VM.precomp-ext}";
                 mkdir $out.IO.dirname;
-                my $result = $cu.precomp(:force, $out);
+                my $result = $cu.precomp(:force, $out, :INC(@dirs, @*INC));
 
                 # if $cu.has-precomp { # has-precomp will return True if you
                                        # delete a previously existing precompiled
@@ -48,12 +48,8 @@ class Zef::Builder does Zef::Phase::Building {
                     "OK".say;
                 }
                 else {
-                    # this is bad and i should feel bad
-                    # todo: build dependency tree instead
-                    %retry-me{$module}++;
-                    @modules.push($module) if %retry-me{$module} <= 3;
-                    
                     "FAILED".say;
+                    die "Failed to compile: $out";
                 }
             }
         }

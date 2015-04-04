@@ -44,7 +44,7 @@ class Zef::Builder does Zef::Phase::Building {
                                        # file after the CompUnit.new above
                 "[{$module<file>}]{' ' x 64 - $module<file>.chars}".print;
                 if $result && $out.IO ~~ :e { # so just check for the file's existence
-                    @precompiled.push($cu.precomp-path);
+                    @precompiled.push($out.IO);
                     "OK".say;
                 }
                 else {

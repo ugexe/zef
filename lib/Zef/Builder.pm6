@@ -42,7 +42,7 @@ class Zef::Builder does Zef::Phase::Building {
                 # if $cu.has-precomp { # has-precomp will return True if you
                                        # delete a previously existing precompiled
                                        # file after the CompUnit.new above
-                "[{$module<file>}]{' ' x 64 - $module<file>.chars}".print;
+                "[{$module<file>.subst(/ $path ['/' || '\\'] /, '')}] {'.' x 77 - $module<file>.chars} ".print;
                 if $result && $out.IO ~~ :e { # so just check for the file's existence
                     @precompiled.push($out.IO);
                     "OK".say;

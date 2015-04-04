@@ -34,13 +34,16 @@ class Zef::Builder does Zef::Phase::Building {
                 # just delete them here as encountered as it will lead to 
                 # the same problem. (i.e. we want to delete all precompiled
                 # versions before we build any specific module of the repo)
-                $cu.precomp(:force);
+                my $out = $path.IO.dirname;
+                $out ~= $module<file>.subst($out, '/blib') ~ ".{$*VM.precomp-ext}";
+                mkdir $out.IO.dirname;
+                my $result = $cu.precomp(:force, $out);
 
                 # if $cu.has-precomp { # has-precomp will return True if you
                                        # delete a previously existing precompiled
                                        # file after the CompUnit.new above
-                "[{$module<file>}] . . . ".print;
-                if $cu.precomp-path.IO.e { # so just check for the file's existence
+                "[{$module<file>}]{' ' x 64 - $module<file>.chars}".print;
+                if $result && $out.IO ~~ :e { # so just check for the file's existence
                     @precompiled.push($cu.precomp-path);
                     "OK".say;
                 }

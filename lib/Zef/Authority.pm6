@@ -78,7 +78,7 @@ class Zef::Authority {
             for @files -> $path {
                 my $buff = try { 
                         CATCH { default { } }
-                        MIME::Base64.encode-str($path.IO.slurp);
+                        MIME::Base64.encode-str($path.IO.slurp, one-line => True);
                     } // try {
                         my $b = Buf.new;
                         my $f = open $path, :r;
@@ -94,8 +94,9 @@ class Zef::Authority {
                     @failures.push($path);
                     last unless $force;
                 } 
-
-                $data ~= "{$path.Str.subst(/ ^ $target /, '')}\r\n{$buff}\r\n";
+                
+                $data ~= "{nqp::stat($path.Str, nqp::const::STAT_PLATFORM_MODE).base(8)}:{$path.Str.subst(/ ^ $target /, '')}\r\n{$buff}\r\n";
+                warn "{nqp::stat($path.Str, nqp::const::STAT_PLATFORM_MODE).base(8)}:{$path.Str.subst(/ ^ $target /, '')}:{$buff.chars}";
             }
 
             if !$force && @failures {
@@ -104,8 +105,8 @@ class Zef::Authority {
             } 
 
             my $metf = try {'META.info'.IO.slurp} \ 
-                or try {'META6.json'.IO.slurp}    \ 
-                or die "Couldn't find META6.json or META.info";
+                // try {'META6.json'.IO.slurp}    \ 
+                // fail "Couldn't find META6.json or META.info";
 
             my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
             $!sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");

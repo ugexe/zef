@@ -19,6 +19,7 @@ class Zef::Authority {
             return True;
         } 
         elsif %result<failure> {
+            $*ERR = %result<reason>;
             return False;
             #fail "Login failed with error: {%result<reason>}";
         } 
@@ -37,6 +38,7 @@ class Zef::Authority {
             return True;
         } 
         elsif %result<failure> {
+            $*ERR = %result<reason>;
             return False;
             #fail "Registration failed with error: {%result<reason>}";
         } 
@@ -86,7 +88,7 @@ class Zef::Authority {
                         $f.close;
                         CATCH { default { } }
                         MIME::Base64.encode($b, one-line => True);
-                    } // fail "Failed to encode data";
+                    } // fail "Failed to encode data: { $path }";
 
                 if $buff !~~ Str {
                     @failures.push($path);
@@ -97,8 +99,8 @@ class Zef::Authority {
             }
 
             if !$force && @failures {
-                print "Failed to package the following files:\n\t";
-                say @failures.join("\n\t");
+                $*ERR.print("Failed to package the following files:\n\t");
+                warn @failures.join("\n\t");
             } 
 
             my $metf = try {'META.info'.IO.slurp} \ 
@@ -110,15 +112,12 @@ class Zef::Authority {
             my $recv   = $!sock.recv.decode('UTF-8');
             my %result = try %(from-json($recv.split("\r\n\r\n")[1]));
             
-            if %result<version> {
-                say "Successfully pushed version '{%result<version>}' to server";
-            } 
-            elsif %result<error> {
-                say "Error pushing module to server: {%result<error>}";
+            if %result<error> {
+                $*ERR = "Error pushing module to server: {%result<error>}";
                 return False;
             } 
             else {
-                say "Unknown error - Reply from server:\n{%result.perl}";
+                $*ERR = "Unknown error - Reply from server:\n{%result.perl}";
                 return False;
             }
 

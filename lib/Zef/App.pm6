@@ -59,7 +59,7 @@ multi MAIN('login', Str $username, Str $password? is copy) {
     $password //= prompt 'Password: ';
     say "Password required" && exit(1) unless $password;
     my $auth = Zef::Authority.new;
-    $auth.login(:$username, :$password) or exit(2);
+    $auth.login(:$username, :$password) or { $*ERR.say; exit(2) }();
     %config<session-key> = $auth.session-key // exit(3);
     save-config;
 }
@@ -68,7 +68,7 @@ multi MAIN('register', Str $username, Str $password? is copy) {
     $password //= prompt 'Password: ';
     say "Password required" && exit(1) unless $password;
     my $auth = Zef::Authority.new;
-    $auth.register(:$username, :$password) or exit(5);
+    $auth.register(:$username, :$password) or { $*ERR.say; exit(5) }();
     %config<session-key> = $auth.session-key or exit(6);
     save-config;
 }
@@ -92,5 +92,5 @@ multi MAIN('search', *@terms) {
 multi MAIN('push', *@targets, Str :$session-key = %config<session-key>, :@exclude? = (/'.git'/,/'.gitignore'/), Bool :$force?) {
     @targets.push($*CWD.Str) unless @targets.elems;
     my $auth = Zef::Authority.new;
-    $auth.push(@targets, :$session-key, :@exclude, :$force);
+    $auth.push(@targets, :$session-key, :@exclude, :$force) or { $*ERR.say; exit(7); }();
 }

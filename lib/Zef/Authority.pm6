@@ -96,7 +96,6 @@ class Zef::Authority {
                 } 
                 
                 $data ~= "{nqp::stat($path.Str, nqp::const::STAT_PLATFORM_MODE).base(8)}:{$path.Str.subst(/ ^ $target /, '')}\r\n{$buff}\r\n";
-                warn "{nqp::stat($path.Str, nqp::const::STAT_PLATFORM_MODE).base(8)}:{$path.Str.subst(/ ^ $target /, '')}:{$buff.chars}";
             }
 
             if !$force && @failures {
@@ -109,8 +108,9 @@ class Zef::Authority {
                 // fail "Couldn't find META6.json or META.info";
 
             my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
+            $json.chars.say;
             $!sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
-            my $recv   = $!sock.recv.decode('UTF-8');
+            my $recv   = $!sock.recv;
             my %result = try %(from-json($recv.split("\r\n\r\n")[1]));
             
             if %result<error> {

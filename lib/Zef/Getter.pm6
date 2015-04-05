@@ -28,9 +28,13 @@ class Zef::Getter does Zef::Phase::Getting {
             });
 
             $sock.send("POST /api/download HTTP/1.0\r\nConnection: close\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data\r\n");
-            my $recv  = $sock.recv.split("\r\n\r\n",2)[1].substr(0, *-2);
+            my $recv  = '';
+            while my $r = $sock.recv { $recv ~= $r; }
+            $recv = $recv.split("\r\n\r\n",2)[1].substr(0, *-2);
+            my $mode  = 0o0644;
             try { mkdir $save-to } or fail "error: $_";
-            for @($recv.split("\r\n")) -> $path, $enc {
+            for @($recv.split("\r\n")) -> $path is copy, $enc is copy {
+                ($mode, $path) = $path.split(':', 2);
                 KEEP @fetched.push($path);
                 UNDO @failed.push($path);
 
@@ -43,6 +47,8 @@ class Zef::Getter does Zef::Phase::Getting {
                 my $dc = MIME::Base64.decode($enc);
                 $fh.write($dc) or fail "write error: $_";
                 $fh.close;
+                say $*SPEC.catpath('', $dir, $path.IO.basename);
+                $*SPEC.catpath('', $dir, $path.IO.basename).IO.chmod($mode.Int);
             }
         }
 

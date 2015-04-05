@@ -27,13 +27,20 @@ method install(:$save_to = "$HOME/.zef/depot", *@metafiles, *%options ) is expor
             }
         } 
 
+        my @provides;
+        for @(%data<provides>) -> $pair is copy {
+          $pair.value = $*SPEC.catpath('', $file.IO.dirname, $pair.value).IO.resolve;
+          die 'Package attempting to install files outside of repository' if $pair.value !~~ /^ $*CWD /;
+          @provides.push($pair.values);
+        }
+
         $repo.install(
             dist => class :: {
                         method metainfo { 
                             %data;
                         }
                     },
-            |%data<provides>.values,
+            @provides,
         ) or die "Unable to install $file in $repo";
     }
 }

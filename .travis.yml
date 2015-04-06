@@ -21,6 +21,7 @@ install:
     - panda install IO::Socket::SSL --notests
 script:
     - prove -v -e "perl6 --ll-exception -Ilib" t/
+    - prove -v -e "perl6 --ll-exception -Iblib/lib" t/
 after_success:
     - PANDA_SUBMIT_TESTREPORTS=yes panda install .
     - perl6 -Ilib bin/zef test t/ # check things run without prove

@@ -13,26 +13,23 @@ class Zef::Builder does Zef::Phase::Building {
     }
 
     multi method pre-compile(*@paths is copy) {
-        my @dirs = @paths.map({CompUnitRepo::Local::File.new($*SPEC.catpath('', $_, 'lib')), CompUnitRepo::Local::File.new($*SPEC.catpath('', $_, 'blib'));});
-        my @modules;
         my @precompiled;
-        my %retry-me;
 
-        for @paths.shift -> $path {
-            @modules = Zef::Depends.comb($*SPEC.catpath('', $path, 'lib'));
-            for @modules -> $module {
+        while @paths.shift -> $path {
+            my @INC = CompUnitRepo::Local::File.new("$path/lib"), CompUnitRepo::Local::File.new("$path/blib/lib");
+            my @sources = Zef::Depends.comb($*SPEC.catpath('', $path, 'lib'));
+
+            for @sources -> $module {
                 my $cu = CompUnit.new($module<file>);
-
-                my $out = $path.IO.resolve;
-                $out ~= $module<file>.subst($out, '/blib') ~ ".{$*VM.precomp-ext}";
-                mkdir $out.IO.dirname;
-                my $result = $cu.precomp(:force, $out, :INC(@dirs, @*INC));
-
+                my $out = "{$*CWD}/blib/{$module<file>.IO.relative}.{$*VM.precomp-ext}" andthen .IO.dirname.IO.mkdir;
+                $out.IO.unlink if $out.IO.e;
+ 
+                my $result = $cu.precomp(:force, $out, :@INC);
                 "[{$module<file>.subst(/ $path ['/' || '\\'] /, '')}] {'.' x 77 - $module<file>.chars} ".print;
 
                 if $result && $out.IO ~~ :e { # so just check for the file's existence
                     @precompiled.push($out.IO);
-                    "OK".say;
+                    "OK $out".say;
                 }
                 else {
                     "FAILED".say;

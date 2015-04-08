@@ -1,6 +1,5 @@
-use Zef::Plugin::ZefReporter;
-
-class Zef::Reporter {
+use Zef::Phase::Reporting;
+class Zef::Reporter does Zef::Phase::Reporting {
 
 }
 

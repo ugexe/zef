@@ -16,7 +16,7 @@ class Zef::Builder does Zef::Phase::Building {
         my @precompiled;
 
         while @paths.shift -> $path {
-            my @INC = CompUnitRepo::Local::File.new("$path/lib"), CompUnitRepo::Local::File.new("$path/blib/lib");
+            my @INC = CompUnitRepo::Local::File.new("$path/blib/lib"), CompUnitRepo::Local::File.new("$path/lib");
             my @sources = Zef::Depends.comb($*SPEC.catpath('', $path, 'lib'));
 
             for @sources -> $module {

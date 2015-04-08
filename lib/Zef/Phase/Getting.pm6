@@ -3,6 +3,7 @@ role Zef::Phase::Getting is export {
 
     submethod BUILD(:@!plugins) {
         for @!plugins -> $p { 
+            say "[PLUGIN] trying $p ...";
             if do { require ::($p); ::($p).does(Zef::Phase::Getting) } {
                 self does ::($p);
                 say "[PLUGIN] Phase::Getting: $p";

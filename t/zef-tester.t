@@ -1,22 +1,11 @@
 use v6;
 use Zef::Tester;
-plan 6;
+plan 4;
 use Test;
 
-
 # Basic tests on the base class
-my $tester = Zef::Tester.new;
-is $tester.plugins.elems, 0, 'no plugins loaded';
-
-# more of an example of plugin passing than actual test
-{
-    my @plugins;
-    is Zef::Tester.new(:@plugins).plugins.elems, 0, 'no plugins to be loaded';
-
-    @plugins = <Zef::Plugin::P5Prove>;
-    is Zef::Tester.new(:@plugins).plugins.elems, 1, 'added a plugin'
-}
-
+my $tester;
+lives_ok { $tester = Zef::Tester.new; }
 
 # Test default tester
 {
@@ -30,8 +19,8 @@ is $tester.plugins.elems, 0, 'no plugins loaded';
 
 # Test another tester: Plugin::P5Prove
 {
-    lives_ok { use Zef::Plugin::P5Prove; }, 'Zef::Plugin::P5Prove `use`-able to test with';
-    temp $tester = Zef::Tester.new(:plugins(["Zef::Plugin::P5Prove"]));
+    lives_ok { require Zef::Plugin::P5Prove; }, 'Zef::Plugin::P5Prove `use`-able to test with';
+    temp $tester = Zef::Tester.new( :plugins(["Zef::Plugin::P5Prove"]) );
 
     ok $tester.does(::('Zef::Phase::Testing')), 'Zef::Tester has Zef::Phase::Testing applied';
     

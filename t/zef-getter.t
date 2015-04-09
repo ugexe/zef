@@ -26,13 +26,12 @@ subtest {
     # TODO: replace this with something sane
     LEAVE { shell("rm -rf $save-to"); }
 
-    lives_ok { use Zef::Plugin::Git; }, 'Zef::Plugin::Git `use`-able to test with';
+    lives_ok { require Zef::Plugin::Git; }, 'Zef::Plugin::Git `use`-able to test with';
 
     my $getter;
-    lives_ok { $getter = Zef::Getter.new( :plugins(['Zef::Plugin::Git'])) }, "Created getter";
+    lives_ok { $getter = Zef::Getter.new( :plugins(['Zef::Plugin::Git']) ) }, "Created getter";
 
-    ok $getter.does(::('Zef::Phase::Getting')), 'Zef::Tester has Zef::Phase::Testing applied';
-    ok $getter.can('get'), 'Plugin::Git can get()';
+    ok $getter.does(::('Zef::Phase::Getting')), 'Zef::Getter has Zef::Phase::Getting applied';
 
     ok $getter.get(:$save-to, 'https://github.com/ugexe/zef'), 'Used Git plugin .get method';
     ok $save-to.IO.e, 'Repo was created';
@@ -63,7 +62,6 @@ subtest {
     lives_ok { $getter = Zef::Getter.new(:plugins(["Zef::Plugin::UA"])) }, "Created getter";
 
     ok $getter.does(::('Zef::Phase::Getting')), 'Zef::Getter has Zef::Phase::Getting applied';
-    ok $getter.can('get'), 'Zef::Getter can get()';
 
     # TODO: HTTP::UserAgent PR for binary encoding of certain files
     #lives_ok { 

@@ -3,9 +3,10 @@ role Zef::Phase::Testing is export {
 
     submethod BUILD(:@!plugins) {
         for @!plugins -> $p { 
+            say "[LOAD PLUGIN] trying $p ...";
             if do { require ::($p); ::($p).does(Zef::Phase::Testing) } {
                 self does ::($p);
-                say "[PLUGIN] Phase::Testing: $p";
+                say "[PLUGIN LOADED] Zef::Phase::Testing: $p";
             }
         }
     }

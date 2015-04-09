@@ -3,9 +3,10 @@ role Zef::Phase::Reporting is export {
 
     submethod BUILD(:@!plugins) {
         for @!plugins -> $p { 
-            if do { require ::($p); ::($p).does(Zef::Phase::Building) } {
+            say "[LOAD PLUGIN] trying $p ...";
+            if do { require ::($p); ::($p).does(Zef::Phase::Reporting) } {
                 self does ::($p);
-                say "[PLUGIN] Phase::Reporting: $p";
+                say "[PLUGIN LOADED] Zef::Phase::Reporting: $p";
             }
         }
     }

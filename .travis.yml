@@ -18,10 +18,10 @@ before_install:
     - rakudobrew build-panda
 install:
     # bootstrapping our test process with panda for now :)
-    - panda install IO::Socket::SSL --notests
+    - panda --notests installdeps .
 script:
-    - prove -v -e "perl6 --ll-exception -Ilib" t/
-    - prove -v -e "perl6 --ll-exception -Iblib/lib" t/
-after_success:
-    - PANDA_SUBMIT_TESTREPORTS=yes panda install .
-    - perl6 -Ilib bin/zef test t/ # check things run without prove
+    - prove -v -e "perl6 -Ilib" t/
+    - rm -rf blib/
+    - perl6 -Ilib bin/zef build
+    - mv blib/ blib-testing/
+    - prove -v -e "perl6 -Iblib-testing/lib" t/

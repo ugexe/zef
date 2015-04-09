@@ -12,7 +12,7 @@ class Zef::Builder does Zef::Phase::Building {
                         @*INC; # remove this once we figure out how to include installed deps here
                                # without including target module if already installed
             my @sources = Zef::Depends.comb($*SPEC.catpath('', $path, 'lib'));
-
+            
             for @sources -> $module {
                 my $cu = CompUnit.new($module<file>);
                 my $out = IO::Path.new("{$*CWD}/blib/{$module<file>.IO.relative}.{$*VM.precomp-ext}");

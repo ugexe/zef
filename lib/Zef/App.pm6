@@ -31,7 +31,6 @@ multi MAIN('test', *@paths) is export {
 }
 
 #| Install with business logic
-
 multi MAIN('install', *@modules, Bool :$doinstall = True) is export {
     "Fetching: {@modules.join(', ')}".say;
     @modules.perl.say;
@@ -66,7 +65,6 @@ multi MAIN('install', *@modules, Bool :$doinstall = True) is export {
     for %result.keys -> $k {
         "Skipping $k due to depends failures".say, next if any(@failures.map({ "{$_ eq $k}".say; $_ eq $k }));
         if %result{$k} ~~ Str {
-#build
             my $build = &MAIN('build', %result{$k});
             $build.perl.say;
         } else {
@@ -95,7 +93,7 @@ multi MAIN('get', :$save-to = "$*CWD/{time}", *@modules) is export {
 
 
 #| Build modules in cwd
-multi MAIN('build') is export { &MAIN('build', $*SPEC.catdir($*CWD, 'lib')) }
+multi MAIN('build') is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directories
 multi MAIN('build', $path) {
     my $builder = Zef::Builder.new(:@plugins);

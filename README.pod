@@ -1,12 +1,20 @@
-## NAME
+=pod
+
+=encoding utf8
+
+=head2 Name
 
 Zef - Perl6 Module Management
 
-## DESCRIPTION
+=for HTML <a href="https://travis-ci.org/ugexe/zef"><img src="https://travis-ci.org/ugexe/zef.svg?branch=master"></a>
+
+=head2 Description
 
 CPAN but better. Maybe?
 
-## MODULE MANAGEMENT
+=head1 Usage
+
+=head2 Module Management
 
     zef install CSV::Parser
     # duh
@@ -20,7 +28,7 @@ CPAN but better. Maybe?
     zef push
     # upload module in cwd using meta.info
 
-## SOCIAL
+=head2 Social
 
     zef register sbalmer winrtlol
     # register <username> <password>
@@ -39,9 +47,13 @@ CPAN but better. Maybe?
     zef comment Zef 'literal trash for idiots'
     # dont let others make the same mistake!!
 
-## OTHER FEATURES
+=head1 Notes
+
+=head2 Full Flex
 
  * Test reporting to Zef servers
  * Rotating OS smoke testing server integration
  * Super bad role plugin based; fix problems easily 
    and give noobs a babbys first module easy outlet
+
+=cut

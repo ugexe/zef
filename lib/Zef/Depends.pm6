@@ -59,9 +59,14 @@ method comb($dir) {
   my $slash = / [ '/' | '\\' ]  /;
   for @files -> $f {
     my @depends;
-    for $f.slurp.lines -> $l {
-      if $l ~~ /^ \s* ['use'||'need'||'require'] \s+ (\w+ ['::' \w+]*)/ {
-        @depends.push($0.Str) if $0 !~~ any ('MONKEY_TYPING', 'v6');
+    for $f.slurp -> $t is copy {
+      while $t ~~ /^^ \s* '=begin' \s+ <ident> .* '=end' \s+ <ident> / {
+        $t = $t.substr(0,$/.from) ~ $t.substr($/.to);
+      }
+      for $t.lines -> $l {
+        if $l ~~ /^ \s* ['use'||'need'||'require'] \s+ (\w+ ['::' \w+]*)/ {
+          @depends.push($0.Str) if $0 !~~ any ('MONKEY_TYPING', 'v6');
+        }
       }
     }
     @minimeta.push({

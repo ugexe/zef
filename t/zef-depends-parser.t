@@ -11,7 +11,7 @@ use Test;
 # Test parsing out POD from modules
 {
   my @depends = Zef::Depends.comb($*SPEC.catpath('', $?FILE.IO.dirname, 'lib'));
-  my %depends = %(@depends.grep({ $_<file> eq $*SPEC.catpath('', 'lib', 'depends.pm6') }));
+  my %depends = %(@depends.grep({ $_<file> ~~ / "{$*SPEC.catpath('', 'lib', 'depends.pm6')}" $$ / }));
   ok %depends<dependencies>.elems == 2, 'We only got two dependencies';
   ok %depends<dependencies>.grep('This::One'), 'This::One depended - not in pod';
   ok %depends<dependencies>.grep('This::One::Too'), 'This::One::Too depended - not in pod';

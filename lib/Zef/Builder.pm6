@@ -1,5 +1,6 @@
 use Zef::Phase::Building;
 use Zef::Depends;
+use Zef::Utils;
 use JSON::Tiny;
 
 class Zef::Builder does Zef::Phase::Building {
@@ -11,7 +12,7 @@ class Zef::Builder does Zef::Phase::Building {
                         CompUnitRepo::Local::File.new("$path/lib"),
                         @*INC; # remove this once we figure out how to include installed deps here
                                # without including target module if already installed
-            my @sources = Zef::Depends.comb($*SPEC.catpath('', $path, 'lib'));
+            my @sources = Zef::Depends.build(Zef::Utils.comb($*SPEC.catpath('', $path, 'lib')));
             
             for @sources -> $module {
                 my $cu = CompUnit.new($module<file>);

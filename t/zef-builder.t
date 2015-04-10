@@ -21,6 +21,7 @@ use Test;
     lives_ok { use Zef::Plugin::PreComp; }, 'Zef::Plugin::PreComp `use`-able to test with';
     my $builder = Zef::Builder.new( :plugins(["Zef::Plugin::PreComp"]) );
     my @precompiled = $builder.pre-compile($*CWD);
+    @precompiled.join("\n").say;
     is any(@precompiled), "$*CWD/blib/lib/Zef.pm6.{$*VM.precomp-ext}", 'Zef::Builder default pre-compile works';
     LEAVE { 
         @precompiled>>.grep({ $_.IO.e && $_.IO.f })>>.IO>>.unlink; 

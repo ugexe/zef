@@ -4,11 +4,6 @@ use Zef::Depends;
 plan 8;
 use Test;
 
-# Test can .comb without an instance
-{
-    ok Zef::Utils.can('comb'), 'Zef::Utils can do comb method';
-    ok Zef::Depends.can('build'), 'Zef::Depends can do build method';
-}
 
 # Test parsing out POD from modules
 {

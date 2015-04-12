@@ -66,15 +66,17 @@ multi method b64encode(Str $s) {
   self.b64encode(Buf.new($s.encode('utf8')));
 }
 
-method b64decode(Str $s is copy) {
+method b64decode(Str $s is copy, Bool :$decode = False) {
   my @p = $s.split('');
   my @s = @p.grep(-> $c { 
     @b64chars.grep({ $_ eq $c }) || $c eq '=' 
   }); 
   my $l = 0;
   for (@s.elems - 2) .. (@s.elems - 1) {
-    $l++ if $_ < @s.elems && $_ > 0;
-    @s[*-$l] = 'A' if $_ < @s.elems && $_ > 0;
+    last if $_ < 0 || $_ >= @s.elems;
+    next if @s[$_] ne '=';
+    $l++;
+    @s[$_] = 'A';
   }
   
   my $p = '';
@@ -91,6 +93,6 @@ method b64decode(Str $s is copy) {
         ~ Buf.new($n +& 255);
     $c += 4;
   }
-  try return Buf.new($r[0 .. *-$l]).decode;
-  return $r[0 .. *-$l];
+  try return Buf.new($r.subbuf(0, $r.elems-$l)).decode if $decode;
+  return $r.subbuf(0, $r.elems-$l);
 }

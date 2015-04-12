@@ -1,7 +1,7 @@
 use v6;
 use Zef::Utils;
 use Zef::Depends;
-plan 8;
+plan 6;
 use Test;
 
 

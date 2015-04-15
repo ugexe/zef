@@ -10,6 +10,8 @@ Zef - Perl6 Module Management
 
 =head2 Description
 
+L<Zef.pm|https://zef.pm/>
+
 CPAN but better. Maybe?
 
 =head1 Usage

@@ -2,10 +2,13 @@ use v6;
 module Zef;
 
 use Zef::Authority;
-use Zef::Getter;
 use Zef::Builder;
-use Zef::Tester;
-use Zef::Installer;
-use Zef::Uninstaller;
-use Zef::Reporter;
 use Zef::Config;
+use Zef::Depends;
+use Zef::Exception;
+use Zef::Getter;
+use Zef::Installer;
+use Zef::Reporter;
+use Zef::Tester;
+use Zef::Uninstaller;
+use Zef::Utils;

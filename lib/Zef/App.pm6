@@ -1,12 +1,15 @@
 class Zef::App;
 
 #core modes 
-use Zef::Tester;
-use Zef::Installer;
-use Zef::Getter;
+use Zef::Authority;
 use Zef::Builder;
 use Zef::Config;
-use Zef::Authority;
+use Zef::Depends;
+use Zef::Getter;
+use Zef::Installer;
+use Zef::Reporter;
+use Zef::Tester;
+use Zef::Uninstaller;
 
 # load plugins from config file
 BEGIN our @plugins := %config<plugins>.list;

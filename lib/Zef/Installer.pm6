@@ -1,14 +1,7 @@
 class Zef::Installer;
 use JSON::Tiny;
 
-# hacky until $*HOME works properly in core
-our $HOME = # $*HOME = homedir(
-    ($*DISTRO.is-win
-        ?? $*SPEC.catpath(%*ENV<HOMEDRIVE>, %*ENV<HOMEPATH>,'')
-        !! $*SPEC.catpath('', %*ENV<HOME>,''));
-#);
-
-method install(:$save_to = "$HOME/.zef/depot", *@metafiles, *%options ) is export {
+method install(:$save_to = "$*HOME/.zef/depot", *@metafiles, *%options ) is export {
     try { mkdir($save_to) };
     my $repo = CompUnitRepo::Local::Installation.new($save_to);
 

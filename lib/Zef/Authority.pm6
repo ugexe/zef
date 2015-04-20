@@ -1,4 +1,6 @@
 use IO::Socket::SSL;
+use Zef::Utils;
+use nqp;
 
 class Zef::Authority {
     has $.session-key is rw;
@@ -60,7 +62,6 @@ class Zef::Authority {
     }
 
     method push(*@targets, :$session-key, :@exclude?, :$force?) {
-        use MIME::Base64;
         for @targets -> $target {
             my $data = '';
             my @paths = $target.IO.dir;
@@ -78,7 +79,7 @@ class Zef::Authority {
             for @files -> $path {
                 my $buff = try { 
                         CATCH { default { } }
-                        MIME::Base64.encode-str($path.IO.slurp, one-line => True);
+                        Zef::Utils.b64encode($path.IO.slurp);#, one-line => True);
                     } // try {
                         my $b = Buf.new;
                         my $f = open $path, :r;
@@ -87,7 +88,7 @@ class Zef::Authority {
                         }
                         $f.close;
                         CATCH { default { } }
-                        MIME::Base64.encode($b, one-line => True);
+                        Zef::Utils.b64encode($b);#, one-line => True);
                     } // fail "Failed to encode data: { $path }";
 
                 if $buff !~~ Str {

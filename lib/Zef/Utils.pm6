@@ -1,9 +1,30 @@
 class Zef::Utils;
 
-method comb($dir) {
+has $.path;
+
+method dir($dir = $.path, Bool :$f, Bool :$d, Bool :$r) {
+    my @results;
+    my $paths = Supply.from-list( dir($dir) );
+
+    $paths.grep(*.d).tap(-> $dir-path { 
+        @results.push($dir-path);
+    }) if $d;
+
+    $paths.grep(*.f).tap(-> $file-path { 
+        @results.push($file-path);
+    }) if $f;
+
+    $paths.grep(*.d).tap(-> $dir-path {
+        $paths.emit($_) for dir($dir-path);
+    }) if $r;
+
+    return @results;
+}
+
+method comb($dir = $.path) {
   die "$dir does not exist" unless $dir.IO ~~ :d;
   my @minimeta;
-  my @files = @($.ls($dir));
+  my @files = self.dir($dir, :f, :r);
   my $slash = / [ '/' | '\\' ]  /;
   for @files -> $f {
     my @depends;
@@ -27,14 +48,6 @@ method comb($dir) {
   return @(@minimeta);
 }
 
-method ls($dir) {
-  my @files;
-  for $dir.IO.dir -> $f {
-    @files.push($.ls($f).list), next if $f ~~ :d;
-    @files.push($f) if $f ~~ / '.pm' '6'? $ /;
-  }
-  return @files;
-}
 
 my @b64chars = qw<A B C D E F G H I J K L M N O P Q R S T U V W X Y Z a b c d e f g h i j k l m n o p q r s t u v w x y z 0 1 2 3 4 5 6 7 8 9 + />;
 my $b64charsi = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';

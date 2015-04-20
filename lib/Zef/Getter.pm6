@@ -1,7 +1,7 @@
 use Zef::Phase::Getting;
 use JSON::Tiny;
 use IO::Socket::SSL;
-use MIME::Base64;
+use Zef::Utils;
 
 class Zef::Getter does Zef::Phase::Getting {
     multi method get(:$save-to is copy = $*TMPDIR, *@modules) {
@@ -36,7 +36,7 @@ class Zef::Getter does Zef::Phase::Getting {
 
                     # Handle file creation
                     my $fh = $*SPEC.catpath('', $dir, $path.IO.basename).IO.open(:w);
-                    my $dc = MIME::Base64.decode($enc);
+                    my $dc = Zef::Utils.b64decode($enc);
                     $fh.write($dc) or fail "write error: $_";
                     $fh.close;
                     try $*SPEC.catpath('', $dir, $path.IO.basename).IO.chmod($mode.Int);

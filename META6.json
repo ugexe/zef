@@ -40,7 +40,7 @@
         "Tony O'Dell"       
     ],
     "support" : {
-        "source-url"  : "git@github.com:ugexe/zef.git",
         "bugtracker"  : "https://github.com/ugexe/zef/issues"
-    }
+    },
+    "source-url"  : "git@github.com:ugexe/zef.git"
 }

@@ -8,6 +8,6 @@ use Test;
 my $installer = Zef::Installer.new;
 my $save_to = $*SPEC.catdir($*CWD, 'tmp');
 lives_ok { $installer.install(:$save_to, "META6.json") }, "installer lived";
-is shell("rm -rf $save_to").exit, 0, 'deleted test install folder';
+is shell("rm -rf $save_to").exitcode, 0, 'deleted test install folder';
 
 done();

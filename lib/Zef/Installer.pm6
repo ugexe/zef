@@ -1,5 +1,5 @@
 class Zef::Installer;
-use JSON::Tiny;
+use JSON::Fast;
 
 method install(:$save_to = "$*HOME/.zef/depot", *@metafiles, *%options ) is export {
     try { mkdir($save_to) };

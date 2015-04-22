@@ -1,5 +1,5 @@
 module Zef::Uninstaller;
-use JSON::Tiny;
+use JSON::Fast;
 
 sub uninstall(
     @modules, 

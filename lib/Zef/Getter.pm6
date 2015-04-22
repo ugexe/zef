@@ -1,7 +1,8 @@
 use Zef::Phase::Getting;
-use JSON::Tiny;
-use IO::Socket::SSL;
 use Zef::Utils;
+
+use IO::Socket::SSL;
+use JSON::Fast;
 
 class Zef::Getter does Zef::Phase::Getting {
     multi method get(:$save-to is copy = $*TMPDIR, *@modules) {

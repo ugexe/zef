@@ -4,7 +4,7 @@
     "version"     : "*",
     "description" : "CPAN but better. Maybe?",
     "depends"     : [
-        "JSON::Tiny",
+        "JSON::Fast",
         "IO::Socket::SSL",
         "HTTP::UserAgent"
     ],

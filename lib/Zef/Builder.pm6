@@ -1,7 +1,8 @@
 use Zef::Phase::Building;
 use Zef::Depends;
 use Zef::Utils;
-use JSON::Tiny;
+
+use JSON::Fast;
 
 class Zef::Builder does Zef::Phase::Building {
     multi method pre-compile(*@paths is copy) {

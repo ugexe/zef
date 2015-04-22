@@ -1,5 +1,7 @@
-use IO::Socket::SSL;
 use Zef::Utils;
+
+use IO::Socket::SSL;
+use JSON::Fast;
 use nqp;
 
 class Zef::Authority {

@@ -1,5 +1,5 @@
 module Zef::Config;
-use JSON::Tiny;
+use JSON::Fast;
 
 # todo: properly handle volume argument for all .catpath method calls
 our $ZEF_DIR is export = $*SPEC.join(

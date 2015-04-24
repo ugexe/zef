@@ -80,8 +80,7 @@ multi method b64encode(Str $s) {
 }
 
 method b64decode(Str $s is copy, Bool :$decode = False) {
-  my @p = $s.split('');
-  my @s = @p.grep(-> $c { 
+  my @s = $s.comb.grep(-> $c { 
     @b64chars.grep({ $_ eq $c }) || $c eq '=' 
   }); 
   my $l = 0;
@@ -92,18 +91,15 @@ method b64decode(Str $s is copy, Bool :$decode = False) {
     @s[$_] = 'A';
   }
   
-  my $p = '';
   my Buf $r .= new;
   my $c = 0;
   my $n;
   while $c < @s.elems {
-    $n = ($b64charsi.match(@s[$c]).from +< 18) + 
+    $n = ($b64charsi.match(@s[$c]).from   +< 18) + 
          ($b64charsi.match(@s[$c+1]).from +< 12) +
-         ($b64charsi.match(@s[$c+2]).from +< 6) +
+         ($b64charsi.match(@s[$c+2]).from +< 6)  +
          ($b64charsi.match(@s[$c+3]).from); 
-    $r ~= Buf.new(($n +> 16) +& 255)
-        ~ Buf.new(($n +> 8) +& 255)
-        ~ Buf.new($n +& 255);
+    $r ~= Buf.new(($n +> 16) +& 255, ($n +> 8) +& 255, $n +& 255);
     $c += 4;
   }
   try return Buf.new($r.subbuf(0, $r.elems-$l)).decode if $decode;

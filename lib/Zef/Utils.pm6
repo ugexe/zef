@@ -80,7 +80,7 @@ multi method b64encode(Str $s) {
 }
 
 method b64decode(Str $string is copy, Bool :$decode = False) {
-  my Str @s = $string.comb(/@b64chars | "="/);
+  my Str @s = $string.comb;
 
   my int $l = 0;
   for (@s.elems - 2) .. (@s.elems - 1) {
@@ -102,5 +102,5 @@ method b64decode(Str $string is copy, Bool :$decode = False) {
     $c += 4;
   }
   
-  return $decode ?? Buf.new($r.subbuf(0, $r.elems-$l)).decode !! $r.subbuf(0, $r.elems-$l);
+  return $decode ?? $r.subbuf(0, $r.elems-$l).decode !! $r.subbuf(0, $r.elems-$l);
 }

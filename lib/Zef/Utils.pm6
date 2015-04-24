@@ -50,7 +50,7 @@ method comb($dir = $.path) {
 
 
 my @b64chars = qw<A B C D E F G H I J K L M N O P Q R S T U V W X Y Z a b c d e f g h i j k l m n o p q r s t u v w x y z 0 1 2 3 4 5 6 7 8 9 + />;
-my $b64charsi = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
 multi method b64encode(Buf $s is copy) {
   my $r = '';
   my $p = '';
@@ -80,8 +80,9 @@ multi method b64encode(Str $s) {
 }
 
 method b64decode(Str $string is copy, Bool :$decode = False) {
-  my @s = $string.comb(/@b64chars | "="/);
-  my $l = 0;
+  my Str @s = $string.comb(/@b64chars | "="/);
+
+  my int $l = 0;
   for (@s.elems - 2) .. (@s.elems - 1) {
     last if $_ < 0 || $_ >= @s.elems;
     next if @s[$_] ne '=';
@@ -90,16 +91,16 @@ method b64decode(Str $string is copy, Bool :$decode = False) {
   }
   
   my Buf $r .= new;
-  my $c = 0;
-  my $n;
+  my int $c = 0;
+  my int $n;
   while $c < @s.elems {
-    $n = ($b64charsi.match(@s[$c]).from   +< 18) + 
-         ($b64charsi.match(@s[$c+1]).from +< 12) +
-         ($b64charsi.match(@s[$c+2]).from +< 6)  +
-         ($b64charsi.match(@s[$c+3]).from); 
+    $n = (@b64chars.first-index(@s[$c])   +< 18) + 
+         (@b64chars.first-index(@s[$c+1]) +< 12) +
+         (@b64chars.first-index(@s[$c+2]) +< 6)  +
+         (@b64chars.first-index(@s[$c+3])); 
     $r ~= Buf.new(($n +> 16) +& 255, ($n +> 8) +& 255, $n +& 255);
     $c += 4;
   }
-  try return Buf.new($r.subbuf(0, $r.elems-$l)).decode if $decode;
-  return $r.subbuf(0, $r.elems-$l);
+  
+  return $decode ?? Buf.new($r.subbuf(0, $r.elems-$l)).decode !! $r.subbuf(0, $r.elems-$l);
 }

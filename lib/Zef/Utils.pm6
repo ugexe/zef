@@ -79,8 +79,8 @@ multi method b64encode(Str $s) {
   self.b64encode(Buf.new($s.encode('utf8')));
 }
 
-method b64decode(Str $s is copy, Bool :$decode = False) {
-  my @s = $s.comb.grep(-> $c { 
+method b64decode(Str $string is copy, Bool :$decode = False) {
+  my @s = $string.comb.grep(-> $c { 
     @b64chars.grep({ $_ eq $c }) || $c eq '=' 
   }); 
   my $l = 0;

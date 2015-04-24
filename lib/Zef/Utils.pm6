@@ -79,7 +79,7 @@ multi method b64encode(Str $s) {
   self.b64encode(Buf.new($s.encode('utf8')));
 }
 
-method b64decode(Str $string is copy, Bool :$decode = False) {
+method b64decode(Str $string, Bool :$decode = False) {
   my Str @s = $string.comb;
 
   my int $l = 0;
@@ -90,17 +90,11 @@ method b64decode(Str $string is copy, Bool :$decode = False) {
     @s[$_] = 'A';
   }
   
-  my Buf $r .= new;
-  my int $c = 0;
-  my int $n;
-  while $c < @s.elems {
-    $n = (@b64chars.first-index(@s[$c])   +< 18) + 
-         (@b64chars.first-index(@s[$c+1]) +< 12) +
-         (@b64chars.first-index(@s[$c+2]) +< 6)  +
-         (@b64chars.first-index(@s[$c+3])); 
-    $r ~= Buf.new(($n +> 16) +& 255, ($n +> 8) +& 255, $n +& 255);
-    $c += 4;
+  my int @r;
+  for @s.rotor(4, :partial) -> $chunk {
+    my $n <<+=>> $chunk.list.map({ @b64chars.first-index($_) +< ((state $m = 24) -= 6) });
+    @r.push: ($n +> 16) +& 255, ($n +> 8) +& 255, $n +& 255;
   }
   
-  return $decode ?? $r.subbuf(0, $r.elems-$l).decode !! $r.subbuf(0, $r.elems-$l);
+  return Buf.new(@r).subbuf(0, @r.elems-$l);
 }

@@ -80,9 +80,7 @@ multi method b64encode(Str $s) {
 }
 
 method b64decode(Str $string is copy, Bool :$decode = False) {
-  my @s = $string.comb.grep(-> $c { 
-    @b64chars.grep({ $_ eq $c }) || $c eq '=' 
-  }); 
+  my @s = $string.comb(/@b64chars | "="/);
   my $l = 0;
   for (@s.elems - 2) .. (@s.elems - 1) {
     last if $_ < 0 || $_ >= @s.elems;

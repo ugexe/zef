@@ -79,7 +79,7 @@ multi method b64encode(Str $s) {
   self.b64encode(Buf.new($s.encode('utf8')));
 }
 
-method b64decode(Str $string, Bool :$decode = False) {
+method b64decode(Str $string) {
   return Buf.new unless $string;
   my $padding = $string.comb(/'='?'='$/).chars;
   my Str @s   = $string.substr(0,*-$padding).comb;

@@ -83,7 +83,7 @@ method b64decode(Str $string) {
   return Buf.new unless $string;
   my $padding = $string.comb(/'='?'='$/).chars;
   my Str @s   = $string.substr(0,*-$padding).comb;
-  my @r = gather for @s.rotor(4,0) -> $chunk {
+  my @r = gather for @s.rotor(4, :partial) -> $chunk {
     my $n <<+=>> $chunk.list.map({ @b64chars.first-index($_) +< ((state $m = 24) -= 6) });
     take $_ for (16, 8, 0).map({ (($n +> $_) +& 255) }).grep(* > 0);
   }

@@ -45,5 +45,5 @@
         "source"     : "https://github.com/ugexe/zef",
         "bugtracker" : "https://github.com/ugexe/zef/issues"
     },
-    "source-url"  : "git@github.com:ugexe/zef.git"
+    "source-url"  : "git://github.com/ugexe/zef.git"
 }

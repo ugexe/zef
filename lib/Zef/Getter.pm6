@@ -38,12 +38,7 @@ class Zef::Getter does Zef::Phase::Getting {
 
                     # Handle file creation
                     my $fh = $*SPEC.catpath('', $dir, $path.IO.basename).IO.open(:w);
-                    say "encoding";
-                    my $t1 = time;
                     my $dc = Zef::Utils.b64decode($enc);
-                    my $t2 = time;
-                    say "done encoding";
-                    say "\t{$t2-$t1}";
                     $fh.write($dc) or fail "write error: $_";
                     $fh.close;
                     try $*SPEC.catpath('', $dir, $path.IO.basename).IO.chmod($mode.Int);

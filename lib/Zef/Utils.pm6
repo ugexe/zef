@@ -80,21 +80,12 @@ multi method b64encode(Str $s) {
 }
 
 method b64decode(Str $string, Bool :$decode = False) {
-  my Str @s = $string.comb;
-
-  my int $l = 0;
-  for (@s.elems - 2) .. (@s.elems - 1) {
-    last if $_ < 0 || $_ >= @s.elems;
-    next if @s[$_] ne '=';
-    $l++;
-    @s[$_] = 'A';
-  }
-  
-  my int @r;
-  for @s.rotor(4, :partial) -> $chunk {
+  return Buf.new unless $string;
+  my $padding = $string.comb(/'='?'='$/).chars;
+  my Str @s   = $string.substr(0,*-$padding).comb;
+  my @r = gather for @s.rotor(4, :partial) -> $chunk {
     my $n <<+=>> $chunk.list.map({ @b64chars.first-index($_) +< ((state $m = 24) -= 6) });
-    @r.push: ($n +> 16) +& 255, ($n +> 8) +& 255, $n +& 255;
+    take $_ for (16, 8, 0).map({ (($n +> $_) +& 255) }).grep(* > 0);
   }
-  
-  return Buf.new(@r).subbuf(0, @r.elems-$l);
+  return Buf.new(@r);
 }

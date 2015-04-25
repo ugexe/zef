@@ -1,8 +1,8 @@
 class Zef::Installer;
 
-method install(:$save_to = "$*HOME/.zef/depot", *@metafiles, *%options ) is export {
-    try mkdir($save_to);
-    my $repo = CompUnitRepo::Local::Installation.new($save_to);
+method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is export {
+    try mkdir($save-to);
+    my $repo = CompUnitRepo::Local::Installation.new($save-to);
 
     for @metafiles -> $file {
         my %data = %(from-json($file.IO.slurp));

@@ -23,7 +23,7 @@
         "Zef::Uninstaller" : "lib/Zef/Uninstaller.pm6",
 
         "Zef::Utils::Base64"     : "lib/Zef/Utils/Base64.pm6",
-        "Zef::UtilsDepends"      : "lib/Zef/Utils/Depends.pm6",
+        "Zef::Utils::Depends"    : "lib/Zef/Utils/Depends.pm6",
         "Zef::Utils::FileSystem" : "lib/Zef/Utils/FileSystem.pm6",
 
         "Zef::Phase::Building"  : "lib/Zef/Phase/Building.pm6",

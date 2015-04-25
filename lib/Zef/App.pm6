@@ -4,14 +4,12 @@ class Zef::App;
 use Zef::Authority;
 use Zef::Builder;
 use Zef::Config;
-use Zef::Depends;
 use Zef::Getter;
 use Zef::Installer;
 use Zef::Reporter;
 use Zef::Tester;
 use Zef::Uninstaller;
 
-use JSON::Fast;
 
 # load plugins from config file
 BEGIN our @plugins := %config<plugins>.list;
@@ -22,7 +20,7 @@ has @.plugins;
 # override config file plugins if invoked as a class
 # *and* :@plugins was passed to initializer 
 submethod BUILD(:@!plugins) { 
-@plugins := @!plugins if @!plugins.defined;
+    @plugins := @!plugins if @!plugins.defined;
 }
 
 

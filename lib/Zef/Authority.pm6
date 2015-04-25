@@ -1,7 +1,6 @@
-use Zef::Utils;
+use Zef::Utils::Base64;
 
 use IO::Socket::SSL;
-use JSON::Fast;
 use nqp;
 
 class Zef::Authority {
@@ -81,7 +80,7 @@ class Zef::Authority {
             for @files -> $path {
                 my $buff = try { 
                         CATCH { default { } }
-                        Zef::Utils.b64encode($path.IO.slurp);#, one-line => True);
+                        Zef::Utils::Base64.b64encode($path.IO.slurp);#, one-line => True);
                     } // try {
                         my $b = Buf.new;
                         my $f = open $path, :r;
@@ -90,7 +89,7 @@ class Zef::Authority {
                         }
                         $f.close;
                         CATCH { default { } }
-                        Zef::Utils.b64encode($b);#, one-line => True);
+                        Zef::Utils::Base64.b64encode($b);#, one-line => True);
                     } // fail "Failed to encode data: { $path }";
 
                 if $buff !~~ Str {

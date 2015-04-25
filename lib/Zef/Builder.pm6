@@ -1,8 +1,7 @@
 use Zef::Phase::Building;
-use Zef::Depends;
-use Zef::Utils;
+use Zef::Utils::Depends;
+use Zef::Utils::FileSystem;
 
-use JSON::Fast;
 
 class Zef::Builder does Zef::Phase::Building {
     multi method pre-compile(*@paths is copy) {
@@ -13,7 +12,7 @@ class Zef::Builder does Zef::Phase::Building {
                         CompUnitRepo::Local::File.new("$path/lib"),
                         @*INC; # remove this once we figure out how to include installed deps here
                                # without including target module if already installed
-            my @sources = Zef::Depends.build(Zef::Utils.comb($*SPEC.catpath('', $path, 'lib')));
+            my @sources = Zef::Utils::Depends.build(Zef::Utils::FileSystem.extract-deps($*SPEC.catpath('', $path, 'lib')));
             
             for @sources -> $module {
                 my $cu = CompUnit.new($module<file>);

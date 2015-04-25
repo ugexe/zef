@@ -1,8 +1,7 @@
 use Zef::Phase::Getting;
-use Zef::Utils;
+use Zef::Utils::Base64;
 
 use IO::Socket::SSL;
-use JSON::Fast;
 
 
 class Zef::Getter does Zef::Phase::Getting {
@@ -38,7 +37,7 @@ class Zef::Getter does Zef::Phase::Getting {
 
                     # Handle file creation
                     my $fh = $*SPEC.catpath('', $dir, $path.IO.basename).IO.open(:w);
-                    my $dc = Zef::Utils.b64decode($enc);
+                    my $dc = Zef::Utils::Base64.new.b64decode($enc);
                     $fh.write($dc) or fail "write error: $_";
                     $fh.close;
                     try $*SPEC.catpath('', $dir, $path.IO.basename).IO.chmod($mode.Int);

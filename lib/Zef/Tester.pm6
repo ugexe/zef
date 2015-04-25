@@ -1,21 +1,15 @@
 use Zef::Phase::Testing;
+use Zef::Utils::FileSystem;
+
 class Zef::Tester does Zef::Phase::Testing {
-    multi method test(*@paths) {
-        my $supply = Supply.new;
-        $supply.act: {
-            given $_.IO {
-                when :d {
-                    dir($_).map: -> $d { $supply.emit($d) };
-                } 
-                when :f & /\.t$/ {
-                    my $cmd = "(cd $*CWD && perl6 --ll-exception -Iblib/lib -Ilib $_)";
-                    my $test_result = shell($cmd).exit == 0 ?? True  !! False;
+    multi method test(*@paths, :$lib = ['blib/lib', 'lib'], :$p6flags = ['--ll-exception']) {
+        my @files = Zef::Utils::FileSystem.dir(@paths, :r, :f).grep(/\.t/);
 
-                    CATCH { default { say "Error: $_" } }
-                }
-            }
+        for @files -> $test-file {
+            my $cmd = "(cd $*CWD && perl6 {$p6flags.list} {$lib.map({ qqw/-I$_/ })} $test-file)";
+            my $test_result = shell($cmd).exit == 0 ?? True  !! False;
+
+            CATCH { default { say "Error: $_" } }
         }
-
-        my $promise = await @paths.map: { $supply.emit($_) };
     }
 }

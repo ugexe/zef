@@ -11,9 +11,9 @@ role Zef::Plugin::P5Prove does Zef::Phase::Testing {
         }
 
         # test /lib if /blib/lib fails or does not exist
-        'blib/lib'.IO.e && shell($cmd('blib/lib')).exit == 0
+        'blib/lib'.IO.e && shell($cmd('blib/lib')).exitcode == 0
              ?? True  
-             !! shell($cmd('lib')).exit == 0
+             !! shell($cmd('lib')).exitcode == 0
                 ?? ("ERROR: Source code passes test; Precomp fails".say andthen True)
                 !! False;
     }

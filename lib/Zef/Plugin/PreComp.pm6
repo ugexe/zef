@@ -7,7 +7,7 @@ role Zef::Plugin::PreComp does Zef::Phase::Building {
     multi method pre-compile(*@paths) {
         my @precompiled;
         my @libs     = @paths.map({$*SPEC.catpath('', $_, 'lib')});
-        my @deps     = @libs.map({ say "path:$_"; Zef::Utils::FileSystem.extract-deps($_) });
+        my @deps     = @libs.map({ Zef::Utils::FileSystem.extract-deps($_) });
         my @dep-tree = Zef::Utils::Depends.build(@deps);
 
         for @dep-tree {

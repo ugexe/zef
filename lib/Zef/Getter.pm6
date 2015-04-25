@@ -44,7 +44,6 @@ class Zef::Getter does Zef::Phase::Getting {
                 }
                 CATCH { default { "FAIL: $_".say; fail "Unable to unpack $module"; } }
             }
-            say "Fetched";
         }
 
         return %(@fetched, @failed);

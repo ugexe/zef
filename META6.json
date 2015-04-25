@@ -4,7 +4,6 @@
     "version"     : "*",
     "description" : "CPAN but better. Maybe?",
     "depends"     : [
-        "JSON::Fast",
         "IO::Socket::SSL",
         "HTTP::UserAgent"
     ],
@@ -37,12 +36,14 @@
         "Zef::Plugin::UA"          : "lib/Zef/Plugin/UA.pm6",
         "Zef::Plugin::ZefReporter" : "lib/Zef/Plugin/ZefReporter.pm6"
     },
+    "auth"    : "github:ugexe",
     "authors" : [
         "Nick Logan",
         "Tony O'Dell"       
     ],
     "support" : {
-        "bugtracker"  : "https://github.com/ugexe/zef/issues"
+        "source"     : "https://github.com/ugexe/zef",
+        "bugtracker" : "https://github.com/ugexe/zef/issues"
     },
     "source-url"  : "git@github.com:ugexe/zef.git"
 }

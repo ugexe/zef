@@ -57,6 +57,6 @@ sub b64decode(Str $decode-me) is export(:DEFAULT) {
     Zef::Utils::Base64.new.b64decode($decode-me);
 }
 
-sub b64encode(Buf $encode-me) is export(:DEFAULT) {
+sub b64encode($encode-me where Buf|Str) is export(:DEFAULT) {
     Zef::Utils::Base64.new.b64encode($encode-me);
 }

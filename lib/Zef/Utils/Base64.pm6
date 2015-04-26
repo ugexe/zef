@@ -25,7 +25,7 @@ multi method b64encode(Buf $encode-me is copy = $.decoded) {
         LAST { given $chunk.elems { take '=','=' when 1; take '=' when 2; } }
     }
     my $padding = @r[*-2..*].join.comb(/'='?'='$/).chars;
-    return @r[0..(@r.elems - $padding*2 - 1),(@r.elems - $padding)..*].join;# ~ ($padding-count x '=');
+    return $.encoded = @r[0..(@r.elems - $padding*2 - 1),(@r.elems - $padding)..*].join;
 }
 
 method b64decode(Str $decode-me = $.encoded) {
@@ -47,3 +47,5 @@ sub b64decode(Str $decode-me) is export(:DEFAULT) {
 sub b64encode($encode-me where Buf|Str) is export(:DEFAULT) {
     Zef::Utils::Base64.new.b64encode($encode-me);
 }
+
+

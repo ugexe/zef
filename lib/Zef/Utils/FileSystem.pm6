@@ -2,7 +2,7 @@ class Zef::Utils::FileSystem;
 
 has $.path;
 
-method dir($dir = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir) {
+method ls($dir = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir) {
     my @results;
     my $paths = Supply.from-list( dir($dir, :$test) );
 
@@ -25,7 +25,7 @@ method dir($dir = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curup
 method extract-deps($dir = $.path) {
     die "$dir does not exist" unless $dir.IO ~~ :d;
     my @minimeta;
-    my @modules = self.dir($dir, :f, :r).grep(/\.pm6?/);
+    my @modules = self.ls($dir, :f, :r).grep(/\.pm6?/);
     my $slash = / [ '/' | '\\' ]  /;
     for @modules -> $f {
         my @depends;

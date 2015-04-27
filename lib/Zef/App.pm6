@@ -126,7 +126,7 @@ multi MAIN('search', *@terms) {
     my %results = $auth.search(@terms) or exit(4);
     for %results.kv -> $term, @term-results {
         say "No results for $term" and next unless @term-results;
-        say @term-results.hash.<reason> and next if @term-results.hash.<failure>;
+        try say @term-results.hash.<reason> and next if @term-results.hash.<failure>;
         say "Results for $term";
         say "Package\tAuthor\tVersion";
         for @term-results -> %result {

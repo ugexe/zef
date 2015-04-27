@@ -1,10 +1,11 @@
 class Zef::Utils::FileSystem;
-
+# todo: inherit from IO::Path
 has $.path;
 
-method ls($dir = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir) {
+method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir) {
+    return () unless $path.IO.e;
     my @results;
-    my $paths = Supply.from-list( dir($dir, :$test) );
+    my $paths = Supply.from-list($path.IO.d ?? dir($path, :$test) !! $path.IO);
 
     $paths.grep(*.d).tap(-> $dir-path { 
         @results.push($dir-path);
@@ -18,9 +19,22 @@ method ls($dir = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupd
         $paths.emit($_) for dir($dir-path);
     }) if $r;
 
+    $paths.wait;
     return @results;
 }
 
+method rm($path = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir ) {
+    my @files = self.ls($path, :$f, :$r, :$test);
+    try @files>>.unlink;
+
+    my @dirs = self.ls($path, :$d, :$r, :$test);
+    # when .resolve is fixed to return IO::Path we should sort based on that
+    for @dirs.sort({ -.chars }) -> $delete-dir {
+        try { $delete-dir.rmdir };
+    }
+
+    try { $path.IO.rmdir } if ($path.IO.e && $path.IO.d);
+}
 
 method extract-deps($dir = $.path) {
     die "$dir does not exist" unless $dir.IO ~~ :d;

@@ -2,6 +2,8 @@ class Zef::Utils::FileSystem;
 # todo: inherit from IO::Path
 has $.path;
 
+submethod BUILD(:$!path) { }
+
 method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir) {
     return () unless $path.IO.e;
     my @results;

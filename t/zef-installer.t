@@ -3,12 +3,11 @@ use Zef::Installer;
 plan 1;
 use Test;
 
+my $save-to = $*SPEC.catdir($*TMPDIR, time);
+try mkdir($save-to);
+LEAVE Zef::Utils::FileSystem.new( path => $save-to.path ).rm(:d, :f, :r);
 
-# Basic tests on the base class
 my $installer = Zef::Installer.new;
-my $save-to = $*SPEC.catdir($*CWD, 'tmp');
-mkdir $save-to;
 lives_ok { $installer.install(:$save-to, "META6.json") }, "installer lived";
-shell("rm -rf $save-to").exitcode;
 
 done();

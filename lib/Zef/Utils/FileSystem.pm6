@@ -5,9 +5,9 @@ has $.path;
 submethod BUILD(:$!path) { }
 
 method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir) {
-    return () unless $path.IO.e;
+    return () unless $path.defined && $path.IO.e;
     my @results;
-    my $paths = Supply.from-list($path.IO.d ?? dir($path, :$test) !! $path.IO);
+    my $paths = Supply.from-list($path.IO.d ?? $path.IO.dir(:$test) !! $path.IO);
 
     $paths.grep(*.d).tap(-> $dir-path { 
         @results.push($dir-path);
@@ -26,6 +26,7 @@ method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curup
 }
 
 method rm($path = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir ) {
+    return False unless $path.defined && $path.IO.e;
     my @files = self.ls($path, :$f, :$r, :$test);
     try @files>>.unlink;
 

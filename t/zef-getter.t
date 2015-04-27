@@ -8,7 +8,7 @@ use Test;
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdir($save-to);
-    LEAVE Zef::Utils::FileSystem.new( path => $save-to.path ).rm(:d, :f, :r);
+    LEAVE Zef::Utils::FileSystem.new( path => $save-to ).rm(:d, :f, :r);
 
     my $getter;
     lives_ok { $getter = Zef::Getter.new }, "Created getter";
@@ -22,9 +22,16 @@ subtest {
 
 
 subtest {
+    ENTER {
+        try { shell("git --version").exitcode == 0 } or do {
+            print("ok 4 - # Skip: git command not available?\n");
+            return;
+        };
+    }
+
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdir($save-to);
-    LEAVE Zef::Utils::FileSystem.new( path => $save-to.path ).rm(:d, :f, :r);
+    LEAVE Zef::Utils::FileSystem.new( path => $save-to // return ).rm(:d, :f, :r);
 
     lives_ok { require Zef::Plugin::Git; }, 'Zef::Plugin::Git `use`-able to test with';
 
@@ -46,9 +53,10 @@ subtest {
         };
     }
 
-    my $save-to = $*SPEC.catpath('',$*SPEC.catdir($*TMPDIR, time),'zef-get-plugin-ua.zip').IO;
-    try mkdir($save-to.dirname);
-    LEAVE Zef::Utils::FileSystem.new( path => $save-to.dirname ).rm(:d, :f, :r);
+    my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
+    try mkdir($save-to);
+    my $save-to-file =$*SPEC.catpath('', $save-to, 'zef-get-plugin-ua.zip').IO;
+    LEAVE Zef::Utils::FileSystem.new( path => $save-to // return ).rm(:d, :f, :r);
 
     lives_ok { use Zef::Plugin::UA; }, 'Zef::Plugin::UA `use`-able to test with';
     # github forces ssl
@@ -57,9 +65,9 @@ subtest {
     my $getter;
     lives_ok { $getter = Zef::Getter.new(:plugins(["Zef::Plugin::UA"])) }, "Created getter";
     # todo: http::useragent patch for binary
-    #lives_ok { $getter.get(:$save-to, 'https://github.com/ugexe/zef/archive/master.zip') }
-    #ok $save-to.e, "$save-to exists";
-    #ok $save-to.f, "$save-to is a file";
+    #lives_ok { $getter.get(:$save-to-file, 'https://github.com/ugexe/zef/archive/master.zip') }
+    #ok $save-to-file.e, "$save-to exists";
+    #ok $save-to-file.f, "$save-to is a file";
 }, 'Plugin::UA';
 
 

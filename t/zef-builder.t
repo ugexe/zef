@@ -1,12 +1,14 @@
 use v6;
 use Zef::Builder;
+use Zef::Utils::FileSystem;
 plan 2;
 use Test;
 
 
 # Basic tests on default builder method
 subtest { {
-    LEAVE Zef::Utils::FileSystem.new(path => "{$*CWD}/blib".IO.path).rm(:d, :f, :r );
+    my $path = "{$*CWD}/blib".IO;
+    LEAVE Zef::Utils::FileSystem.new(path => $path // return).rm(:d, :f, :r);
 
     my $builder = Zef::Builder.new;
     my @results = $builder.pre-compile($*CWD);
@@ -17,7 +19,8 @@ subtest { {
 
 # Basic tests on Plugin::PreComp
 subtest { {
-    LEAVE Zef::Utils::FileSystem.rm( "{$*CWD}/blib".IO.path, :d, :f, :r );
+    my $path = "{$*CWD}/blib".IO;
+    LEAVE Zef::Utils::FileSystem.new(path => $path // return).rm(:d, :f, :r);
 
     lives_ok { use Zef::Plugin::PreComp; }, 'Zef::Plugin::PreComp `use`-able to test with';
     my $builder = Zef::Builder.new( :plugins(["Zef::Plugin::PreComp"]) );

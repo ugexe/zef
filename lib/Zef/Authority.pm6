@@ -1,17 +1,26 @@
 use Zef::Utils::Base64;
 
-use IO::Socket::SSL;
 use nqp;
 
 class Zef::Authority {
     has $.session-key is rw;
     has $!sock;
 
-    submethod BUILD( IO::Socket::SSL :$ssl-sock ) {
-        $!sock = $ssl-sock // IO::Socket::SSL.new(:host<zef.pm>, :port(443));
+    submethod BUILD {
+        try {
+            require IO::Socket::SSL;
+            $!sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
+            CATCH {
+                default {
+                    $!sock = IO::Socket::INET.new(:host<zef.pm>, :port(80));
+                }
+            };
+        };
+        $!sock = IO::Socket::INET.new(:host<zef.pm>, :port(80));
     } 
 
     method login(:$username, :$password) {
+        fail "IO::Socket::SSL required for login" if try { IO::Socket::SSL } ~~ Nil;
         my $data = to-json({ username => $username, password => $password }) // fail "Bad JSON";
         $!sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
         my $recv = $!sock.recv.split("\r\n\r\n").[1];
@@ -31,6 +40,7 @@ class Zef::Authority {
     }
 
     method register(:$username, :$password) {
+        fail "IO::Socket::SSL required for registration" if try { IO::Socket::SSL } ~~ Nil;
         my $data = to-json({ username => $username, password => $password });
         $!sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
         my $recv = $!sock.recv.split("\r\n\r\n").[1];
@@ -54,7 +64,8 @@ class Zef::Authority {
         for @terms -> $term {
             my $data = to-json({ query => $term });
             $!sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-            my $recv = $!sock.recv.split("\r\n\r\n").[1] or fail "No data received";
+            my $recv = $!sock.recv;
+            $recv = $recv.split("\r\n\r\n").[1] or fail "No data received";
             my @term-results = try @(from-json($recv));
             %results{$term} = @term-results;
         }
@@ -110,7 +121,6 @@ class Zef::Authority {
                 // fail "Couldn't find META6.json or META.info";
 
             my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
-            $json.chars.say;
             $!sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
             my $recv   = $!sock.recv;
             my %result = try %(from-json($recv.split("\r\n\r\n")[1]));

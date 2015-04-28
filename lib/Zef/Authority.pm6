@@ -13,7 +13,6 @@ class Zef::Authority {
                 once X::NYI::Available.new(:available("IO::Socket::SSL"), :feature("SSL Support")).message.say 
             } } 
         } // IO::Socket::INET.new(:host<zef.pm>, :port(80));
-        say $!sock.perl;
     } 
 
     method login(:$username, :$password) {

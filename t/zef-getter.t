@@ -8,14 +8,14 @@ use Test;
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdir($save-to);
-    LEAVE Zef::Utils::FileSystem.new( path => $save-to ).rm(:d, :f, :r);
+    LEAVE Zef::Utils::FileSystem.new( path => $save-to // return ).rm(:d, :f, :r);
 
     my $getter;
     lives_ok { $getter = Zef::Getter.new }, "Created getter";
 
     # todo: nearly empty module for testing 
     ok $getter.get(:$save-to, "DB::ORM::Quicky");
-    my @saved = Zef::Utils::FileSystem.ls($save-to.path, :f, :r);
+    my @saved = Zef::Utils::FileSystem.ls($save-to, :f, :r);
     ok $save-to.IO.e, 'Modules were fetched';
     ok @saved.elems > 3, "Repo was created:: {@saved.elems}";    
 }, "Default Getter";
@@ -47,7 +47,7 @@ subtest {
 
 subtest {
     ENTER {
-        try { require HTTP::UserAgent } or do {
+        try { require HTTP::UserAgent; require IO::Socket::SSL } or do {
             print("ok 3 - # Skip: HTTP::UserAgent not available\n");
             return;
         };
@@ -59,8 +59,6 @@ subtest {
     LEAVE Zef::Utils::FileSystem.new( path => $save-to // return ).rm(:d, :f, :r);
 
     lives_ok { use Zef::Plugin::UA; }, 'Zef::Plugin::UA `use`-able to test with';
-    # github forces ssl
-    lives_ok { require IO::Socket::SSL; }, 'IO::Socket::SSL available';
 
     my $getter;
     lives_ok { $getter = Zef::Getter.new(:plugins(["Zef::Plugin::UA"])) }, "Created getter";

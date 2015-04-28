@@ -4,8 +4,7 @@
     "version"     : "*",
     "description" : "CPAN but better. Maybe?",
     "depends"     : [
-        "IO::Socket::SSL",
-        "HTTP::UserAgent"
+        "IO::Socket::SSL"
     ],
     "provides"    : {
         "Zef" : "lib/Zef.pm6",

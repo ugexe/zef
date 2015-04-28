@@ -1,13 +1,15 @@
 class Zef::Utils::FileSystem;
 # todo: inherit from IO::Path
+
 has $.path;
+has $!tmp;
 
-submethod BUILD(:$!path) { }
+submethod BUILD(:$!path, :$!tmp = False) { }
 
-method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir) {
+method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r is copy) {
     return () unless $path.defined && $path.IO.e;
     my @results;
-    my $paths = Supply.from-list($path.IO.d ?? $path.IO.dir(:$test) !! $path.IO);
+    my $paths = Supply.new;
 
     $paths.grep(*.d).tap(-> $dir-path { 
         @results.push($dir-path);
@@ -21,22 +23,22 @@ method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curup
         $paths.emit($_) for dir($dir-path);
     }) if $r;
 
-    $paths.wait;
+    $paths.emit($path.IO);
+
     return @results;
 }
 
-method rm($path = $.path, Bool :$f, Bool :$d, Bool :$r, Mu :$test = $*SPEC.curupdir ) {
-    return False unless $path.defined && $path.IO.e;
-    my @files = self.ls($path, :$f, :$r, :$test);
-    try @files>>.unlink;
 
-    my @dirs = self.ls($path, :$d, :$r, :$test);
-    # when .resolve is fixed to return IO::Path we should sort based on that
-    for @dirs.sort({ -.chars }) -> $delete-dir {
-        try { $delete-dir.rmdir };
-    }
+method rm($path = $.path, Bool :$f, Bool :$d, Bool :$r) {
+    return () unless $path.defined && $path.IO.e;
+    my @files = self.ls($path, :$f, :$r);
+    my @dirs  = self.ls($path, :$d, :$r);
 
-    try { $path.IO.rmdir } if ($path.IO.e && $path.IO.d);
+    my @deleted; 
+    for @files -> $file { @deleted.push($file) if $file.unlink }
+    for @dirs.sort({ -.chars }) -> $delete-dir { @deleted.push($delete-dir) if rmdir($delete-dir) }
+
+    return @deleted;
 }
 
 method extract-deps($dir = $.path) {

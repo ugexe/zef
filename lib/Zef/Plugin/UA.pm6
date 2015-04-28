@@ -1,12 +1,15 @@
 use Zef::Phase::Getting;
-use HTTP::UserAgent;
-require IO::Socket::SSL; 
 
 # use to fetch .tar.tz from github
 # todo: add role to un-tar/zip files to complete other half of 'fetcher'
 
 role Zef::Plugin::UA does Zef::Phase::Getting {
-    has $.ua = HTTP::UserAgent.new(useragent => 'firefox_linux');
+    has $!ua = ENTER {
+        try {
+            require HTTP::UserAgent;
+            HTTP::UserAgent.new(useragent => 'firefox_linux');
+        }
+    }
 
     multi method get(:$save-to = $*TMPDIR, *@urls) {
         my @fetched;

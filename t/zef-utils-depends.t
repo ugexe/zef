@@ -8,7 +8,7 @@ use Test;
 # Test parsing out POD from modules
 {
     my $tlib-dir   = $*SPEC.catdir($?FILE.IO.dirname, 'lib');
-    my $tlib-file  = $*SPEC.catpath('', $tlib-dir, 'depends.pm6').IO.path;
+    my $tlib-file  = $*SPEC.catpath('', $tlib-dir, 'depends.pm6').IO;
     my %depends    = $_.hash for Zef::Utils::Depends.build( Zef::Utils::FileSystem.extract-deps($tlib-dir) );
   
     is %depends<dependencies>.elems, 2, 'We only got two dependencies';

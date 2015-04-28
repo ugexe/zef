@@ -6,12 +6,12 @@ has $!tmp;
 
 submethod BUILD(:$!path, :$!tmp = False) { }
 
-method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r is copy) {
+method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r) {
     return () unless $path.defined && $path.IO.e;
     my @results;
     my $paths = Supply.new;
 
-    $paths.grep(*.d).tap(-> $dir-path { 
+    $paths.grep(*.d).tap(-> $dir-path {
         @results.push($dir-path);
     }) if $d;
 
@@ -23,7 +23,9 @@ method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r is copy) {
         $paths.emit($_) for dir($dir-path);
     }) if $r;
 
+    if !$r && $path.IO.d { @results.push($_) for dir($path.IO) }
     $paths.emit($path.IO);
+
 
     return @results;
 }
@@ -31,8 +33,8 @@ method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r is copy) {
 
 method rm($path = $.path, Bool :$f, Bool :$d, Bool :$r) {
     return () unless $path.defined && $path.IO.e;
-    my @files = self.ls($path, :$f, :$r);
-    my @dirs  = self.ls($path, :$d, :$r);
+    my @files = self.ls($path, :$f, :$r, d => False);
+    my @dirs  = self.ls($path, :$d, :$r, f => False);
 
     my @deleted; 
     for @files -> $file { @deleted.push($file) if $file.unlink }

@@ -3,9 +3,7 @@
     "name"        : "Zef",
     "version"     : "*",
     "description" : "CPAN but better. Maybe?",
-    "depends"     : [
-        "IO::Socket::SSL"
-    ],
+    "depends"     : [ ],
     "provides"    : {
         "Zef" : "lib/Zef.pm6",
 

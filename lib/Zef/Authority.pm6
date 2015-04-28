@@ -1,4 +1,5 @@
 use Zef::Utils::Base64;
+
 use nqp;
 
 class Zef::Authority {
@@ -13,7 +14,7 @@ class Zef::Authority {
             } } 
         }
 
-        $!sock = ::('IO::Socket::SSL') ~~ Failure 
+        $!sock //= ::('IO::Socket::SSL') ~~ Failure 
             ?? IO::Socket::INET.new(:host<zef.pm>, :port(80)) 
             !! ::('IO::Socket::SSL').new(:host<zef.pm>, :port(443));
     } 

@@ -1,11 +1,11 @@
 use Zef::Phase::Getting;
 use Zef::Utils::Base64;
 
-require IO::Socket::SSL;
-
-
 class Zef::Getter does Zef::Phase::Getting {
+
     multi method get(:$save-to is copy = $*TMPDIR, *@modules) {
+        try require IO::Socket::SSL;
+
         my @fetched;
         my @failed;
 
@@ -15,7 +15,9 @@ class Zef::Getter does Zef::Phase::Getting {
                 name => $module,
             });
 
-            my $sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
+            my $sock = ::('IO::Socket::SSL') ~~ Failure 
+                ?? IO::Socket::INET.new(:host<zef.pm>, :port(80)) 
+                !! ::('IO::Socket::SSL').new(:host<zef.pm>, :port(443));
             $sock.send("POST /api/download HTTP/1.0\r\nConnection: close\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n$data\r\n");
             my $recv  = '';
             while my $r = $sock.recv { $recv ~= $r; }

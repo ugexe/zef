@@ -1,7 +1,7 @@
 use Zef::Phase::Getting;
 use Zef::Utils::Base64;
 
-use IO::Socket::SSL;
+require IO::Socket::SSL;
 
 
 class Zef::Getter does Zef::Phase::Getting {

@@ -33,8 +33,8 @@ method ls($path = $.path, Bool :$f, Bool :$d, Bool :$r) {
 
 method rm($path = $.path, Bool :$f, Bool :$d, Bool :$r) {
     return () unless $path.defined && $path.IO.e;
-    my @files = self.ls($path, :$f, :$r, d => False);
-    my @dirs  = self.ls($path, :$d, :$r, f => False);
+    my @files = self.ls($path, :$f, :$r);
+    my @dirs  = self.ls($path, :$d, :$r);
 
     my @deleted; 
     for @files -> $file { @deleted.push($file) if $file.unlink }

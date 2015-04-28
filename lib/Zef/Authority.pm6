@@ -1,22 +1,19 @@
 use Zef::Utils::Base64;
-
 use nqp;
 
 class Zef::Authority {
     has $.session-key is rw;
-    has $!sock;
+    has $.sock;
 
-    submethod BUILD {
-        try {
+    submethod BUILD(:$!sock) {
+        $!sock //= try {
             require IO::Socket::SSL;
-            $!sock = IO::Socket::SSL.new(:host<zef.pm>, :port(443));
-            CATCH {
-                default {
-                    $!sock = IO::Socket::INET.new(:host<zef.pm>, :port(80));
-                }
-            };
-        };
-        $!sock = IO::Socket::INET.new(:host<zef.pm>, :port(80));
+            ::('IO::Socket::SSL').new(:host<zef.pm>, :port(443));
+            CATCH { default { 
+                once X::NYI::Available.new(:available("IO::Socket::SSL"), :feature("SSL Support")).message.say 
+            } } 
+        } // IO::Socket::INET.new(:host<zef.pm>, :port(80));
+        say $!sock.perl;
     } 
 
     method login(:$username, :$password) {

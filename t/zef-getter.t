@@ -48,7 +48,7 @@ subtest {
 subtest {
     ENTER {
         try { require HTTP::UserAgent; require IO::Socket::SSL } or do {
-            print("ok 3 - # Skip: HTTP::UserAgent not available\n");
+            print("ok 3 - # Skip: HTTP::UserAgent and IO::Socket::SSL not available\n");
             return;
         };
     }

@@ -6,17 +6,19 @@ class Zef::Authority {
     has $.sock;
 
     submethod BUILD(:$!sock) {
-        $!sock //= try {
+        try {
             require IO::Socket::SSL;
-            ::('IO::Socket::SSL').new(:host<zef.pm>, :port(443));
             CATCH { default { 
-                once X::NYI::Available.new(:available("IO::Socket::SSL"), :feature("SSL Support")).message.say 
+                once X::NYI::Available.new(:available("IO::Socket::SSL"), :feature("SSL Support")).message.say;
             } } 
-        } // IO::Socket::INET.new(:host<zef.pm>, :port(80));
+        }
+
+        $!sock = ::('IO::Socket::SSL') ~~ Failure 
+            ?? IO::Socket::INET.new(:host<zef.pm>, :port(80)) 
+            !! ::('IO::Socket::SSL').new(:host<zef.pm>, :port(443));
     } 
 
     method login(:$username, :$password) {
-        fail "IO::Socket::SSL required for login" if try { IO::Socket::SSL } ~~ Nil;
         my $data = to-json({ username => $username, password => $password }) // fail "Bad JSON";
         $!sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
         my $recv = $!sock.recv.split("\r\n\r\n").[1];
@@ -36,7 +38,6 @@ class Zef::Authority {
     }
 
     method register(:$username, :$password) {
-        fail "IO::Socket::SSL required for registration" if try { IO::Socket::SSL } ~~ Nil;
         my $data = to-json({ username => $username, password => $password });
         $!sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
         my $recv = $!sock.recv.split("\r\n\r\n").[1];

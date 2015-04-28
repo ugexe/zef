@@ -9,7 +9,7 @@ class Zef::Authority {
         try {
             require IO::Socket::SSL;
             CATCH { default { 
-                once X::NYI::Available.new(:available("IO::Socket::SSL"), :feature("SSL Support")).message.say;
+                once X::NYI::Available.new(:available("IO::Socket::SSL"), :feature("login and registration")).message.say;
             } } 
         }
 

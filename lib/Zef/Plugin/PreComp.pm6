@@ -6,14 +6,15 @@ use Zef::Utils::FileSystem;
 role Zef::Plugin::PreComp does Zef::Phase::Building {
     multi method pre-compile(*@paths) {
         my @precompiled;
-        my @libs     = @paths.map({$*SPEC.catpath('', $_, 'lib')});
-        my @deps     = @libs.map({ Zef::Utils::FileSystem.extract-deps($_) });
+        my @deps     = @paths.map({ extract-deps($*SPEC.catdir($_, 'lib')) });
         my @dep-tree = Zef::Utils::Depends.build(@deps);
 
-        for @dep-tree {
-            my $dest = "blib/{$_<file>.IO.relative}.{$*VM.precomp-ext}".IO.path;
-            mkdir($dest.IO.dirname) or fail "couldnt mkdir" ;
-            my $cmd  = "$*EXECUTABLE -Ilib --target={$*VM.precomp-target} --output='$dest' '{$_<file>}'";
+        for @dep-tree -> %dep {
+            my $blib-lib = $*SPEC.catdir("blib", %dep<file>.IO.dirname.IO.relative).IO;
+            my $dest     = $*SPEC.catpath('', $blib-lib,"{%dep<file>.IO.basename}.{$*VM.precomp-ext}");
+            try mkdirs($blib-lib.IO.path);
+            try rm(%dep<file>.IO.path);
+            my $cmd  = "$*EXECUTABLE -Ilib --target={$*VM.precomp-target} --output='$dest' '{%dep<file>}'";
             say $cmd;
             my $precomp = shell($cmd).exitcode == 0 ?? True  !! False;
 

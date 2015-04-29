@@ -1,5 +1,6 @@
 use Zef::Phase::Getting;
 use Zef::Utils::Base64;
+use Zef::Utils::FileSystem;
 
 class Zef::Getter does Zef::Phase::Getting {
 
@@ -23,26 +24,24 @@ class Zef::Getter does Zef::Phase::Getting {
             while my $r = $sock.recv { $recv ~= $r; }
             $recv = $recv.split("\r\n\r\n",2)[1];
             my $test = try from-json($recv);
-            die $test<error> if $test<error>:exists;
+            say "Error: {$test<error>}" and next if $test<error>:exists;
             $recv = $recv.substr(0, *-2);
             my $mode  = 0o0644;
-            try { mkdir $save-to } or fail "error: $_";
+            try { mkdirs($save-to) } or fail "error: $_";
             try { 
                 for @($recv.split("\r\n")) -> $path is copy, $enc is copy {
-                    ($mode, $path) = $path.split(':', 2);
+                    ($mode, $path) = $path.split(':/', 2);
                     KEEP @fetched.push($module => $save-to);
                     UNDO @failed.push($module => False);
 
                     # Handle directory creation
-                    my IO::Path $dir = $*SPEC.catdir($save-to, $path.IO.dirname).IO;
-                    try { mkdir $dir } or fail "error: $_";
-
+                    my $dir = $*SPEC.catdir($save-to, $path.IO.dirname).IO;
+                    try { mkdirs($dir.IO.path) };
                     # Handle file creation
-                    my $fh = $*SPEC.catpath('', $dir, $path.IO.basename).IO.open(:w);
+                    my $fh = $*SPEC.catpath('', $dir.IO.path, $path.IO.basename).IO;
                     my $dc = Zef::Utils::Base64.new.b64decode($enc);
-                    $fh.write($dc) or fail "write error: $_";
-                    $fh.close;
-                    try $*SPEC.catpath('', $dir, $path.IO.basename).IO.chmod($mode.Int);
+                    $fh.spurt($dc) or fail "write error: $_";
+                    try $fh.chmod($mode.Int);
                 }
                 CATCH { default { "FAIL: $_".say; fail "Unable to unpack $module"; } }
             }

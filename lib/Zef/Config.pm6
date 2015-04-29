@@ -1,3 +1,4 @@
+use Zef::Utils::FileSystem;
 module Zef::Config;
 
 # todo: properly handle volume argument for all .catpath method calls
@@ -8,7 +9,7 @@ our $ZEF_DIR is export = $*SPEC.join(
 
 our $ZEF_CONFIG_FILE is export = $*SPEC.catpath('', $ZEF_DIR, 'config');
 
-try { mkdir($ZEF_DIR) } unless $ZEF_DIR.IO.d;    
+try { mkdirs($ZEF_DIR) } unless $ZEF_DIR.IO.d;    
 
 # todo: validate config file
 $ZEF_CONFIG_FILE.IO.spurt('{"plugins": [ ]}') 

@@ -19,10 +19,10 @@ multi method b64encode(Str $encode-me) {
 
 multi method b64encode(Buf $encode-me is copy = $.decoded) {
     return '' unless $encode-me;
-    my @r = gather for lol |$encode-me.rotor(3, :partial) -> $chunk {
+    my @r = gather for $encode-me.rotor(3, :partial) -> $chunk {
         my $n <<+=>> $chunk.map({ $_ +< ((state $m = 24) -= 8) });
         my @res = (18, 12, 6, 0).map({ (($n +> $_) +& 63) }).map({ @.b64chars[$_] });
-        take $_ for @res;
+        for @res -> $r { take $r };
         LAST { given $chunk.elems { take '=','=' when 1; take '=' when 2; } }
     }
     my $padding = @r[*-2..*].join.comb(/'='?'='$/).chars;
@@ -33,7 +33,7 @@ method b64decode(Str $decode-me = $.encoded) {
     return Buf.new unless $decode-me;
     my $padding = $decode-me.comb(/'='?'='$/).chars;
     my Str @s   = $decode-me.substr(0,*-$padding).comb;
-    my @r = gather for lol |@s.rotor(4, :partial) -> $chunk {
+    my @r = gather for @s.rotor(4, :partial) -> $chunk {
         my $n <<+=>> $chunk.map({ @.b64chars.first-index($_) +< ((state $m = 24) -= 6) });
         my @res = (16, 8, 0).map({ (($n +> $_) +& 255) }).grep(* > 0);
         take $_ for @res;

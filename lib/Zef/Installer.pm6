@@ -1,7 +1,8 @@
+use Zef::Utils::FileSystem;
 class Zef::Installer;
 
 method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is export {
-    try mkdir($save-to);
+    try mkdirs($save-to);
     my $repo = CompUnitRepo::Local::Installation.new($save-to);
 
     for @metafiles -> $file {

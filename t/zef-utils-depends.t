@@ -7,9 +7,9 @@ use Test;
 
 # Test parsing out POD from modules
 {
-    my $tlib-dir   = $*SPEC.catdir($?FILE.IO.dirname, 'lib');
-    my $tlib-file  = $*SPEC.catpath('', $tlib-dir, 'depends.pm6').IO;
-    my %depends    = $_.hash for Zef::Utils::Depends.build( Zef::Utils::FileSystem.extract-deps($tlib-dir) );
+    my $tlib-dir   = $*SPEC.catdir($?FILE.IO.dirname, 'lib').IO;
+    my $tlib-file  = $*SPEC.catpath('', $tlib-dir.IO.path, 'depends.pm6').IO;
+    my %depends    = $_.hash for Zef::Utils::Depends.build( extract-deps($tlib-dir.IO.path) );
   
     is %depends<dependencies>.elems, 2, 'We only got two dependencies';
     ok %depends<dependencies>.grep('This::One'), 'This::One depended - not in pod';

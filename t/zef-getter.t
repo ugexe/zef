@@ -27,6 +27,11 @@ subtest {
             print("ok 4 - # Skip: git command not available?\n");
             return;
         };
+
+        try { require Zef::Plugin::Git } or do {
+            print("ok 3 - # Skip: Zef::Plugin::Git not available\n");
+            return;
+        };
     }
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;

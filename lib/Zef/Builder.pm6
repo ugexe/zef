@@ -4,7 +4,7 @@ use Zef::Utils::FileSystem;
 
 
 class Zef::Builder does Zef::Phase::Building {
-    multi method pre-compile(*@paths is copy) {
+    method pre-compile(*@paths is copy) {
         my @results;
 
         while @paths.shift -> $path {

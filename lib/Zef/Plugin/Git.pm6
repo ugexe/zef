@@ -5,7 +5,7 @@ role Zef::Plugin::Git does Zef::Phase::Getting {
     has @.flags = <--quiet>;
 
 
-    multi method get(:$save-to = $*TMPDIR, *@urls) {
+    method get(:$save-to = $*TMPDIR, *@urls) {
         return unless $save-to.defined;
         my @fetched;
         my @failed;

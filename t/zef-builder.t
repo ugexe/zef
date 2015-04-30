@@ -11,9 +11,7 @@ subtest { {
     my $blib-base = $*SPEC.catdir($CWD,"blib").IO;
     LEAVE try rm($blib-base.IO.path, :d, :f, :r);
 
-    my $builder;
-    lives_ok { $builder = Zef::Builder.new };
-
+    my $builder = Zef::Builder.new;
     my @results = $builder.pre-compile($CWD);
     
     ok all(@results.map(-> %h { %h<precomp>:exists })), 'Zef::Builder default pre-compile works';
@@ -23,7 +21,8 @@ subtest { {
 # Basic tests on Plugin::PreComp
 subtest { {
     ENTER {
-        try { require Zef::Plugin::PreComp } or do {
+        try require Zef::Plugin::PreComp;
+        if ::('Zef::Plugin::PreComp') ~~ Failure {
             print("ok - # Skip: Zef::Plugin::PreComp not available\n");
             return;
         };
@@ -36,8 +35,7 @@ subtest { {
     LEAVE try rm($blib-base.IO.path, :d, :f, :r);
 
 
-    my $builder;
-    lives_ok { $builder = Zef::Builder.new( :plugins(["Zef::Plugin::PreComp"]) ) };
+    my $builder = Zef::Builder.new( :plugins(["Zef::Plugin::PreComp"]) );
     
     my @precompiled = $builder.pre-compile($blib-base.IO.dirname).map: *.IO.relative;
     my @source-files = ls($lib-base.IO.path, :f, :r);

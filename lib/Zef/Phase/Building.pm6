@@ -1,15 +1,16 @@
-role Zef::Phase::Building is export {
-    has @.plugins;
+role Zef::Phase::Building {
+    has @!plugins;
 
     submethod BUILD(:@!plugins) {
         for @!plugins -> $p { 
-            say "[LOAD PLUGIN] trying $p ...";
-            if try { require ::($p) } {
-                self does ::($p) if ::($p).does(Zef::Phase::Building);
-                say "[PLUGIN LOADED] Zef::Phase::Building: $p";
+            try require $p;
+            unless ::($p) ~~ Failure {
+                if ::($p).does(Zef::Phase::Building) {
+                    self does ::($p);
+                }
             }
         }
     }
 
-    multi method pre-comp { ... }
+    method pre-compile { ... }
 }

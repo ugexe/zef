@@ -1,15 +1,16 @@
-role Zef::Phase::Reporting is export {
-    has @.plugins;
+role Zef::Phase::Reporting {
+    has @!plugins;
 
     submethod BUILD(:@!plugins) {
         for @!plugins -> $p { 
-            say "[LOAD PLUGIN] trying $p ...";
-            if do { require ::($p); ::($p).does(Zef::Phase::Reporting) } {
-                self does ::($p);
-                say "[PLUGIN LOADED] Zef::Phase::Reporting: $p";
+            try require ::($p);
+            unless ::($p) ~~ Failure {
+                if ::($p).does(Zef::Phase::Reporting) {
+                    self does ::($p);
+                }
             }
         }
     }
 
-    multi method report { ... }
+    method report { ... }
 }

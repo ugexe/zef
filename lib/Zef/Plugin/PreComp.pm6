@@ -1,10 +1,9 @@
-use Zef::Phase::Building;
 use Zef::Utils::Depends;
 use Zef::Utils::FileSystem;
 # todo: turn this into a panda compatability thing
 
-role Zef::Plugin::PreComp does Zef::Phase::Building {
-    multi method pre-compile(*@paths) {
+role Zef::Plugin::PreComp {
+    method pre-compile(*@paths) {
         my @precompiled;
         my @deps     = @paths.map({ extract-deps($*SPEC.catdir($_, 'lib')) });
         my @dep-tree = Zef::Utils::Depends.build(@deps);

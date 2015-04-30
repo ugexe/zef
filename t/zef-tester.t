@@ -6,8 +6,7 @@ use Test;
 
 # Test default tester
 subtest {
-    my $tester;
-    lives_ok { $tester = Zef::Tester.new; }
+    my $tester = Zef::Tester.new;
 
     ok $tester.can('test'), 'Zef::Tester can do default tester method';
 
@@ -19,14 +18,14 @@ subtest {
 # Test another tester: Plugin::P5Prove
 subtest {
     ENTER {
-        try { require Zef::Plugin::P5Prove } or do {
+        try require Zef::Plugin::P5Prove;
+        if ::('Zef::Plugin::P5Prove') {
             print("ok - # Skip: Zef::Plugin::P5Prove not available\n");
             return;
-        };
+        }
     }
     
-    my $tester;
-    lives_ok { $tester = Zef::Tester.new( :plugins(["Zef::Plugin::P5Prove"]) ) };
+    my $tester = Zef::Tester.new( :plugins(["Zef::Plugin::P5Prove"]) );
 
     ok $tester.does(::('Zef::Phase::Testing')), 'Zef::Tester has Zef::Phase::Testing applied';
     

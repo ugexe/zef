@@ -1,15 +1,16 @@
-role Zef::Phase::Getting is export {
-    has @.plugins;
+role Zef::Phase::Getting {
+    has @!plugins;
 
     submethod BUILD(:@!plugins) {
         for @!plugins -> $p { 
-            say "[LOAD PLUGIN] trying $p ...";
-            if try { require ::($p) } {
-                self does ::($p) if ::($p).does(Zef::Phase::Getting);
-                say "[PLUGIN LOADED] Zef::Phase::Getting: $p";
+            try require $p;
+            unless ::($p) ~~ Failure {
+                if ::($p).does(Zef::Phase::Getting) {
+                    self does ::($p);
+                }
             }
         }
     }
 
-    multi method get { ... }
+    method get { ... }
 }

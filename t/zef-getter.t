@@ -10,8 +10,7 @@ subtest {
     try mkdirs($save-to.IO.path);
     LEAVE try rm($save-to.IO.path, :d, :f, :r);
 
-    my $getter;
-    lives_ok { $getter = Zef::Getter.new }, "Created getter";
+    my $getter = Zef::Getter.new;
 
     # todo: nearly empty module for testing
     ok $getter.get(:$save-to, "DB::ORM::Quicky");
@@ -28,20 +27,20 @@ subtest {
             return;
         };
 
-        try { require Zef::Plugin::Git } or do {
+        try require Zef::Plugin::Git;
+        if ::("Zef::Plugin::Git") ~~ Failure {
             print("ok 3 - # Skip: Zef::Plugin::Git not available\n");
             return;
-        };
+        }
     }
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to.IO.path);
     LEAVE try rm($save-to.IO.path, :d, :f, :r);
 
-    lives_ok { require Zef::Plugin::Git; }, 'Zef::Plugin::Git `use`-able to test with';
+    #lives_ok { require Zef::Plugin::Git; }, 'Zef::Plugin::Git `use`-able to test with';
 
-    my $getter;
-    lives_ok { $getter = Zef::Getter.new( :plugins(['Zef::Plugin::Git']) ) }, "Created getter";
+    my $getter = Zef::Getter.new( :plugins(['Zef::Plugin::Git']) );
 
     ok $getter.get(:$save-to, 'https://github.com/ugexe/zef'), 'Used Git plugin .get method';
     my @saved = ls($save-to.IO.path, :f, :r);
@@ -52,10 +51,16 @@ subtest {
 
 subtest {
     ENTER {
-        try { require HTTP::UserAgent; require IO::Socket::SSL } or do {
-            print("ok 3 - # Skip: HTTP::UserAgent and IO::Socket::SSL not available\n");
+        try require HTTP::UserAgent; 
+        try require IO::Socket::SSL;
+        if ::('IO::Socket::SSL') ~~ Failure {
+            print("ok 3 - # Skip: IO::Socket::SSL not available\n");
             return;
-        };
+        }
+        if ::('HTTP::UserAgent') ~~ Failure {
+            print("ok 3 - # Skip: HTTP::UserAgent not available\n");
+            return;
+        }
     }
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
@@ -65,8 +70,9 @@ subtest {
 
     lives_ok { use Zef::Plugin::UA; }, 'Zef::Plugin::UA `use`-able to test with';
 
-    my $getter;
-    lives_ok { $getter = Zef::Getter.new(:plugins(["Zef::Plugin::UA"])) }, "Created getter";
+    my $getter = Zef::Getter.new( :plugins(["Zef::Plugin::UA"]) );
+
+    ok $getter.does("Zef::Plugin::UA");
     # todo: http::useragent patch for binary
     #lives_ok { $getter.get(:$save-to-file, 'https://github.com/ugexe/zef/archive/master.zip') }
     #ok $save-to-file.e, "$save-to exists";

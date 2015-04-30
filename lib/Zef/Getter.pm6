@@ -4,7 +4,7 @@ use Zef::Utils::FileSystem;
 
 class Zef::Getter does Zef::Phase::Getting {
 
-    multi method get(:$save-to is copy = $*TMPDIR, *@modules) {
+    method get(:$save-to is copy = $*TMPDIR, *@modules) {
         try require IO::Socket::SSL;
 
         my @fetched;

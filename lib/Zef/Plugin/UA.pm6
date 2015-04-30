@@ -11,7 +11,7 @@ role Zef::Plugin::UA does Zef::Phase::Getting {
         }
     }
 
-    multi method get(:$save-to = $*TMPDIR, *@urls) {
+    method get(:$save-to = $*TMPDIR, *@urls) {
         my @fetched;
         my @failed;
 

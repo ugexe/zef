@@ -2,7 +2,7 @@ use Zef::Phase::Testing;
 use Zef::Utils::FileSystem;
 
 class Zef::Tester does Zef::Phase::Testing {
-    multi method test(*@paths, :$lib = ['blib/lib', 'lib'], :$p6flags = ['--ll-exception']) {
+    method test(*@paths, :$lib = ['blib/lib', 'lib'], :$p6flags = ['--ll-exception']) {
         my @files = Zef::Utils::FileSystem.ls(@paths, :r, :f).grep(/\.t$/);
 
         for @files -> $test-file {

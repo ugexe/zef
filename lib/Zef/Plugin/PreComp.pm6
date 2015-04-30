@@ -11,15 +11,15 @@ role Zef::Plugin::PreComp does Zef::Phase::Building {
 
         for @dep-tree -> %dep {
             my $blib-lib = $*SPEC.catdir("blib", %dep<file>.IO.dirname.IO.relative).IO;
-            my $dest     = $*SPEC.catpath('', $blib-lib,"{%dep<file>.IO.basename}.{$*VM.precomp-ext}");
+            my $dest     = $*SPEC.catpath('', $blib-lib.IO.path, "{%dep<file>.IO.basename}.{$*VM.precomp-ext}").IO;
             try mkdirs($blib-lib.IO.path);
             try rm(%dep<file>.IO.path);
-            my $cmd  = "$*EXECUTABLE -Ilib --target={$*VM.precomp-target} --output='$dest' '{%dep<file>}'";
-            say $cmd;
+
+            say my $cmd  = "$*EXECUTABLE -Iblib/lib --target={$*VM.precomp-target} --output='$dest' '{%dep<file>.IO.relative}'";
             my $precomp = shell($cmd).exitcode == 0 ?? True  !! False;
 
             $dest.IO.e 
-                ?? @precompiled.push($*SPEC.catdir($*CWD,$dest)) && "precomp ok".say 
+                ?? @precompiled.push($dest.IO.path) && "precomp ok".say 
                 !! "precomp not ok".say;
         }
 

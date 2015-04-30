@@ -43,8 +43,8 @@ sub ls($path, Bool :$f = True, Bool :$d = True, Bool :$r) is export(:DEFAULT) {
 
 sub rm($path, Bool :$f, Bool :$d, Bool :$r) is export(:DEFAULT) {
     return () unless $path.defined && $path.IO.e;
-    my @files = ls($path, :$f, :$r);
-    my @dirs  = ls($path, :$d, :$r);
+    my @files = ls($path.IO.path, :$f, :$r, d => False);
+    my @dirs  = ls($path.IO.path, :$d, :$r, f => False);
 
     my @deleted; 
     for @files -> $file { @deleted.push($file) if $file.IO.unlink }

@@ -5,9 +5,10 @@ use Test;
 
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    my $sub-save-to = $*SPEC.catdir($save-to, 'sub1');
-    my $sub-sub-save-to = $*SPEC.catdir($sub-save-to, 'sub2');
-    my $dir = try mkdirs($sub-sub-save-to);
+    LEAVE rm($save-to.IO.path, :f, :d, :r);
+    my $sub-save-to = $*SPEC.catdir($save-to.IO.path, 'sub1');
+    my $sub-sub-save-to = $*SPEC.catdir($sub-save-to.IO.path, 'sub2');
+    my $dir = try mkdirs($sub-sub-save-to.IO.path);
     ok $sub-sub-save-to.IO.e, "Created {$sub-sub-save-to}";
     is $dir.IO.path, $sub-sub-save-to.IO.path, 'Proper directory path';
 }, 'mkdirs';
@@ -23,24 +24,23 @@ subtest {
     # All 4 items should get deleted
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    @delete-us.push(try mkdirs($save-to));
-    my $sub-folder = $*SPEC.catdir($save-to, 'deleteme-subfolder');
-    @delete-us.push(try mkdirs($sub-folder));
+    LEAVE rm($save-to.IO.path, :f, :d, :r);
+    @delete-us.push(try mkdirs($save-to.IO.path));
+    my $sub-folder = $*SPEC.catdir($save-to.IO.path, 'deleteme-subfolder').IO;
+    @delete-us.push(try mkdirs($sub-folder.IO.path));
 
     # create 2 test files, one in each directory we created above
-    my $save-to-file    = $*SPEC.catpath('', $save-to, 'base-delete.me');
-    my $sub-folder-file = $*SPEC.catpath('', $sub-folder, 'sub-delete.me');
-    @delete-us.push($save-to-file) if try open($save-to-file, :w);
-    @delete-us.push($sub-folder-file) if try open($sub-folder-file, :w);
+    my $save-to-file    = $*SPEC.catpath('', $save-to.IO.path, 'base-delete.me').IO;
+    my $sub-folder-file = $*SPEC.catpath('', $sub-folder.IO.path, 'sub-delete.me').IO;
+    @delete-us.push($save-to-file.IO.path) if try open($save-to-file.IO.path, :w);
+    @delete-us.push($sub-folder-file.IO.path) if try open($sub-folder-file.IO.path, :w);
 
     my $fs;
     ok $save-to.IO.d, "Folder available to delete";
-    lives_ok { $fs = Zef::Utils::FileSystem.new( path => $save-to // die ) }, 
-        'Created new Zef::Utils::FileSystem object';
 
-    my @ls      = ls($save-to.IO.path, :d, :f, :r);
-    my @deleted = rm($save-to.IO.path, :d, :f, :r);
-
+    my @ls      = ls($save-to.IO.path, :f, :d, :r);
+    my @deleted = rm($save-to.IO.path, :f, :d, :r);
+    say "ls size: {@ls.elems}";
     is @ls.elems, @deleted.elems, '.ls matches number of items deleted';
 
     my $to-be-deleted = any($save-to, $sub-folder, $save-to-file, $sub-folder-file);
@@ -154,22 +154,21 @@ subtest {
     # Delete items 2 and 4
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    try mkdirs($save-to);
-    my $sub-folder = $*SPEC.catdir($save-to, 'deleteme-subfolder').IO;
-    try mkdirs($sub-folder);
-    my $sub-folder-empty = $*SPEC.catdir($save-to, 'empty-subfolder').IO;
-    try mkdirs($sub-folder-empty);
+    try mkdirs($save-to.IO.path);
+    LEAVE rm($save-to.IO.path, :f, :d, :r);
+    my $sub-folder = $*SPEC.catdir($save-to.IO.path, 'deleteme-subfolder').IO;
+    try mkdirs($sub-folder.IO.path);
+    my $sub-folder-empty = $*SPEC.catdir($save-to.IO.path, 'empty-subfolder').IO;
+    try mkdirs($sub-folder-empty.IO.path);
 
     # create 2 test files, one in each directory we created above
-    my $save-to-file    = $*SPEC.catpath('', $save-to, 'base-delete.me').IO;
-    my $sub-folder-file = $*SPEC.catpath('', $sub-folder, 'sub-delete.me').IO;
-    @delete-us.push($save-to-file) if try open($save-to-file, :w);
-    @delete-us.push($sub-folder-file) if try open($sub-folder-file, :w);
+    my $save-to-file    = $*SPEC.catpath('', $save-to.IO.path, 'base-delete.me').IO;
+    my $sub-folder-file = $*SPEC.catpath('', $sub-folder.IO.path, 'sub-delete.me').IO;
+    @delete-us.push($save-to-file) if try open($save-to-file.IO.path, :w);
+    @delete-us.push($sub-folder-file) if try open($sub-folder-file.IO.path, :w);
 
     my $fs;
     ok $save-to.IO.d, "Folder available to delete";
-    lives_ok { $fs = Zef::Utils::FileSystem.new( path => $save-to // die ) }, 
-        'Created new Zef::Utils::FileSystem object';
 
     my @ls      = ls($save-to.IO.path, :f, :r);
     my @deleted = rm($save-to.IO.path, :f, :r);

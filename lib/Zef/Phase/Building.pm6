@@ -4,9 +4,8 @@ role Zef::Phase::Building is export {
     submethod BUILD(:@!plugins) {
         for @!plugins -> $p { 
             say "[LOAD PLUGIN] trying $p ...";
-            try require ::($p);
-            unless ::($p) ~~ Failure {
-                if ::($p).does(Zef::Phase::Building) { self does ::($p);  }
+            if try { require ::($p) } {
+                self does ::($p) if ::($p).does(Zef::Phase::Building);
                 say "[PLUGIN LOADED] Zef::Phase::Building: $p";
             }
         }

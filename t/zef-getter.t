@@ -8,7 +8,7 @@ use Test;
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to.IO.path);
-    LEAVE rm($save-to.IO.path, :d, :f, :r);
+    LEAVE try rm($save-to.IO.path, :d, :f, :r);
 
     my $getter;
     lives_ok { $getter = Zef::Getter.new }, "Created getter";
@@ -31,7 +31,7 @@ subtest {
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to.IO.path);
-    LEAVE rm($save-to.IO.path, :d, :f, :r);
+    LEAVE try rm($save-to.IO.path, :d, :f, :r);
 
     lives_ok { require Zef::Plugin::Git; }, 'Zef::Plugin::Git `use`-able to test with';
 
@@ -56,7 +56,7 @@ subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to.IO.path);
     my $save-to-file =$*SPEC.catpath('', $save-to, 'zef-get-plugin-ua.zip').IO;
-    LEAVE rm($save-to.IO.path, :d, :f, :r);
+    LEAVE try rm($save-to.IO.path, :d, :f, :r);
 
     lives_ok { use Zef::Plugin::UA; }, 'Zef::Plugin::UA `use`-able to test with';
 

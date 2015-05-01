@@ -25,7 +25,7 @@ subtest {
         try { shell("{%*ENV<GIT_BINARY> // 'git'} --version").exitcode == 0 } or do {
             print("ok 4 - # Skip: git command not available?\n");
             return;
-        };
+        }
 
         try require Zef::Plugin::Git;
         if ::("Zef::Plugin::Git") ~~ Failure {

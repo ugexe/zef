@@ -8,15 +8,14 @@ class Zef::Builder does Zef::Phase::Building {
         my @results;
 
         while @paths.shift -> $path {
-            my @sources = Zef::Utils::Depends.build(Zef::Utils::FileSystem.extract-deps($*SPEC.catdir($path.IO.path, 'lib')));
-            
-            for @sources -> %module {
-                # placed inside for loop allows this to precompile on jvm
-                 my @INC =  CompUnitRepo::Local::File.new("$path/blib/lib"), 
-                            CompUnitRepo::Local::File.new("$path/lib"),
-                            @*INC; # remove this once we figure out how to include installed deps here
-                                   # without including target module if already installed
+            my $lib     = $*SPEC.catdir($path.IO.path, 'lib').IO;
+            my @sources = Zef::Utils::Depends.build(Zef::Utils::FileSystem.extract-deps( $lib ));
 
+            for @sources -> %module {
+                my @INC    := CompUnitRepo::Local::File.new("$path/blib/lib"), 
+                              CompUnitRepo::Local::File.new("$path/lib"),
+                              @*INC; # remove this once we figure out how to include installed deps here
+                                     # without including target module if already installed
                 my $cu = CompUnit.new(%module<file>);
                 my $out = IO::Path.new("{$*CWD}/blib/{%module<file>.IO.relative}.{$*VM.precomp-ext}");
                 try mkdirs($out.IO.dirname);

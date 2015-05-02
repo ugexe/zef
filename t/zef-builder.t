@@ -8,7 +8,7 @@ use Test;
 # Basic tests on Plugin::PreComp
 # Do this before 'default' test otherwise some heisenbug occurs
 # Likely due to testing by using CompUnit.precomp on self
-subtest { {
+subtest {
     try require Zef::Plugin::PreComp;
     if ::('Zef::Plugin::PreComp') ~~ Failure {
         print("ok - # Skip: Zef::Plugin::PreComp not available\n");
@@ -36,20 +36,19 @@ subtest { {
         is $file.IO.path, any(@precompiled), "Found: {$file.IO.path}";
     }
 
-} }, 'Plugin::PreComp';
+}, 'Plugin::PreComp';
 
 
 # Basic tests on default builder method
-subtest { {
+subtest {
     my $CWD := $*CWD;
     my $blib-base = $*SPEC.catdir($CWD,"blib").IO;
     LEAVE try rm($blib-base, :d, :f, :r);
 
     my $builder = Zef::Builder.new;
     my @results = $builder.pre-compile($CWD);
-    
-    ok all(@results.map(-> %h { %h<precomp>:exists })), 'Zef::Builder default pre-compile works';
-} }, 'Zef::Builder';
+    is @results.grep({ $_<precomp>:exists }).elems, @results.elems, "Default builder precompiled all modules: {@results.elems}";
+}, 'Zef::Builder';
 
 
 

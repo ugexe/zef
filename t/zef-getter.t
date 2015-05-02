@@ -6,15 +6,22 @@ use Test;
 
 
 subtest {
+    ENTER {
+        try { IO::Socket::INET.new(:host<zef.pm>, :port(80)) } or do {
+            print("ok - # Skip: No internet connection available? http://zef.pm:80\n");
+            return;
+        }
+    }
+
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    try mkdirs($save-to.IO.path);
-    LEAVE try rm($save-to.IO.path, :d, :f, :r);
+    try mkdirs($save-to);
+    LEAVE try rm($save-to, :d, :f, :r);
 
     my $getter = Zef::Getter.new;
 
     # todo: nearly empty module for testing
     ok $getter.get(:$save-to, "DB::ORM::Quicky");
-    my @saved := ls($save-to.IO.path, :f, :r);
+    my @saved := ls($save-to, :f, :r);
     ok $save-to.IO.e, 'Modules were fetched';
     ok @saved.elems > 3, "Repo file count: {@saved.elems}";    
 }, "Default Getter";
@@ -23,13 +30,18 @@ subtest {
 subtest {
     ENTER {
         try { shell("{%*ENV<GIT_BINARY> // 'git'} --version").exitcode == 0 } or do {
-            print("ok 4 - # Skip: git command not available?\n");
+            print("ok - # Skip: git command not available?\n");
             return;
         }
 
         try require Zef::Plugin::Git;
         if ::("Zef::Plugin::Git") ~~ Failure {
-            print("ok 3 - # Skip: Zef::Plugin::Git not available\n");
+            print("ok - # Skip: Zef::Plugin::Git not available\n");
+            return;
+        }
+
+        try { IO::Socket::INET.new(:host<github.com/>, :port(80)) } or do {
+            print("ok - # Skip: No internet connection available? http://github.com:80\n");
             return;
         }
     }
@@ -51,23 +63,28 @@ subtest {
 
 subtest {
     ENTER {
-        try require IO::Socket::SSL;
-        if ::('IO::Socket::SSL') ~~ Failure {
-            print("ok 3 - # Skip: IO::Socket::SSL not available\n");
+        try require HTTP::UserAgent; 
+        if ::('HTTP::UserAgent') ~~ Failure {
+            print("ok - # Skip: HTTP::UserAgent not available\n");
             return;
         }
 
-        try require HTTP::UserAgent; 
-        if ::('HTTP::UserAgent') ~~ Failure {
-            print("ok 3 - # Skip: HTTP::UserAgent not available\n");
+        try require IO::Socket::SSL;
+        if ::('IO::Socket::SSL') ~~ Failure {
+            print("ok - # Skip: IO::Socket::SSL not available\n");
+            return;
+        }
+
+        try { IO::Socket::SSL.new(:host<github.com/>, :port(443)) } or do {
+            print("ok - # Skip: No internet connection available? https://github.com:443\n");
             return;
         }
     }
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    try mkdirs($save-to.IO.path);
+    try mkdirs($save-to);
     my $save-to-file =$*SPEC.catpath('', $save-to, 'zef-get-plugin-ua.zip').IO;
-    LEAVE try rm($save-to.IO.path, :d, :f, :r);
+    LEAVE try rm($save-to, :d, :f, :r) if $save-to;
 
     lives_ok { use Zef::Plugin::UA; }, 'Zef::Plugin::UA `use`-able to test with';
 

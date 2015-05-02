@@ -1,25 +1,21 @@
 class Zef::Utils::Depends;
 
-method build(@metas is copy) {
+method build-dep-tree(@metas is copy) {
     my @tree;
 
-    my $visit = sub ($meta is rw, $from? = '') {
-        return if ($meta<marked> // 0) == 1; 
-        if ($meta<marked> // 0) == 0 {
-            $meta<marked> = 1;
-            for @($meta<dependencies>) -> $m {
-                for @metas.grep({ $_<name> eq $m }) -> $m2 {
-                    $visit($m2, $meta<name>);
+    sub visit(%meta is rw) {
+        unless %meta<marked>++ {
+            for %meta<dependencies>.list -> $dep-name {
+                for @metas.grep({ $_.<name> eq $dep-name }) -> %sub-meta is rw {
+                    visit(%sub-meta);
                 }
             }
-            $meta<marked> = 2;
-            @tree.push($meta);
+            @tree.push({ %meta });
         }
-    };
+    }
 
-    my $i = 0;
-    for @metas -> $meta {
-        $visit($meta, 'olaf') if ($meta<marked> // 0) == 0;
+    for @metas -> %meta {
+        visit(%meta);
     }
 
     return @tree;
@@ -56,7 +52,7 @@ sub extract-deps(*@paths) is export {
             }
             for $t.lines -> $l {
                 if $l ~~ /^ \s* ['use'||'need'||'require'] \s+ (\w+ ['::' \w+]*)/ {
-                    @depends.push($0.Str) if $0 !~~ any ('MONKEY_TYPING', 'v6');
+                    @depends.push($0.Str) if $0 !~~ any('MONKEY', 'v6');
                 }
             }
         }
@@ -67,5 +63,5 @@ sub extract-deps(*@paths) is export {
         });
     }
 
-    return @(@minimeta);
+    return @minimeta;
 }

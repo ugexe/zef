@@ -33,7 +33,7 @@ augment class IO::Path {
         for @files -> $file { @deleted.push($file) if $file.IO.unlink }
         for @dirs.sort({ -.chars }) -> $delete-dir { @deleted.push($delete-dir) if rmdir($delete-dir) }
         @deleted.push($.path.IO) if ($.path.IO.d ?? $.path.IO.rmdir !! $.path.IO.unlink);
-
+        
         return @deleted;
     }
 

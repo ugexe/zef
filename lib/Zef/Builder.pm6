@@ -10,7 +10,8 @@ class Zef::Builder does Zef::Phase::Building {
         while @paths.shift -> $path {
             my $lib     = $*SPEC.catdir($path.IO.path, 'lib').IO;
             my $blib    = $*SPEC.catdir($path.IO.path, 'blib/lib').IO;
-            my @sources = Zef::Utils::Depends.build-dep-tree: extract-deps($lib.IO.ls(:r, :f));
+            my @metas   = extract-deps( $lib.IO.ls(:r, :f) );
+            my @sources = Zef::Utils::Depends.new(:@metas).build-dep-tree;
 
             for @sources -> %module {
                 my @INC    := CompUnitRepo::Local::File.new($blib.IO.path), 

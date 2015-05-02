@@ -40,7 +40,7 @@ subtest {
             return;
         }
 
-        try { IO::Socket::INET.new(:host<github.com/>, :port(80)) } or do {
+        try { IO::Socket::INET.new(:host<github.com>, :port(80)) } or do {
             print("ok - # Skip: No internet connection available? http://github.com:80\n");
             return;
         }
@@ -75,7 +75,7 @@ subtest {
             return;
         }
 
-        try { IO::Socket::SSL.new(:host<github.com/>, :port(443)) } or do {
+        try { IO::Socket::SSL.new(:host<github.com>, :port(443)) } or do {
             print("ok - # Skip: No internet connection available? https://github.com:443\n");
             return;
         }

@@ -33,7 +33,7 @@ subtest {
 
     is any(@precompiled), "blib/lib/Zef.pm6.{$*VM.precomp-ext}", 'Zef::Builder::Plugin::PreComp pre-compile works';
     for @target-files -> $file {
-        is $file.IO.path, any(@precompiled), "Found: {$file.IO.path}";
+        is any(@precompiled), $file.IO.path, "Found: {$file.IO.path}";
     }
 
 }, 'Plugin::PreComp';

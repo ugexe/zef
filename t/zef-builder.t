@@ -1,6 +1,6 @@
 use v6;
 use Zef::Builder;
-use Zef::Utils::FileSystem;
+use Zef::Utils::PathTools;
 plan 2;
 use Test;
 
@@ -19,17 +19,18 @@ subtest { {
     my $lib-base  := $*SPEC.catdir($CWD, "lib").IO;
     my $blib-base := $*SPEC.catdir($CWD,"blib").IO;
     my $blib-lib  := $*SPEC.catdir($blib-base, "lib").IO;
-    LEAVE try rm($blib-base.IO.path, :d, :f, :r);
+    LEAVE try rm($blib-base, :d, :f, :r);
 
     my $builder = Zef::Builder.new( :plugins(["Zef::Plugin::PreComp"]) );
     
-    my @precompiled   = $builder.pre-compile($blib-base.IO.dirname).map: *.IO.relative;
-    my @source-files  = ls($lib-base.IO.path, :f, :r);
+    my @precompiled   = $builder.pre-compile($lib-base).map: *.IO.relative;
+    my @source-files  = ls($lib-base, :f, :r, d => False);
     my @target-files := gather for @source-files.grep({ $_.IO.basename ~~ / \.pm6? $/ }) -> $file {
         my $mod-path := $*SPEC.catdir('blib', "{$file.IO.dirname.IO.relative}").IO;
         my $target   := $*SPEC.catpath('', $mod-path.IO.path, "{$file.IO.basename}.{$*VM.precomp-ext}").IO;
         take $target.IO.path;
     }
+
     is any(@precompiled), "blib/lib/Zef.pm6.{$*VM.precomp-ext}", 'Zef::Builder::Plugin::PreComp pre-compile works';
     for @target-files -> $file {
         is $file.IO.path, any(@precompiled), "Found: {$file.IO.path}";
@@ -42,7 +43,7 @@ subtest { {
 subtest { {
     my $CWD := $*CWD;
     my $blib-base = $*SPEC.catdir($CWD,"blib").IO;
-    LEAVE try rm($blib-base.IO.path, :d, :f, :r);
+    LEAVE try rm($blib-base, :d, :f, :r);
 
     my $builder = Zef::Builder.new;
     my @results = $builder.pre-compile($CWD);

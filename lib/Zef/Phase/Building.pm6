@@ -12,5 +12,5 @@ role Zef::Phase::Building {
         }
     }
 
-    method pre-compile { ... }
+    method pre-compile(*@paths) { ... }
 }

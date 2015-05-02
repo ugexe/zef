@@ -1,4 +1,4 @@
-use Zef::Utils::FileSystem;
+use Zef::Utils::PathTools;
 class Zef::Installer;
 
 method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is export {

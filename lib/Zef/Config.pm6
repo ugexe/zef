@@ -1,4 +1,4 @@
-use Zef::Utils::FileSystem;
+use Zef::Utils::PathTools;
 module Zef::Config;
 
 # todo: properly handle volume argument for all .catpath method calls

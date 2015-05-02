@@ -1,6 +1,6 @@
 use v6;
 use Zef::Getter;
-use Zef::Utils::FileSystem;
+use Zef::Utils::PathTools;
 plan 3;
 use Test;
 
@@ -35,8 +35,8 @@ subtest {
     }
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    try mkdirs($save-to.IO.path);
-    LEAVE try rm($save-to.IO.path, :d, :f, :r);
+    try mkdirs($save-to);
+    LEAVE try rm($save-to, :d, :f, :r);
 
     #lives_ok { require Zef::Plugin::Git; }, 'Zef::Plugin::Git `use`-able to test with';
 
@@ -51,12 +51,13 @@ subtest {
 
 subtest {
     ENTER {
-        try require HTTP::UserAgent; 
         try require IO::Socket::SSL;
         if ::('IO::Socket::SSL') ~~ Failure {
             print("ok 3 - # Skip: IO::Socket::SSL not available\n");
             return;
         }
+
+        try require HTTP::UserAgent; 
         if ::('HTTP::UserAgent') ~~ Failure {
             print("ok 3 - # Skip: HTTP::UserAgent not available\n");
             return;

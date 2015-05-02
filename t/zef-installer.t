@@ -1,6 +1,6 @@
 use v6;
 use Zef::Installer;
-use Zef::Utils::FileSystem;
+use Zef::Utils::PathTools;
 plan 1;
 use Test;
 

@@ -1,6 +1,6 @@
 use Zef::Phase::Building;
 use Zef::Utils::Depends;
-use Zef::Utils::FileSystem;
+use Zef::Utils::PathTools;
 
 
 class Zef::Builder does Zef::Phase::Building {
@@ -10,7 +10,7 @@ class Zef::Builder does Zef::Phase::Building {
         while @paths.shift -> $path {
             my $lib     = $*SPEC.catdir($path.IO.path, 'lib').IO;
             my $blib    = $*SPEC.catdir($path.IO.path, 'blib/lib').IO;
-            my @sources = Zef::Utils::Depends.build( extract-deps($lib.IO.path) );
+            my @sources = Zef::Utils::Depends.build( extract-deps($lib.IO.ls(:r, :f)) );
 
             for @sources -> %module {
                 my @INC    := CompUnitRepo::Local::File.new($blib.IO.path), 
@@ -19,6 +19,7 @@ class Zef::Builder does Zef::Phase::Building {
                                      # without including target module if already installed
                 my $cu  = CompUnit.new(%module<file>);
                 my $out = IO::Path.new("{$*CWD}/blib/{%module<file>.IO.relative}.{$*VM.precomp-ext}");
+
                 try mkdirs($out.IO.dirname);
                 try unlink($out.IO) if $out.IO.e;
                 my $result = $cu.precomp(:force, $out, :@INC);

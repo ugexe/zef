@@ -15,7 +15,7 @@ use Zef::Uninstaller;
 BEGIN our @plugins := %config<plugins>.list;
 
 # when invoked as a class, we have the usual @.plugins
-has @.plugins;
+has @!plugins;
 
 # override config file plugins if invoked as a class
 # *and* :@plugins was passed to initializer 

@@ -1,5 +1,5 @@
 use v6;
-use Zef::Utils::FileSystem;
+use Zef::Utils::PathTools;
 use Zef::Utils::Depends;
 plan 6;
 use Test;
@@ -9,7 +9,7 @@ use Test;
 {
     my $tlib-dir   = $*SPEC.catdir($?FILE.IO.dirname, 'lib').IO;
     my $tlib-file  = $*SPEC.catpath('', $tlib-dir.IO.path, 'depends.pm6').IO;
-    my %depends    = $_.hash for Zef::Utils::Depends.build( extract-deps($tlib-dir.IO.path) );
+    my %depends    = $_.hash for Zef::Utils::Depends.build( extract-deps($tlib-dir.IO.ls(:r, :f, d => False) ) );
   
     is %depends<dependencies>.elems, 2, 'We only got two dependencies';
     ok %depends<dependencies>.grep('This::One'), 'This::One depended - not in pod';

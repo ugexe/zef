@@ -1,6 +1,6 @@
 use Zef::Phase::Getting;
 use Zef::Utils::Base64;
-use Zef::Utils::FileSystem;
+use Zef::Utils::PathTools;
 
 class Zef::Getter does Zef::Phase::Getting {
 

@@ -13,4 +13,4 @@ use Zef::Uninstaller;
 
 use Zef::Utils::Base64;
 use Zef::Utils::Depends;
-use Zef::Utils::FileSystem;
+use Zef::Utils::PathTools;

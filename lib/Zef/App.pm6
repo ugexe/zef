@@ -29,25 +29,29 @@ submethod BUILD(:@!plugins) {
 multi MAIN('test') is export { &MAIN('test', |('test/', 'tests/', 't/', 'xt/')) }
 #| Test modules in the specified directories
 multi MAIN('test', *@paths) is export {
-    my $tester = Zef::Tester.new(:@plugins);
-    $tester.test($_) for @paths;
+    my $tester  = Zef::Tester.new(:@plugins);
+    my @results = $tester.test(@paths);
+    my $failures = @results.grep({ !$_.<pass>  }).elems;
+    say "-" x 42;
+    say "Total  test files: {@results.elems}";
+    say "Passed test files: {@results.elems - $failures}";
+    say "Failed test files: $failures";
+    say "-" x 42;
+    exit $failures;
 }
 
 #| Install with business logic
 multi MAIN('install', *@modules, Bool :$doinstall = True) is export {
     "Fetching: {@modules.join(', ')}".say;
-    @modules.perl.say;
     my %result = &MAIN('get', @modules);
 
     #resolve dependencies
     my @failures;
     for %result.keys -> $k {
         my ($j, $i, @metas) = ('', 0, qw<META.info META6.info META.json META6.json>);
-        @metas.perl.say;
         while $j.IO !~~ :f && @metas.elems > $i {
             CATCH { default { .resume; } }
             $j = $*SPEC.catpath('', %result{$k}, @metas[$i++]);
-            $j.perl.say;
         }
         @failures.push($k), next if $i >= @metas.elems;
         $j = try from-json($j.IO.slurp);
@@ -69,7 +73,6 @@ multi MAIN('install', *@modules, Bool :$doinstall = True) is export {
         "Skipping $k due to depends failures".say, next if any(@failures.map({ "{$_ eq $k}".say; $_ eq $k }));
         if %result{$k} ~~ Str {
             my $build = &MAIN('build', %result{$k});
-            $build.perl.say;
         } else {
             say "Error retrieving module: $k"; 
         }
@@ -89,7 +92,6 @@ multi MAIN('local-install', *@modules) is export {
 multi MAIN('get', :$save-to = "$*CWD/{time}", *@modules) is export {
     # {time} can be removed when we fetch actual versioned archives
     # so we dont accidently overwrite files in $*CWD
-    @modules.perl.say;
     my $getter = Zef::Getter.new(:@plugins);
     $getter.get(:$save-to, |@modules);
 }

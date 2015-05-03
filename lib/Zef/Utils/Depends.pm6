@@ -12,8 +12,8 @@ grammar Grammar::Dependency::Parser {
     token load-statement { <load-type> \s+ <short-name> }
     token short-name     { <name-piece> [<.colon-pair> <name-piece>]* }
     token name-piece     { <.name-token>+       }
-    token name-token     { <+[\S] -terminators> }
-    token terminators    { <[:;{}\[\]\(\)]>     }
+    token name-token     { <+[\S] -restricted>  }
+    token restricted     { <[:;{}\[\]\(\)./\\]>     }
     token colon-pair     { '::' }
 
     proto token load-type {*}

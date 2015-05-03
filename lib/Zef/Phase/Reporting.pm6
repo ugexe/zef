@@ -4,10 +4,13 @@ role Zef::Phase::Reporting {
     submethod BUILD(:@!plugins) {
         for @!plugins -> $p { 
             try require ::($p);
-            unless ::($p) ~~ Failure {
+            if ::($p) !~~ Failure {
                 if ::($p).does(Zef::Phase::Reporting) {
                     self does ::($p);
                 }
+            }
+            else {
+                say "Failed to load: $p";
             }
         }
     }

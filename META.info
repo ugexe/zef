@@ -27,11 +27,11 @@
         "Zef::Phase::Reporting" : "lib/Zef/Phase/Reporting.pm6",
         "Zef::Phase::Testing"   : "lib/Zef/Phase/Testing.pm6",
 
-        "Zef::Plugin::Git"         : "lib/Zef/Plugin/Git.pm6",
-        "Zef::Plugin::P5Prove"     : "lib/Zef/Plugin/P5Prove.pm6",
-        "Zef::Plugin::PreComp"     : "lib/Zef/Plugin/PreComp.pm6",
-        "Zef::Plugin::UA"          : "lib/Zef/Plugin/UA.pm6",
-        "Zef::Plugin::ZefReporter" : "lib/Zef/Plugin/ZefReporter.pm6"
+        "Zef::Plugin::Git"           : "lib/Zef/Plugin/Git.pm6",
+        "Zef::Plugin::PandaReporter" : "lib/Zef/Plugin/PandaReporter.pm6",
+        "Zef::Plugin::P5Prove"       : "lib/Zef/Plugin/P5Prove.pm6",
+        "Zef::Plugin::PreComp"       : "lib/Zef/Plugin/PreComp.pm6",
+        "Zef::Plugin::UA"            : "lib/Zef/Plugin/UA.pm6"
     },
     "auth"    : "github:ugexe",
     "authors" : [

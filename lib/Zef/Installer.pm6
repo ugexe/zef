@@ -4,9 +4,13 @@ class Zef::Installer;
 method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is export {
     try mkdirs($save-to);
     my $repo = CompUnitRepo::Local::Installation.new($save-to);
+    my @results;
 
     for @metafiles -> $file {
         my %data = %(from-json($file.IO.slurp));
+        KEEP push @results, { pass => 1, %data };
+        UNDO push @results, { pass => 0, %data };
+
         unless %options<force> {
             for $repo.candidates(%data<name>).list -> $mod {
                 if $mod<name> eq %data<name> 
@@ -27,14 +31,13 @@ method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is expo
             @provides.push($pair.values);
         }
 
-        $repo.install(
+        $repo.install( 
             dist => class :: {
-                        method metainfo { 
-                            %data;
-                        }
-                    },
-            @provides,
+                method metainfo { %data } 
+            }, @provides
         ) or die "Unable to install $file in $repo";
     }
+
+    return @results;
 }
 

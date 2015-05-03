@@ -4,11 +4,19 @@ use Zef::Utils::PathTools;
 plan 1;
 use Test;
 
-my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-try mkdirs($save-to);
-LEAVE rm($save-to, :d, :f, :r);
 
-my $installer = Zef::Installer.new;
-lives_ok { $installer.install(:$save-to, "META6.json") }, "installer lived";
+subtest {
+    my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
+    try mkdirs($save-to);
+    LEAVE rm($save-to, :d, :f, :r);
+
+    my @results = Zef::Installer.new.install(:$save-to, "META.info");
+
+    ok @results.elems,                           "Got non-zero number of results"; 
+    is all(@results>>.EXISTS-KEY("pass")), True, "All modules were marked pass/fail";
+    is all(@results>>.AT-KEY("pass")),        1, "All modules installed OK";
+    is any(@results>>.AT-KEY("name")),    "Zef", "name:Zef matches in pass results";
+}, 'Zef can install zef';
+
 
 done();

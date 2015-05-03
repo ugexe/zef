@@ -27,7 +27,7 @@ method build-dep-tree(@metas = @!metas) {
 
     sub visit(%meta is rw) {
         unless %meta<marked>++ {
-            visit($_.hash) for @metas.grep({ $_.<name> ~~ any(%meta<dependencies>.list) });
+            &?ROUTINE($_.hash) for @metas.grep({ $_.<name> ~~ any(%meta<dependencies>.list) });
             @tree.push({ %meta });
         }
     }

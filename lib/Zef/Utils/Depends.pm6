@@ -1,3 +1,7 @@
+use nqp;
+use Perl6::Grammar:from<NQP>;
+use Perl6::Actions:from<NQP>;
+
 class Zef::Utils::Depends;
 
 has @!metas;
@@ -56,7 +60,7 @@ method compress(@tree is copy) {
 }
 
 method extract-deps(*@paths) {
-    @paths //= @!metas.grep({ $_.<file>.IO.basename ~~ /^ \.pm6? $/ });
+    @paths //= @!metas.grep({ $_.<file> });
     my @minimeta;
     my @modules = @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
     my $slash = / [ \/ | '\\' ]  /;
@@ -84,7 +88,36 @@ method extract-deps(*@paths) {
     return @minimeta;
 }
 
+method runtime-extract-deps(*@paths is copy) {
+    @paths //= @!metas.grep({ $_.<file> });
+    my @pm6-files := @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
 
+    # Try to parse exceptions for missing dependencies
+    my @missing = gather for @pm6-files -> $source {
+        try {
+            my $*LINEPOSCACHE;            
+            Perl6::Grammar.parse($source.IO.slurp, :actions(Perl6::Actions.new()));
+
+            CATCH { 
+                when X::AdHoc {
+                    if $_.payload ~~ /'Could not find'\s$<missing>=(.*?)\s'in any of:'/ {
+                        take ~$/.<missing>;
+                        # Inject fake dependency or find another way
+                        # to continue on and parse more dependencies 
+                        # as only one module name is shown per exception.
+                    }
+                }
+            }
+        }
+    }
+
+    say @missing.perl;
+}
+
+
+sub runtime-extract-deps(*@paths) is export {
+    Zef::Utils::Depends.new.runtime-extract-deps(@paths);
+}
 
 sub extract-deps(*@paths) is export {
     Zef::Utils::Depends.new.extract-deps(@paths);

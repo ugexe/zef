@@ -4,38 +4,35 @@ class Zef::Installer;
 method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is export {
     try mkdirs($save-to);
     my $repo = CompUnitRepo::Local::Installation.new($save-to);
-    my @results;
 
-    for @metafiles -> $file {
-        my %data = %(from-json($file.IO.slurp));
-        KEEP push @results, { pass => 1, %data };
-        UNDO push @results, { pass => 0, %data };
+    my @results := gather for @metafiles -> $file {
+        my Distribution $dist .= new( |from-json($file.IO.slurp) ) does role { method metainfo {self.hash} };
+
+        KEEP take { ok => 1, $dist.hash.flat };
+        UNDO take { ok => 0, $dist.hash.flat };
 
         unless %options<force> {
-            for $repo.candidates(%data<name>).list -> $mod {
-                if $mod<name> eq %data<name> 
-                   && $mod{"ver" | "version"} eq Version.new(%data{"vers" | "version"}) 
-                   && $mod{"auth" & "author" & "authority"} eq %data{"auth" & "author" & "authority"} 
+            for $repo.candidates($dist.name).list -> $mod {
+                if $mod<name> eq $dist.name 
+                   && $mod{"ver" | "version"} eq Version.new($dist.vers | $dist.version) 
+                   && $mod{"auth" & "author" & "authority"} eq $dist.auth & $dist.author & $dist.authority 
                    {
                     
-                    "==> Skipping {%data<name>} already installed ref:<$mod>".say;
+                    "==> Skipping {$dist.name} already installed ref:<$mod>".say;
                     next;
                 }
             }
         } 
 
         my @provides;
-        for @(%data<provides>) -> $pair is copy {
+        for $dist.provides.list -> $pair is copy {
             $pair.value = $*SPEC.catpath('', $file.IO.dirname, $pair.value).IO.resolve;
-            die 'Package attempting to install files outside of repository' if $pair.value !~~ /^ $*CWD /;
+            my $error = 'Package attempting to install files outside of repository' if $pair.value !~~ /^ $*CWD /;
+            (%options<force> ?? warn $error !! die $error) if $error;
             @provides.push($pair.values);
         }
 
-        $repo.install( 
-            dist => class :: {
-                method metainfo { %data } 
-            }, @provides
-        ) or die "Unable to install $file in $repo";
+        $repo.install(:$dist, |@provides);
     }
 
     return @results;

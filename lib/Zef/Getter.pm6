@@ -7,10 +7,7 @@ class Zef::Getter does Zef::Phase::Getting {
     method get(:$save-to is copy = $*TMPDIR, *@modules) {
         try require IO::Socket::SSL;
 
-        my @fetched;
-        my @failed;
-
-        for @modules -> $module {
+        my @results := eager gather for @modules -> $module {
             temp $save-to = $*SPEC.catdir($save-to, $module);
             my $data   = to-json({
                 name => $module,
@@ -27,26 +24,24 @@ class Zef::Getter does Zef::Phase::Getting {
             say "Error: {$test<error>}" and next if $test<error>:exists;
             $recv = $recv.substr(0, *-2);
             my $mode  = 0o0644;
-            try { mkdirs($save-to) } or fail "error: $_";
-            try { 
-                for @($recv.split("\r\n")) -> $path is copy, $enc is copy {
-                    ($mode, $path) = $path.split(':/', 2);
-                    KEEP @fetched.push($module => $save-to);
-                    UNDO @failed.push($module => False);
+            try mkdirs($save-to);
 
-                    # Handle directory creation
-                    my $dir = $*SPEC.catdir($save-to, $path.IO.dirname).IO;
-                    try { mkdirs($dir.IO.path) };
-                    # Handle file creation
-                    my $fh = $*SPEC.catpath('', $dir.IO.path, $path.IO.basename).IO;
-                    my $dc = Zef::Utils::Base64.new.b64decode($enc);
-                    $fh.spurt($dc) or fail "write error: $_";
-                    try $fh.chmod($mode.Int);
-                }
-                CATCH { default { "FAIL: $_".say; fail "Unable to unpack $module"; } }
+            for @($recv.split("\r\n")) -> $path is copy, $enc is copy {
+                ($mode, $path) = $path.split(':/', 2);
+                KEEP take { ok => 1, module => $module, path => $path }
+                UNDO take { ok => 0, module => $module, error => $_   }
+
+                # Handle directory creation
+                my $dir = $*SPEC.catdir($save-to, $path.IO.dirname).IO;
+                try mkdirs($dir.IO.path);
+                # Handle file creation
+                my $fh = $*SPEC.catpath('', $dir.IO.path, $path.IO.basename).IO;
+                my $dc = Zef::Utils::Base64.new.b64decode($enc);
+                $fh.spurt($dc) or fail "write error: $_";
+                try $fh.chmod($mode.Int);
             }
         }
 
-        return %(@fetched, @failed);
+        return @results;
     }
 }

@@ -60,10 +60,10 @@ method compress(@tree is copy) {
 
 method extract-deps(*@paths) {
     @paths //= @!metas.grep({ $_.<file> });
-    my @minimeta;
     my @modules = @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
     my $slash = / [ \/ | '\\' ]  /;
-    for @modules -> $f is copy {
+
+    my @minimeta := gather for @modules -> $f is copy {
         my $t = $f.IO.slurp;
         while $t ~~ /^^ \s* '=begin' \s+ <ident> .* '=end' \s+ <ident> / {
             $t = $t.substr(0,$/.from) ~ $t.substr($/.to);
@@ -82,11 +82,11 @@ method extract-deps(*@paths) {
         my $base-name   = $f.IO.basename.subst(/$ext$/,'');
         my $module-name = [@splitdir[@splitdir.last-index("lib")+1..*], $base-name].join('::');
 
-        @minimeta.push({
+        take {
             name         => $module-name,
             file         => $f.IO.path,
             dependencies => @depends, 
-        });
+        }
     }
 
     return @minimeta;
@@ -97,7 +97,7 @@ method runtime-extract-deps(*@paths is copy) {
     my @pm6-files := @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
 
     # Try to parse exceptions for missing dependencies
-    my @missing = gather for @pm6-files -> $source {
+    my @missing := gather for @pm6-files -> $source {
         try {
             my $*LINEPOSCACHE;            
             Perl6::Grammar.parse($source.IO.slurp, :actions(Perl6::Actions.new()));

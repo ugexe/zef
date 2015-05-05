@@ -16,3 +16,14 @@ class X::Zef is Exception {
         say "$.stage stage failed: $.reason";
     }
 }
+
+class X::Zef::Installation is Exception {
+    has $.module;
+    has $.path;
+
+    submethod BUILD(:$!module!, :$!path) { }
+
+    method message {
+        say "{$!module} failed to install";
+    }
+}

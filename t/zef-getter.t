@@ -20,10 +20,12 @@ subtest {
     my $getter = Zef::Getter.new;
 
     # todo: nearly empty module for testing
-    ok $getter.get(:$save-to, "DB::ORM::Quicky");
-    my @saved := ls($save-to, :f, :r);
+    my @results = $getter.get(:$save-to, "DB::ORM::Quicky");
+    my @saved   = ls($save-to, :f, :r, d => False);
+
     ok $save-to.IO.e, 'Modules were fetched';
-    ok @saved.elems > 3, "Repo file count: {@saved.elems}";    
+    is @saved.elems, @results.grep({ $_.<ok> }).elems, "OK results according to .install";
+    ok @saved.elems > 3, "Repo file count of '{@saved.elems}' appears valid";    
 }, "Default Getter";
 
 

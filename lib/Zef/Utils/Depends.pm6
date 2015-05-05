@@ -1,4 +1,3 @@
-use nqp;
 use Perl6::Grammar:from<NQP>;
 use Perl6::Actions:from<NQP>;
 
@@ -65,7 +64,7 @@ method extract-deps(*@paths) {
     my @modules = @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
     my $slash = / [ \/ | '\\' ]  /;
     for @modules -> $f is copy {
-        my $t = $f.slurp;
+        my $t = $f.IO.slurp;
         while $t ~~ /^^ \s* '=begin' \s+ <ident> .* '=end' \s+ <ident> / {
             $t = $t.substr(0,$/.from) ~ $t.substr($/.to);
         }
@@ -79,8 +78,8 @@ method extract-deps(*@paths) {
         }
 
         @minimeta.push({
-            name => $f.path.subst(/^.*?<$slash>?lib<$slash>/,'').subst(/\.pm6?$/, '').subst($slash, '::', :g),
-            file => $f.path,
+            name => $f.IO.path.subst(/^.*?<$slash>?lib<$slash>/,'').subst(/\.pm6?$/, '').subst($slash, '::', :g),
+            file => $f.IO.path,
             dependencies => @depends, 
         });
     }

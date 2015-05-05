@@ -13,7 +13,7 @@ subtest {
     if ::('Zef::Plugin::PreComp') ~~ Failure {
         print("ok - # Skip: Zef::Plugin::PreComp not available\n");
         return;
-    };
+    }
 
     my $CWD := $*CWD;
     my $lib-base  := $*SPEC.catdir($CWD, "lib").IO;

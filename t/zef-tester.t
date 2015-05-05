@@ -10,8 +10,9 @@ subtest {
 
     ok $tester.can('test'), 'Zef::Tester can do default tester method';
 
+    # my @results := $tester.test("t/00-load.t");
+    # ok @results[0].<ok>, 'Test passed';
     # fails for loading a second plan
-    # ok $tester.test("t/00-load.t"), 'passed basic test using perl6 shell command';
 }, 'Default tester';
 
 

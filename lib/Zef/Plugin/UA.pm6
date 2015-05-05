@@ -9,6 +9,7 @@ role Zef::Plugin::UA does Zef::Phase::Getting {
             require HTTP::UserAgent;
             HTTP::UserAgent.new(useragent => 'firefox_linux');
         }
+        X::NYI::Available.new(:available("HTTP::UserAgent"), :feature("http::useragent and openssl")).message.say;            
     }
 
     method get(:$save-to = $*TMPDIR, *@urls) {

@@ -1,27 +1,22 @@
 use Zef::Phase::Reporting;
 
-BEGIN {
-    try require Panda::Reporter;
-    try require Panda::Project;
-}
 
 role Zef::Plugin::PandaReporter does Zef::Phase::Reporting {
     has $!reporter = ENTER { 
-        if ::('Panda::Reporter') ~~ Failure  {
-            #X::NYI::Available.new(:available("panda"), :feature("sending reports to testers.p6c.org")).message.say;            
+        try {
+                require Panda::Reporter;
+                return ::('Panda::Reporter');
         }
-        else {
-            return Panda::Reporter.new;
-        }
-    };
+        X::NYI::Available.new(:available("panda"), :feature("sending reports to testers.p6c.org")).message.say;            
+    }
+
     has $!project = ENTER { 
-        if ::('Panda::Project') ~~ Failure  {
-            #X::NYI::Available.new(:available("panda"), :feature("sending reports to testers.p6c.org")).message.say;            
+        try {
+                require Panda::Project;
+                return ::('Panda::Project');
         }
-        else {
-            return Panda::Project.new;
-        }
-    };
+        X::NYI::Available.new(:available("panda"), :feature("sending reports to testers.p6c.org")).message.say;            
+    }
 
 
     method report { };

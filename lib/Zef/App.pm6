@@ -31,7 +31,7 @@ multi MAIN('test') is export { &MAIN('test', |('test/', 'tests/', 't/', 'xt/')) 
 multi MAIN('test', *@paths) is export {
     my $tester  = Zef::Tester.new(:@plugins);
     my @results = $tester.test(@paths);
-    my $failures = @results.grep({ !$_.<pass>  }).elems;
+    my $failures = @results.grep({ !$_.<ok>  }).elems;
     say "-" x 42;
     say "Total  test files: {@results.elems}";
     say "Passed test files: {@results.elems - $failures}";

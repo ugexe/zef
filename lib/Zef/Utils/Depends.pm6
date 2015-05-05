@@ -69,17 +69,22 @@ method extract-deps(*@paths) {
             $t = $t.substr(0,$/.from) ~ $t.substr($/.to);
         }
 
-        my $not-deps       = any(<v6 MONKEY_TYPING strict fatal nqp NativeCall cur lib>);
-        my $dep-parser     = Grammar::Dependency::Parser.parse($t);
+        my $not-deps   = any(<v6 MONKEY_TYPING strict fatal nqp NativeCall cur lib>);
+        my $dep-parser = Grammar::Dependency::Parser.parse($t);
 
         my @depends = gather for $dep-parser.<load-statement>.list -> $dep {
             next if $dep.<short-name>.Str ~~ any($not-deps);
             take $dep.<short-name>.Str;
         }
 
+        my @splitdir    = $*SPEC.splitdir($f.IO.dirname);
+        my $ext         = ".{$f.IO.extension}";
+        my $base-name   = $f.IO.basename.subst(/$ext$/,'');
+        my $module-name = [@splitdir[@splitdir.last-index("lib")+1..*], $base-name].join('::');
+
         @minimeta.push({
-            name => $f.IO.path.subst(/^.*?<$slash>?lib<$slash>/,'').subst(/\.pm6?$/, '').subst($slash, '::', :g),
-            file => $f.IO.path,
+            name         => $module-name,
+            file         => $f.IO.path,
             dependencies => @depends, 
         });
     }

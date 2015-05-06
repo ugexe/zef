@@ -7,12 +7,9 @@ role Zef::Plugin::Git does Zef::Phase::Getting {
 
     method get(:$save-to = $*TMPDIR, *@urls) {
         return unless $save-to.defined;
-        my @fetched;
-        my @failed;
-
-        for @urls -> $url {
-            KEEP @fetched.push($url);
-            UNDO @failed.push($url);
+        my @results := eager gather for @urls -> $url {
+            KEEP take { ok => 1, url => $url }
+            UNDO take { ok => 0, url => $url }
 
             my $cmd = "git clone " ~ @.flags.join(' ') ~ " $url {$save-to.IO.path}";
             my $git_result = shell($cmd).exitcode;
@@ -27,7 +24,7 @@ role Zef::Plugin::Git does Zef::Phase::Getting {
             $git_result == 0 ?? True !! False;
         }
 
-        return %(@fetched.map({ $_ => True }), @failed.map({ $_ => False }));
+        return @results;
     }
 }
 

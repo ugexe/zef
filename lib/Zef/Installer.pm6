@@ -24,15 +24,14 @@ method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is expo
             }
         } 
 
-        my @provides;
-        for $dist.provides.list -> $pair is copy {
-            $pair.value = $*SPEC.catpath('', $file.IO.dirname, $pair.value).IO.resolve;
-            my $error = 'Package attempting to install files outside of repository' if $pair.value !~~ /^ $*CWD /;
+        my @provides = gather for $dist.provides.kv -> $name, $file-path {
+            my $file-full = $*SPEC.catpath('', $file.IO.dirname, $file-path).IO.resolve;
+            my $error     = 'Package attempting to install files outside of repository' if $file-full !~~ /^ $*CWD /;
             (%options<force> ?? warn $error !! die $error) if $error;
-            @provides.push($pair.values);
+            take $file-full;
         }
 
-        $repo.install(:$dist, |@provides);
+        $repo.install(:$dist, @provides);
     }
 
     return @results;

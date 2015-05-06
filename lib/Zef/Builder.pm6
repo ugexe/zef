@@ -5,9 +5,7 @@ use Zef::Utils::PathTools;
 
 class Zef::Builder does Zef::Phase::Building {
     method pre-compile(*@paths is copy) {
-        my @results;
-
-        while @paths.shift -> $path {
+        my @results := gather for @paths -> $path {
             my $lib     = $*SPEC.catdir($path.IO.path, 'lib').IO;
             my $blib    = $*SPEC.catdir($path.IO.path, 'blib/lib').IO;
             my @metas   = extract-deps( $lib.IO.ls(:r, :f) );
@@ -25,16 +23,19 @@ class Zef::Builder does Zef::Phase::Building {
                 my $result = $cu.precomp(:force, $out, :@INC);
                 "[{%module<file>.IO.relative}] {'.' x 42 - %module<file>.IO.relative.chars} ".print;
 
-                if $result {
-                    my %r = name => %module<name>, source => %module<file>, precomp => $out.IO;
-                    @results.push({ %r });
-                    "OK {$out.IO.relative}".say;
+                my %r = %( name     => %module<name>, 
+                           source   => %module<file>,
+                           ok       => $result ?? 1 !! 0 );
+
+                given $result {
+                    when True  { 
+                        %r.<precomp> = $out.IO;
+                        say $result ?? "OK {$out.IO.relative}" !! "FAILED";
+                    }
+                    when False { %r.<error> = "Failed to build {%module.<name>}" }
                 }
-                else {
-                    my %r = name => %module<name>, source => %module<file>, error => 'Failed to compile';
-                    @results.push({ %r });
-                    "FAILED".say;
-                }
+
+                take {%r};
             }
         }
 

@@ -10,7 +10,7 @@ class Zef::Authority {
         try {
             require IO::Socket::SSL;
             CATCH { default { 
-                once X::NYI::Available.new(:available("IO::Socket::SSL"), :feature("login and registration")).message.say;
+                once X::NYI::Available.new(:available("IO::Socket::SSL"), :feature("login, register, and push")).message.say;
             } } 
         }
 
@@ -32,7 +32,6 @@ class Zef::Authority {
         elsif %result<failure> {
             $*ERR = %result<reason>;
             return False;
-            #fail "Login failed with error: {%result<reason>}";
         } 
 
         fail "Problem receiving data";
@@ -51,7 +50,6 @@ class Zef::Authority {
         elsif %result<failure> {
             $*ERR = %result<reason>;
             return False;
-            #fail "Registration failed with error: {%result<reason>}";
         } 
 
         fail "Problem receiving data";
@@ -88,8 +86,7 @@ class Zef::Authority {
 
             for @files -> $path {
                 my $buff = try { 
-                        Zef::Utils::Base64.new.b64encode($path.IO.slurp); 
-                        CATCH { default { say "err:$_" } }
+                        Zef::Utils::Base64.new.b64encode($path.IO.slurp);
                     } // try {
                         my $b = Buf.new;
                         my $f = open $path, :r;
@@ -98,19 +95,17 @@ class Zef::Authority {
                         }
                         $f.close;
                         Zef::Utils::Base64.new.b64encode($b);
-                        CATCH { default { say "err:$_" } }
                     } // fail "Failed to encode data: { $path }";
 
                 if $buff !~~ Str {
                     @failures.push($path);
                     last unless $force;
                 } 
-                
                 $data ~= "{nqp::stat($path.Str, nqp::const::STAT_PLATFORM_MODE).base(8)}:{$path.Str.subst(/ ^ $target /, '')}\r\n{$buff}\r\n";
             }
 
             if !$force && @failures {
-                say "Failed to package the following files:\n\t";
+                print("Failed to package the following files:\n\t");
                 warn @failures.join("\n\t");
             } 
 
@@ -121,14 +116,14 @@ class Zef::Authority {
             my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
             $!sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
             my $recv   = $!sock.recv;
-            my %result = %(from-json($recv.split("\r\n\r\n")[1]));
-
+            my %result = try %(from-json($recv.split("\r\n\r\n")[1]));
+            
             if %result<error> {
-                say "Error pushing module to server: {%result<error>}";
+                $*ERR = "Error pushing module to server: {%result<error>}";
                 return False;
             } 
             else {
-                say "Unknown error - Reply from server:\n{%result.perl}";
+                $*ERR =  "Unknown error - Reply from server:\n{%result.perl}";
                 return False;
             }
 

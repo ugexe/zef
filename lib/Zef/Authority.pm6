@@ -39,8 +39,9 @@ class Zef::Authority {
 
     method register(:$username, :$password) {
         my $data = to-json({ username => $username, password => $password });
+
         $!sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my $recv = $!sock.recv.split("\r\n\r\n").[1];
+        my ($header,$recv) = $!sock.recv.split("\r\n\r\n");
         my %result = try %(from-json($recv));
         
         if %result<success> {
@@ -131,3 +132,4 @@ class Zef::Authority {
         }        
     }
 }
+

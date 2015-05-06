@@ -82,7 +82,7 @@ subtest {
             return;
         }
 
-        try { ::('HTTP::UsefrAgent').new.get('https://github.com') } or do {
+        try { ::('HTTP::UserAgent').new.get('https://github.com') } or do {
             print("ok - # Skip: No internet connection available? http://github.com:443\n");
             return;
         }

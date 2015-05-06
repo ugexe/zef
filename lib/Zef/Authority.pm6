@@ -45,11 +45,11 @@ class Zef::Authority {
         
         if %result<success> {
             $.session-key = %result<newkey> // fail "Session-key problem";            
-            return True;
+            return %result;
         } 
         elsif %result<failure> {
             $*ERR = %result<reason>;
-            return False;
+            return %result;
         } 
 
         fail "Problem receiving data";

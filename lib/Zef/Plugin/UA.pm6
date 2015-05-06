@@ -4,32 +4,27 @@ use Zef::Phase::Getting;
 # todo: add role to un-tar/zip files to complete other half of 'fetcher'
 
 role Zef::Plugin::UA does Zef::Phase::Getting {
-    has $!ua = ENTER {
-        try {
-            require HTTP::UserAgent;
-            HTTP::UserAgent.new(useragent => 'firefox_linux');
+    ENTER { 
+        try require HTTP::UserAgent;
+        if ::('HTTP::UserAgent') ~~ Failure {
+            X::NYI::Available.new(:available("HTTP::UserAgent"), :feature("Zef::Plugin::UA")).message.say;            
         }
-        X::NYI::Available.new(:available("HTTP::UserAgent"), :feature("http::useragent and openssl")).message.say;            
     }
 
-    method get(:$save-to = $*TMPDIR, *@urls) {
-        my @fetched;
-        my @failed;
-
-        for @urls -> $url {
-            KEEP @fetched.push($url);
-            UNDO @failed.push($url);
-
-            my $response = $.ua.get($url);
+    method get(:$save-to-file = $*TMPDIR, *@urls) {
+        my @results = eager gather for @urls -> $url {
+            my $response = ::('HTTP::UserAgent').new.get($url);
 
             if $response.is-success {
-                $save-to.IO.open(:bin, :w).write($response.content);
+                $save-to-file.IO.spurt($response.content);
+                take { ok => 1, path => $save-to-file }
             }
             else {
+                take { ok => 0, path => $save-to-file }
                 fail $response.status-line;
             }
         }
 
-        return %(@fetched.map({ $_ => True }), @failed.map({ $_ => False }));
+        return @results;
     }
 }

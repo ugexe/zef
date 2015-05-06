@@ -21,8 +21,9 @@ subtest {
     }
 
     my $authority = Zef::Authority.new;
-    nok $authority.register(username => 'zef', password => 'pass'), "Username already registered";
-
+    my %response = $authority.register(username => 'zef', password => 'pass');
+    is %response.<failure>, 1, "Username already registered";
+    
     $authority = Zef::Authority.new;
     nok $authority.login(username => 'zef', password => 'pass'), "Login failed";
 

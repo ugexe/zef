@@ -52,7 +52,6 @@ subtest {
     try mkdirs($save-to);
     LEAVE try rm($save-to, :d, :f, :r);
 
-    #lives_ok { require Zef::Plugin::Git; }, 'Zef::Plugin::Git `use`-able to test with';
 
     my $getter = Zef::Getter.new( :plugins(['Zef::Plugin::Git']) );
 
@@ -60,7 +59,7 @@ subtest {
     my @saved = ls($save-to.IO.path, :f, :r);
     ok @saved.elems > 3, "Repo was created: {@saved.elems}";
 
-}, 'Plugin::Git';
+}, 'Zef::Plugin::Git';
 
 
 subtest {
@@ -77,27 +76,30 @@ subtest {
             return;
         }
 
-        try { IO::Socket::SSL.new(:host<github.com>, :port(443)) } or do {
-            print("ok - # Skip: No internet connection available? https://github.com:443\n");
+        try require Zef::Plugin::UA;
+        if ::("Zef::Plugin::UA") ~~ Failure {
+            print("ok - # Skip: Zef::Plugin::UA not available\n");
+            return;
+        }
+
+        try { ::('HTTP::UsefrAgent').new.get('https://github.com') } or do {
+            print("ok - # Skip: No internet connection available? http://github.com:443\n");
             return;
         }
     }
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to);
-    my $save-to-file =$*SPEC.catpath('', $save-to, 'zef-get-plugin-ua.zip').IO;
+    my $save-to-file := $*SPEC.catpath('', $save-to, 'http-useragent.pm6').IO;
     LEAVE try rm($save-to, :d, :f, :r) if $save-to;
 
-    lives_ok { use Zef::Plugin::UA; }, 'Zef::Plugin::UA `use`-able to test with';
-
     my $getter = Zef::Getter.new( :plugins(["Zef::Plugin::UA"]) );
+    my @results = $getter.get(:$save-to-file, 'https://raw.githubusercontent.com/sergot/http-useragent/master/lib/HTTP/UserAgent.pm6');
 
-    ok $getter.does("Zef::Plugin::UA");
-    # todo: http::useragent patch for binary
-    #lives_ok { $getter.get(:$save-to-file, 'https://github.com/ugexe/zef/archive/master.zip') }
-    #ok $save-to-file.e, "$save-to exists";
-    #ok $save-to-file.f, "$save-to is a file";
-}, 'Plugin::UA';
+    ok @results.elems, "Attempted to download";
+    is @results.elems, @results.grep({ $_.<ok> }).elems,  "Downloaded was OK";
+    ok @results.grep({ $_.<path> eq $save-to-file }), "File path is correct";
+}, 'Zef::Plugin::UA';
 
 
 done();

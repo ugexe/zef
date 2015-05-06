@@ -1,9 +1,15 @@
 use MONKEY-TYPING;
 augment class IO::Path {
-    method ls(IO::Path:D: Bool :$f = True, Bool :$d = True, Bool :$r, |c) {
+    # :r Recursive
+    # :d Include directories
+    # :f Include files
+    # :a Include .files and .folders
+    method ls(IO::Path:D: Bool :$f = True, Bool :$d = True, Bool :$r, Bool :$a = False, |c) {
         my @results := eager gather {
             my @paths = $.path.IO.d ?? $.path.IO.dir(|c) !! $.path;
             while @paths.pop -> $p {
+                next if !$a && $p.IO.basename.starts-with('.');
+
                 given $p.IO {
                     when :d {
                         take $p if $d;

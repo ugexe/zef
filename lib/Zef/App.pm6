@@ -140,7 +140,7 @@ multi MAIN('search', *@terms) {
 }
 
 multi MAIN('push', *@targets, Str :$session-key = %config<session-key>, :@exclude? = (/'.git'/,/'.gitignore'/), Bool :$force?) {
-    @targets.push($*CWD.Str) unless @targets.elems;
+    @targets.push($*CWD.IO.path) unless @targets.elems;
     my $auth = Zef::Authority.new;
     $auth.push(@targets, :$session-key, :@exclude, :$force) or { $*ERR.say; exit(7); }();
 }

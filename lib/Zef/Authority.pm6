@@ -88,8 +88,8 @@ class Zef::Authority {
 
             for @files -> $path {
                 my $buff = try { 
-                        CATCH { default { } }
-                        Zef::Utils::Base64.b64encode($path.IO.slurp);#, one-line => True);
+                        Zef::Utils::Base64.new.b64encode($path.IO.slurp); 
+                        CATCH { default { say "err:$_" } }
                     } // try {
                         my $b = Buf.new;
                         my $f = open $path, :r;
@@ -97,8 +97,8 @@ class Zef::Authority {
                             $b ~= $f.read(1024); 
                         }
                         $f.close;
-                        CATCH { default { } }
-                        Zef::Utils::Base64.b64encode($b);#, one-line => True);
+                        Zef::Utils::Base64.new.b64encode($b);
+                        CATCH { default { say "err:$_" } }
                     } // fail "Failed to encode data: { $path }";
 
                 if $buff !~~ Str {
@@ -110,7 +110,7 @@ class Zef::Authority {
             }
 
             if !$force && @failures {
-                $*ERR.print("Failed to package the following files:\n\t");
+                say "Failed to package the following files:\n\t";
                 warn @failures.join("\n\t");
             } 
 
@@ -121,14 +121,14 @@ class Zef::Authority {
             my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
             $!sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
             my $recv   = $!sock.recv;
-            my %result = try %(from-json($recv.split("\r\n\r\n")[1]));
-            
+            my %result = %(from-json($recv.split("\r\n\r\n")[1]));
+
             if %result<error> {
-                $*ERR = "Error pushing module to server: {%result<error>}";
+                say "Error pushing module to server: {%result<error>}";
                 return False;
             } 
             else {
-                $*ERR = "Unknown error - Reply from server:\n{%result.perl}";
+                say "Unknown error - Reply from server:\n{%result.perl}";
                 return False;
             }
 

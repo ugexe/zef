@@ -1,35 +1,14 @@
 use Zef::Utils::Base64;
-use Zef::Grammars::HTTP::RFC7230;
+use Zef::Utils::HTTPClient;
 use nqp;
 
 class Zef::Authority {
     has $.session-key is rw;
-    has $.sock;
-
-    submethod BUILD(:$!sock) {
-        try {
-            require IO::Socket::SSL;
-            CATCH { default { 
-                once X::NYI::Available.new(:available("IO::Socket::SSL"), :feature("login, register, and push")).message.say;
-            } } 
-        }
-
-        $!sock //= ::('IO::Socket::SSL') ~~ Failure 
-            ?? IO::Socket::INET.new(:host<zef.pm>, :port(80)) 
-            !! ::('IO::Socket::SSL').new(:host<zef.pm>, :port(443));
-    } 
 
     method login(:$username, :$password) {
-        my $data = to-json({ username => $username, password => $password }) // fail "Bad JSON";
-
-        $!sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my ($header,$recv) = $!sock.recv.split("\r\n\r\n");
-        my $parsed-header = Zef::Grammars::HTTP::RFC7230.parse($header);
-        unless $parsed-header.<HTTP-message>.<start-line>.<status-line>.<status-code> ~~ /2\d\d/ -> $code {
-            die "HTTP status code: $code";
-        }
-
-        my %result = try %(from-json($recv));
+        my $payload  = to-json({ username => $username, password => $password }) // fail "Bad JSON";
+        my $response = Zef::Utils::HTTPClient.new.post("https://zef.pm/api/login", $payload);
+        my %result   = try %(from-json($response.<body>));
 
         if %result<success> {
             $.session-key = %result<newkey> // fail "Session-key problem";
@@ -44,16 +23,9 @@ class Zef::Authority {
     }
 
     method register(:$username, :$password) {
-        my $data = to-json({ username => $username, password => $password });
-
-        $!sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my ($header,$recv) = $!sock.recv.split("\r\n\r\n");
-        my $parsed-header = Zef::Grammars::HTTP::RFC7230.parse($header);
-        unless $parsed-header.<HTTP-message>.<start-line>.<status-line>.<status-code> ~~ /2\d\d/ -> $code {
-            die "HTTP status code: $code";
-        }
-
-        my %result = try %(from-json($recv));
+        my $payload  = to-json({ username => $username, password => $password });
+        my $response = Zef::Utils::HTTPClient.new.post("https://zef.pm/api/register", $payload);
+        my %result  = try %(from-json($response.<body>));
         
         if %result<success> {
             $.session-key = %result<newkey> // fail "Session-key problem";            
@@ -69,17 +41,11 @@ class Zef::Authority {
 
     method search(*@terms) {
         my @results := eager gather for @terms -> $term {
-            my $data = to-json({ query => $term });
+            my $payload  = to-json({ query => $term });
+            my $response = Zef::Utils::HTTPClient.new.post("http://zef.pm/api/search", $payload);
 
-            $!sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-            my ($header,$recv) = $!sock.recv.split("\r\n\r\n");
-            my $parsed-header = Zef::Grammars::HTTP::RFC7230.parse($header);    
-            unless $parsed-header.<HTTP-message>.<start-line>.<status-line>.<status-code> ~~ /2\d\d/ -> $code {
-                die "HTTP status code: $code";
-            }
-
-            my $response = from-json($recv);
-            take $response unless $response ~~ [];
+            my $json = from-json($response.<body>);
+            take $json unless $json ~~ [];
         }
 
         return @results;
@@ -87,7 +53,7 @@ class Zef::Authority {
 
     method push(*@targets, :$session-key, :@exclude?, :$force?) {
         for @targets -> $target {
-            my $data = '';
+            my $payload = '';
             my @paths = $target.IO.dir;
             my @files;
             my @failures;
@@ -117,7 +83,7 @@ class Zef::Authority {
                     @failures.push($path);
                     last unless $force;
                 } 
-                $data ~= "{nqp::stat($path.Str, nqp::const::STAT_PLATFORM_MODE).base(8)}:{$path.Str.subst(/ ^ $target /, '')}\r\n{$buff}\r\n";
+                $payload ~= "{nqp::stat($path.Str, nqp::const::STAT_PLATFORM_MODE).base(8)}:{$path.Str.subst(/ ^ $target /, '')}\r\n{$buff}\r\n";
             }
 
             if !$force && @failures {
@@ -128,16 +94,9 @@ class Zef::Authority {
             my $metf = try {'META.info'.IO.slurp} \ 
                 // try {'META6.json'.IO.slurp}    \ 
                 // fail "Couldn't find META6.json or META.info";
-            my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
-
-            $!sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
-            my ($header,$recv) = $!sock.recv.split("\r\n\r\n");
-            my $parsed-header = Zef::Grammars::HTTP::RFC7230.parse($header);
-            unless $parsed-header.<HTTP-message>.<start-line>.<status-line>.<status-code> ~~ /2\d\d/ -> $code {
-                die "HTTP status code: $code";
-            }
-
-            my %result = try %(from-json($recv.split("\r\n\r\n")[1]));
+            my $json     = to-json({ key => $session-key, data => $payload, meta => %(from-json($metf)) });
+            my $response = Zef::Utils::HTTPClient.new.post("https://zef.pm/api/push", $payload);
+            my %result   = try %(from-json($response.<body>));
             
             if %result<error> {
                 $*ERR = "Error pushing module to server: {%result<error>}";

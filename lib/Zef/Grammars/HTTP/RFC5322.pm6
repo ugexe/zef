@@ -1,26 +1,22 @@
 use v6;
 # Internet Message Format
+# +RFC6854 Update to Internet Message Format to Allow Group Syntax in the "From:" and "Sender:" Header Fields
 
 use Zef::Grammars::HTTP::RFC4234;
+#use Grammar::Tracer;
 
-role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC4234::Core {
-    token ALPHA  { <[\x[41]..\x[5A]]> || <[\x[61]..\x[7A]]> }
-    token BIT    { 0 || 1 }
-    token CHAR   { <[\x[01]..\x[7F]]> }
-    token CR     { <[\x[0D]]> }
-    token CRLF   { \r?\n }
-    token CTL    { <[\x[00]..\x[1F]\x[7F]]> }
-    token DIGIT  { <[\x[30]..\x[39]]> }
-    token DQUOTE { <[\x[22]]> }
-    token HEXDIG { <.DIGIT> || [a..fA..F] }
-    token HTAB   { <[\x[09]]> }
-    token LF     { <[\x[0A]]> }
-    token LWSP   { [<.WSP> || <.CRLF> <.WSP>]* }
-    token OCTET  { <[\x[00]..\x[FF]]> }
-    token SP     { <[\x[20]]> }
-    token VCHAR  { <[\x[21]..\x[7E]]> }
-    token WSP    { <.SP> || <.HTAB> }
-    
+
+role Zef::Grammars::HTTP::RFC6854 does Zef::Grammars::HTTP::RFC4234::Core {
+    token from     { "From:" [<mailbox-list> || <address-list>] <.CRLF> }
+    token sender   { "Sender:" [<mailbox> || <address>] <.CRLF>         }
+    token reply-to { "Reply-To:" <address-list> <.CRLF>                 }
+
+    token resent-from   { "Resent-From:" [<mailbox-list> || <address-list>] <.CRLF> }
+    token resent-sender { "Resent-Sender:" [<mailbox> || <address>] <.CRLF>         }
+}
+
+role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC6854 {
+
     token quoted-pair { [\\ [<.VCHAR> || <.WSP>]] || <.obs-qp> }
 
     token FWS { [[<.WSP>* <.CRLF>]? <.WSP>+] || <.obs-FWS> }
@@ -94,12 +90,11 @@ role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC4234::Core 
 
     token address { <mailbox> || <group> }
 
-    token mailbox { 
-        || $<name>=<.display-name>? $<addr>=<.angle-addr> 
-        || $<addr>=<.addr-spec> 
-    }
+    token mailbox { <name-addr> || <addr-spec> }
 
-    token angle-addr { [<.CFWS>? '<' <.addr-spec> '>' <.CFWS>?] || <.obs-angle-addr> }
+    token name-addr { <display-name>? <angle-addr> }
+
+    token angle-addr { [<.CFWS>? '<' <addr-spec> '>' <.CFWS>?] || <.obs-angle-addr> }
 
     token group { <display-name> ':' <group-list>? ';' <.CFWS>? }
 
@@ -121,7 +116,7 @@ role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC4234::Core 
 
     token dtext { <[\c[33]..\c[90]\c[94]..\c[126]]> || <.obs-dtext> }
 
-    token message { [<fields> || <.obs-fields>] [<.CRLF> <body>]? }
+    token message { [<fields> || $<fields>=<.obs-fields>] [<.CRLF> <body>]? }
 
     token body { [[[<.text> ** 0..998] <.CRLF>]* [<.text> ** 0..998]] || <.obs-body> }
 
@@ -210,7 +205,7 @@ role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC4234::Core 
 
     token return { "Return-Path:" <path> <.CRLF> }
 
-    token path { <.angle-addr> || [<.CFWS>? '<' <.CFWS>? '>' <.CFWS>] }
+    token path { <.angle-addr> || [<.CFWS>? '<' <.CFWS>? '>' <.CFWS>?] }
 
     # Errata ID: 3979 
     token received { "Received:" [<received-token>+ || <.CFWS>] ';' <date-time> <.CRLF> }
@@ -236,7 +231,7 @@ role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC4234::Core 
     token obs-body { [[<.LF>* <.CR>* [[\c[0] || <.text>] <.LF>* <.CR>*]*] || <.CRLF>]* }
 
     #Errata ID: 1905
-    token obs-unstruct { [[<.CR>* [<.obs-utext> || <.FWS>]+] || <.LF>+ ]* .<CR>* }
+    token obs-unstruct { [[<.CR>* [<.obs-utext> || <.FWS>]+] || <.LF>+ ]* <.CR>* }
 
     token obs-phrase { <.word> [<.word> || '.' || <.CFWS>]* }
 

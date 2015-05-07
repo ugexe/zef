@@ -1,5 +1,5 @@
 use v6;
-# Hypertext Transfer Protocol (HTTP/1.1): Authentication4
+# Hypertext Transfer Protocol (HTTP/1.1): Authentication
 
 use Zef::Grammars::HTTP::RFC3986;
 

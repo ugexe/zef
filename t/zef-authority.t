@@ -4,14 +4,12 @@ plan 2;
 use Test;
 
 subtest {
-    my $authority = Zef::Authority.new;
-    my @response  = $authority.search('zef');
-    ok @response.elems, "Got modules (search: zef)";
+    my $authority  = Zef::Authority.new;
+    my @results    = $authority.search('zef');
+    my @no-results = $authority.search("#");
 
-    $authority = Zef::Authority.new;
-    @response = $authority.search("#");
-    is @response.elems, 0, "Got 0 modules (search: #)";
-# nok %response
+    ok @results.elems, "Got modules (search: zef)";
+    is @no-results.elems, 0, "Got 0 modules (search: #)";
 }, 'SSL not required';
 
 subtest {
@@ -25,12 +23,9 @@ subtest {
 
     my $authority = Zef::Authority.new;
     my %response  = $authority.register(username => 'zef', password => 'pass');
+
     is %response.<failure>, 1, "Username already registered";
-
-    $authority = Zef::Authority.new;
     nok $authority.login(username => 'zef', password => 'pass'), "Login failed";
-
-    $authority = Zef::Authority.new;
     ok $authority.login(username => 'zef', password => 'zef'), "Login worked";
 }, 'SSL required';
 

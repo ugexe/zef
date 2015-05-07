@@ -1,5 +1,5 @@
 use Zef::Utils::Base64;
-
+use Zef::Grammars::HTTP::RFC7230;
 use nqp;
 
 class Zef::Authority {
@@ -21,8 +21,14 @@ class Zef::Authority {
 
     method login(:$username, :$password) {
         my $data = to-json({ username => $username, password => $password }) // fail "Bad JSON";
+
         $!sock.send("POST /api/login HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-        my $recv = $!sock.recv.split("\r\n\r\n").[1];
+        my ($header,$recv) = $!sock.recv.split("\r\n\r\n");
+        my $parsed-header = Zef::Grammars::HTTP::RFC7230.parse($header);
+        unless $parsed-header.<HTTP-message>.<start-line>.<status-line>.<status-code> ~~ /2\d\d/ -> $code {
+            die "HTTP status code: $code";
+        }
+
         my %result = try %(from-json($recv));
 
         if %result<success> {
@@ -42,6 +48,11 @@ class Zef::Authority {
 
         $!sock.send("POST /api/register HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
         my ($header,$recv) = $!sock.recv.split("\r\n\r\n");
+        my $parsed-header = Zef::Grammars::HTTP::RFC7230.parse($header);
+        unless $parsed-header.<HTTP-message>.<start-line>.<status-line>.<status-code> ~~ /2\d\d/ -> $code {
+            die "HTTP status code: $code";
+        }
+
         my %result = try %(from-json($recv));
         
         if %result<success> {
@@ -57,17 +68,21 @@ class Zef::Authority {
     }
 
     method search(*@terms) {
-        my %results;
-        for @terms -> $term {
+        my @results := eager gather for @terms -> $term {
             my $data = to-json({ query => $term });
+
             $!sock.send("POST /api/search HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$data.chars}\r\n\r\n{$data}");
-            my $recv = $!sock.recv;
-            $recv = $recv.split("\r\n\r\n").[1] or fail "No data received";
-            my @term-results = try @(from-json($recv));
-            %results{$term} = @term-results;
+            my ($header,$recv) = $!sock.recv.split("\r\n\r\n");
+            my $parsed-header = Zef::Grammars::HTTP::RFC7230.parse($header);    
+            unless $parsed-header.<HTTP-message>.<start-line>.<status-line>.<status-code> ~~ /2\d\d/ -> $code {
+                die "HTTP status code: $code";
+            }
+
+            my $response = from-json($recv);
+            take $response unless $response ~~ [];
         }
 
-        return [] ~~ all(%results.values) ?? Hash !! %results;
+        return @results;
     }
 
     method push(*@targets, :$session-key, :@exclude?, :$force?) {
@@ -113,10 +128,15 @@ class Zef::Authority {
             my $metf = try {'META.info'.IO.slurp} \ 
                 // try {'META6.json'.IO.slurp}    \ 
                 // fail "Couldn't find META6.json or META.info";
-
             my $json = to-json({ key => $session-key, data => $data, meta => %(from-json($metf)) });
+
             $!sock.send("POST /api/push HTTP/1.0\r\nHost: zef.pm\r\nContent-Length: {$json.chars}\r\n\r\n{$json}");
-            my $recv   = $!sock.recv;
+            my ($header,$recv) = $!sock.recv.split("\r\n\r\n");
+            my $parsed-header = Zef::Grammars::HTTP::RFC7230.parse($header);
+            unless $parsed-header.<HTTP-message>.<start-line>.<status-line>.<status-code> ~~ /2\d\d/ -> $code {
+                die "HTTP status code: $code";
+            }
+
             my %result = try %(from-json($recv.split("\r\n\r\n")[1]));
             
             if %result<error> {

@@ -31,7 +31,19 @@
         "Zef::Plugin::PandaReporter" : "lib/Zef/Plugin/PandaReporter.pm6",
         "Zef::Plugin::P5Prove"       : "lib/Zef/Plugin/P5Prove.pm6",
         "Zef::Plugin::PreComp"       : "lib/Zef/Plugin/PreComp.pm6",
-        "Zef::Plugin::UA"            : "lib/Zef/Plugin/UA.pm6"
+        "Zef::Plugin::UA"            : "lib/Zef/Plugin/UA.pm6",
+
+        "Zef::Grammars::HTTP::RFC3066" : "lib/Zef/Grammars/HTTP/RFC3066.pm6",
+        "Zef::Grammars::HTTP::RFC4234" : "lib/Zef/Grammars/HTTP/RFC4234.pm6",
+        "Zef::Grammars::HTTP::RFC4647" : "lib/Zef/Grammars/HTTP/RFC4647.pm6",
+        "Zef::Grammars::HTTP::RFC5322" : "lib/Zef/Grammars/HTTP/RFC5322.pm6",
+        "Zef::Grammars::HTTP::RFC5646" : "lib/Zef/Grammars/HTTP/RFC5646.pm6",
+        "Zef::Grammars::HTTP::RFC7230" : "lib/Zef/Grammars/HTTP/RFC7230.pm6",
+        "Zef::Grammars::HTTP::RFC7231" : "lib/Zef/Grammars/HTTP/RFC7231.pm6",
+        "Zef::Grammars::HTTP::RFC7232" : "lib/Zef/Grammars/HTTP/RFC7232.pm6",
+        "Zef::Grammars::HTTP::RFC7233" : "lib/Zef/Grammars/HTTP/RFC7233.pm6",
+        "Zef::Grammars::HTTP::RFC7234" : "lib/Zef/Grammars/HTTP/RFC7234.pm6",
+        "Zef::Grammars::HTTP::RFC7235" : "lib/Zef/Grammars/HTTP/RFC7235.pm6"
     },
     "auth"    : "github:ugexe",
     "authors" : [

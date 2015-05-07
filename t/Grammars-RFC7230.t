@@ -49,14 +49,12 @@ subtest {
 }, 'Basic';
 
 subtest {
-    use Grammar::Debugger;
     my $header-text = q{HTTP/1.1 200 OK}
         ~ "\r\n" ~ q{Server: nginx/1.2.1}
         ~ "\r\n" ~ q{Date: Thu, 07 May 2015 03:58:14 GMT}
         ~ "\r\n" ~ q{Content-Type: application/json;charset=UTF-8}
         ~ "\r\n" ~ q{Content-Length: 48}
-        ~ "\r\n" ~ q{Connection: close}
-        ~ "\r\n\r\n";
+        ~ "\r\n" ~ q{Connection: close}; # No ending \r\n or message body
 
     my $header = Zef::Grammars::HTTP::RFC7230.parse($header-text);
 

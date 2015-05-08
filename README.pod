@@ -6,9 +6,7 @@
 
 You probably should not be using this. Its been added to the ecosystem primarily to be smoke tested.
 
-Not all commands below are available yet. Again, you probably don't want to use this unless you want to make fun of it.
-
-=head2 Name
+=head2 NAME
 
 Zef - Perl6 Module Management
 
@@ -22,7 +20,7 @@ L<https://github.com/tony-o/perl-zefserver>
 
 CPAN but better. Maybe?
 
-=head1 Usage
+=head1 USAGE
 
 =head2 Module Management
 
@@ -35,6 +33,14 @@ CPAN but better. Maybe?
     zef search CSV
     # search modules names for CSV
 
+=head2 Module Development
+
+    zef build
+    # build project in current directory
+    
+    zef test
+    # test project in current directory
+    
     zef push
     # upload module in cwd using meta.info or something like that?
 
@@ -57,8 +63,151 @@ CPAN but better. Maybe?
 
     zef comment Zef 'literal trash for idiots'
     # dont let others make the same mistake!!
+    
+=head2 Plugins/Hooks
 
-=head1 Notes
+Load plugins from config file or as initiator argument.
+
+    # Override default 'Testing' by applying Zef::Phase::Testing role
+    # and adding to config or doing Zef::Tester( :plugins(['Zef::Plugin::P5Prove']) )
+
+    use Zef::Phase::Testing;
+    
+    role Zef::Plugin::P5Prove does Zef::Phase::Testing {
+        method test(*@dirs) {
+            my $cmd = -> *@libs {
+                "prove -V && "
+                    ~"(cd $*CWD && "
+                        ~"prove -v -e '"
+                        ~ "perl6 " 
+                        ~ @libs.map({ "-I$_" }).join(' ')
+                        ~ "' {~@dirs} )";
+            }
+
+            # test /lib if /blib/lib fails or does not exist
+            'blib/lib'.IO.e && shell($cmd('blib/lib')).exitcode == 0
+                ?? True  
+                !! shell($cmd('lib')).exitcode == 0
+                    ?? ("ERROR: Source code passes test; Precomp fails".say andthen True)
+                    !! False;
+        }
+    }
+
+=head4 Phases
+
+Interface to hook into various phases.
+
+    * Zef::Phase::Getting
+    * Zef::Phase::Building
+    * Zef::Phase::Testing
+    * Zef::Phase::Reporting
+
+=head2 Config
+
+Stores plugins to automatically load and session id (if any)
+
+    {
+        "plugins" : [
+            "Zef::Plugin::P5Prove"
+        ]
+    }
+
+=head1 TOOLS
+
+=head2 Zef::Utils::HTTPClient
+
+Basic http client: Grammar based parser; uses IO::Socket::SSL if available for https.
+
+    use Zef::Utils::HTTPClient;
+    
+    my $payload  = to-json({ term => "zef" });
+    my $response = Zef::Utils::HTTPClient.new.post("http://zef.pm/api/search", $payload);
+    my $json     = from-json($response.<body>);    
+
+=head2 Zef::Utils::Base64
+
+Base64 encoding/decoding
+
+    use Zef::Utils::Base64;
+    my $b64 = Zef::Utils::Base64.new;
+    
+    say $b64.b64encode("Perl");
+    # UGVybA==
+    
+    say $b64.b64.decode("UGVybA==").decode('utf8');
+    # Perl
+    
+=head2 Zef::Utils::PathTools;
+
+Uses MONKEY_TYPING to add additional methods to L<IO::Path|http://doc.perl6.org/type/IO::Path>.
+
+    use Zef::Utils::PathTools;
+    
+    say $*CWD.ls(:f, d => False)    
+    # "/home/user/perl6/zef/META6.json".IO "/home/user/perl6/zef/META.info".IO "/home/user/perl6/zef/README.pod".IO
+
+    $*CWD.ls(:f, :r, :a)
+    # list all files recursively including dot files
+    
+    $*CWD.rm(:f, :d, :r);
+    # (rm -rf) recursively delete files and folders
+    
+    $*CWD.mkdirs("new-dir/new-sub-dir");
+    # (original mkdir does this already on MoarVM, but not JVM)
+    
+=head3 Methods/Subroutines
+
+B<Note>: I<All methods have a corresponding subroutine>.
+
+=head4 ls(IO::Path:D $path, :f => True, :d => True, :r => False, :a => False)
+
+List files and/or folders for a path.
+
+    # ls FILTERS
+    :f - file
+    :d - directory
+    :r - recursive
+    :a - all (otherwise dot files/folders ignored)
+    
+=head4 rm(IO::Path:D $path, :f => True, :d => False, :r => False, :a => False)
+
+Delete files and/or folders for a given path.
+
+    # rm FILTERS
+    :f - file
+    :d - directory
+    :r - recursive
+    :a - all (otherwise dot files/folders ignored)
+    
+=head4 mkdirs(IO::Path:D $path, :mode => 0o777)
+
+Create new path, including non-existant parent directories.
+
+=head2 Zef::Utils::Depends
+
+Utilities for extracting dependencies from Perl6 projects/code.
+    
+    use Zef::Utils::Depends;
+    
+    my @libs    = $lib-dir.IO.ls(:r, :f, d => False);
+    my @depends = Zef::Utils::Depends.build-dep-tree: extract-deps(@libs);
+
+=head3 Methods/Subroutines
+
+=head4 extract-deps(*@paths)
+
+Attempt to extract dependencies via source parsing.
+
+    use Zef::Utils::Depends;
+    
+    say extract-deps("lib/Zef.pm6).perl
+    # ({:dependencies(["Zef::Authority", "Zef::Builder", "Zef::Config", "Zef::Exception", "Zef::Getter", "Zef::Installer", "Zef::Reporter", "Zef::Tester", "Zef::Uninstaller", "Zef::Utils::Base64", "Zef::Utils::Depends", "Zef::Utils::PathTools"]), :file("lib/Zef.pm6"), :name("Zef")},)
+
+=head4 build-dep-tree(*@meta-files)
+
+Build dependency order/tree from a list of dependency meta files.
+
+=head1 NOTES
 
 =head2 Full Flex
 
@@ -67,6 +216,6 @@ CPAN but better. Maybe?
  * ✓ Plugin stuff
  * Use perl6 github ecosystem as an additional authority
  * Finish up social junk
- * Small http client to ditch last 2 dependencies
+ * ✓ Small http client to ditch last 2 dependencies
 
 =cut

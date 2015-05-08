@@ -6,7 +6,7 @@ class Zef::Utils::HTTPClient {
     has $!sock;
     has @.responses;
 
-    # todo: handle chunked encoding
+    # todo: handle chunked encoding and binary
 
     submethod connect($url) {
         my $uri    = Zef::Grammars::HTTP::RFC3986.parse($url);

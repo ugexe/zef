@@ -1,6 +1,6 @@
 use Zef::Grammars::HTTP::RFC7230; # http header/body
 use Zef::Grammars::HTTP::RFC3986; # uri
-require IO::Socket::SSL;
+try require IO::Socket::SSL;
 
 class Zef::Utils::HTTPClient {
     has $!sock;

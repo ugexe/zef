@@ -25,7 +25,7 @@ class Zef::Authority {
     method register(:$username, :$password) {
         my $payload  = to-json({ username => $username, password => $password });
         my $response = Zef::Utils::HTTPClient.new.post("https://zef.pm/api/register", $payload);
-        my %result  = try %(from-json($response.<body>));
+        my %result   = try %(from-json($response.<body>));
         
         if %result<success> {
             $.session-key = %result<newkey> // fail "Session-key problem";            

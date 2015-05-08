@@ -6,7 +6,7 @@
 
 You probably should not be using this. Its been added to the ecosystem primarily to be smoke tested.
 
-=head2 NAME
+=head2 Name
 
 Zef - Perl6 Module Management
 
@@ -63,6 +63,8 @@ CPAN but better. Maybe?
 
     zef comment Zef 'literal trash for idiots'
     # dont let others make the same mistake!!
+
+=head1 ADVANCED USAGE
     
 =head2 Plugins/Hooks
 
@@ -134,7 +136,7 @@ Base64 encoding/decoding
     say $b64.b64encode("Perl");
     # UGVybA==
     
-    say $b64.b64.decode("UGVybA==").decode('utf8');
+    say $b64.b64decode("UGVybA==").decode('utf8');
     # Perl
     
 =head2 Zef::Utils::PathTools;
@@ -188,6 +190,7 @@ Create new path, including non-existant parent directories.
 Utilities for extracting dependencies from Perl6 projects/code.
     
     use Zef::Utils::Depends;
+    use Zef::Utils::PathTools; # for .ls
     
     my @libs    = $lib-dir.IO.ls(:r, :f, d => False);
     my @depends = Zef::Utils::Depends.build-dep-tree: extract-deps(@libs);

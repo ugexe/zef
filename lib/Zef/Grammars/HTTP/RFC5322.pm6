@@ -1,20 +1,10 @@
 use v6;
 # Internet Message Format
-# +RFC6854 Update to Internet Message Format to Allow Group Syntax in the "From:" and "Sender:" Header Fields
 
-use Zef::Grammars::HTTP::RFC4234;
+use Zef::Grammars::HTTP::RFC6854;
 
 
-role Zef::Grammars::HTTP::RFC6854 does Zef::Grammars::HTTP::RFC4234::Core {
-    token from     { "From:" [<mailbox-list> || <address-list>] <.CRLF> }
-    token sender   { "Sender:" [<mailbox> || <address>] <.CRLF>         }
-    token reply-to { "Reply-To:" <address-list> <.CRLF>                 }
-
-    token resent-from   { "Resent-From:" [<mailbox-list> || <address-list>] <.CRLF> }
-    token resent-sender { "Resent-Sender:" [<mailbox> || <address>] <.CRLF>         }
-}
-
-role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC6854 {
+role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC6854::Core {
 
     token quoted-pair { [\\ [<.VCHAR> || <.WSP>]] || <.obs-qp> }
 

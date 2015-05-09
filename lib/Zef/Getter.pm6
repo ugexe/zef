@@ -2,13 +2,17 @@ use Zef::Phase::Getting;
 use Zef::Utils::Base64;
 use Zef::Utils::PathTools;
 
+our %path-map = %(
+    [':' => '-']
+);
+
 class Zef::Getter does Zef::Phase::Getting {
 
     method get(:$save-to is copy = $*TMPDIR, *@modules) {
         try require IO::Socket::SSL;
 
         my @results := eager gather for @modules -> $module {
-            temp $save-to = $*SPEC.catdir($save-to, $module);
+            temp $save-to = $*SPEC.catdir($save-to, $module.trans(%path-map));
             my $data   = to-json({
                 name => $module,
             });

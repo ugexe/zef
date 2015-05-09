@@ -1,16 +1,17 @@
 use v6;
 module Zef;
 
-use Zef::Authority;
-use Zef::Builder;
-use Zef::Config;
-use Zef::Exception;
-use Zef::Getter;
-use Zef::Installer;
-use Zef::Reporter;
-use Zef::Tester;
-use Zef::Uninstaller;
+require Zef::Authority;
+require Zef::Builder;
+require Zef::Config;
+require Zef::Exception;
+require Zef::Getter;
+require Zef::Installer;
+require Zef::Reporter;
+require Zef::Tester;
+require Zef::Uninstaller;
 
-use Zef::Utils::Base64;
-use Zef::Utils::Depends;
-use Zef::Utils::PathTools;
+require Zef::Utils::Base64;
+require Zef::Utils::Depends;
+require Zef::Utils::HTTPClient;
+require Zef::Utils::PathTools;

@@ -31,7 +31,9 @@ subtest {
         take $target.IO.path;
     }
 
-    is any(@precompiled), "blib/lib/Zef.pm6.{$*VM.precomp-ext}", 'Zef::Builder::Plugin::PreComp pre-compile works';
+    my $comp-path = $*SPEC.catpath('', $blib-lib, "Zef.pm6.{$*VM.precomp-ext}").IO;
+    is any(@precompiled), $comp-path.relative, 'Sanity';
+    
     for @target-files -> $file {
         is any(@precompiled), $file.IO.path, "Found: {$file.IO.path}";
     }

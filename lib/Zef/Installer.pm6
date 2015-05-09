@@ -25,8 +25,8 @@ method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is expo
         } 
 
         my @provides = gather for $dist.provides.kv -> $name, $file-path {
-            my $file-full = $*SPEC.catpath('', $file.IO.dirname, $file-path).IO.resolve;
-            my $error     = 'Package attempting to install files outside of repository' if $file-full !~~ /^ $*CWD /;
+            my $file-full = $*SPEC.catpath('', $file.IO.dirname, $file-path).IO; # .resolve; <-broke on windows
+            my $error     = 'Package attempting to install files outside of repository' if $file-full.absolute !~~ /^ $*CWD /;
             (%options<force> ?? warn $error !! die $error) if $error;
             take $file-full;
         }

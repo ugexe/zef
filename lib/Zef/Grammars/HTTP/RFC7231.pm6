@@ -6,8 +6,8 @@ use Zef::Grammars::HTTP::RFC5646;
 use Zef::Grammars::HTTP::RFC7232; 
 
 role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
-    also is Zef::Grammars::HTTP::RFC5322::Core;
-    also is Zef::Grammars::HTTP::RFC5646::Core;
+    also does Zef::Grammars::HTTP::RFC5322::Core;
+    also does Zef::Grammars::HTTP::RFC5646::Core;
  
     token Accept { 
         [
@@ -146,7 +146,7 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
 } 
 
 
-grammar Zef::Grammars::HTTP::RFC7231 is  Zef::Grammars::HTTP::RFC7231::Core {
+grammar Zef::Grammars::HTTP::RFC7231 is Zef::Grammars::HTTP::RFC7231::Core {
     # todo
     token TOP {
         <Accept> 

@@ -3,7 +3,7 @@ use v6;
 
 use Zef::Grammars::HTTP::RFC4234;
 
-role Zef::Grammars::HTTP::RFC5646::Core does Zef::Grammars::HTTP::RFC4234::Core {
+role Zef::Grammars::HTTP::RFC5646::Core is Zef::Grammars::HTTP::RFC4234::Core {
     token langtag { 
         <language>
         ['-' <script>]?

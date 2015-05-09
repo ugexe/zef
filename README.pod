@@ -131,8 +131,9 @@ Basic http client: Grammar based parser; uses IO::Socket::SSL if available for h
 Base64 encoding/decoding
 
     use Zef::Utils::Base64;
+
     my $b64 = Zef::Utils::Base64.new;
-    
+
     say $b64.b64encode("Perl");
     # UGVybA==
     

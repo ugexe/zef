@@ -1,6 +1,3 @@
-use Perl6::Grammar:from<NQP>;
-use Perl6::Actions:from<NQP>;
-
 class Zef::Utils::Depends;
 
 has @!metas;
@@ -93,6 +90,9 @@ method extract-deps(*@paths) {
 }
 
 method runtime-extract-deps(*@paths is copy) {
+    #use Perl6::Grammar:from<NQP>; # prevents compile on jvm
+    #use Perl6::Actions:from<NQP>;
+
     @paths //= @!metas.grep({ $_.<file> });
     my @pm6-files := @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
 

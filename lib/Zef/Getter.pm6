@@ -32,7 +32,8 @@ class Zef::Getter does Zef::Phase::Getting {
 
             for @($recv.split("\r\n")) -> $path is copy, $enc is copy {
                 ($mode, $path) = $path.split(':/', 2);
-                KEEP take { ok => 1, module => $module, path => $path }
+                my $save-to-file = $*SPEC.catpath('', $*SPEC.catdir($save-to, $path.IO.dirname), $path.IO.basename).IO;
+                KEEP take { ok => 1, module => $module, path => $save-to-file.IO.path }
                 UNDO take { ok => 0, module => $module, error => $_   }
 
                 # Handle directory creation

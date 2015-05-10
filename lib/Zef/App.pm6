@@ -9,7 +9,7 @@ use Zef::Installer;
 use Zef::Reporter;
 use Zef::Tester;
 use Zef::Uninstaller;
-
+use Zef::Utils::PathTools;
 
 # load plugins from config file
 BEGIN our @plugins := %config<plugins>.list;
@@ -43,39 +43,21 @@ multi MAIN('test', *@paths) is export {
 #| Install with business logic
 multi MAIN('install', *@modules, Bool :$doinstall = True) is export {
     "Fetching: {@modules.join(', ')}".say;
-    my %result = &MAIN('get', @modules);
-
-    #resolve dependencies
     my @failures;
-    for %result.keys -> $k {
-        my ($j, $i, @metas) = ('', 0, qw<META.info META6.info META.json META6.json>);
-        while $j.IO !~~ :f && @metas.elems > $i {
-            CATCH { default { .resume; } }
-            $j = $*SPEC.catpath('', %result{$k}, @metas[$i++]);
+    my $save-to = $*SPEC.catdir($*CWD, time).IO;
+    mkdirs($save-to);
+
+    for @modules -> $module {
+        my @repo      = &MAIN('get', :$save-to, $module);
+        my $meta-file = @repo.grep({ $_.<path>.IO.basename ~~ any(<META.info META6.json>) }).[0] or next;
+        my %meta      = %(from-json($meta-file.<path>.IO.slurp));
+        my @depends   = %meta.<depends>.list;
+
+        for @depends -> $dep {
+            &MAIN('install', $dep, :doinstall(False));
         }
-        @failures.push($k), next if $i >= @metas.elems;
-        $j = try from-json($j.IO.slurp);
-        @failures.push($k), next if !($j<provides>:exists);
-        next if !($j<depends>:exists);
-        try { 
-            if $j<depends> ~~ Array {
-                &MAIN('install', @($j<depends>), :doinstall(False));  
-            } else {
-                &MAIN('install', $j<depends>.keys, :doinstall(False));
-            }
-            CATCH { default { warn $_; "CAUGHT $k".say; @failures.push($k => $_); } }
-        };
 
-    }
-
-
-    for %result.keys -> $k {
-        "Skipping $k due to depends failures".say, next if any(@failures.map({ "{$_ eq $k}".say; $_ eq $k }));
-        if %result{$k} ~~ Str {
-            my $build = &MAIN('build', %result{$k});
-        } else {
-            say "Error retrieving module: $k"; 
-        }
+        &MAIN('build', $module);
     }
 
 }
@@ -93,7 +75,8 @@ multi MAIN('get', :$save-to = "$*CWD/{time}", *@modules) is export {
     # {time} can be removed when we fetch actual versioned archives
     # so we dont accidently overwrite files in $*CWD
     my $getter = Zef::Getter.new(:@plugins);
-    $getter.get(:$save-to, |@modules);
+    my @results = $getter.get(:$save-to, |@modules);
+    return @results;
 }
 
 

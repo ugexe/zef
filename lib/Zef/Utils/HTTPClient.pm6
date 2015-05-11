@@ -27,9 +27,9 @@ class Zef::Utils::HTTPClient {
         my $host   =    $proxy-uri  ?? $proxy-uri.host   !! $uri.host;
         my $port   =   ($proxy-uri  ?? $proxy-uri.port   !! $uri.port) // ($scheme ~~ /^https/ ?? 443 !! 80);
 
-        #if $scheme eq 'https' && ::('IO::Socket::SSL') ~~ Failure {
-        #    die "Please install IO::Socket::SSL for SSL support";
-        #}
+        if $scheme eq 'https' && ::('IO::Socket::SSL') ~~ Failure {
+            die "Please install IO::Socket::SSL for SSL support";
+        }
 
         $!sock = ::('IO::Socket::SSL') ~~ Failure 
             ??      IO::Socket::INET.new( host => $host, port => $port )

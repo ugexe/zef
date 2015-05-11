@@ -36,7 +36,7 @@ subtest {
             return;
         }
 
-        try require Zef::Plufgin::Git;
+        try require Zef::Plugin::Git;
         if ::("Zef::Plugin::Git") ~~ Failure {
             print("ok - # Skip: Zef::Plugin::Git not available\n");
             return;

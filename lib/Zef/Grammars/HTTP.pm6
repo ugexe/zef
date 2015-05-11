@@ -13,15 +13,16 @@ class Zef::Grammars::URI {
     has $.port;
     has $.query;
     has $.fragment;
+    has $.location;
 
     submethod BUILD(:$!url) {
         $!grammar = Zef::Grammars::HTTP::RFC3986.parse($!url) if $!url;
 
         if $!grammar {
-            $!scheme    = ($!grammar.<URI-reference>.<URI>.<scheme>                           //  '').Str;
-            $!host      = ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<host>     //  '').Str;
-            $!port      = ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<port>     // Int).Int;
-            $!user-info = ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<userinfo> //  '').Str;
+            $!scheme    = ~($!grammar.<URI-reference>.<URI>.<scheme>                           //  '');
+            $!host      = ~($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<host>     //  '');
+            $!port      =  ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<port>     // Int).Int;
+            $!user-info = ~($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<userinfo> //  '');
         }
     }
 
@@ -35,17 +36,20 @@ class Zef::Grammars::HTTPResponse {
     has $.message;
     has $.status-code;
     has $.status-message;
-    has $.header;
     has $.body;
+    has %.header;
 
     submethod BUILD(:$!message) {
         $!grammar = Zef::Grammars::HTTP::RFC7230.parse($!message) if $!message;
 
         if $!grammar {
-            $!status-code    = ($!grammar.<HTTP-message>.<start-line>.<status-line>.<status-code>.Int   // Int).Int;
-            $!status-message = ($!grammar.<HTTP-message>.<start-line>.<status-line>.<reason-phrase>.Str // Str).Str;
-            $!header         = ($!grammar.<HTTP-message>.<header-field>.Str                             // Str).Str;
-            $!body           = ($!grammar.<HTTP-message>.<message-body>.Str                             // Str).Str;
+            $!status-code    =  ($!grammar.<HTTP-message>.<start-line>.<status-line>.<status-code>   // Int).Int;
+            $!status-message = ~($!grammar.<HTTP-message>.<start-line>.<status-line>.<reason-phrase> //  '');
+            $!body           = ~($!grammar.<HTTP-message>.<message-body>                             //  '');
+
+            for $!grammar.<HTTP-message>.<header-field>.list -> $field {
+                %!header.{~$field.<name>} = ~$field.<value>;
+            }
         }
     }
 

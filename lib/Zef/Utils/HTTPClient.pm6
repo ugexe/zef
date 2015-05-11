@@ -1,5 +1,4 @@
 use Zef::Grammars::HTTP;
-use Zef::Utils::Base64;
 
 try require IO::Socket::SSL;
 
@@ -11,6 +10,9 @@ class Zef::Utils::HTTPClient {
     has $!sock;
     has $.auto-check;
     has @.responses;
+
+    # These will be overriden for a specific request if that request
+    # has these values in the url.
     has $!proxy-url;
     has $!proxy-auth-username;
     has $!proxy-auth-password;
@@ -25,19 +27,25 @@ class Zef::Utils::HTTPClient {
         my $host   =    $proxy-uri  ?? $proxy-uri.host   !! $uri.host;
         my $port   =   ($proxy-uri  ?? $proxy-uri.port   !! $uri.port) // ($scheme ~~ /^https/ ?? 443 !! 80);
 
-        if $scheme eq 'https' && ::('IO::Socket::SSL') ~~ Failure {
-            die "Please install IO::Socket::SSL for SSL support";
-        }
+        #if $scheme eq 'https' && ::('IO::Socket::SSL') ~~ Failure {
+        #    die "Please install IO::Socket::SSL for SSL support";
+        #}
 
         $!sock = ::('IO::Socket::SSL') ~~ Failure 
             ??      IO::Socket::INET.new( host => $host, port => $port )
-            !! ($scheme.Str ~~ /^https/ 
+            !! ($scheme ~~ /^https/ 
                     ?? ::('IO::Socket::SSL').new( host => $host, port => $port )
                     !! IO::Socket::INET.new( host => $host, port => $port )    );
     }
 
-    method request($action, $url, $payload?) {
-        my $request = Zef::Grammars::HTTPRequest.new(:$action, :$url, :$payload, :$!auth-username, :$!auth-password, :$!proxy-auth-username, :$!proxy-auth-password);
+    method request($action, $url, :$payload) {
+        my $request = Zef::Grammars::HTTPRequest.new(
+            :$action, :$url, :$payload, 
+            :$!auth-username,
+            :$!auth-password, 
+            :$!proxy-auth-username, 
+            :$!proxy-auth-password
+        );
         my $conn    = self.connect($request.uri);
 
         $conn.send(~$request);
@@ -49,7 +57,7 @@ class Zef::Utils::HTTPClient {
             given $response.status-code {
                 when /^ 2\d+ $/ { }
                 when /^301/     {
-                    $response = self.request($action, ~$response.header.<Location>, $payload);
+                    $response = self.request($action, ~$response.header.<Location>, :$payload);
                 }
                 default {
                     die "[NYI] http-code: '$_'";
@@ -66,7 +74,7 @@ class Zef::Utils::HTTPClient {
     }
 
     method post(Str $url, Str $payload?) {
-        my $response = self.request('POST', $url, $payload);
+        my $response = self.request('POST', $url, :$payload);
         return $response;
     }
 }

@@ -18,9 +18,10 @@ class Zef::Grammars::URI {
         $!grammar = Zef::Grammars::HTTP::RFC3986.parse($!url) if $!url;
 
         if $!grammar {
-            $!scheme = ($!grammar.<URI-reference>.<URI>.<scheme>.Str                   // Str).Str;
-            $!host   = ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<host> // Str).Str;
-            $!port   = ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<port> // Int).Int;
+            $!scheme    = ($!grammar.<URI-reference>.<URI>.<scheme>                           //  '').Str;
+            $!host      = ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<host>     //  '').Str;
+            $!port      = ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<port>     // Int).Int;
+            $!user-info = ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<userinfo> //  '').Str;
         }
     }
 

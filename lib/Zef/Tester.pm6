@@ -4,7 +4,7 @@ use Zef::Utils::PathTools;
 class Zef::Tester does Zef::Phase::Testing {
     method test(*@paths, :$lib = ['blib/lib', 'lib'], :$p6flags = ['--ll-exception']) {
         my $CWD := $*CWD;
-        my @results := gather for @paths -> $path {
+        my @results = eager gather for @paths -> $path {
             my @files = $path.IO.ls(:r, :f).grep(/\.t$/);
 
             for @files -> $test-file {

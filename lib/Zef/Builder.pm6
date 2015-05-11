@@ -5,7 +5,7 @@ use Zef::Utils::PathTools;
 
 class Zef::Builder does Zef::Phase::Building {
     method pre-compile(*@paths is copy) {
-        my @results := eager gather for @paths -> $path {
+        my @results = eager gather for @paths -> $path {
             my $lib     = $*SPEC.catdir($path.IO.path, 'lib').IO;
             my $blib    = $*SPEC.catdir($path.IO.path, 'blib/lib').IO;
             my @metas   = extract-deps( $lib.IO.ls(:r, :f) );

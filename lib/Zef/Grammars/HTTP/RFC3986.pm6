@@ -8,15 +8,17 @@ role Zef::Grammars::HTTP::RFC3986::Core does Zef::Grammars::HTTP::RFC4234::Core 
     token URI { <scheme> ':' <heir-part> ['?' <query>]? ['#' <fragment>]?   }
     token absolute-URI  { <scheme> : <heir-part> ['?' <query>]?            }
     token relative-ref  { <relative-part> ['?' <query>]? ['#' <fragment>]? }
-    token heir-part     { '//' <authority> <path-abempty> 
-                        || <path-absolute> 
-                        || <path-noscheme> 
-                        || <path-empty> 
+    token heir-part     { 
+        || '//' <authority> <path-abempty> 
+        || <path-absolute> 
+        || <path-noscheme> 
+        || <path-empty> 
     }
-    token relative-part { '//' <authority> <path-abempty> 
-                        || <path-absolute> 
-                        || <path-noscheme> 
-                        || <path-empty> 
+    token relative-part { 
+        || '//' <authority> <path-abempty> 
+        || <path-absolute> 
+        || <path-noscheme> 
+        || <path-empty> 
     }
 
     token scheme { 

@@ -5,7 +5,7 @@ augment class IO::Path {
     # :f Include files
     # :a Include .files and .folders
     method ls(IO::Path:D: Bool :$f = True, Bool :$d = True, Bool :$r, Bool :$a = False, |c) {
-        my @results := eager gather {
+        my @results = eager gather {
             my @paths = $.path.IO.d ?? $.path.IO.dir(|c) !! $.path;
             while @paths.pop -> $p {
                 next if !$a && $p.IO.basename.starts-with('.');
@@ -45,7 +45,7 @@ augment class IO::Path {
 
     method mkdirs(IO::Path:D: :$mode = 0o777) { 
         my $path-copy = $.path;
-        my @mkdirs := gather { # not the pretty way, but works on jvm
+        my @mkdirs = eager gather { # not the pretty way, but works on jvm
             loop {
                 last if ($path-copy.IO.e && $path-copy.IO.d);
                 take $path-copy;

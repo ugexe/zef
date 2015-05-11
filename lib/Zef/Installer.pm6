@@ -5,7 +5,7 @@ method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is expo
     try mkdirs($save-to);
     my $repo = CompUnitRepo::Local::Installation.new($save-to);
 
-    my @results := gather for @metafiles -> $file {
+    my @results = eager gather for @metafiles -> $file {
         my Distribution $dist .= new( |from-json($file.IO.slurp) ) does role { method metainfo {self.hash} };
 
         KEEP take { ok => 1, $dist.hash.flat };
@@ -36,4 +36,3 @@ method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is expo
 
     return @results;
 }
-

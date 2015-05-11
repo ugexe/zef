@@ -7,7 +7,7 @@ role Zef::Plugin::Git does Zef::Phase::Getting {
 
     method get(:$save-to = $*TMPDIR, *@urls) {
         return unless $save-to.defined;
-        my @results := eager gather for @urls -> $url {
+        my @results = eager gather for @urls -> $url {
             KEEP take { ok => 1, url => $url }
             UNDO take { ok => 0, url => $url }
 

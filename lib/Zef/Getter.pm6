@@ -11,7 +11,7 @@ class Zef::Getter does Zef::Phase::Getting {
     method get(:$save-to is copy = $*TMPDIR, *@modules) {
         try require IO::Socket::SSL;
 
-        my @results := eager gather for @modules -> $module {
+        my @results = eager gather for @modules -> $module {
             temp $save-to = $*SPEC.catdir($save-to, $module.trans(%path-map));
             my $data   = to-json({
                 name => $module,

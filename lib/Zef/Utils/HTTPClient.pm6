@@ -1,4 +1,5 @@
 use Zef::Grammars::HTTP;
+use Zef::Utils::Base64;
 
 try require IO::Socket::SSL;
 
@@ -11,18 +12,21 @@ class Zef::Utils::HTTPClient {
     has $.auto-check;
     has @.responses;
     has $!proxy;
+    has $!proxy-auth;
 
 
     submethod BUILD(:$!proxy, :$!auto-check) {
-        $!proxy = Zef::Grammars::URI.new($!proxy) if $!proxy;
+        if $!proxy {
+            $!proxy      = Zef::Grammars::URI.new(url => $!proxy);
+            $!proxy-auth = Zef::Utils::Base64.new.b64encode($!proxy.user-info);
+        }
     }
 
     submethod connect($url) {
         my $uri    = Zef::Grammars::URI.new(url => $url);
-
-        my $scheme = $!proxy ?? $!proxy.scheme !! ($uri.scheme // 'http');
-        my $host   = $!proxy ?? $!proxy.host   !! $uri.host;
-        my $port   = $!proxy ?? $!proxy.port   !! ($uri.port // ($scheme.Str ~~ /^https/ ?? 443 !! 80));
+        my $scheme = $!proxy  ?? $!proxy.scheme !! ($uri.scheme // 'http');
+        my $host   = $!proxy  ?? $!proxy.host   !! $uri.host;
+        my $port   = ($!proxy ?? $!proxy.port   !! $uri.port) // ($scheme.Str ~~ /^https/ ?? 443 !! 80);
 
         $!sock = ::('IO::Socket::SSL') ~~ Failure 
             ??      IO::Socket::INET.new( host => $host, port => $port )
@@ -35,8 +39,9 @@ class Zef::Utils::HTTPClient {
         my $conn = self.connect($url);
 
         my $req =        "$action $url HTTP/1.1"                          # request
-            ~   "\r\n" ~ "Host: {$conn.host}"                             # mandatory host header
-            ~ (("\r\n" ~ "Content-Length: {$payload.chars}") if $payload) # optional header field
+            ~   "\r\n" ~ "Host: {$conn.host}"                             # mandatory headers
+            ~ (("\r\n" ~ "Content-Length: {$payload.chars}") if $payload) # optional header fields
+            ~ (("\r\n" ~ "Proxy-Authorization: Basic {$!proxy-auth}") if $!proxy-auth)
             ~   "\r\n" ~ "Connection: close\r\n\r\n"                      # last header field
             ~ ($payload if $payload);                                     # body
 
@@ -53,7 +58,6 @@ class Zef::Utils::HTTPClient {
                 }
             }
         }
-
 
         @.responses.push($response);
 

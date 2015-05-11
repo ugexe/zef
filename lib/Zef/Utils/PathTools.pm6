@@ -54,7 +54,7 @@ augment class IO::Path {
         }
 
         # recusively make directories, but only return last successful created directory
-        return try ~@mkdirs.reverse.map({ mkdir($_, $mode) }).[*-1];
+        return @mkdirs ?? try { ~@mkdirs.reverse.map({ mkdir($_, $mode) }).[*-1] } !! Empty;
     }
 }
 

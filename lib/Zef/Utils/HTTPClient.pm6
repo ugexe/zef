@@ -6,29 +6,24 @@ try require IO::Socket::SSL;
 # todo: * handle chunked encoding and binary
 #       * test if proxy actually works
 #       * use in Zef::Getter default    
+#       * move proxy/basic auth into its own class
 class Zef::Utils::HTTPClient {
     has $!sock;
     has $.auto-check;
     has @.responses;
-    has $!proxy;
-    has $!proxy-auth;
-    has $!auth;
+    has $!proxy-url;
+    has $!proxy-auth-username;
+    has $!proxy-auth-password;
+    has $.auth-username;
+    has $.auth-password;
 
-    submethod BUILD(:$!proxy, :$!auto-check, :$!auth) {
-        if $!proxy {
-            $!proxy      = Zef::Grammars::URI.new(url => $!proxy);
-            $!proxy-auth = Zef::Utils::Base64.new.b64encode($!proxy.user-info) if $!proxy.user-info;
-        }
-        
-        $!auth = Zef::Utils::Base64.new.b64encode($!auth) if $!auth;
-    }
+    submethod BUILD(:$!proxy-url, :$!proxy-auth-username, :$!proxy-auth-password, :$!auto-check, :$!auth-username, :$!auth-password) { }
 
-    submethod connect($url) {
-        my $uri    = Zef::Grammars::URI.new(url => $url);
-        my $scheme = lc($!proxy  ?? $!proxy.scheme !! ($uri.scheme // 'http'));
-        my $host   =    $!proxy  ?? $!proxy.host   !! $uri.host;
-        my $port   =   ($!proxy ?? $!proxy.port   !! $uri.port) // ($scheme.Str ~~ /^https/ ?? 443 !! 80);
-        my $auth   = $uri.user-info ?? Zef::Utils::Base64.new.b64encode($uri.user-info) !! ($!auth // Empty);
+    submethod connect(Zef::Grammars::URI $uri) {
+        my $proxy-uri = Zef::Grammars::URI.new(url => $!proxy-url) if $!proxy-url;
+        my $scheme = lc($proxy-uri  ?? $proxy-uri.scheme !! ($uri.scheme // 'http'));
+        my $host   =    $proxy-uri  ?? $proxy-uri.host   !! $uri.host;
+        my $port   =   ($proxy-uri  ?? $proxy-uri.port   !! $uri.port) // ($scheme ~~ /^https/ ?? 443 !! 80);
 
         if $scheme eq 'https' && ::('IO::Socket::SSL') ~~ Failure {
             die "Please install IO::Socket::SSL for SSL support";
@@ -42,18 +37,10 @@ class Zef::Utils::HTTPClient {
     }
 
     method request($action, $url, $payload?) {
-        my $conn = self.connect($url);
+        my $request = Zef::Grammars::HTTPRequest.new(:$action, :$url, :$payload, :$!auth-username, :$!auth-password, :$!proxy-auth-username, :$!proxy-auth-password);
+        my $conn    = self.connect($request.uri);
 
-
-        my $req =        "$action $url HTTP/1.1"                          # request
-            ~   "\r\n" ~ "Host: {$conn.host}"                             # mandatory headers
-            ~ (("\r\n" ~ "Content-Length: {$payload.chars}") if $payload) # optional header fields
-            ~ (("\r\n" ~ "Proxy-Authorization: Basic {$!proxy-auth}") if $!proxy-auth)
-            ~ (("\r\n" ~ "Authorization: Basic {$!auth}") if $!auth)
-            ~   "\r\n" ~ "Connection: close\r\n\r\n"                      # last header field
-            ~ ($payload if $payload);                                     # body
-
-        $conn.send($req);        
+        $conn.send(~$request);
 
         my $response = Zef::Grammars::HTTPResponse.new(message => $conn.recv);
         @.responses.push($response);

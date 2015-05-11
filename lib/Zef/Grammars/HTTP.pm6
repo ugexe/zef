@@ -1,6 +1,6 @@
 use Zef::Grammars::HTTP::RFC3986; # uri
 use Zef::Grammars::HTTP::RFC7230; # http
-
+use Zef::Utils::Base64;
 # These should probably be placed outside the Zef::Grammars namespace 
 # after the structure is fleshed out further.
 
@@ -58,3 +58,42 @@ class Zef::Grammars::HTTPResponse {
     }
 }
 
+class Zef::Grammars::HTTPRequest {
+    has $.grammar;
+    has $.action;
+    has $.url;
+    has $.uri;
+    has $!auth-string;
+    has $!auth-username;
+    has $!auth-password;
+    has $!payload;
+    has $!proxy-auth-string;
+    has $!proxy-auth-username;
+    has $!proxy-auth-password;
+
+    submethod BUILD(:$!action, :$!url, :$!payload, :$!auth-username, :$!auth-password, :$!proxy-auth-username, :$!proxy-auth-password) {
+        my $encoder = Zef::Utils::Base64.new;
+
+        $!uri = Zef::Grammars::URI.new(url => $!url);
+        $!auth-string  = $!uri.user-info 
+                            ?? $encoder.b64encode($!uri.user-info)
+                            !! ($!auth-username && $!auth-password
+                                ?? $encoder.b64encode("{$!auth-username}:{$!auth-password}")
+                                !! Empty);
+        $!proxy-auth-string = $encoder.b64encode("{$!proxy-auth-username}:{$!proxy-auth-password}") 
+            if $!proxy-auth-username && $!proxy-auth-password;
+
+    }
+
+    method Str {
+        my $req =        "$!action $!url HTTP/1.1"                          # request
+            ~   "\r\n" ~ "Host: {$!uri.host}"                             # mandatory headers
+            ~ (("\r\n" ~ "Content-Length: {$!payload.chars}") if $!payload) # optional header fields
+            ~ (("\r\n" ~ "Proxy-Authorization: Basic {$!proxy-auth-string}") if $!proxy-auth-string)
+            ~ (("\r\n" ~ "Authorization: Basic {$!auth-string}") if $!auth-string)
+            ~   "\r\n" ~ "Connection: close\r\n\r\n"                      # last header field
+            ~ ($!payload if $!payload);
+
+        return $req;
+    }
+}

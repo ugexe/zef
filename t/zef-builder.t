@@ -49,7 +49,8 @@ subtest {
 
     my $builder = Zef::Builder.new;
     my @results = $builder.pre-compile($CWD);
-    is @results.grep({ $_.<ok> }).elems, @results.elems, "Default builder precompiled all modules: {@results.elems}";
+
+    is @results.grep({ $_.has-precomp }).elems, @results.elems, "Default builder precompiled all modules: {@results.elems}";
 }, 'Zef::Builder';
 
 

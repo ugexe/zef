@@ -4,7 +4,6 @@ module Zef;
 require Zef::Authority;
 require Zef::Builder;
 require Zef::Config;
-require Zef::Exception;
 require Zef::Getter;
 require Zef::Installer;
 require Zef::Reporter;

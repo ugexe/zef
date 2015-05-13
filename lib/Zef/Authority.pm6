@@ -12,7 +12,7 @@ class Zef::Authority {
 
     method login(:$username, :$password) {
         my $payload  = to-json({ username => $username, password => $password }) // fail "Bad JSON";
-        my $response = $!ua.post("https://zef.pm/api/login", $payload);
+        my $response = $!ua.post("https://zef.pm/api/login", :$payload);
         my %result   = try %(from-json($response.body));
 
         if %result<success> {
@@ -29,7 +29,7 @@ class Zef::Authority {
 
     method register(:$username, :$password) {
         my $payload  = to-json({ username => $username, password => $password });
-        my $response = $!ua.post("https://zef.pm/api/register", $payload);
+        my $response = $!ua.post("https://zef.pm/api/register", :$payload);
         my %result   = try %(from-json($response.body));
         
         if %result<success> {
@@ -47,7 +47,7 @@ class Zef::Authority {
     method search(*@terms) {
         my @results := eager gather for @terms -> $term {
             my $payload  = to-json({ query => $term });
-            my $response = Zef::Utils::HTTPClient.new.post("http://zef.pm/api/search", $payload);
+            my $response = Zef::Utils::HTTPClient.new.post("http://zef.pm/api/search", :$payload);
 
             my $json = from-json($response.body);
             take $json unless $json ~~ [];
@@ -100,7 +100,7 @@ class Zef::Authority {
                 // try {'META6.json'.IO.slurp}    \ 
                 // fail "Couldn't find META6.json or META.info";
             my $json     = to-json({ key => $session-key, data => $payload, meta => %(from-json($metf)) });
-            my $response = $!ua.post("https://zef.pm/api/push", $payload);
+            my $response = $!ua.post("https://zef.pm/api/push", :$payload);
             my %result   = try %(from-json($response.body));
             
             if %result<error> {

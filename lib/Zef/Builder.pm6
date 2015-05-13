@@ -21,7 +21,7 @@ class Zef::Builder does Zef::Phase::Building {
                         $!out = $out; 
                         $!has-precomp := ?$!out.IO.f;
                     }
-                    method precomp-path   { $!out.IO.absolute       }
+                    method precomp-path { $!out.IO.absolute       }
                 }
 
                 given %module<file>.IO.relative { print "[{$_}] {'.' x 42 - $_.chars} " }

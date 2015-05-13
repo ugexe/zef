@@ -1,7 +1,7 @@
 use v6;
 use Zef::Getter;
 use Zef::Utils::PathTools;
-plan 3;
+plan 2;
 use Test;
 
 
@@ -60,46 +60,6 @@ subtest {
     ok @saved.elems > 3, "Repo was created: {@saved.elems}";
 
 }, 'Zef::Plugin::Git';
-
-
-subtest {
-    ENTER {
-        try require HTTP::UserAgent; 
-        if ::('HTTP::UserAgent') ~~ Failure {
-            print("ok - # Skip: HTTP::UserAgent not available\n");
-            return;
-        }
-
-        try require IO::Socket::SSL;
-        if ::('IO::Socket::SSL') ~~ Failure {
-            print("ok - # Skip: IO::Socket::SSL not available\n");
-            return;
-        }
-
-        try require Zef::Plugin::UA;
-        if ::("Zef::Plugin::UA") ~~ Failure {
-            print("ok - # Skip: Zef::Plugin::UA not available\n");
-            return;
-        }
-
-        try { ::('HTTP::UserAgent').new.get('https://github.com') } or do {
-            print("ok - # Skip: No internet connection available? http://github.com:443\n");
-            return;
-        }
-    }
-
-    my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    try mkdirs($save-to);
-    my $save-to-file := $*SPEC.catpath('', $save-to, 'http-useragent.pm6').IO;
-    LEAVE try rm($save-to, :d, :f, :r) if $save-to;
-
-    my $getter = Zef::Getter.new( :plugins(["Zef::Plugin::UA"]) );
-    my @results = $getter.get(:$save-to-file, 'https://raw.githubusercontent.com/sergot/http-useragent/master/lib/HTTP/UserAgent.pm6');
-
-    ok @results.elems, "Attempted to download";
-    is @results.elems, @results.grep({ $_.<ok> }).elems,  "Downloaded was OK";
-    ok @results.grep({ $_.<path> eq $save-to-file }), "File path is correct";
-}, 'Zef::Plugin::UA';
 
 
 done();

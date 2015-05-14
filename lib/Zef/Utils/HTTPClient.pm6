@@ -39,7 +39,11 @@ class Zef::Utils::HTTPClient {
         my $request    = Zef::Grammars::HTTPRequest.new( :$action, :$url, :$payload, :$.user, :$.pass );
         my $connection = self.connect($request.uri);
         $connection.send(~$request);
-        my $response   = Zef::Grammars::HTTPResponse.new(message => $connection.recv);
+
+        # todo: proper chunking
+        my $response   = Zef::Grammars::HTTPResponse.new(message => do { 
+            my $d; while my $r = $connection.recv { $d ~= $r }; $d;
+        });
         @.history.push: RoundTrip.new(:$request, :$response);
 
         if $.auto-check {

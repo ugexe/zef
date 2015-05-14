@@ -4,7 +4,6 @@ try require IO::Socket::SSL;
 
 # todo: * handle chunked encoding and binary
 #       * test if proxy actually works
-#       * use in Zef::Getter default    
 class Zef::Utils::HTTPClient {
     has $!sock;
     has $.can-ssl = !::("IO::Socket::SSL").isa(Failure);

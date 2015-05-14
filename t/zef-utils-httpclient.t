@@ -1,6 +1,5 @@
 use v6;
 use Zef::Utils::HTTPClient;
-use Zef::Utils::PathTools;
 plan 2;
 use Test;
 
@@ -42,7 +41,7 @@ subtest {
 
 subtest {
     unless Zef::Utils::HTTPClient.new.can-ssl {
-        print("ok 2 - # Skip: IO::Socket::SSL not available?\n");
+        print("ok 2 - # Skip: Can't do SSL. Is IO::Socket::SSL available?\n");
         return;
     }
 

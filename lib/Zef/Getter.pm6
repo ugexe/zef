@@ -17,10 +17,10 @@ class Zef::Getter does Zef::Phase::Getting {
             my $payload  = to-json({ name => $module });
             my $response = $ua.post('http://zef.pm/api/download', :$payload);
             my $data     = $response.body;
-
             my $mode    = 0o0644;
-            my $decoder = Zef::Utils::Base64.new;
-            for @($data.split("\r\n")) -> $path is copy, $enc is copy {
+
+            try mkdirs($save-to);
+            for @($data.substr(0, *-2).split("\r\n")) -> $path is copy, $enc is copy {
                 ($mode, $path) = $path.split(':/', 2);
                 my $save-to-file = $*SPEC.catpath('', $*SPEC.catdir($save-to, $path.IO.dirname), $path.IO.basename).IO;
                 KEEP take { ok => 1, module => $module, path => $save-to-file.IO.path }
@@ -29,7 +29,7 @@ class Zef::Getter does Zef::Phase::Getting {
                 my $dir = $*SPEC.catdir($save-to, $path.IO.dirname).IO;
                 try mkdirs($dir.IO.path);
                 my $file    = $*SPEC.catpath('', $dir.IO.path, $path.IO.basename).IO;
-                my $decoded = $decoder.b64decode($enc);
+                my $decoded = b64decode($enc);
                 $file.spurt($decoded) or fail "write error: $_";
                 try $file.chmod($mode.Int);
             }

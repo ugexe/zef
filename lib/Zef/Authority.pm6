@@ -73,7 +73,7 @@ class Zef::Authority {
 
             for @files -> $path {
                 my $buff = try { 
-                        Zef::Utils::Base64.new.b64encode($path.IO.slurp);
+                        b64encode($path.IO.slurp);
                     } // try {
                         my $b = Buf.new;
                         my $f = open $path, :r;
@@ -81,7 +81,7 @@ class Zef::Authority {
                             $b ~= $f.read(1024); 
                         }
                         $f.close;
-                        Zef::Utils::Base64.new.b64encode($b);
+                        b64encode($b);
                     } // fail "Failed to encode data: { $path }";
 
                 if $buff !~~ Str {

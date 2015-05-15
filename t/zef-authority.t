@@ -3,8 +3,6 @@ use Zef::Authority;
 plan 2;
 use Test;
 
-try require IO::Socket::SSL;
-
 subtest {
     my $authority  = Zef::Authority.new;
     my @results    = $authority.search('zef');
@@ -15,6 +13,7 @@ subtest {
 }, 'SSL not required';
 
 subtest {
+    try require IO::Socket::SSL;
     if ::('IO::Socket::SSL') ~~ Failure {
         print("ok 2 - # Skip: IO::Socket::SSL not available\n");
         return;

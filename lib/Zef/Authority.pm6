@@ -49,7 +49,7 @@ class Zef::Authority {
             my $payload  = to-json({ query => $term });
             my $response = Zef::Utils::HTTPClient.new.post("http://zef.pm/api/search", :$payload);
 
-            my $json = from-json($response.body);
+            my $json = try from-json($response.body);
             take $json unless $json ~~ [];
         }
 

@@ -20,7 +20,7 @@ class Zef::Utils::HTTPClient {
     submethod connect(Zef::Grammars::URI $uri) {
         my $proxy-uri = Zef::Grammars::URI.new(url => $!proxy-url) if $!proxy-url;
         my $scheme = (?$proxy-uri && ?$proxy-uri.scheme ?? $proxy-uri.scheme !! $uri.scheme) // 'http';
-        my $host   = ?$proxy-uri && ?$proxy-uri.host    ?? $proxy-uri.host   !! $uri.host;
+        my $host   = ?$proxy-uri  && ?$proxy-uri.host   ?? $proxy-uri.host   !! $uri.host;
         my $port   = (?$proxy-uri && ?$proxy-uri.port   ?? $proxy-uri.port   !! $uri.port) // ($scheme eq 'https' ?? 443 !! 80);
 
         if $scheme eq 'https' && !$!can-ssl {
@@ -39,14 +39,14 @@ class Zef::Utils::HTTPClient {
         my $connection = self.connect($request.uri);
         $connection.send(~$request);
 
-        # todo: proper chunking, don't choke on cookies (Set-cookie)
         my $response   = Zef::Grammars::HTTPResponse.new(message => do { 
-            my $d; while my $r = $connection.recv { say $r; $d ~= $r }; $d;
+            my $d; while my $r = $connection.recv { $d ~= $r }; $d;
         });
 
         @.history.push: RoundTrip.new(:$request, :$response);
 
         if $.auto-check {
+            return Zef::Grammars::HTTPRequest.new unless $response && $response.status-code;
             given $response.status-code {
                 when /^2\d+$/ { }
                 when /^301/     {

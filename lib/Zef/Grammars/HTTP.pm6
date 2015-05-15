@@ -34,7 +34,7 @@ class Zef::Grammars::URI {
 class Zef::Grammars::HTTPResponse {
     has $.grammar;
     has $.message;
-    has $.status-code;
+    has $.status-code = Int;
     has $.status-message;
     has $.body;
     has %.header;
@@ -54,7 +54,7 @@ class Zef::Grammars::HTTPResponse {
     }
 
     method Str {
-        return $!grammar.Str;
+        return $!grammar ?? $!grammar.Str !! Str;
     }
 }
 

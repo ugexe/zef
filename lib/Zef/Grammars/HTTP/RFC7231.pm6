@@ -1,11 +1,13 @@
 use v6;
 # Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
 
+use Zef::Grammars::HTTP::RFC4647; 
 use Zef::Grammars::HTTP::RFC5646; 
 use Zef::Grammars::HTTP::RFC7232; 
 
 role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
     also does Zef::Grammars::HTTP::RFC5646::Core;
+    also is Zef::Grammars::HTTP::RFC4647::Core;
 
     token Accept { 
         [

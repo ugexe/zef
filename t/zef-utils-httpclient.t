@@ -34,7 +34,7 @@ subtest {
         dies_ok { $ua.get($url ~ '/basic-auth/un/pw') }, "Fail basic auth and die. auto-check => True";
 
         temp $ua.auto-check = False;
-        is $ua.get($url ~ '/basic-auth/un/pw').status-code, 401, "Fail basic auth and live. auto-check => True";
+        nok $ua.get($url ~ '/basic-auth/unx/pwx').status-code, "Fail basic auth and live. auto-check => True";
     }
 }, "HTTP";
 
@@ -66,6 +66,6 @@ subtest {
         dies_ok { $ua.get($url ~ '/basic-auth/un/pw') }, "Fail basic auth and die. auto-check => True";
 
         temp $ua.auto-check = False;
-        is $ua.get($url ~ '/basic-auth/un/pw').status-code, 401, "Fail basic auth and live. auto-check => True";
+        nok $ua.get($url ~ '/basic-auth/unx/pwx').status-code, "Fail basic auth and live. auto-check => True";
     }
 }, "HTTPS";

@@ -6,7 +6,7 @@ use v6;
 
 use Zef::Grammars::HTTP::RFC7231;
 use Zef::Grammars::HTTP::RFC6265;
-
+#use Grammar::Tracer;
 role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     also is Zef::Grammars::HTTP::RFC6265::Core;
 
@@ -58,45 +58,50 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     token delimiters { <[\(\)\,\/\:\;\<\=\>\?\@\[\\\]\{\}]>+ }
 
     
+    # todo: refactorrr
     token header-field  { 
         # 7230
-        || "Connection"       ':' <.OWS> <Connection>
+        || $<name>=["Connection"]       ':' <.OWS> $<value>=<Connection>
 
         # 7231
-        || "Accept"           ':' <.OWS> <Accept>
-        || "Accept-Charset"   ':' <.OWS> <Accept-Charset>
-        || "Accept-Encoding"  ':' <.OWS> <Accept-Encoding>
-        || "Accept-Language"  ':' <.OWS> <Accept-Language>
-        || "Allow"            ':' <.OWS> <Allow>
-        || "Content-Encoding" ':' <.OWS> <Content-Encoding>
-        || "Content-Language" ':' <.OWS> <Content-Language>
-        || "Content-Location" ':' <.OWS> <Content-Location>
-        || "Content-Type"     ':' <.OWS> <Content-Type>
-        || "Date"             ':' <.OWS> <Date>
-        || "Expect"           ':' <.OWS> <Expect>
-        || "From"             ':' <.OWS> <From>
-        || "Location"         ':' <.OWS> <Location>
-        || "Max-Forwards"     ':' <.OWS> <Max-Forwards>
-        || "Referer"          ':' <.OWS> <Referer>
-        || "Retry-After"      ':' <.OWS> <Retry-After>
-        || "Server"           ':' <.OWS> <Server>
-        || "User-Agent"       ':' <.OWS> <User-Agent>
-        || "Vary"             ':' <.OWS> <Vary>
+        || $<name>=["Accept"]           ':' <.OWS> $<value>=<Accept>
+        || $<name>=["Accept-Charset"]   ':' <.OWS> $<value>=<Accept-Charset>
+        || $<name>=["Accept-Encoding"]  ':' <.OWS> $<value>=<Accept-Encoding>
+        || $<name>=["Accept-Language"]  ':' <.OWS> $<value>=<Accept-Language>
+        || $<name>=["Allow"]            ':' <.OWS> $<value>=<Allow>
+        || $<name>=["Content-Encoding"] ':' <.OWS> $<value>=<Content-Encoding>
+        || $<name>=["Content-Language"] ':' <.OWS> $<value>=<Content-Language>
+        || $<name>=["Content-Location"] ':' <.OWS> $<value>=<Content-Location>
+        || $<name>=["Content-Type"]     ':' <.OWS> $<value>=<Content-Type>
+        || $<name>=["Date"]             ':' <.OWS> $<value>=<Date>
+        || $<name>=["Expect"]           ':' <.OWS> $<value>=<Expect>
+        || $<name>=["From"]             ':' <.OWS> $<value>=<From>
+        || $<name>=["Location"]         ':' <.OWS> $<value>=<Location>
+        || $<name>=["Max-Forwards"]     ':' <.OWS> $<value>=<Max-Forwards>
+        || $<name>=["Referer"]          ':' <.OWS> $<value>=<Referer>
+        || $<name>=["Retry-After"]      ':' <.OWS> $<value>=<Retry-After>
+        || $<name>=["Server"]           ':' <.OWS> $<value>=<Server>
+        || $<name>=["User-Agent"]       ':' <.OWS> $<value>=<User-Agent>
+        || $<name>=["Vary"]             ':' <.OWS> $<value>=<Vary>
 
         # 6265
-        || "Cookie"           ':' <.OWS> <cookie-string>
-        || "Set-Cookie"       ':' <.OWS> <set-cookie-string>
+        || $<name>=["Cookie"]           ':' <.OWS> $<value>=<cookie-string>
+        || $<name>=["Set-Cookie"]       ':' <.OWS> $<value>=<set-cookie-string>
 
         # 7234
-        || "Cache-Control"    ':' <.OWS> <Cache-Control>
+        || $<name>=["Cache-Control"]    ':' <.OWS> $<value>=<Cache-Control>
+        || $<name>=["Expires"]          ':' <.OWS> $<value>=[<Expires> || <token>]
 
-        # General header rule
-        || <field-name> ':' [<.OWS> <field-value>]+ <.OWS>
+        # Custom
+        || $<name>=["X-XSS-Protection"] ':' <.OWS> $<value>=[<.token> <.OWS> [';' <.OWS> <.parameter>?]*] <.OWS>
+
+        # Default header rule
+        || $<name>=<field-name> ':' <.OWS> $<value>=<field-value> <.OWS>
     }
 
     token field-name    { <.token> } # the general rule
 
-    token field-value { <.parameter> || <.field-content> || <.obs-fold> }
+    token field-value { [<.parameter> || <.field-content> || <.obs-fold>]* }
 
     token field-content { <.field-vchar> [[<.SP> || <.HTAB> || <.field-vchar>]+ <.field-vchar>]? }
 

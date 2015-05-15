@@ -9,19 +9,16 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
     also does Zef::Grammars::HTTP::RFC5646::Core;
     also is Zef::Grammars::HTTP::RFC4647::Core;
 
-    token Accept { 
-        [
-            [',' || [<media-range> <accept-params>?]] 
-            [<.OWS> ',' [<.OWS> [<media-range> <accept-params>?]]?]*
-        ]?
+    token Accept { # todo: redo multi values for all tokens the same as token Accept (i.e. with %%)
+        [<.OWS> <media-range> <.OWS> [<accept-params> <.OWS>]?] *%% ','
     }
     token Accept-Charset { 
         [',' <.OWS>]* [[<charset> || '*'] <weight>?] [<.OWS> ',' [<.OWS> [[<charset> || '*'] <weight>?]]]* 
     }
     token Accept-Encoding {
         [
-            [',' || [<codings> <weight>?]]
-            [<.OWS> ',' [<.OWS> [<codings> <weight>?]]?]*
+            [',' || [(<.codings>) <.weight>?]]
+            [<.OWS> ',' [<.OWS> [(<.codings>) <.weight>?]]?]*
         ]?
     }
     token Accept-Language {
@@ -69,7 +66,7 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
     token content-coding { <.token> }
 
     token date1 { <day> <.SP> <month> <.SP> <year>   }
-    token date2 { <day> '-' <month> '-' (\d\d)       }
+    token date2 { <day> '-' <month> '-' $<year>=(\d\d)       }
     token date3 { <month> <.SP> [(\d\d) || (<.SP>\d)] }
     token day   { \d\d }
     token day-name {

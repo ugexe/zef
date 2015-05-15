@@ -10,13 +10,14 @@ role Zef::Grammars::HTTP::RFC6265::Core is Zef::Grammars::HTTP::RFC5322::Core {
     token obs-fold { <.CRLF>               }
 
     # this token does not come from this RFC
+    # todo: s/<date2>/lexical month/day/year tokens/
     token rfc1123-date { [<.day-of-week> ',']? <.SP> [<date2>\d\d] <.SP> <.time-of-day> <.SP> 'GMT' }
 
     token set-cookie-header { 'Set-Cookie:' <.SP> <set-cookie-string> }
     token set-cookie-string { <cookie-pair> [';' <.SP> <cookie-av>]*  }
     token cookie-pair  { <cookie-name> '=' <cookie-value>                      }
     token cookie-name  { <.token>                                              }
-    token cookie-value { <cookie-octet>* || <.DQUOTE> <cookie-octet> <.DQUOTE> }
+    token cookie-value { <.cookie-octet>* || <.DQUOTE> <.cookie-octet>* <.DQUOTE> }
     token cookie-octet { 
         || \x[21] 
         || <[\x[23]..\x[2B]]> 

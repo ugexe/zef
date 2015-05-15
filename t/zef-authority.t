@@ -3,6 +3,7 @@ use Zef::Authority;
 plan 2;
 use Test;
 
+
 subtest {
     ok my $authority = Zef::Authority.new;
     #my @results    = $authority.search('zef');

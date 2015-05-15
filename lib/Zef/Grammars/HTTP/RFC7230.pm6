@@ -6,7 +6,7 @@ use v6;
 
 use Zef::Grammars::HTTP::RFC7231;
 use Zef::Grammars::HTTP::RFC6265;
-#use Grammar::Tracer;
+#use Grammar::Debugger;
 role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     also is Zef::Grammars::HTTP::RFC6265::Core;
 
@@ -23,7 +23,7 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     token Content-Length    { [0..9]+ }
     token HTTP-version      { <HTTP-name> '/' $<major>=[\d] '.' $<minor>=[\d] }
     token HTTP-name         { 'HTTP' }
-    token Host              { <.uri-host> [':' <.port>]? }
+    token Host              { <host> [':' <.port>]? } # `host` from 3986
     token TE                { [ [',' || <t-codings>] [<.OWS> ',' [<.OWS> <t-codings>]?]*]?    }
     token Trailer           { [',' <.OWS>]* <field-name> [<.OWS> ',' [<.OWS> <field-name>]?]* }
     token Transfer-Encoding { 
@@ -36,7 +36,6 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
         [<.OWS> ',' [<.OWS> [<received-protocol> <.RWS> <received-by> [<.RWS> <comment>]?]]?]*
     }
 
-    # tokens
     token absolute-form  { <.absolute-URI>   }
     token absolute-path  { ['/' <.segment>]+ }
     token asterisk-form  { '*'               }
@@ -61,42 +60,48 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     # todo: refactorrr
     token header-field  { 
         # 7230
-        || $<name>=["Connection"]       ':' <.OWS> $<value>=<Connection>
+        || $<name>=["Connection"]        ':' <.OWS> <Connection>
+        || $<name>=["Host"]              ':' <.OWS> <Host>
+        || $<name>=["TE"]                ':' <.OWS> <TE>
+        || $<name>=["Trailer"]           ':' <.OWS> <Trailer>
+        || $<name>=["Transfer-Encoding"] ':' <.OWS> <Transfer-Encoding>
+        || $<name>=["Upgrade"]           ':' <.OWS> <Upgrade>
+        || $<name>=["Via"]               ':' <.OWS> <Via>
 
         # 7231
-        || $<name>=["Accept"]           ':' <.OWS> $<value>=<Accept>
-        || $<name>=["Accept-Charset"]   ':' <.OWS> $<value>=<Accept-Charset>
-        || $<name>=["Accept-Encoding"]  ':' <.OWS> $<value>=<Accept-Encoding>
-        || $<name>=["Accept-Language"]  ':' <.OWS> $<value>=<Accept-Language>
-        || $<name>=["Allow"]            ':' <.OWS> $<value>=<Allow>
-        || $<name>=["Content-Encoding"] ':' <.OWS> $<value>=<Content-Encoding>
-        || $<name>=["Content-Language"] ':' <.OWS> $<value>=<Content-Language>
-        || $<name>=["Content-Location"] ':' <.OWS> $<value>=<Content-Location>
-        || $<name>=["Content-Type"]     ':' <.OWS> $<value>=<Content-Type>
-        || $<name>=["Date"]             ':' <.OWS> $<value>=<Date>
-        || $<name>=["Expect"]           ':' <.OWS> $<value>=<Expect>
-        || $<name>=["From"]             ':' <.OWS> $<value>=<From>
-        || $<name>=["Location"]         ':' <.OWS> $<value>=<Location>
-        || $<name>=["Max-Forwards"]     ':' <.OWS> $<value>=<Max-Forwards>
-        || $<name>=["Referer"]          ':' <.OWS> $<value>=<Referer>
-        || $<name>=["Retry-After"]      ':' <.OWS> $<value>=<Retry-After>
-        || $<name>=["Server"]           ':' <.OWS> $<value>=<Server>
-        || $<name>=["User-Agent"]       ':' <.OWS> $<value>=<User-Agent>
-        || $<name>=["Vary"]             ':' <.OWS> $<value>=<Vary>
+        || $<name>=["Accept"]            ':' <.OWS> <Accept>
+        || $<name>=["Accept-Charset"]    ':' <.OWS> <Accept-Charset>
+        || $<name>=["Accept-Encoding"]   ':' <.OWS> <Accept-Encoding>
+        || $<name>=["Accept-Language"]   ':' <.OWS> <Accept-Language>
+        || $<name>=["Allow"]             ':' <.OWS> <Allow>
+        || $<name>=["Content-Encoding"]  ':' <.OWS> <Content-Encoding>
+        || $<name>=["Content-Language"]  ':' <.OWS> <Content-Language>
+        || $<name>=["Content-Location"]  ':' <.OWS> <Content-Location>
+        || $<name>=["Content-Type"]      ':' <.OWS> <Content-Type>
+        || $<name>=["Date"]              ':' <.OWS> <Date>
+        || $<name>=["Expect"]            ':' <.OWS> <Expect>
+        || $<name>=["From"]              ':' <.OWS> <From>
+        || $<name>=["Location"]          ':' <.OWS> <Location>
+        || $<name>=["Max-Forwards"]      ':' <.OWS> <Max-Forwards>
+        || $<name>=["Referer"]           ':' <.OWS> <Referer>
+        || $<name>=["Retry-After"]       ':' <.OWS> <Retry-After>
+        || $<name>=["Server"]            ':' <.OWS> <Server>
+        || $<name>=["User-Agent"]        ':' <.OWS> <User-Agent>
+        || $<name>=["Vary"]              ':' <.OWS> <Vary>
 
         # 6265
-        || $<name>=["Cookie"]           ':' <.OWS> $<value>=<cookie-string>
-        || $<name>=["Set-Cookie"]       ':' <.OWS> $<value>=<set-cookie-string>
+        || $<name>=["Cookie"]            ':' <.OWS> <cookie-string>
+        || $<name>=["Set-Cookie"]        ':' <.OWS> <set-cookie-string>
 
         # 7234
-        || $<name>=["Cache-Control"]    ':' <.OWS> $<value>=<Cache-Control>
-        || $<name>=["Expires"]          ':' <.OWS> $<value>=[<Expires> || <token>]
+        || $<name>=["Cache-Control"]     ':' <.OWS> <Cache-Control>
+        || $<name>=["Expires"]           ':' <.OWS> [<Expires> || <.token>]
 
         # Custom
-        || $<name>=["X-XSS-Protection"] ':' <.OWS> $<value>=[<.token> <.OWS> [';' <.OWS> <.parameter>?]*] <.OWS>
+        || $<name>=["X-XSS-Protection"] ':' <.OWS> [$<status>=<.token> <.OWS> [';' <.OWS> <parameter>?]*] <.OWS>
 
         # Default header rule
-        || $<name>=<field-name> ':' <.OWS> $<value>=<field-value> <.OWS>
+        || $<name>=<.field-name> ':' <.OWS> <field-value> <.OWS>
     }
 
     token field-name    { <.token> } # the general rule

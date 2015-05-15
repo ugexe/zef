@@ -48,7 +48,8 @@ class Zef::Grammars::HTTPResponse {
             $!body           = ~($!grammar.<HTTP-message>.<message-body>                             //  '');
 
             for $!grammar.<HTTP-message>.<header-field>.list -> $field {
-                %!header.{~$field.<name>} = ~$field.<value>;
+                my $h = $field.<name>.Str;
+                %!header.{$h} = $h;
             }
         }
     }

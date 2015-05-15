@@ -1,5 +1,5 @@
+unit module Zef::Config;
 use Zef::Utils::PathTools;
-module Zef::Config;
 
 # todo: properly handle volume argument for all .catpath method calls
 our $ZEF_DIR is export = $*SPEC.join(

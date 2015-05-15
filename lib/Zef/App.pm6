@@ -1,4 +1,4 @@
-class Zef::App;
+unit class Zef::App;
 
 #core modes 
 use Zef::Authority;

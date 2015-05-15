@@ -33,7 +33,7 @@ role Zef::Grammars::HTTP::RFC3986::Core does Zef::Grammars::HTTP::RFC4234::Core 
     }
 
     token authority   { [<userinfo> '@']? <host> [':' <port>]? }
-    token userinfo    { [<.unreserved> || <.pct-encoded> || <.sub-delims> || ':']*   }
+    token userinfo    { [<.unreserved> || <.pct-encoded> || <.sub-delims> || ':']*  }
     token host        { <.IP-literal> || <.IPv4address> || <.reg-name>              }
     token IP-literal  { '[' [<.IPv6address> || <.IPv6addrz> || <.IPvFuture>] ']'    }
     token IPv6addz    { <.IPv6address> '%25' <.ZoneID>    }

@@ -47,6 +47,7 @@ class Zef::Utils::HTTPClient {
 
         if $.auto-check {
             return Zef::Grammars::HTTPRequest.new unless $response && $response.status-code;
+            
             given $response.status-code {
                 when /^2\d+$/ { }
                 when /^301/     {

@@ -1,4 +1,4 @@
-class Zef::Utils::Depends;
+unit class Zef::Utils::Depends;
 
 has @!metas;
 
@@ -9,11 +9,11 @@ grammar Grammar::Dependency::Parser {
         [.*? <load-statement>]+ .*? $
     }
 
-    token load-statement { <load-type> \s+ <short-name> }
+    token load-statement { <load-type> \s+ <short-name>               }
     token short-name     { <name-piece> [<.colon-pair> <name-piece>]* }
     token name-piece     { <.name-token>+       }
     token name-token     { <+[\S] -restricted>  }
-    token restricted     { <[:;{}\[\]\(\)./\\]>     }
+    token restricted     { <[:;{}\[\]\(\)./\\]> }
     token colon-pair     { '::' }
 
     proto token load-type {*}

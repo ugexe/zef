@@ -1,4 +1,4 @@
-module Zef::Uninstaller;
+unit module Zef::Uninstaller;
 
 
 sub uninstall(

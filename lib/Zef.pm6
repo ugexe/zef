@@ -1,5 +1,4 @@
-use v6;
-module Zef;
+unit module Zef;
 
 require Zef::Authority;
 require Zef::Builder;

@@ -267,7 +267,7 @@ role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC6854::Core 
 
     token obs-local-part { <.word> ['.' <.word>]* }
 
-    token obs-domain { <.atom> [',' <.atom>]* }
+    token obs-domain { <.atom> ['.' <.atom>]* }
 
     token obs-dtext { <.obs-NO-WS-CTL> || <.quoted-pair> }
 

@@ -5,7 +5,6 @@ try require IO::Socket::SSL;
 # todo: * handle chunked encoding and binary
 #       * test if proxy actually works
 class Zef::Utils::HTTPClient {
-    has $!sock;
     has $.can-ssl = !::("IO::Socket::SSL").isa(Failure);
     has $.auto-check is rw;
     has @.history;
@@ -28,29 +27,30 @@ class Zef::Utils::HTTPClient {
             die "Please install IO::Socket::SSL for SSL support";
         }
 
-        $!sock = !$!can-ssl
+        return !$!can-ssl
             ??  IO::Socket::INET.new( host => $host, port => $port )
             !! $scheme ~~ /^https/ 
                     ?? ::('IO::Socket::SSL').new( host => $host, port => $port )
                     !! IO::Socket::INET.new( host => $host, port => $port );
     }
 
-    method send($action, $url, :$payload) {
+    method send(Str $action, Str $url, :$payload) {
         my $request    = Zef::Grammars::HTTPRequest.new( :$action, :$url, :$payload, :$.user, :$.pass );
         my $connection = self.connect($request.uri);
         $connection.send(~$request);
 
-        # todo: proper chunking
+        # todo: proper chunking, don't choke on cookies (Set-cookie)
         my $response   = Zef::Grammars::HTTPResponse.new(message => do { 
-            my $d; while my $r = $connection.recv { $d ~= $r }; $d;
+            my $d; while my $r = $connection.recv { say $r; $d ~= $r }; $d;
         });
+
         @.history.push: RoundTrip.new(:$request, :$response);
 
         if $.auto-check {
             given $response.status-code {
                 when /^2\d+$/ { }
                 when /^301/     {
-                    $response = self.request($action, ~$response.header.<Location>, :$payload);
+                    $response = self.send($action, ~$response.header.<Location>, :$payload);
                 }
                 default {
                     die "[NYI] http-code: '$_'";

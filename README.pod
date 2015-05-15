@@ -220,6 +220,6 @@ Build dependency order/tree from a list of dependency meta files.
  * ✓ Plugin stuff
  * Use perl6 github ecosystem as an additional authority
  * Finish up social junk
- * ✓ Small http client to ditch last 2 dependencies
+ * ✓ Small http client
 
 =cut

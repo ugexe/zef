@@ -7,22 +7,34 @@ use v6;
 use Zef::Grammars::HTTP::RFC7231;
 use Zef::Grammars::HTTP::RFC6265;
 
-
 role Grammars::HTTP::Extensions {
-    # copy of parameter from 7231 but with comma separation
-    token parameters         { [$<name>=<.token> '=' $<value>=[<.token> || <.quoted-string>]?] *%% ',' }
+    token directive                 { <directive-name> [ "=" <directive-value> ]? }
+    token directive-name            { <.token>                                    }
+    token directive-value           { <.token> || <.quoted-string>                }
 
     # Header extensions
-    token known-header:sym<X-XSS-Protection>   { <.sym> }
+    # These are known headers that are not defined  in an RFC
+    # (or in an RFC not implemented in these grammars yet)
+    # The default field-value from RFC7230 does not detect
+    # when to use the various parameter separation rules without
+    # explicitly telling it, so explicitly tell it we shall.
     token known-header:sym<Alternate-Protocol> { <.sym> }
+    token known-header:sym<Keep-Alive>         { <.sym> }
     token known-header:sym<P3P>                { <.sym> }
+    token known-header:sym<Strict-Transport-Security> {<.sym> }
+    token known-header:sym<X-Robots-Tag>       { <.sym> }
+    token known-header:sym<X-UA-Compatible>    { <.sym> }
+    token known-header:sym<X-XSS-Protection>   { <.sym> }
 
-    token X-XSS-Protection   { $<enable>=[0 || 1] <.OWS> [';' <.OWS> <parameters>] }
-    token Alternate-Protocol { [[<port> ':' <protocol>] || <parameter>] *%% ','    }
-    token P3P                { <parameters>                                        }
-    #Keep-Alive         # timeout=3, max=87
-    #X-UA-Compatible    # Chome=1
-    #X-Robots-Tag       # noindex,nofollow
+    token Alternate-Protocol { [[<port> ':' <protocol>] || <directive>] *%% ',' }
+    token Keep-Alive         { [<directive>]?  [";" [ <directive> ]?]*          }
+    token P3P                { [<directive>]?  [";" [ <directive> ]?]*          }
+    token Strict-Transport-Security { [<directive>]?  [";" [ <directive> ]?]*   }
+    token X-Robots-Tag       { (<.token>) *%% ','                               }
+    token X-XSS-Protection   { [<directive>]?  [";" [ <directive> ]?]*          }
+    token X-UA-Compatible    { [<directive>]?  [";" [ <directive> ]?]*          }
+
+    # todo:
     #Strict-Transport-Security # max-age=16070400; includeSubDomains
     #Link # <http://www.example.com/>; rel=”cononical”
     #X-Content-Type-Options
@@ -52,17 +64,11 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     token HTTP-version      { <HTTP-name> '/' $<major>=[\d] '.' $<minor>=[\d] }
     token HTTP-name         { 'HTTP' }
     token Host              { <host> [':' <.port>]? } # `host` from 3986
-    token TE                { [ [',' || <t-codings>] [<.OWS> ',' [<.OWS> <t-codings>]?]*]?    }
-    token Trailer           { [',' <.OWS>]* <field-name> [<.OWS> ',' [<.OWS> <field-name>]?]* }
-    token Transfer-Encoding { 
-        [',' <.OWS>]* <transfer-coding> [<.OWS> ',' [<.OWS> <transfer-coding>]?]* 
-    }
-    token Upgrade { [',' <.OWS>]* <protocol> [<.OWS> ',' [<.OWS> <protocol>]?]*     }
-    token Via {
-        [',' <.OWS>]*
-        [<received-protocol> <.RWS> <received-by> [<.RWS> <comment>]?]
-        [<.OWS> ',' [<.OWS> [<received-protocol> <.RWS> <received-by> [<.RWS> <comment>]?]]?]*
-    }
+    token TE                { [[<.OWS> <t-codings>]*]       *%% ','                           }
+    token Trailer           { [[<.OWS> <field-name>]*]      *%% ','                           }
+    token Transfer-Encoding { [[<.OWS> <transfer-coding>]*] *%% ','                           }
+    token Upgrade { [[<.OWS> <protocol>]*]                  *%% ','                           }
+    token Via { [[<received-protocol> <.RWS> <received-by> [<.RWS> <comment>]?]*] *%%','      }
 
     token absolute-form  { <.absolute-URI>   }
     token absolute-path  { ['/' <.segment>]+ }

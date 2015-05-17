@@ -5,9 +5,8 @@ use Zef::Grammars::HTTP::RFC4647;
 use Zef::Grammars::HTTP::RFC5646; 
 use Zef::Grammars::HTTP::RFC7232; 
 
-role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
+role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core is Zef::Grammars::HTTP::RFC4647::Core {
     also does Zef::Grammars::HTTP::RFC5646::Core;
-    also is Zef::Grammars::HTTP::RFC4647::Core;
 
     token Accept           { [<.OWS> <media-range> <.OWS> [<accept-params> <.OWS>]?] *%% ',' }
     token Accept-Charset   { [<.OWS> [[<charset> || '*'] <weight>?]*] *%% ','                }

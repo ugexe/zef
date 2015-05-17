@@ -10,22 +10,14 @@ role Zef::Grammars::HTTP::RFC7232::Core is Zef::Grammars::HTTP::RFC7233::Core {
 
     token If-Match {
         ||  '*'
-        ||  [
-            [',' <.OWS>]*
-            <.entity-tag>
-            [<.OWS> ',' [<.OWS> <.entity-tag>]?]*
-            ]
+        ||  [[<.OWS> <entity-tag>]*] *%% ','
     }
 
     token If-Modified-Since { <.HTTP-date> }
 
     token If-None-Match {
-        ||  '*'
-        ||  [
-            [',' <.OWS>]*
-            <.entity-tag>
-            [<.OWS> ',' [<.OWS> <.entity-tag>]?]*
-            ]
+        || '*'
+        || [[<.OWS> <entity-tag>]*] *%% ','
     }
 
     token If-Unmodified-Since { <.HTTP-date> }

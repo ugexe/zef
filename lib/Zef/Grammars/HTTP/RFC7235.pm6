@@ -4,33 +4,20 @@ use v6;
 use Zef::Grammars::HTTP::RFC3986;
 
 role Zef::Grammars::HTTP::RFC7235::Core is Zef::Grammars::HTTP::RFC3986 {
-    token Authorization { <.credentials> }
+    token Authorization       { <.credentials>                  }
+    token Proxy-Authenticate  { [[<.OWS> <challenge>]*] *%% ',' }
+    token Proxy-Authorization { <.credentials>                  }
+    token WWW-Authenticate    { [[<.OWS> <challenge>]*] *%% ',' }
 
-    token Proxy-Authenticate {
-        [',' <.OWS>]* <.challenge> [<.OWS> ',' [<.OWS> <.challenge>]?]*
-    }
-
-    token Proxy-Authorization { <.credentials> }
-
-    token WWW-Authenticate { 
-        [',' <.OWS>]* <.challenge> [<.OWS> ',' [<.OWS> <.challenge>]?]*
-    }
-
-    token auth-param { <.token> <.BWS> '=' <.BWS> [<.token> || <.quoted-string>] }
-
+    token auth-param  { <.token> <.BWS> '=' <.BWS> [<.token> || <.quoted-string>] }
     token auth-scheme { <.token> }
-
-    token challenge { 
+    token challenge   { 
         <.auth-scheme>
-        [
-        <.SP>+
-        [
-        ||  <.token68>
-        ||  [
-            [',' || <.auth-param>]
-            [<.OWS> ',' [<.OWS> <.auth-param>]?]*
-            ]?
-        ]
+        [ <.SP>+
+            [
+            || <.token68>
+            || [[<OWS> <auth-param>]*] *%% ','
+            ]
         ]?
     }
 

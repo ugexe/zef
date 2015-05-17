@@ -5,7 +5,7 @@ use Zef::Grammars::HTTP::RFC7235;
 
 role Zef::Grammars::HTTP::RFC7234::Core is Zef::Grammars::HTTP::RFC7235 {
     token Age           { <.delta-seconds> }
-    token Cache-Control { [',' <.OWS>]* <.cache-directive> [<.OWS> ',' [<.OWS> <.cache-directive>]?]* }
+    token Cache-Control { [[<.OWS> <cache-directive>]*] *%% ',' }
 
     # Added `|| (.*?)` to make it easier to handle invalid expires contents as expired (as the spec requires)
     # i.e. -1 or 0 should be treated as an expired value and not invalidate the header
@@ -15,8 +15,8 @@ role Zef::Grammars::HTTP::RFC7234::Core is Zef::Grammars::HTTP::RFC7235 {
 
     # token OWS 7230
 
-    token Pragma           { [',' <.OWS>]* <.pragma-directive> [<.OWS> ',' [<.OWS> <.pragma-directive>]?]* }
-    token warning          { [',' <.OWS>]* <.warning-value> [<.OWS> ',' [<.OWS> <.warning-value>]?]* }
+    token Pragma           { [[<.OWS> <pragma-directive>]*] *%% ',' }
+    token warning          { [[<.OWS> <warning-value>]*] *%% ','    }
     token cache-directive  { <.token> ['=' [<.token> || <.quoted-string>]]? }
     token delta-second     { <.DIGIT>+ }
     token extension-pragma { <.token> ['=' [<.token> || <.quoted-string>]]? }

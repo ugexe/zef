@@ -77,14 +77,15 @@ role Zef::Grammars::HTTP::RFC3986::Core does Zef::Grammars::HTTP::RFC4234::Core 
     token path-empty    { <.pchar> ** 0                          }
     token segment       { <.pchar>* }
     token segment-nz    { <.pchar>+ }
-    token segment-nz-nc { [<.unreserved> || <.pct-encoded> || <.sub-delims>]+  }
+    token segment-nz-nc { [<.unreserved> || <.pct-encoded> || <.sub-delims>]+    }
     token pchar { <.unreserved> || <.pct-encoded> || <.sub-delims> || ':' || '@' }
-    token query       {    [<.pchar> || '/' || '?']* }
-    token fragment    { [<.pchar> || '/' || '?']*    }
-    token pct-encoded { '%' <.HEXDIG> <.HEXDIG>    }
+    token query       { [<.pchar> || '/' || '?']*           }
+    token fragment    { [<.pchar> || '/' || '?']*           }
+    token pct-encoded { '%' <.HEXDIG> <.HEXDIG>             }
     token unreserved  { <.ALPHA> || <.DIGIT> || < - . _ ~ > }
-    token reserved    { <.gen-delims> || <.sub-delims> }
-    token gen-delims  { < : / ? # [ ] @ > }
+    token reserved    { <.gen-delims> || <.sub-delims>      }
+
+    token gen-delims  { < : / ? # [ ] @ >         }
     token sub-delims  { < ! $ & ' ( ) * + , ; = > }
 }
 

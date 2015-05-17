@@ -27,7 +27,7 @@ role Zef::Grammars::HTTP::RFC6265::Core is Zef::Grammars::HTTP::RFC5322::Core {
         || <[\x[5D]..\x[7E]]>
     }
 
-    token delimiters { <[\(\)\,\/\:\;\<\=\>\?\@\[\\\]\{\}]>   }
+    token delimiters { [< ( ) , / : ; = ? @ [ \ ] { } > || '<' || '>']+ }
     token token { <+CHAR -delimiters -QUOTE -SP -HTAB -CTL>+  }
     token cookie-av { 
         || <expires-av>

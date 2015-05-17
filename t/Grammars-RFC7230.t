@@ -12,7 +12,6 @@ subtest {
         ~ "\r\n" ~ q{Accept-Language: Fr}
         ~ "\r\n" ~ q{Accept-Encoding: gzip, deflate}
         ~ "\r\n" ~ q{User-Agent: Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)}
-        
         ~ "\r\n" ~ q{Connection: Keep-Alive}
         ~ "\r\n\r\n";
 
@@ -39,8 +38,8 @@ subtest {
 
     is $http.<HTTP-message>.<header-field>.[3], 'Accept-Encoding: gzip, deflate';
     is $http.<HTTP-message>.<header-field>.[3].<name>, 'Accept-Encoding';
-    is $http.<HTTP-message>.<header-field>.[3].<value>.[0], 'gzip';
-    is $http.<HTTP-message>.<header-field>.[3].<value>.[1], 'deflate';
+    is $http.<HTTP-message>.<header-field>.[3].<value>.<codings>.[0], 'gzip';
+    is $http.<HTTP-message>.<header-field>.[3].<value>.<codings>.[1], 'deflate';
 
     is $http.<HTTP-message>.<header-field>.[4], 'User-Agent: Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)';
     is $http.<HTTP-message>.<header-field>.[4].<name>, 'User-Agent';

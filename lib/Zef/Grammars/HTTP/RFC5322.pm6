@@ -86,9 +86,9 @@ role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC6854::Core 
 
     token display-name { <.phrase> }
 
-    token mailbox-list { [<mailbox> [',' <mailbox>]*] || <obs-mbox-list> }
+    token mailbox-list { [<mailbox> *%% ','] || <obs-mbox-list> }
 
-    token address-list { [<address> [',' <address>]*] || <obs-addr-list> }
+    token address-list { [<address> *%% ','] || <obs-addr-list> }
 
     token group-list { <mailbox-list> || <.CFWS> || <obs-group-list> }
 
@@ -171,7 +171,7 @@ role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC6854::Core 
 
     token comments { "Comments:" (<.unstructured>) <.CRLF> }
 
-    token keywords { "Keywords:" <.phrase> [',' <.phrase>]* <.CRLF> }
+    token keywords { "Keywords:" [<phrase> *%% ','] <.CRLF> }
 
     token resent-date { "Resent-Date:" <.date-time> <.CRLF> }
 

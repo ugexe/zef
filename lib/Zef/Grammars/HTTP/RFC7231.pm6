@@ -9,32 +9,13 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
     also does Zef::Grammars::HTTP::RFC5646::Core;
     also is Zef::Grammars::HTTP::RFC4647::Core;
 
-    token Accept { # todo: redo multi values for all tokens the same as token Accept (i.e. with %%)
-        [<.OWS> <media-range> <.OWS> [<accept-params> <.OWS>]?] *%% ','
-    }
-    token Accept-Charset { 
-        [',' <.OWS>]* [[<charset> || '*'] <weight>?] [<.OWS> ',' [<.OWS> [[<charset> || '*'] <weight>?]]]* 
-    }
-    token Accept-Encoding {
-        [
-            [',' || [(<.codings>) <.weight>?]]
-            [<.OWS> ',' [<.OWS> [(<.codings>) <.weight>?]]?]*
-        ]?
-    }
-    token Accept-Language {
-        [',' <.OWS>]* [<language-range> <weight>?] [<.OWS> ',' [<.OWS> [<language-range> <weight>?] ]?]*
-    }
-    token Allow {
-        [
-            [',' || <method>] [<.OWS> ',' [<.OWS> <method>]?]*
-        ]?
-    }
-    token Content-Encoding {
-        [',' <.OWS>]* <content-encoding> [<.OWS> ',' [<.OWS> <content-coding>]?]*
-    }
-    token Content-Language {
-        [',' <.OWS>]* <content-language> [<.OWS> ',' [<.OWS> <content-language>]?]*
-    }
+    token Accept           { [<.OWS> <media-range> <.OWS> [<accept-params> <.OWS>]?] *%% ',' }
+    token Accept-Charset   { [<.OWS> [[<charset> || '*'] <weight>?]*] *%% ','                }
+    token Accept-Encoding  { [<.OWS> [<codings> <weight>?]*]          *%% ','                }
+    token Accept-Language  { [<.OWS> [<language-range> <weight>?]*]   *%% ','                }
+    token Allow            { [<.OWS> <method>]                        *%% ','                }
+    token Content-Encoding { [<.OWS> <content-coding>]                *%% ','                }
+    token Content-Language { [<.OWS> <content-language>]              *%% ','                }
     token Content-Location {
         <absolute-URI> || <partial-URI>
     }
@@ -53,7 +34,7 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
     token User-Agent    { <product> [<.RWS> [<product> || <comment>]]* }
     token Vary { 
         || '*' 
-        || [[',' <.OWS>]* <field-name> [<.OWS> ',' [<.OWS> <field-name>]?]*]
+        || [<.OWS> <field-name>] *%% ','
     }
 
     token accept-ext    { <.OWS> ';' <.OWS> <.token> ['=' [<.token> || <.quoted-string>]]? }
@@ -61,7 +42,7 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
     token asctime-date  { <day-name> <.SP> <date3> <.SP> <time-of-day> <.SP> <year> }
 
     token charset { <.token> }
-    token codings { <content-coding> || 'identity' || '*' }
+    token codings { <.content-coding> || 'identity' || '*' }
     token content-coding { <.token> }
 
     token date1 { <day> <.SP> <month> <.SP> <year>   }
@@ -96,8 +77,14 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
     # token mailbox = <mailbox, see [RFC5322], Section 3.4>
 
     token media-range { 
-        ['*/*' || [<type> '/*'] || [<type> '/' <subtype>]]
-        [<.OWS> ';' <.OWS> <parameter>]*
+        [
+        || '*/*' 
+        || [<type> '/*'] 
+        || [<type> '/' <subtype>]
+        ]
+        [
+        [<.OWS> ';'] [[[<.OWS> <parameter>]*] *%% ';']
+        ]?
     }
 
      token media-type { <type> '/' <subtype> [<.OWS> ';' <.OWS> <parameter>]* }

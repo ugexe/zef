@@ -35,7 +35,7 @@ role Zef::Grammars::HTTP::RFC7235::Core is Zef::Grammars::HTTP::RFC3986 {
     }
 
 
-    token token68 { [<.ALPHA> || <.DIGIT> || '-' || '.' || '_' || '~' || '+' || '/' ]+ '='* }
+    token token68 { [<.ALPHA> || <.DIGIT> || < - . _ ~ + / >]+ '='* }
 }
 
 

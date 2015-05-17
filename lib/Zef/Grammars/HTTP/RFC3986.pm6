@@ -4,10 +4,10 @@ use v6;
 use Zef::Grammars::HTTP::RFC4234;
 
 role Zef::Grammars::HTTP::RFC3986::Core does Zef::Grammars::HTTP::RFC4234::Core {
-    token URI-reference { <URI> || <relative-ref> }
-    token URI { <scheme> ':' <heir-part> ['?' <query>]? ['#' <fragment>]?   }
-    token absolute-URI  { <scheme> : <heir-part> ['?' <query>]?            }
-    token relative-ref  { <relative-part> ['?' <query>]? ['#' <fragment>]? }
+    token URI-reference { <URI> || <relative-ref>                                   }
+    token URI           { <scheme> ':' <heir-part> ['?' <query>]? ['#' <fragment>]? }
+    token absolute-URI  { <scheme> : <heir-part> ['?' <query>]?                     }
+    token relative-ref  { <relative-part> ['?' <query>]? ['#' <fragment>]?          }
     token heir-part     { 
         || '//' <authority> <path-abempty> 
         || <path-absolute> 
@@ -82,10 +82,10 @@ role Zef::Grammars::HTTP::RFC3986::Core does Zef::Grammars::HTTP::RFC4234::Core 
     token query       {    [<.pchar> || '/' || '?']* }
     token fragment    { [<.pchar> || '/' || '?']*    }
     token pct-encoded { '%' <.HEXDIG> <.HEXDIG>    }
-    token unreserved  { <.ALPHA> || <.DIGIT> || '-' || '.' || '_' || '~' }
+    token unreserved  { <.ALPHA> || <.DIGIT> || < - . _ ~ > }
     token reserved    { <.gen-delims> || <.sub-delims> }
-    token gen-delims  { ':' || '/' || '?' || '#' || '[' || ']' || '@'     }
-    token sub-delims  { '!' || '$' || '&' || \' || '(' || ')' || '*' || '+' || ',' || ';' || '=' }
+    token gen-delims  { < : / ? # [ ] @ > }
+    token sub-delims  { < ! $ & ' ( ) * + , ; = > }
 }
 
 grammar Zef::Grammars::HTTP::RFC3986 does Zef::Grammars::HTTP::RFC3986::Core {

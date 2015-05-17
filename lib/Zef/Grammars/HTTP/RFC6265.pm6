@@ -13,8 +13,9 @@ role Zef::Grammars::HTTP::RFC6265::Core is Zef::Grammars::HTTP::RFC5322::Core {
     # todo: s/<date2>/lexical month/day/year tokens/
     token rfc1123-date { [<.day-of-week> ',']? <.SP> [<date2>\d\d] <.SP> <.time-of-day> <.SP> 'GMT' }
 
-    token set-cookie-header { 'Set-Cookie:' <.SP> <set-cookie-string> }
-    token set-cookie-string { <cookie-pair> [';' <.SP> <cookie-av>]*  }
+    token set-cookie-header { 'Set-Cookie:' <.SP> <Set-Cookie>   }
+    token Set-Cookie   { <cookie-pair> [';' <.SP> <cookie-av>]*  } # renamed from RFC for our indirect method call 
+                                                                   # in proto token known-header in RFC7230.pm6
     token cookie-pair  { <cookie-name> '=' <cookie-value>                      }
     token cookie-name  { <.token>                                              }
     token cookie-value { <.cookie-octet>* || <.DQUOTE> <.cookie-octet>* <.DQUOTE> }

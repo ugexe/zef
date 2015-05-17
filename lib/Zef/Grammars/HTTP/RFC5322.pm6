@@ -18,12 +18,9 @@ role Zef::Grammars::HTTP::RFC5322::Core does Zef::Grammars::HTTP::RFC6854::Core 
     token CFWS { [[<.FWS>? <.comment>]+ <.FWS>?] || <.FWS> }
 
     token atext { 
-        || <.ALPHA>  || <.DIGIT>
-        || '!' || '#' || '$' || '%' 
-        || '&' || \'  || '*' || '+'
-        || '-' || '|' || '=' || '?'
-        || '^' || '_' || '`' || '{'
-        || '|' || '}' || '~'
+        || <.ALPHA>  
+        || <.DIGIT>
+        || < ! # $ %  & ' * + - | = ? ^ _ ` { | } ~ >
     }
 
     token atom { <.CFWS>? <.atext>+ <.CFWS>? }

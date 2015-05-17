@@ -4,6 +4,7 @@ plan 2;
 
 use Zef::Grammars::HTTP::RFC7230;
 
+
 subtest {
     my $response = q{GET /http.html HTTP/1.1}
         ~ "\r\n" ~ q{Host: www.http.header.free.fr}
@@ -11,6 +12,7 @@ subtest {
         ~ "\r\n" ~ q{Accept-Language: Fr}
         ~ "\r\n" ~ q{Accept-Encoding: gzip, deflate}
         ~ "\r\n" ~ q{User-Agent: Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)}
+        
         ~ "\r\n" ~ q{Connection: Keep-Alive}
         ~ "\r\n\r\n";
 
@@ -21,34 +23,35 @@ subtest {
 
     is $http.<HTTP-message>.<header-field>.[0], 'Host: www.http.header.free.fr';
     is $http.<HTTP-message>.<header-field>.[0].<name>, 'Host';
-    is $http.<HTTP-message>.<header-field>.[0].<Host>, 'www.http.header.free.fr';
+    is $http.<HTTP-message>.<header-field>.[0].<value>, 'www.http.header.free.fr';
 
     is $http.<HTTP-message>.<header-field>.[1], 'Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg,';
     is $http.<HTTP-message>.<header-field>.[1].<name>, 'Accept';
-    
-    is $http.<HTTP-message>.<header-field>.[1].<Accept>.<media-range>.[0], 'image/gif';
-    is $http.<HTTP-message>.<header-field>.[1].<Accept>.<media-range>.[1], 'image/x-xbitmap';
-    is $http.<HTTP-message>.<header-field>.[1].<Accept>.<media-range>.[2], 'image/jpeg';
-    is $http.<HTTP-message>.<header-field>.[1].<Accept>.<media-range>.[3], 'image/pjpeg';
+
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-range>.[0], 'image/gif';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-range>.[1], 'image/x-xbitmap';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-range>.[2], 'image/jpeg';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-range>.[3], 'image/pjpeg';
 
     is $http.<HTTP-message>.<header-field>.[2], 'Accept-Language: Fr';
     is $http.<HTTP-message>.<header-field>.[2].<name>, 'Accept-Language';
-    is $http.<HTTP-message>.<header-field>.[2].<Accept-Language>.<language-range>.[0].<language-tag>, 'Fr';
+    is $http.<HTTP-message>.<header-field>.[2].<value>.<language-range>.[0].<language-tag>, 'Fr';
 
     is $http.<HTTP-message>.<header-field>.[3], 'Accept-Encoding: gzip, deflate';
     is $http.<HTTP-message>.<header-field>.[3].<name>, 'Accept-Encoding';
-    is $http.<HTTP-message>.<header-field>.[3].<Accept-Encoding>.[0], 'gzip';
-    is $http.<HTTP-message>.<header-field>.[3].<Accept-Encoding>.[1], 'deflate';
+    is $http.<HTTP-message>.<header-field>.[3].<value>.[0], 'gzip';
+    is $http.<HTTP-message>.<header-field>.[3].<value>.[1], 'deflate';
 
     is $http.<HTTP-message>.<header-field>.[4], 'User-Agent: Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)';
     is $http.<HTTP-message>.<header-field>.[4].<name>, 'User-Agent';
-    is $http.<HTTP-message>.<header-field>.[4].<User-Agent>, 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)';
+    is $http.<HTTP-message>.<header-field>.[4].<value>, 'Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)';
 
     is $http.<HTTP-message>.<header-field>.[5], 'Connection: Keep-Alive';
     is $http.<HTTP-message>.<header-field>.[5].<name>, 'Connection';
-    is $http.<HTTP-message>.<header-field>.[5].<Connection>, 'Keep-Alive';
+    is $http.<HTTP-message>.<header-field>.[5].<value>, 'Keep-Alive';
 
 }, 'Basic';
+
 
 subtest {
     my $response = q{HTTP/1.1 200 OK}

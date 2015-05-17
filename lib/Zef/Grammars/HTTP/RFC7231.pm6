@@ -38,25 +38,24 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
     token Content-Location {
         <absolute-URI> || <partial-URI>
     }
-    token Content-Type { <media-type> }
-    token Date { <HTTP-date> }
-    token Expect { '100-continue' }
-    token From { <mailbox> }
-    token GMT { [:!i GMT] }
-    token HTTP-date { <IMF-fixdate> || <obs-date> }
-    token IMF-fixdate { <day-name> ',' <.SP> <date1> <.SP> <time-of-day> <.SP> <GMT> }
-    token Location { <URI-reference> }
-    token Max-Forwards { [0..9] }
-    token Referer { <absolute-URI> || <partial-URI> }
-    token Retry-After { <HTTP-date> || <delay-seconds> }
-    token Server { <product> [<.RWS> [<product> || <comment>]]* }
-    token User-Agent { <product> [<.RWS> [<product> || <comment>]]* }
+    token Content-Type  { <media-type>   }
+    token Date          { <HTTP-date>    }
+    token Expect        { '100-continue' }
+    token From          { <mailbox>      }
+    token GMT           { [:!i GMT]      }
+    token HTTP-date     { <IMF-fixdate> || <obs-date> }
+    token IMF-fixdate   { <day-name> ',' <.SP> <date1> <.SP> <time-of-day> <.SP> <GMT> }
+    token Location      { <URI-reference> }
+    token Max-Forwards  { [0..9] }
+    token Referer       { <absolute-URI> || <partial-URI> }
+    token Retry-After   { <HTTP-date> || <delay-seconds>  }
+    token Server        { <product> [<.RWS> [<product> || <comment>]]* }
+    token User-Agent    { <product> [<.RWS> [<product> || <comment>]]* }
     token Vary { 
         || '*' 
         || [[',' <.OWS>]* <field-name> [<.OWS> ',' [<.OWS> <field-name>]?]*]
     }
 
-    # tokens
     token accept-ext    { <.OWS> ';' <.OWS> <.token> ['=' [<.token> || <.quoted-string>]]? }
     token accept-params { <weight> <accept-ext>* }
     token asctime-date  { <day-name> <.SP> <date3> <.SP> <time-of-day> <.SP> <year> }
@@ -121,7 +120,7 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
 
     token obs-date { <rfc850-date> || <asctime-date> }
 
-    token parameter       { <.token> '=' [<.token> || <.quoted-string>] }
+    token parameter       { $<name>=<.token> '=' $<value>=[<.token> || <.quoted-string>]? }
     token product         { <.token> ['/' <product-version>]? }
     token product-version { <.token> }
 
@@ -131,16 +130,12 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core {
     }
 
     token rfc850-date { <day-name1> ',' <.SP> <date2> <.SP> <time-of-day> <.SP> <.GMT> }
-
-    token second  { \d\d }
-    token subtype { <.token>}
-
+    token second      { \d\d }
+    token subtype     { <.token>}
     token time-of-day { <hour> ':' <minute> ':' <second> }
     token type        { <.token> }
-
-    token weight { <.OWS> ';' <.OWS> 'q=' <qvalue> }
-
-    token year { \d\d\d\d }
+    token weight      { <.OWS> ';' <.OWS> 'q=' <qvalue> }
+    token year        { \d\d\d\d }
 } 
 
 

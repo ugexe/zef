@@ -40,7 +40,7 @@ class Zef::Utils::HTTPClient {
         $connection.send(~$request);
 
         my $response   = Zef::Grammars::HTTPResponse.new(message => do { 
-            my $d; while my $r = $connection.recv { $d ~= $r }; $d;
+            my $d; while my $r = $connection.recv { say $r; $d ~= $r }; $d;
         });
 
         @.history.push: RoundTrip.new(:$request, :$response);

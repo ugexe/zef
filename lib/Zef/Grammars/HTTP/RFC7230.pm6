@@ -6,9 +6,36 @@ use v6;
 
 use Zef::Grammars::HTTP::RFC7231;
 use Zef::Grammars::HTTP::RFC6265;
-#use Grammar::Debugger;
+
+
+role Grammars::HTTP::Extensions {
+    # copy of parameter from 7231 but with comma separation
+    token parameters         { [$<name>=<.token> '=' $<value>=[<.token> || <.quoted-string>]?] *%% ',' }
+
+    # Header extensions
+    token known-header:sym<X-XSS-Protection>   { <.sym> }
+    token known-header:sym<Alternate-Protocol> { <.sym> }
+    token known-header:sym<P3P>                { <.sym> }
+
+    token X-XSS-Protection   { $<enable>=[0 || 1] <.OWS> [';' <.OWS> <parameters>] }
+    token Alternate-Protocol { [[<port> ':' <protocol>] || <parameter>] *%% ','    }
+    token P3P                { <parameters>                                        }
+    #Keep-Alive         # timeout=3, max=87
+    #X-UA-Compatible    # Chome=1
+    #X-Robots-Tag       # noindex,nofollow
+    #Strict-Transport-Security # max-age=16070400; includeSubDomains
+    #Link # <http://www.example.com/>; rel=”cononical”
+    #X-Content-Type-Options
+    #X-Frame-Options
+    #Strict-Transport-Security
+    #Public-Key-Pins
+    #Access-Control-Allow-Origin
+    #Content-Security-Policy
+}
+
 role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     also is Zef::Grammars::HTTP::RFC6265::Core;
+    also does Grammars::HTTP::Extensions;
 
     token HTTP-message { <start-line> [<header-field> <.CRLF>]* <.CRLF> <message-body>? }
 
@@ -54,65 +81,62 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
         <.HTAB> || <.SP> || <[\x[21]..\x[27]]> || <[\x[2A]..\x[5B]]> || <[\x[5D]..\x[7E]]> || <.obs-text> 
     }
 
-    token delimiters { <[\(\)\,\/\:\;\<\=\>\?\@\[\\\]\{\}]>+ }
+    proto token known-header {*};
+    # 6265
+    token known-header:sym<Cookie>            { <.sym> }
+    token known-header:sym<Set-Cookie>        { <.sym> }
+    # 7230
+    token known-header:sym<Connection>        { <.sym> }
+    token known-header:sym<Host>              { <.sym> }
+    token known-header:sym<TE>                { <.sym> }
+    token known-header:sym<Trailer>           { <.sym> }
+    token known-header:sym<Transfer-Encoding> { <.sym> }
+    token known-header:sym<Upgrade>           { <.sym> }
+    token known-header:sym<Via>               { <.sym> }
+    # 7231
+    token known-header:sym<Accept>            { <.sym> }
+    token known-header:sym<Accept-Charset>    { <.sym> }
+    token known-header:sym<Accept-Encoding>   { <.sym> }
+    token known-header:sym<Accept-Language>   { <.sym> }
+    token known-header:sym<Allow>             { <.sym> }
+    token known-header:sym<Content-Encoding>  { <.sym> }
+    token known-header:sym<Content-Language>  { <.sym> }
+    token known-header:sym<Content-Location>  { <.sym> }
+    token known-header:sym<Content-Type>      { <.sym> }
+    token known-header:sym<Date>              { <.sym> }
+    token known-header:sym<Expect>            { <.sym> }
+    token known-header:sym<From>              { <.sym> }
+    token known-header:sym<Location>          { <.sym> }
+    token known-header:sym<Max-Forwards>      { <.sym> }
+    token known-header:sym<Referer>           { <.sym> }
+    token known-header:sym<Retry-After>       { <.sym> }
+    token known-header:sym<Server>            { <.sym> }
+    token known-header:sym<User-Agent>        { <.sym> }
+    token known-header:sym<Vary>              { <.sym> }
+    # 7232
+    token known-header:sym<Etag>              { <.sym> }
+    token known-header:sym<Last-Modified>     { <.sym> }
+    # 7233
+    token known-header:sym<Accept-Ranges>     { <.sym> }
+    token known-header:sym<Content-Range>     { <.sym> }
+    # 7234
+    token known-header:sym<Cache-Control>     { <.sym> }
+    token known-header:sym<Expires>           { <.sym> }
+    token known-header:sym<Warning>           { <.sym> }
+    # 7235
+    token known-header:sym<WWW-Authenticate>   { <.sym> }
+    token known-header:sym<Proxy-Authenticate> { <.sym> }
 
-    
-    # todo: refactorrr
-    token header-field  { 
-        # 7230
-        || $<name>=["Connection"]        ':' <.OWS> <Connection>
-        || $<name>=["Host"]              ':' <.OWS> <Host>
-        || $<name>=["TE"]                ':' <.OWS> <TE>
-        || $<name>=["Trailer"]           ':' <.OWS> <Trailer>
-        || $<name>=["Transfer-Encoding"] ':' <.OWS> <Transfer-Encoding>
-        || $<name>=["Upgrade"]           ':' <.OWS> <Upgrade>
-        || $<name>=["Via"]               ':' <.OWS> <Via>
-
-        # 7231
-        || $<name>=["Accept"]            ':' <.OWS> <Accept>
-        || $<name>=["Accept-Charset"]    ':' <.OWS> <Accept-Charset>
-        || $<name>=["Accept-Encoding"]   ':' <.OWS> <Accept-Encoding>
-        || $<name>=["Accept-Language"]   ':' <.OWS> <Accept-Language>
-        || $<name>=["Allow"]             ':' <.OWS> <Allow>
-        || $<name>=["Content-Encoding"]  ':' <.OWS> <Content-Encoding>
-        || $<name>=["Content-Language"]  ':' <.OWS> <Content-Language>
-        || $<name>=["Content-Location"]  ':' <.OWS> <Content-Location>
-        || $<name>=["Content-Type"]      ':' <.OWS> <Content-Type>
-        || $<name>=["Date"]              ':' <.OWS> <Date>
-        || $<name>=["Expect"]            ':' <.OWS> <Expect>
-        || $<name>=["From"]              ':' <.OWS> <From>
-        || $<name>=["Location"]          ':' <.OWS> <Location>
-        || $<name>=["Max-Forwards"]      ':' <.OWS> <Max-Forwards>
-        || $<name>=["Referer"]           ':' <.OWS> <Referer>
-        || $<name>=["Retry-After"]       ':' <.OWS> <Retry-After>
-        || $<name>=["Server"]            ':' <.OWS> <Server>
-        || $<name>=["User-Agent"]        ':' <.OWS> <User-Agent>
-        || $<name>=["Vary"]              ':' <.OWS> <Vary>
-
-        # 6265
-        || $<name>=["Cookie"]            ':' <.OWS> <cookie-string>
-        || $<name>=["Set-Cookie"]        ':' <.OWS> <set-cookie-string>
-
-        # 7234
-        || $<name>=["Cache-Control"]     ':' <.OWS> <Cache-Control>
-        || $<name>=["Expires"]           ':' <.OWS> [<Expires> || <.token>]
-
-        # Custom
-        || $<name>=["X-XSS-Protection"] ':' <.OWS> [$<status>=<.token> <.OWS> [';' <.OWS> <parameter>?]*] <.OWS>
-
-        # Default header rule
-        || $<name>=<.field-name> ':' <.OWS> <field-value> <.OWS>
+    token header-field {
+        || $<name>=<.known-header> ':' <.OWS> {} $<value>=<::($<name>)> <.OWS>
+        || $<name>=<.field-name>   ':' <.OWS> $<value>=[<.field-value>] <.OWS>
     }
 
     token field-name    { <.token> } # the general rule
-
-    token field-value { [<.parameter> || <.field-content> || <.obs-fold>]* }
-
+    token field-value   { [<.field-content> || <.obs-fold>]*                     }
     token field-content { <.field-vchar> [[<.SP> || <.HTAB> || <.field-vchar>]+ <.field-vchar>]? }
-
-    token field-vchar   { <.VCHAR> || <.obs-text> }
-
-    token last-chunk { 0+ <.chunk-ext>? <.CRLF> }
+    token field-vchar   { <.VCHAR> || <.obs-text>  }
+    token last-chunk    { 0+ <.chunk-ext>? <.CRLF> }
 
     token message-body  { <[\x[00]..\x[FF]]>* }
     token method        { GET || HEAD || POST || PUT || DELETE || CONNECT || OPTIONS || TRACE }
@@ -142,10 +166,14 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     token status-code { \d\d\d }
 
 
-    token t-codings { 'trailers' || [<.transfer-coding> <.t-ranking>?]         }
-    token t-ranking { <.OWS> ';' <.OWS> 'q=' <rank>                            }
-    token tchar { <+[-!#$%&'*+.^_`|~"] +DIGIT +ALPHA -delimiters -DQUOTE> }
-    token token { <.tchar>+ }
+    token t-codings    { 'trailers' || [<.transfer-coding> <.t-ranking>?]         }
+    token t-ranking    { <.OWS> ';' <.OWS> 'q=' <rank>                            }
+    token tchar        { 
+        || < ! # $ % & ' * + - . ^ _ ` | ~ > 
+        || <.DIGIT>
+        || <.ALPHA> 
+    }
+    token token        { <.tchar>+ }
     token trailer-part { [<.header-field> <.CRLF>]* }
     token transfer-coding { 
         || 'chunked'
@@ -156,6 +184,8 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     }
     token transfer-extension { <.token> [<.OWS> ';' <.OWS> <.transfer-parameter>]*       }
     token transfer-parameter { <.token> <.BWS> '=' <.BWS> [<.token> || <.quoted-string>] }
+
+    token delimiters { [< ( ) , / : ; = ? @ [ \ ] { } > || '<' || '>']+ }
 }
 
 

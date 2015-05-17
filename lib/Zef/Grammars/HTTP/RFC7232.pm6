@@ -29,8 +29,7 @@ role Zef::Grammars::HTTP::RFC7232::Core is Zef::Grammars::HTTP::RFC7233::Core {
     }
 
     token If-Unmodified-Since { <.HTTP-date> }
-
-    token Last-Modified { <.HTTP-date> }
+    token Last-Modified       { <.HTTP-date> }
 
     # token OWS 7230
 
@@ -45,8 +44,7 @@ role Zef::Grammars::HTTP::RFC7232::Core is Zef::Grammars::HTTP::RFC7233::Core {
     # token obs-text 7230
 
     token opaque-tag { <.DQUOTE> <.etagc>* <.DQUOTE> }
-
-    token weak { \x[57]\x[2F] }
+    token weak       { \x[57]\x[2F]                  }
 }
 
 

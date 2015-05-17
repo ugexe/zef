@@ -21,8 +21,8 @@ class Zef::Builder does Zef::Phase::Building {
                     has $!has-precomp;
                     has $!out;
                     submethod BUILD { 
-                        $!out = $out; 
-                        $!has-precomp = ?$!out.IO.f;
+                        $!out := $out; 
+                        $!has-precomp := ?$!out.IO.f;
                     }
                     method precomp-path { $!out.IO.absolute }
                 }

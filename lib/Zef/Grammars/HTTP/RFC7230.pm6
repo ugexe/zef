@@ -31,6 +31,7 @@ role Grammars::HTTP::Extensions {
     #Public-Key-Pins
     #Access-Control-Allow-Origin
     #Content-Security-Policy
+    #Alt-Svc
 }
 
 role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {

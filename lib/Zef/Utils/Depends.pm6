@@ -13,7 +13,7 @@ grammar Grammar::Dependency::Parser {
     token short-name     { <name-piece> [<.colon-pair> <name-piece>]* }
     token name-piece     { <.name-token>+       }
     token name-token     { <+[\S] -restricted>  }
-    token restricted     { <[:;{}\[\]\(\)./\\]> }
+    token restricted     { < : ; { } [ ] ( ) . , = + / \ ] $ @ % ! ^ & * ~ # ` | ? > || '<' || '>' }
     token colon-pair     { '::' }
 
     proto token load-type {*}
@@ -22,18 +22,18 @@ grammar Grammar::Dependency::Parser {
     token load-type:sym<require> { <sym> }
 }
 
-method build-dep-tree(@metas = @!metas) {
-    my @tree;
-
-    sub visit(%meta is rw) {
-        unless %meta<marked>++ {
-            &?ROUTINE($_.hash) for @metas.grep({ $_.<name> ~~ any(%meta<dependencies>.list) });
-            @tree.push({ %meta });
+method build-dep-tree(@metas is copy = @!metas) {
+    my @tree = eager gather while @metas.shift -> %meta {
+        state %marked;
+        unless %marked.{%meta.<name>} {
+            my @required = @metas.grep(-> %_ { %_.<name> ~~ any(%meta.<dependencies>.list) });
+            my @needed   = @required.grep(-> %_ { not %marked.{%_.<name>} });
+            @needed.map(-> %_ { @metas.unshift({ %_ }) });
+            @metas.push({ %meta });
+            next if @needed;
         }
+        take { %meta } unless %marked.{%meta.<name>}++;
     }
-
-    visit($_.hash) for @metas;
-
     return @tree;
 }
 
@@ -66,7 +66,7 @@ method extract-deps(*@paths) {
             $t = $t.substr(0,$/.from) ~ $t.substr($/.to);
         }
 
-        my $not-deps   = any(<v6 MONKEY_TYPING strict fatal nqp NativeCall cur lib>);
+        my $not-deps   = any(<v6 MONKEY-TYPING strict fatal nqp NativeCall cur lib>);
         my $dep-parser = Grammar::Dependency::Parser.parse($t);
 
         my @depends = gather for $dep-parser.<load-statement>.list -> $dep {

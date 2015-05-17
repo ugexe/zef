@@ -32,6 +32,7 @@
 
         "Zef::Grammars::HTTP::RFC1035" : "lib/Zef/Grammars/HTTP/RFC1035.pm6",
         "Zef::Grammars::HTTP::RFC3066" : "lib/Zef/Grammars/HTTP/RFC3066.pm6",
+        "Zef::Grammars::HTTP::RFC3986" : "lib/Zef/Grammars/HTTP/RFC3986.pm6",
         "Zef::Grammars::HTTP::RFC4234" : "lib/Zef/Grammars/HTTP/RFC4234.pm6",
         "Zef::Grammars::HTTP::RFC4647" : "lib/Zef/Grammars/HTTP/RFC4647.pm6",
         "Zef::Grammars::HTTP::RFC5322" : "lib/Zef/Grammars/HTTP/RFC5322.pm6",

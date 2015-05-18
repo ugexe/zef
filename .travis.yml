@@ -19,6 +19,5 @@ install:
     - perl6 -v
 script:
     - perl6 -Ilib bin/zef test
-    - perl6 -Ilib bin/zef build
-    - mv blib/ blib-testing/
-    - prove -v -e "perl6 -Iblib-testing/lib" t/
+    - perl6 -Ilib bin/zef --save-to=precomp/ build ./
+    - prove -v -e "perl6 -Iprecomp/blib/lib" t/

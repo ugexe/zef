@@ -9,7 +9,6 @@ augment class IO::Path {
             my @paths = $.path.IO.d ?? $.path.IO.dir(|c) !! $.path;
             while @paths.pop -> $p {
                 next if !$a && $p.IO.basename.starts-with('.');
-
                 given $p.IO {
                     when :d {
                         take $p if $d;

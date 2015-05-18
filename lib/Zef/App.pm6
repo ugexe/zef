@@ -83,9 +83,9 @@ multi MAIN('get', :$save-to = "$*CWD/{time}", *@modules) is export {
 #| Build modules in cwd
 multi MAIN('build') is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directories
-multi MAIN('build', $path) {
+multi MAIN('build', $path, :$save-to) {
     my $builder = Zef::Builder.new(:@plugins);
-    $builder.pre-compile($path);
+    $builder.pre-compile($path, :$save-to);
 }
 
 multi MAIN('login', Str $username, Str $password? is copy) {

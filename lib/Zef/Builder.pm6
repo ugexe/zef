@@ -4,10 +4,11 @@ use Zef::Utils::PathTools;
 
 
 class Zef::Builder does Zef::Phase::Building {
-    method pre-compile(*@paths is copy) {
+    method pre-compile(*@paths is copy, :$save-to is copy) {
         my @results = eager gather for @paths -> $path {
+            $save-to //= $path;
             my $lib  := $*SPEC.catdir($path.IO.path, 'lib').IO;
-            my $blib := $*SPEC.catdir($path.IO.path, 'blib').IO;
+            my $blib := $*SPEC.catdir($save-to.IO.path, $*SPEC.catdir('blib','lib').IO).IO;
             my @metas    := extract-deps( $lib.IO.ls(:r, :f) );
             my @sources  := Zef::Utils::Depends.new(:@metas).build-dep-tree;
 
@@ -15,7 +16,7 @@ class Zef::Builder does Zef::Phase::Building {
                 my $lib-cur  := CompUnitRepo::Local::File.new( $lib  );
                 my $blib-cur := CompUnitRepo::Local::File.new( $blib );
 
-                my $out := "{$*CWD}/blib/{%module<file>.IO.relative}.{$*VM.precomp-ext}";
+                my $out := "{$save-to}/blib/{%module<file>.IO.relative}.{$*VM.precomp-ext}";
                 my $cu  := CompUnit.new(%module<file>.IO.path);
                 $cu does role { # workaround for non-default :$out
                     has $!has-precomp;

@@ -37,6 +37,7 @@ class Zef::Grammars::HTTPResponse {
     has $.status-code = Int;
     has $.status-message;
     has $.chunked;
+    has $.encoding;
     has $.body;
     has %.header;
 
@@ -46,10 +47,11 @@ class Zef::Grammars::HTTPResponse {
         if $!grammar {
             $!status-code    =  ($!grammar.<HTTP-message>.<start-line>.<status-line>.<status-code>   // Int).Int;
             $!status-message = ~($!grammar.<HTTP-message>.<start-line>.<status-line>.<reason-phrase> //  '');
-            $!body           = $!grammar.<HTTP-message>.<message-body>                           ;
+            $!body           = ~($!grammar.<HTTP-message>.<message-body>                             //  '');
 
 
             for $!grammar.<HTTP-message>.<header-field>.list -> $field {
+                # todo: recursively turn structure into objects
                 my $h = $field.<name>.Str;
                 my $v = $field.<value>.Str;
                 %!header.{$h} = $v;
@@ -65,7 +67,21 @@ class Zef::Grammars::HTTPResponse {
         return $!grammar ?? $!grammar.Str !! Str;
     }
 
+    method content {
+        my $content = !$!chunked 
+            ?? $!body
+            !! do { 
+                my $chunked-grammar = Zef::Grammars::HTTP::RFC7230.subparse($.body, :rule<chunked-body>);
+                my $c ~= $_.<chunk-data>.Str for $chunked-grammar.<chunk>.list;
+                $c
+            }
 
+        if $!encoding {
+
+        }
+
+        return $content;
+    }
 }
 
 

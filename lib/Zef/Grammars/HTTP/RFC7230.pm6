@@ -78,7 +78,7 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
         $<chunk-size>=<chunk-size>
         <chunk-ext>?
         <.CRLF>
-        $<chunk-data>=<chunk-data> # <.OCTET> ** { $<chunk-size> }]
+        $<chunk-data>=[<.OCTET> ** { 1..:16("$<chunk-size>") }]
         <.CRLF>
     }
     token chunk-data        { <.OCTET>+                                                 }

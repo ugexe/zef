@@ -122,9 +122,14 @@ Basic http client: Grammar based parser; uses IO::Socket::SSL if available for h
 
     use Zef::Utils::HTTPClient;
     
+    my $client = Zef::Utils::HTTPClient.new;
+
     my $payload  = to-json({ term => "zef" });
-    my $response = Zef::Utils::HTTPClient.new.post("http://zef.pm/api/search", $payload);
-    my $json     = from-json($response.<body>);    
+    my $response = $client.post("http://zef.pm/api/search", $payload);
+    my $json     = from-json($response.<body>);
+
+    my $response = $client.get("https://www.google.com");
+    say $reponse.content; # apply encoding/chunked/etc to $.body
 
 =head2 Zef::Utils::Base64
 

@@ -36,6 +36,7 @@ class Zef::Grammars::HTTPResponse {
     has $.message;
     has $.status-code = Int;
     has $.status-message;
+    has $.chunked;
     has $.body;
     has %.header;
 
@@ -45,11 +46,17 @@ class Zef::Grammars::HTTPResponse {
         if $!grammar {
             $!status-code    =  ($!grammar.<HTTP-message>.<start-line>.<status-line>.<status-code>   // Int).Int;
             $!status-message = ~($!grammar.<HTTP-message>.<start-line>.<status-line>.<reason-phrase> //  '');
-            $!body           = ~($!grammar.<HTTP-message>.<message-body>                             //  '');
+            $!body           = $!grammar.<HTTP-message>.<message-body>                           ;
+
 
             for $!grammar.<HTTP-message>.<header-field>.list -> $field {
                 my $h = $field.<name>.Str;
-                %!header.{$h} = $h;
+                my $v = $field.<value>.Str;
+                %!header.{$h} = $v;
+
+                if $field.<name>.Str eq 'Transfer-Encoding' && $field.<value>.grep({ $_.<transfer-coding> ~~ /^chunked/ }) {
+                    $!chunked = 1;
+                }
             }
         }
     }
@@ -57,6 +64,8 @@ class Zef::Grammars::HTTPResponse {
     method Str {
         return $!grammar ?? $!grammar.Str !! Str;
     }
+
+
 }
 
 

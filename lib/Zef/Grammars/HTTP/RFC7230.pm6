@@ -56,9 +56,8 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     token RWS   { [<.SP> || <.HTAB>]+ }
     token BWS   { <.OWS>              }
 
-    # fields
     token Connection        { 
-        [',' <.RWS>]* <connection-option> [<.RWS> ',' [<.space> <connection-option>]?]* 
+        [[<.OWS> <connection-option>]*] *%% ',' 
     }
     token Content-Length    { [0..9]+ }
     token HTTP-version      { <HTTP-name> '/' $<major>=[\d] '.' $<minor>=[\d] }
@@ -68,20 +67,26 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     token Trailer           { [[<.OWS> <field-name>]*]      *%% ','                           }
     token Transfer-Encoding { [[<.OWS> <transfer-coding>]*] *%% ','                           }
     token Upgrade { [[<.OWS> <protocol>]*]                  *%% ','                           }
-    token Via { [[<received-protocol> <.RWS> <received-by> [<.RWS> <comment>]?]*] *%%','      }
+    token Via { [[<received-protocol> <.RWS> <received-by> [<.RWS> <comment>]?]*] *%% ','     }
 
     token absolute-form  { <.absolute-URI>   }
     token absolute-path  { ['/' <.segment>]+ }
     token asterisk-form  { '*'               }
     token authority-form { <.authority>      }
 
-    token chunk             { <.chunk-size> <.chunk-ext>? <.CRLF> <.chunk-data> <.CRLF> }
+    token chunk             { 
+        $<chunk-size>=<chunk-size>
+        <chunk-ext>?
+        <.CRLF>
+        $<chunk-data>=<chunk-data> # <.OCTET> ** { $<chunk-size> }]
+        <.CRLF>
+    }
     token chunk-data        { <.OCTET>+                                                 }
     token chunk-ext         { [';' <.chunk-ext-name> ['=' <.chunk-ext-val>]?]*          }
     token chunk-ext-name    { <.token>                                                  }
     token chunk-ext-val     { <.token> || <.quoted-string>                              }
     token chunk-size        { <.xdigit>+                                                }
-    token chunked-body      { <.chunk>* <.last-chunk> <.trailer-part> <.CRLF>           }
+    token chunked-body      { <chunk>* <last-chunk> <trailer-part> <.CRLF>              }
     token comment           { '(' [<.ctext> || <.quoted-pair> || <.comment>]* ')'       }
     token connection-option { <.token> }
     token ctext { 
@@ -163,7 +168,7 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
 
     token rank              { [0 ['.' \d\d?\d?]?] || [1 ['.' 0?0?]?]                   }
     token reason-phrase     { [<.HTAB> || <.SP> || <.VCHAR> || <.obs-text>]*           } 
-    token received-by       { [<.uri-host> [':' <.port>]?] || <.pseudonym>             }
+    token received-by       { [<.host> [':' <.port>]?] || <.pseudonym>             }
     token received-protocol { [<.protocol-name> '/']? <.protocol-version>              }
     token request-line      { <method> ' ' <request-target> ' ' <HTTP-version> <.CRLF> }
     token request-target    { <.origin-form> || <.absolute-form> || <.authority-form> || <.asterisk-form> }

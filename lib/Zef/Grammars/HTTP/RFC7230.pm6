@@ -51,6 +51,7 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     also does Grammars::HTTP::Extensions;
 
     token HTTP-message { <start-line> [<header-field> <.CRLF>]* <.CRLF> <message-body>? }
+    token HTTP-header  { <start-line> [<header-field> <.CRLF>]*                         }
 
     token OWS   { [<.SP> || <.HTAB>]* }
     token RWS   { [<.SP> || <.HTAB>]+ }
@@ -150,7 +151,7 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     token field-vchar   { <.VCHAR> || <.obs-text>  }
     token last-chunk    { 0+ <.chunk-ext>? <.CRLF> }
 
-    token message-body  { <[\x[00]..\x[FF]]>* }
+    token message-body  { <.OCTET>* }
     token method        { GET || HEAD || POST || PUT || DELETE || CONNECT || OPTIONS || TRACE }
 
     token obs-fold      { <.OWS> <.CRLF> [<.SP> || <.HTAB>]+ }
@@ -192,7 +193,7 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
         || 'compress'
         || 'deflate'
         || 'gzip'
-        || <.transfer-extension>
+        || <transfer-extension>
     }
     token transfer-extension { <.token> [<.OWS> ';' <.OWS> <.transfer-parameter>]*       }
     token transfer-parameter { <.token> <.BWS> '=' <.BWS> [<.token> || <.quoted-string>] }
@@ -203,4 +204,5 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
 
 grammar Zef::Grammars::HTTP::RFC7230 does Zef::Grammars::HTTP::RFC7230::Core {
     token TOP { <HTTP-message> }
-}
+    token TOP-Header { <HTTP-header> }
+} 

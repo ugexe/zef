@@ -5,8 +5,10 @@ role Zef::Plugin::Git does Zef::Phase::Getting {
     has @.flags = <--quiet>;
 
 
-    method get(:$save-to = $*TMPDIR, *@urls) {
+    method get(:$save-to is copy = $*TMPDIR, *@urls) {
+        say "WOOOO";
         my @results = eager gather for @urls -> $url {
+            temp $save-to = $*SPEC.catdir($save-to, time) if @urls.elems > 1;
             my $cmd = "git clone " ~ @.flags.join(' ') ~ " $url {$save-to.IO.path}";
             my $git_result = shell($cmd).exitcode;
             given $git_result {

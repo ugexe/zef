@@ -40,25 +40,32 @@ class Zef::Grammars::HTTPResponse {
     has $.encoding;
     has $.body;
     has %.header;
+    has $!header-chunk;
+    has $.header-grammar;
 
-    submethod BUILD(:$!message) {
+    submethod BUILD(:$!message, :$!header-chunk) {
+        $!header-grammar = Zef::Grammars::HTTP::RFC7230.parse($!header-chunk, :rule("TOP-Header")) if $!header-chunk;
         $!grammar = Zef::Grammars::HTTP::RFC7230.parse($!message) if $!message;
 
-        if $!grammar {
-            $!status-code    =  ($!grammar.<HTTP-message>.<start-line>.<status-line>.<status-code>   // Int).Int;
-            $!status-message = ~($!grammar.<HTTP-message>.<start-line>.<status-line>.<reason-phrase> //  '');
-            $!body           = ~($!grammar.<HTTP-message>.<message-body>                             //  '');
+        if my $g = $!grammar ?? $!grammar.<HTTP-message> !! $!header-grammar ?? $!header-grammar.<HTTP-header> !! False {
+            $!status-code    =  ($g.<start-line>.<status-line>.<status-code>   // Int).Int;
+            $!status-message = ~($g.<start-line>.<status-line>.<reason-phrase> //  '');
+            $!body           = ~($g.<message-body>                             //  '') if $!grammar;
 
-
-            for $!grammar.<HTTP-message>.<header-field>.list -> $field {
+            for $g.<header-field>.list -> $field {
                 # todo: recursively turn structure into objects
-                my $h = $field.<name>.Str;
-                my $v = $field.<value>.Str;
-                %!header.{$h} = $v;
+                my $h = $field.<name>;
+                my $v = $field.<value>;
+                %!header.{$h.Str} = $v.Str;
 
-                if $field.<name>.Str eq 'Transfer-Encoding' && $field.<value>.grep({ $_.<transfer-coding> ~~ /^chunked/ }) {
+                if $h.Str eq 'Transfer-Encoding' && $v.grep({ $_.<transfer-coding> ~~ /^chunked/ }) {
                     $!chunked = 1;
                 }
+                if $h.Str eq 'Content-Type' {
+                    my @charsets = $v.<media-type>.<parameter>.list.grep({ $_.<name> ~~ /^charset/ }).map({ $_.<value> });
+                    $!encoding = @charsets[0] if @charsets;
+                }
+
             }
         }
     }
@@ -76,9 +83,7 @@ class Zef::Grammars::HTTPResponse {
                 $c
             }
 
-        if $!encoding {
-
-        }
+        
 
         return $content;
     }

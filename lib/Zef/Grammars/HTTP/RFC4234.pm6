@@ -17,7 +17,7 @@ role Zef::Grammars::HTTP::RFC4234::Core {
     token HTAB   { \x[09]                                   }
     token LF     { \x[0A]                                   }
     token LWSP   { [<.WSP> || <.CRLF> <.WSP>]*              }
-    token OCTET  { <[\x[00]..\x[FF]]>                       }
+    token OCTET  { <[\x[00]..\x[FFFF]]>                     } # modified for 16-bit Unicode
     token SP     { \x[20]                                   }
     token VCHAR  { <[\x[21]..\x[7E]]>                       }
     token WSP    { <.SP> || <.HTAB>                         }

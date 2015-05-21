@@ -24,7 +24,6 @@ grammar Grammar::Dependency::Parser {
 
 method build-dep-tree(@metas is copy = @!metas, :$target) {
     my @depends = $target // @metas;
-
     my @tree = eager gather while @depends.shift -> %meta {
         state %marked;
         unless %marked.{%meta.<name>} {

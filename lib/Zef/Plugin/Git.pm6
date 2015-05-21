@@ -10,7 +10,6 @@ role Zef::Plugin::Git does Zef::Phase::Getting {
             temp $save-to = $*SPEC.catdir($save-to, "{time}{(^1000).pick}");
             my $cmd = "git clone " ~ @.flags.join(' ') ~ " $url {$save-to.IO.path}";
             my $git_result = shell($cmd).exitcode;
-            say $cmd;
             given $git_result {
                 when 128 { # directory already exists and is not empty
                     say "Folder exists: updating via pull";

@@ -8,26 +8,24 @@ method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is expo
     my @results = eager gather for @metafiles -> $file {
         my Distribution $dist .= new( |from-json($file.IO.slurp) ) does role { method metainfo {self.hash} };
 
-        KEEP take { ok => 1, $dist.hash.flat };
+        KEEP take { ok => 1, $dist.hash.flat } and "==> Installed: {$dist.name}".say;
         UNDO take { ok => 0, $dist.hash.flat };
 
         unless %options<force> {
-            for $repo.candidates($dist.name).list -> $mod {
+            next if $repo.candidates($dist.name).list.grep(-> $mod {
                 if $mod<name> eq $dist.name 
-                   && $mod{"ver" | "version"} eq Version.new($dist.vers | $dist.version) 
-                   && $mod{"auth" & "author" & "authority"} eq $dist.auth & $dist.author & $dist.authority 
+                   && (($mod<ver> // $mod<version>) eq (Version.new($dist.ver // $dist.version))) 
+                   && ( ( ($mod<auth> && $dist.auth) && ($mod<auth> eq $dist.auth) )
+                        || ("{$mod<author> // ''}:{$mod<authority> // ''}" eq "{$dist.author // ''}:{$dist.authority // ''}")
+                    )
                    {
-                    
-                    "==> Skipping {$dist.name} already installed ref:<$mod>".say;
-                    next;
+                    "==> Skipping {$dist.name} already installed ref:<{$mod<id>}>".say;
                 }
-            }
+            });
         } 
 
         my @provides = gather for $dist.provides.kv -> $name, $file-path {
             my $file-full = $*SPEC.catpath('', $file.IO.dirname, $file-path).IO; # .resolve; <-broke on windows
-            my $error     = 'Package attempting to install files outside of repository' if $file-full.absolute !~~ /^ $*CWD /;
-            (%options<force> ?? warn $error !! die $error) if $error;
             take $file-full;
         }
 

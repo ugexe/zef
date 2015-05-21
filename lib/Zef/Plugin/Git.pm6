@@ -6,11 +6,11 @@ role Zef::Plugin::Git does Zef::Phase::Getting {
 
 
     method get(:$save-to is copy = $*TMPDIR, *@urls) {
-        say "WOOOO";
         my @results = eager gather for @urls -> $url {
-            temp $save-to = $*SPEC.catdir($save-to, time) if @urls.elems > 1;
+            temp $save-to = $*SPEC.catdir($save-to, "{time}{(^1000).pick}");
             my $cmd = "git clone " ~ @.flags.join(' ') ~ " $url {$save-to.IO.path}";
             my $git_result = shell($cmd).exitcode;
+            say $cmd;
             given $git_result {
                 when 128 { # directory already exists and is not empty
                     say "Folder exists: updating via pull";
@@ -18,9 +18,8 @@ role Zef::Plugin::Git does Zef::Phase::Getting {
                 }
             }
 
-            take \%(url => $url, path => $save-to.IO.path, ok => $git_result ?? 1 !! 0)
+            take { url => $url, path => $save-to.IO.path, ok => $git_result ?? 0 !! 1 }
         }
-
         return @results;
     }
 }

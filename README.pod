@@ -212,9 +212,9 @@ Attempt to extract dependencies via source parsing.
     say extract-deps("lib/Zef.pm6").perl
     # ({:dependencies(["Zef::Authority", "Zef::Builder", "Zef::Config", "Zef::Exception", "Zef::Getter", "Zef::Installer", "Zef::Reporter", "Zef::Tester", "Zef::Uninstaller", "Zef::Utils::Base64", "Zef::Utils::Depends", "Zef::Utils::PathTools"]), :file("lib/Zef.pm6"), :name("Zef")},)
 
-=head4 build-dep-tree(*@meta-files)
+=head4 build-dep-tree(*@meta-files, :$target)
 
-Build dependency order/tree from a list of dependency meta files.
+Build dependency order/tree from a list of dependency meta files. If :$target is passed then the tree will built with :$target as the base node.
 
 =head1 NOTES
 

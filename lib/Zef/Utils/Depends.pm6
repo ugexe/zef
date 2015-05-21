@@ -22,14 +22,16 @@ grammar Grammar::Dependency::Parser {
     token load-type:sym<require> { <sym> }
 }
 
-method build-dep-tree(@metas is copy = @!metas) {
-    my @tree = eager gather while @metas.shift -> %meta {
+method build-dep-tree(@metas is copy = @!metas, :$target) {
+    my @depends = $target // @metas;
+
+    my @tree = eager gather while @depends.shift -> %meta {
         state %marked;
         unless %marked.{%meta.<name>} {
-            my @required = @metas.grep(-> %_ { %_.<name> ~~ any(%meta.<dependencies>.list) });
+            my @required = @metas.grep(-> %_ { %_.<name> ~~ any(%meta.<depends>.list) });
             my @needed   = @required.grep(-> %_ { not %marked.{%_.<name>} });
-            @needed.map(-> %_ { @metas.unshift({ %_ }) });
-            @metas.push({ %meta });
+            @needed.map(-> %_ { @depends.unshift({ %_ }) });
+            @depends.push({ %meta });
             next if @needed;
         }
         take { %meta } unless %marked.{%meta.<name>}++;
@@ -81,8 +83,8 @@ method extract-deps(*@paths) {
 
         take {
             name         => $module-name,
-            file         => $f.IO.path,
-            dependencies => @depends, 
+            path         => $f.IO.path,
+            depends      => @depends, 
         }
     }
 
@@ -127,6 +129,6 @@ sub extract-deps(*@paths) is export {
     Zef::Utils::Depends.new.extract-deps(@paths);
 }
 
-sub build-dep-tree(*@metas) is export {
-    Zef::Utils::Depends.new(:@metas).build-dep-tree;    
+sub build-dep-tree(*@metas, :$target) is export {
+    Zef::Utils::Depends.new(:@metas).build-dep-tree(:$target);    
 }

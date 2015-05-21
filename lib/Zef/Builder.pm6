@@ -16,8 +16,8 @@ class Zef::Builder does Zef::Phase::Building {
                 my $lib-cur  := CompUnitRepo::Local::File.new( $lib  );
                 my $blib-cur := CompUnitRepo::Local::File.new( $blib );
 
-                my $out := "{$save-to}/blib/{%module<file>.IO.relative}.{$*VM.precomp-ext}";
-                my $cu  := CompUnit.new(%module<file>.IO.path);
+                my $out := "{$save-to}/blib/{%module<path>.IO.relative}.{$*VM.precomp-ext}";
+                my $cu  := CompUnit.new(%module<path>.IO.path);
                 $cu does role { # workaround for non-default :$out
                     has $!has-precomp;
                     has $!out;
@@ -28,7 +28,7 @@ class Zef::Builder does Zef::Phase::Building {
                     method precomp-path { $!out.IO.absolute }
                 }
 
-                given %module<file>.IO.relative { print "[{$_}] {'.' x 42 - $_.chars} " }
+                given %module<path>.IO.relative { print "[{$_}] {'.' x 42 - $_.chars} " }
 
                 try mkdirs($cu.precomp-path.IO.dirname);
                 say (my $result = $cu.precomp($out, :INC($blib-cur, $lib-cur), :force))

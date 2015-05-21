@@ -12,12 +12,12 @@ subtest {
     my @libs       = $tlib-dir.IO.ls(:r, :f, d => False);
     my @depends    = Zef::Utils::Depends.build-dep-tree: extract-deps(@libs);
 
-    is @depends.[0].<dependencies>.elems, 2, 'We only got two dependencies';
-    ok @depends.[0].<dependencies>.grep('This::One'), 'This::One depended - not in pod';
-    ok @depends.[0].<dependencies>.grep('This::One::Too'), 'This::One::Too depended - not in pod';
-    ok not @depends.[0].<dependencies>.grep('Peter'), 'Peter not depended - in pod';
-    ok not @depends.[0].<dependencies>.grep('Peter::Allen'), 'Peter::Allen not depended - in pod';
-    ok not @depends.[0].<dependencies>.grep('Dill::Pickle'), 'Dill::Pickle not depended - in pod';
+    is @depends.[0].<depends>.elems, 2, 'We only got two dependencies';
+    ok @depends.[0].<depends>.grep('This::One'), 'This::One depended - not in pod';
+    ok @depends.[0].<depends>.grep('This::One::Too'), 'This::One::Too depended - not in pod';
+    ok not @depends.[0].<depends>.grep('Peter'), 'Peter not depended - in pod';
+    ok not @depends.[0].<depends>.grep('Peter::Allen'), 'Peter::Allen not depended - in pod';
+    ok not @depends.[0].<depends>.grep('Dill::Pickle'), 'Dill::Pickle not depended - in pod';
 }, 'Basic - Single level, ignore pod';
 
 done;

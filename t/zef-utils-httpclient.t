@@ -19,7 +19,7 @@ subtest {
     # Status code
     {
         is $ua.post($url ~ '/status/200').status-code, 200, "Status 200";
-        dies_ok { $ua.post($url ~ '/status/400').status-code }, "auto-check + bad status dies";
+        dies-ok { $ua.post($url ~ '/status/400').status-code }, "auto-check + bad status dies";
     }
     
     # Basic auth OK
@@ -31,7 +31,7 @@ subtest {
 
     # Basic auth FAIL    
     {
-        dies_ok { $ua.get($url ~ '/basic-auth/un/pw') }, "Fail basic auth and die. auto-check => True";
+        dies-ok { $ua.get($url ~ '/basic-auth/un/pw') }, "Fail basic auth and die. auto-check => True";
 
         temp $ua.auto-check = False;
         nok $ua.get($url ~ '/basic-auth/unx/pwx').status-code, "Fail basic auth and live. auto-check => True";
@@ -51,7 +51,7 @@ subtest {
     # Status code
     {
         is $ua.post($url ~ '/status/200').status-code, 200, "Status 200";
-        dies_ok { $ua.post($url ~ '/status/400').status-code }, "auto-check + bad status dies";
+        dies-ok { $ua.post($url ~ '/status/400').status-code }, "auto-check + bad status dies";
     }
 
     # Basic auth OK
@@ -63,7 +63,7 @@ subtest {
 
     # Basic auth FAIL    
     {
-        dies_ok { $ua.get($url ~ '/basic-auth/un/pw') }, "Fail basic auth and die. auto-check => True";
+        dies-ok { $ua.get($url ~ '/basic-auth/un/pw') }, "Fail basic auth and die. auto-check => True";
 
         temp $ua.auto-check = False;
         nok $ua.get($url ~ '/basic-auth/unx/pwx').status-code, "Fail basic auth and live. auto-check => True";

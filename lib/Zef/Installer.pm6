@@ -1,7 +1,7 @@
 unit class Zef::Installer;
 use Zef::Utils::PathTools;
 
-method install(:$save-to = "$*HOME/.zef/depot", *@metafiles, *%options ) is export {
+method install(:$save-to = %*CUSTOM_LIB<site>, *@metafiles, *%options ) is export {
     try mkdirs($save-to);
     my $repo = CompUnitRepo::Local::Installation.new($save-to);
     my @results = eager gather for @metafiles -> $meta {

@@ -54,7 +54,7 @@ role Zef::Grammars::HTTP::RFC4234::Core {
 }
 
 
-grammar Zef::Grammars::HTTP::RFC4234 is Zef::Grammars::HTTP::RFC4234::Core {
+grammar Zef::Grammars::HTTP::RFC4234 does Zef::Grammars::HTTP::RFC4234::Core {
     # todo
     token TOP      { <rulelist> }
     token TOP_rule { <rule>     }

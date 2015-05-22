@@ -23,10 +23,12 @@ subtest {
     my $builder = Zef::Builder.new;
     my @results = $builder.pre-compile($CWD);
 
-    is @results.grep({ $_.has-precomp }).elems, @results.elems, "Default builder precompiled all modules: {@results.elems}";
-    is @results.grep({ $_.precomp-path.IO.f }).elems, @results.elems, "precomp-path points to real file";
+    is @results.elems, 1, '1 repo';
+    is @results.[0].<curlfs>.list.grep({ $_.has-precomp }).elems, 
+       @results.[0].<curlfs>.list.elems, 
+       "Default builder precompiled all modules";
     for @target-files -> $file {
-        is any(@results.map({ $_.precomp-path })), $file.IO.absolute, "Found: {$file.IO.path}";
+        is any(@results.[0].<curlfs>.list.map({ $_.precomp-path })), $file.IO.absolute, "Found: {$file.IO.path}";
     }
 }, 'Zef::Builder';
 

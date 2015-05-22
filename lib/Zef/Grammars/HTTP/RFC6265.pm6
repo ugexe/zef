@@ -5,7 +5,7 @@ use Zef::Grammars::HTTP::RFC5322;
 use Zef::Grammars::HTTP::RFC1035;
 
 role Zef::Grammars::HTTP::RFC6265::Core is Zef::Grammars::HTTP::RFC5322::Core {
-    also is Zef::Grammars::HTTP::RFC1035;
+    also does Zef::Grammars::HTTP::RFC1035::Core;
     token OWS      { [<.obs-fold>]* <.WSP> }
     token obs-fold { <.CRLF>               }
 

@@ -11,3 +11,7 @@ role Zef::Grammars::HTTP::RFC6854::Core does Zef::Grammars::HTTP::RFC4234::Core 
     token resent-from   { "Resent-From:" [<mailbox-list> || <address-list>] <.CRLF> }
     token resent-sender { "Resent-Sender:" [<mailbox> || <address>] <.CRLF>         }
 }
+
+grammar Zef::Gramars::HTTP::RFC6854 does Zef::Grammars::HTTP::RFC6854::Core {
+    token TOP { <from> <sender> <reply-to> <resent-from>? <resent-sender>? }
+}

@@ -8,7 +8,8 @@ class Zef::Builder does Zef::Phase::Building {
     method pre-compile(*@paths is copy, :$save-to is copy) {
         my @blibs;
         my @results = eager gather for @paths -> $path {
-            temp $save-to //= $path;
+            temp $save-to = $save-to ?? $*SPEC.catdir($save-to, $path).IO !! $path;
+            say "==> Installation location: {$save-to.IO.absolute}";
             my %meta     = %(from-json( $*SPEC.catpath('', $path, 'META.info').IO.slurp) );
             my @provides = %meta<provides>.list;
             
@@ -16,19 +17,20 @@ class Zef::Builder does Zef::Phase::Building {
                 $*SPEC.rel2abs($*SPEC.splitdir($_.value.IO.dirname).[0].IO, $path)
             }).unique.map({ CompUnitRepo::Local::File.new($_) });
             @blibs.push($_) for @libs.map({ 
-                CompUnitRepo::Local::File.new( $*SPEC.rel2abs($*SPEC.catdir('blib', $*SPEC.abs2rel($_, $path)), $path) );
+                CompUnitRepo::Local::File.new( $*SPEC.rel2abs($*SPEC.catdir('blib', $*SPEC.abs2rel($_, $save-to)), $save-to) );
             });
             my $INC     := @blibs.unique, @libs, @*INC;
-            
+
             my @files    = @provides.map({ $*SPEC.rel2abs($_.value, $path).IO.path });
             my @deps     = extract-deps( @files );
             my @ordered  = build-dep-tree( @deps );
 
             my @compiled = @ordered.map({
-                print "[{$_.<path>}] {'.' x 42 - $_.<path>.chars} ";
+                my $display-path = $*SPEC.abs2rel($_.<path>, $path);
+                print "[{$display-path}] {'.' x 42 - $display-path.chars} ";
 
-                my $blib-file := $*SPEC.rel2abs($*SPEC.catdir('blib', $*SPEC.abs2rel($_.<path>, $path)).IO, $path).IO;
-                my $out       := $*SPEC.rel2abs($*SPEC.catpath('', $blib-file.IO.dirname, "{$blib-file.IO.basename}.{$*VM.precomp-ext}"));
+                my $blib-file := $*SPEC.rel2abs($*SPEC.catdir('blib', $*SPEC.abs2rel($_.<path>, $path)).IO, $save-to).IO;
+                my $out       := $*SPEC.rel2abs($*SPEC.catpath('', $blib-file.IO.dirname, "{$blib-file.IO.basename}.{$*VM.precomp-ext}"), $save-to);
                 my $cu        := CompUnit.new( $_.<path> );
                 $cu does role { # workaround for non-default :$out
                     has $!has-precomp;
@@ -43,8 +45,8 @@ class Zef::Builder does Zef::Phase::Building {
                 try mkdirs($cu.precomp-path.IO.dirname);
 
                 say (my $result = $cu.precomp($out, :$INC, :force))
-                    ?? "ok: {$cu.precomp-path}" 
-                    !! "FAILED: {$cu.precomp-path}";
+                    ?? "ok: {$*SPEC.abs2rel($cu.precomp-path, $save-to)}" 
+                    !! "FAILED";
                 $cu;
             });
             take { precomp-path => @blibs[0], path => $path, curlfs => @compiled, sources => @provides }

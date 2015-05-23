@@ -48,7 +48,13 @@ class Zef::Builder does Zef::Phase::Building {
                     !! "FAILED";
                 $cu;
             });
-            take { precomp-path => @blibs[0], path => $path, curlfs => @compiled, sources => @provides }
+            take {  
+                ok           => ?(@compiled.elems == @provides.elems),
+                precomp-path => @blibs[0], 
+                path         => $path, 
+                curlfs       => @compiled, 
+                sources      => @provides 
+            }
         }
 
         return @results;

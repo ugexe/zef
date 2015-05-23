@@ -41,12 +41,20 @@ multi MAIN('test', *@paths) is export {
 #| Install with business logic
 multi MAIN('install', *@modules) is export {
     my @installed = gather for @modules -> $module-name {
-        my $g = Zef::Getter.new( plugins => ["Zef::Plugin::P6C"] ); 
-        my @r = $g.get($module-name);
-        my @b = Zef::Builder.new.pre-compile( @r.map({ $_.<path> }) );
-        my @t = Zef::Tester.new.test(@b.map({ $*SPEC.catdir($_.<path>) }));
+#        my $dl = Zef::Getter.new( plugins => ["Zef::Plugin::P6C"] ); 
+        my @g  = Zef::Getter.new( plugins => ["Zef::Plugin::P6C"] ).get($module-name);
+        my @metas = @g.map({ $*SPEC.catpath("", $_.<path>, "META.info") });
+
+        my @b  = Zef::Builder.new.pre-compile( @g.map({ $_.<path> }) );
+        my @t  = Zef::Tester.new.test(@b.map({ $_.<path> }));
+        my @r  = Zef::Reporter.new( plugins => ['Zef::Plugin::PandaReporter']).report(
+            @metas, 
+            test-results  => @t, 
+            build-results => @b,
+        );
         say "Testing failed" and exit 1 if @t.grep({ !$_.<ok>  });
-        my @i = Zef::Installer.new.install(@b.map({ $*SPEC.catpath("", $_.<path>, "META.info") }));
+        my @i = Zef::Installer.new.install(@metas);
+
         take $module-name unless @i.grep({ !$_.<ok> });
     }
     exit @modules.elems - @installed.elems;

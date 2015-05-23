@@ -40,6 +40,20 @@ multi MAIN('test', *@paths) is export {
     exit $failures;
 }
 
+
+multi MAIN('install', :$p6c where True, *@modules) is export {
+    my @installed = gather for @modules -> $module-name {
+        my $g = Zef::Getter.new( plugins => ["Zef::Plugin::P6C"] ); 
+        my @r = $g.get($module-name);
+        my @b = Zef::Builder.new.pre-compile( @r.map({ $_.<path> }) );
+        my @t = Zef::Tester.new.test(@b.map({ $*SPEC.catdir($_.<path>) }));
+        say "Testing failed" and exit 1 if @t.grep({ !$_.<ok>  });
+        my @i = Zef::Installer.new.install(@b.map({ $*SPEC.catpath("", $_.<path>, "META.info") }));
+        take $module-name unless @i.grep({ !$_.<ok> });
+    }
+    exit @modules.elems - @installed.elems;
+}
+
 #| Install with business logic
 multi MAIN('install', *@modules, Bool :$doinstall = True) is export {
     "Fetching: {@modules.join(', ')}".say;

@@ -4,7 +4,7 @@
 
 =head2 WARNING
 
-You probably should not be using this. Its been added to the ecosystem primarily to be smoke tested.
+Only mostly works.
 
 =head2 Name
 
@@ -32,6 +32,9 @@ CPAN but better. Maybe?
 
     zef search CSV
     # search modules names for CSV
+
+    zef install --p6c CSV::Parser
+    # install from the p6c github authority
 
 =head2 Module Development
 

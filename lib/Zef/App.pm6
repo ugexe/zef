@@ -24,11 +24,9 @@ submethod BUILD(:@!plugins) {
 }
 
 
-
-#| Test modules in cwd
-multi MAIN('test') is export { &MAIN('test', |('test/', 'tests/', 't/', 'xt/')) }
 #| Test modules in the specified directories
 multi MAIN('test', *@paths) is export {
+    @paths = $*CWD unless @paths;
     my $tester  = Zef::Tester.new(:@plugins);
     my @results = $tester.test(@paths);
     my $failures = @results.grep({ !$_.<ok>  }).elems;

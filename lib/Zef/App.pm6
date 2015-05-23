@@ -38,8 +38,8 @@ multi MAIN('test', *@paths) is export {
     exit $failures;
 }
 
-
-multi MAIN('install', :$p6c where True, *@modules) is export {
+#| Install with business logic
+multi MAIN('install', *@modules) is export {
     my @installed = gather for @modules -> $module-name {
         my $g = Zef::Getter.new( plugins => ["Zef::Plugin::P6C"] ); 
         my @r = $g.get($module-name);
@@ -50,28 +50,6 @@ multi MAIN('install', :$p6c where True, *@modules) is export {
         take $module-name unless @i.grep({ !$_.<ok> });
     }
     exit @modules.elems - @installed.elems;
-}
-
-#| Install with business logic
-multi MAIN('install', *@modules, Bool :$doinstall = True) is export {
-    "Fetching: {@modules.join(', ')}".say;
-    my @failures;
-    my $save-to = $*SPEC.catdir($*CWD, time).IO;
-    mkdirs($save-to);
-
-    for @modules -> $module {
-        my @repo      = &MAIN('get', :$save-to, $module);
-        my $meta-file = @repo.grep({ $_.<path>.IO.basename ~~ any(<META.info META6.json>) }).[0] or next;
-        my %meta      = %(from-json($meta-file.<path>.IO.slurp));
-        my @depends   = %meta.<depends>.list;
-
-        for @depends -> $dep {
-            &MAIN('install', $dep, :doinstall(False));
-        }
-
-        &MAIN('build', $module);
-    }
-
 }
 
 

@@ -9,7 +9,7 @@ class Zef::Builder does Zef::Phase::Building {
         my @blibs;
         my @results = eager gather for @paths -> $path {
             temp $save-to = $save-to ?? $*SPEC.catdir($save-to, $path).IO !! $path;
-            say "==> Installation directory: {$save-to.IO.absolute}";
+            say "==> Build directory: {$save-to.IO.absolute}";
             my %meta     = %(from-json( $*SPEC.catpath('', $path, 'META.info').IO.slurp) );
             my @provides = %meta<provides>.list;
             

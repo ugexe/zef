@@ -33,9 +33,6 @@ CPAN but better. Maybe?
     zef search CSV
     # search modules names for CSV
 
-    zef install --p6c CSV::Parser
-    # install from the p6c github authority
-
 =head2 Module Development
 
     zef build

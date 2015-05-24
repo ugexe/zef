@@ -5,9 +5,8 @@ use Zef::Utils::PathTools;
 
 class Zef::Builder does Zef::Phase::Building {
     # todo: lots of cleanup/refactoring
-    method pre-compile(*@paths is copy, :$save-to is copy) {
-        my @blibs;
-        my @results = eager gather for @paths -> $path {
+    method pre-compile(*@repos is copy, :$save-to is copy) {
+        my @results = eager gather for @repos -> $path {
             temp $save-to = $save-to ?? $*SPEC.catdir($save-to, $path).IO !! $path;
             say "==> Build directory: {$save-to.IO.absolute}";
             my %meta     = %(from-json( $*SPEC.catpath('', $path, 'META.info').IO.slurp) );
@@ -16,7 +15,7 @@ class Zef::Builder does Zef::Phase::Building {
             my @libs     = @provides.map({
                 $*SPEC.rel2abs($*SPEC.splitdir($_.value.IO.dirname).[0].IO, $path)
             }).unique.map({ CompUnitRepo::Local::File.new($_) });
-            @blibs.push($_) for @libs.map({ 
+            state @blibs.push($_) for @libs.map({ 
                 CompUnitRepo::Local::File.new( $*SPEC.rel2abs($*SPEC.catdir('blib', $*SPEC.abs2rel($_, $path)), $save-to) ).Str;
             });
             my $INC     := @blibs.unique, @libs, @*INC;

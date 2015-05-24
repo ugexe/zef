@@ -1,13 +1,11 @@
 use Zef::Phase::Getting;
-use Zef::Phase::Building;
 use Zef::Plugin::Git;
 use Zef::Utils::HTTPClient;
 use Zef::Utils::Depends;
-use Zef::Utils::PathTools;
 
 our $p6c = 'http://ecosystem-api.p6c.org/projects.json';
 
-role Zef::Plugin::P6C does Zef::Phase::Getting {
+role Zef::Plugin::P6C_Ecosystem does Zef::Phase::Getting {
     method get(:$save-to is copy = $*TMPDIR, *@modules) {
         my $response = Zef::Utils::HTTPClient.new.get($p6c);
         my @projects = @(from-json($response.content));

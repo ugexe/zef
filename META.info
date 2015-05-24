@@ -28,8 +28,8 @@
         "Zef::Phase::Testing"   : "lib/Zef/Phase/Testing.pm6",
 
         "Zef::Plugin::Git"           : "lib/Zef/Plugin/Git.pm6",
-        "Zef::Plugin::P6C"           : "lib/Zef/Plugin/P6C.pm6",
-        "Zef::Plugin::PandaReporter" : "lib/Zef/Plugin/PandaReporter.pm6",
+        "Zef::Plugin::P6C_Ecosystem" : "lib/Zef/Plugin/P6C_Ecosystem.pm6",
+        "Zef::Plugin::P6C_Reporter"  : "lib/Zef/Plugin/P6C_Reporter.pm6",
 
         "Zef::Grammars::HTTP" : "lib/Zef/Grammars/HTTP.pm6",
         "Zef::Grammars::HTTP::RFC1035" : "lib/Zef/Grammars/HTTP/RFC1035.pm6",

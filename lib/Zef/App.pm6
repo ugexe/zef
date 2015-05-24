@@ -19,9 +19,9 @@ has @!plugins;
 
 # override config file plugins if invoked as a class
 # *and* :@plugins was passed to initializer 
-submethod BUILD(:@!plugins) { 
-    @plugins := @!plugins if @!plugins.defined;
-}
+#submethod BUILD(:@!plugins) { 
+#    @plugins := @!plugins if @!plugins.defined;
+#}
 
 
 #| Test modules in the specified directories
@@ -41,19 +41,17 @@ multi MAIN('test', *@paths) is export {
 #| Install with business logic
 multi MAIN('install', *@modules) is export {
     my @installed = gather for @modules -> $module-name {
-#        my $dl = Zef::Getter.new( plugins => ["Zef::Plugin::P6C"] ); 
-        my @g  = Zef::Getter.new( plugins => ["Zef::Plugin::P6C"] ).get($module-name);
+        my @g  = Zef::Getter.new( plugins => ["Zef::Plugin::P6C_Ecosystem"] ).get($module-name);
         my @metas = @g.map({ $*SPEC.catpath("", $_.<path>, "META.info") });
-
         my @b  = Zef::Builder.new.pre-compile( @g.map({ $_.<path> }) );
         my @t  = Zef::Tester.new.test(@b.map({ $_.<path> }));
-        my @r  = Zef::Reporter.new( plugins => ['Zef::Plugin::PandaReporter']).report(
+        my @i  = Zef::Installer.new.install(@metas);
+        my @r  = Zef::Reporter.new( plugins => ['Zef::Plugin::P6C_Reporter']).report(
             @metas, 
             test-results  => @t, 
             build-results => @b,
         );
         say "Testing failed" and exit 1 if @t.grep({ !$_.<ok>  });
-        my @i = Zef::Installer.new.install(@metas);
 
         take $module-name unless @i.grep({ !$_.<ok> });
     }

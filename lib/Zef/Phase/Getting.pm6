@@ -3,7 +3,7 @@ role Zef::Phase::Getting {
 
     submethod BUILD(:@!plugins) {
         for @!plugins -> $p { 
-            try require $p;
+            try require ::($p);
             unless ::($p) ~~ Failure {
                 if ::($p).does(Zef::Phase::Getting) {
                     self does ::($p);

@@ -30,6 +30,9 @@ CPAN but better. Maybe?
     zef uninstall CSV::Parser
     # noooooo!
 
+    zef --report install CSV::Parser
+    # fire off test reports this time *onomatopoeia of an uzi*
+
     zef search CSV
     # search modules names for CSV
 
@@ -223,7 +226,7 @@ Build dependency order/tree from a list of dependency meta files. If :$target is
  * Test reporting to Zef servers
  * Rotating OS smoke testing server integration
  * ✓ Plugin stuff
- * Use perl6 github ecosystem as an additional authority
+ * ✓ Use perl6 github ecosystem as an additional authority
  * Finish up social junk
  * ✓ Small http client
 

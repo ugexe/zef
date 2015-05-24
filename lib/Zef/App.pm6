@@ -39,7 +39,7 @@ multi MAIN('test', *@paths) is export {
 }
 
 #| Install with business logic
-multi MAIN('install', *@modules) is export {
+multi MAIN('install', *@modules, Bool :$report) is export {
     my @installed = gather for @modules -> $module-name {
         my @g  = Zef::Getter.new( plugins => ["Zef::Plugin::P6C_Ecosystem"] ).get($module-name);
         my @metas = @g.map({ $*SPEC.catpath("", $_.<path>, "META.info") });
@@ -50,7 +50,7 @@ multi MAIN('install', *@modules) is export {
             @metas, 
             test-results  => @t, 
             build-results => @b,
-        );
+        ) if ?$report;
         say "Testing failed" and exit 1 if @t.grep({ !$_.<ok>  });
 
         take $module-name unless @i.grep({ !$_.<ok> });

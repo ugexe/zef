@@ -5,7 +5,8 @@ use Zef::Utils::PathTools;
 
 role Zef::Plugin::P6C_Reporter does Zef::Phase::Reporting {
     # For now we match items from @test-results and @build-results
-    # to @metas by comparing %_<path> (the root path of the repo)
+    # to @metas by comparing %_<path> (the root path of the repo).
+    # Probably a good spot to use a .classify
     method report(*@metas, :@test-results, :@build-results) {
         my @bones = gather for @metas -> $meta-path {
             my $meta-json = from-json($meta-path.IO.slurp);
@@ -20,7 +21,7 @@ role Zef::Plugin::P6C_Reporter does Zef::Phase::Reporting {
                     :build-output(''),
                     :build-passed(?@build-results.first(-> %b { %b<path> eq $repo-path }).<ok>),
                     :test-output(''),
-                    :test-passed(?@test-results.first( -> %t { %t<path> eq $repo-path }).<ok>),
+                    :test-passed(?@test-results.first(-> %t { %t<path> eq $repo-path }).<ok>),
                     :distro({
                         :name($*DISTRO.name),
                         :version($*DISTRO.version.Str),

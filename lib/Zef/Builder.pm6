@@ -8,7 +8,14 @@ class Zef::Builder does Zef::Phase::Building {
     method pre-compile(*@repos is copy, :$save-to is copy) {
         my @results = eager gather for @repos -> $path {
             my $SPEC      := $*SPEC;
-            temp $save-to  = $save-to ?? $SPEC.catdir($save-to, $path).IO !! $path.IO;
+
+            # NOTE: this may change
+            # Currently treats relative paths as relative to the current repo's path ($path).
+            # It may or may not be better to treat them as relative to the users CWD. We shall see.
+            temp $save-to  = $save-to 
+                ?? ($save-to.IO.is-absolute ?? $save-to.IO !! $SPEC.catdir($save-to, $path).IO) 
+                !! $path.IO;
+
             say "==> Build directory: {$save-to.absolute}";
             my %meta     = %(from-json( $SPEC.catpath('', $path, 'META.info').IO.slurp) );
             my @provides = %meta<provides>.list;

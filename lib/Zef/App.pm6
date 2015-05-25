@@ -45,12 +45,13 @@ multi MAIN('install', *@modules, Bool :$report) is export {
         my @metas = @g.map({ $*SPEC.catpath("", $_.<path>, "META.info") });
         my @b  = Zef::Builder.new.pre-compile( @g.map({ $_.<path> }) );
         my @t  = Zef::Tester.new.test(@b.map({ $_.<path> }));
-        my @i  = Zef::Installer.new.install(@metas);
         my @r  = Zef::Reporter.new( plugins => ['Zef::Plugin::P6C_Reporter']).report(
             @metas, 
             test-results  => @t, 
             build-results => @b,
         ) if ?$report;
+        my @i  = Zef::Installer.new.install(@metas);
+
         say "Testing failed" and exit 1 if @t.grep({ !$_.<ok>  });
 
         take $module-name unless @i.grep({ !$_.<ok> });

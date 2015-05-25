@@ -2,25 +2,6 @@ use Zef::Phase::Building;
 use Zef::Utils::Depends;
 use Zef::Utils::PathTools;
 
-# Allows the use of non-default precomp paths i.e. blib/lib prefixes
-class CompUnit::Ext is CompUnit {
-    has $.out;
-    has $.has-precomp;
-
-    method precomp-path { $!out.IO.absolute // nextsame }
-    method precomp(CompUnit:D: $out = self.precomp-path, |c) {
-        my $file := IO::Path.new-from-absolute-path($out.IO.absolute);
-        say "FILE: {$file.perl}";
-        $!has-precomp //= ?$file.IO.f;
-        $!out = $file;
-        nextsame;
-        POST {
-            $!out = $file;
-            say "PRECOMP-PATH: {$file.perl}";
-            $!has-precomp   = ?$file.IO.e;
-        }
-    }
-}
 
 class Zef::Builder does Zef::Phase::Building {
     # todo: lots of cleanup/refactoring
@@ -46,12 +27,12 @@ class Zef::Builder does Zef::Phase::Building {
 
             my @compiled = @ordered.map({
                 my $display-path = $SPEC.abs2rel($_.<path>, $path);
-                print "[{$display-path}] {'.' x 42 - $display-path.chars} ";
                 my $blib-file := $*SPEC.rel2abs($SPEC.catdir('blib', $SPEC.abs2rel($_.<path>, $path)).IO, $save-to).IO;
                 my $out       := $*SPEC.rel2abs($SPEC.catpath('', $blib-file.dirname, "{$blib-file.basename}.{$*VM.precomp-ext}"), $save-to).IO;
                 my $cu        := CompUnit.new( $_.<path> ) but role { # workaround for non-default :$out
                     has $!has-precomp;
                     has $!out;
+                    has $.build-output is rw;
                     submethod BUILD { 
                         $!out         := $out; 
                         $!has-precomp := ?$!out.f;
@@ -61,10 +42,14 @@ class Zef::Builder does Zef::Phase::Building {
                 
                 mkdirs($blib-file.dirname);
                 mkdirs($cu.precomp-path.IO.dirname);
-                
-                say (my $result = $cu.precomp($out, :$INC, :force))
-                    ?? "ok: {$SPEC.abs2rel($cu.precomp-path, $save-to)}" 
-                    !! "FAILED";
+
+                print $cu.build-output  = "[{$display-path}] {'.' x 42 - $display-path.chars} ";
+                my $output-result       = ($cu.precomp($out, :$INC, :force)
+                    ?? "ok: {$SPEC.abs2rel($cu.precomp-path, $save-to)}\n"
+                    !! "FAILED\n");
+                print $output-result;
+                $cu.build-output ~= $output-result;
+
                 $cu;
             });
 

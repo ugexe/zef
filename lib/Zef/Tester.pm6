@@ -12,18 +12,21 @@ class Zef::Tester does Zef::Phase::Testing {
         my @results = eager gather for @repos -> $path {
             my @files = $path.IO.ls(:r, :f).grep(/\.t$/);
 
-            for @files -> $test-file {
+            my @tests = @files.map(-> $test-file {
                 my $test-file-rel = $*SPEC.abs2rel($test-file, $path);
-                my $cmd = qq|(cd $path && prove -v -e "perl6 {$p6flags.list} {@libs.map({ qqw/-I$_/ })}" $test-file-rel)|;
+                my $cmd = qq|(cd $path && prove -v -e "perl6 {$p6flags.list} {@libs.map({ qqw/-I$_/ })}" $test-file-rel 2>&1)|;
+                my $proc = pipe( $cmd, :r );
 
-                # todo: capture output and save for reporting purposes
+                my $test-output = $proc.slurp-rest;
                 my $test-result = shell($cmd).exitcode == 0 ?? 1  !! 0;
 
-                take { ok => $test-result, file => $test-file, path => $path }
+                { ok => $test-result, test-output => $test-output, file => $test-file, path => $path }
+            });
 
-                CATCH { default {
-                    take { ok => -1, error => $_, file => $test-file, path => $path }
-                } }
+            take {  
+                ok    => ?( @tests.grep({ $_.<ok> == 1}) == @tests.elems ),
+                path  => $path,
+                tests => @tests, 
             }
         }
         return @results;

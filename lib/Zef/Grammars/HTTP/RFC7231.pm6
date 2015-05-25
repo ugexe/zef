@@ -26,7 +26,7 @@ role Zef::Grammars::HTTP::RFC7231::Core is Zef::Grammars::HTTP::RFC7232::Core is
     token HTTP-date     { <IMF-fixdate> || <obs-date> }
     token IMF-fixdate   { <day-name> ',' <.SP> <date1> <.SP> <time-of-day> <.SP> <GMT> }
     token Location      { <URI-reference> }
-    token Max-Forwards  { [0..9] }
+    token Max-Forwards  { <digit> }
     token Referer       { <absolute-URI> || <partial-URI> }
     token Retry-After   { <HTTP-date> || <delay-seconds>  }
     token Server        { <product> [<.RWS> [<product> || <comment>]]* }

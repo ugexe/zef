@@ -22,6 +22,7 @@ role Grammars::HTTP::Extensions {
     token known-header:sym<Keep-Alive>         { <.sym> }
     token known-header:sym<P3P>                { <.sym> }
     token known-header:sym<Strict-Transport-Security> {<.sym> }
+    token known-header:sym<X-Powered-By>       { <.sym> }
     token known-header:sym<X-Robots-Tag>       { <.sym> }
     token known-header:sym<X-UA-Compatible>    { <.sym> }
     token known-header:sym<X-XSS-Protection>   { <.sym> }
@@ -30,6 +31,12 @@ role Grammars::HTTP::Extensions {
     token Keep-Alive         { [<directive>]?  [";" [ <directive> ]?]*          }
     token P3P                { [<directive>]?  [";" [ <directive> ]?]*          }
     token Strict-Transport-Security { [<directive>]?  [";" [ <directive> ]?]*   }
+
+    # field-value should handle this, but doesn't. A fix for field-value should be
+    # used ideally and then this can be removed
+    token X-Powered-By       { <+token +space -CRLF>+                           }
+
+
     token X-Robots-Tag       { (<.token>) *%% ','                               }
     token X-XSS-Protection   { [<directive>]?  [";" [ <directive> ]?]*          }
     token X-UA-Compatible    { [<directive>]?  [";" [ <directive> ]?]*          }
@@ -60,7 +67,7 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     token Connection        { 
         [[<.OWS> <connection-option>]*] *%% ',' 
     }
-    token Content-Length    { [0..9]+ }
+    token Content-Length    { <digit>+ }
     token HTTP-version      { <HTTP-name> '/' $<major>=[\d] '.' $<minor>=[\d] }
     token HTTP-name         { 'HTTP' }
     token Host              { <host> [':' <.port>]? } # `host` from 3986
@@ -114,6 +121,7 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
     token known-header:sym<Allow>             { <.sym> }
     token known-header:sym<Content-Encoding>  { <.sym> }
     token known-header:sym<Content-Language>  { <.sym> }
+    token known-header:sym<Content-Length>    { <.sym> }
     token known-header:sym<Content-Location>  { <.sym> }
     token known-header:sym<Content-Type>      { <.sym> }
     token known-header:sym<Date>              { <.sym> }
@@ -147,7 +155,7 @@ role Zef::Grammars::HTTP::RFC7230::Core is Zef::Grammars::HTTP::RFC7231::Core {
 
     token field-name    { <.token> } # the general rule
     token field-value   { [<.field-content> || <.obs-fold>]*                     }
-    token field-content { <.field-vchar> [[<.SP> || <.HTAB> || <.field-vchar>]+ <.field-vchar>]? }
+    token field-content { <.field-vchar> [[<.SP> || <.HTAB> || <.field-vchar>]* <.field-vchar>]? }
     token field-vchar   { <.VCHAR> || <.obs-text>  }
     token last-chunk    { 0+ <.chunk-ext>? <.CRLF> }
 

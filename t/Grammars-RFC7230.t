@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 2;
+plan 3;
 
 
 use Zef::Grammars::HTTP::RFC7230;
@@ -72,6 +72,27 @@ subtest {
     is $http.<HTTP-message>.<start-line>.<status-line>.<reason-phrase>, 'OK', 'Status message matches';
     is $http.<HTTP-message>.<message-body>, 'message body', "Got body";
 }, 'Zef.pm basic';
+
+
+
+subtest {
+    my $response = q{HTTP/1.1 200 OK}
+        ~"\r\n" ~ q{Date: Mon, 25 May 2015 21:06:46 GMT}
+        ~"\r\n" ~ q{Server: Perl Dancer 1.3132}
+        ~"\r\n" ~ q{Content-Length: 5}
+        ~"\r\n" ~ q{Content-Type: text/html}
+        ~"\r\n" ~ q{X-Powered-By: Perl Dancer 1.3132}
+        ~"\r\n" ~ q{Vary: Accept-Encoding}
+        ~"\r\n" ~ q{Connection: close}
+        ~"\r\n" ~ q{}
+        ~"\r\n" ~ q{48092};
+
+    my $http = Zef::Grammars::HTTP::RFC7230.parse($response);
+    my $content-length = $http.<HTTP-message>.<header-field>.list.first({ $_.<name> eq 'Content-Length' }).<value>;
+
+    is $content-length, 5, 'Content-Length correct value';
+    is $http.<HTTP-message>.<message-body>, 48092, "Report Number parsed from body";
+}, 'P6C mock test report response';
 
 
 

@@ -14,7 +14,7 @@ role Zef::Plugin::P6C_Ecosystem does Zef::Phase::Getting {
         my @results  = eager gather for @tree -> %node {
             say "Getting: {%node.<source-url>}";
             my @git  = Zef::Plugin::Git.new.get(:$save-to, %node.<source-url>);
-            take { module => %node.<name>, path => @git.[0].<path> }
+            take { module => %node.<name>, path => @git.[0].<path>, ok => ?$save-to.IO.e }
         }
         return @results;
     }

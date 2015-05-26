@@ -40,19 +40,34 @@ multi MAIN('test', *@paths) is export {
 
 #| Install with business logic
 multi MAIN('install', *@modules, Bool :$report) is export {
+    sub verbose($phase, @_) {
+        return unless @_;
+        my %r = @_.classify({ $_.<ok> ?? 'ok' !! 'nok' });
+        say "***> $phase failed for: {%r<nok>.list.map({ $_.<module> })}" if %r<nok>;
+        say "===> $phase OK for: {%r<ok>.list.map({ $_.<module> })}" if %r<ok>;
+    }
+
     my @installed = gather for @modules -> $module-name {
-        my @g  = Zef::Getter.new( plugins => ["Zef::Plugin::P6C_Ecosystem"] ).get($module-name);
+        my @g = Zef::Getter.new( plugins => ["Zef::Plugin::P6C_Ecosystem"] ).get($module-name);
+        verbose('Fetching', @g);
+
         my @metas = @g.map({ $*SPEC.catpath("", $_.<path>, "META.info") });
-        my @b  = Zef::Builder.new.pre-compile( @g.map({ $_.<path> }) );
-        my @t  = Zef::Tester.new.test(@b.map({ $_.<path> }));
-        my @r  = Zef::Reporter.new( plugins => ['Zef::Plugin::P6C_Reporter']).report(
+
+        my @b = Zef::Builder.new.pre-compile( @g.map({ $_.<path> }) );
+        verbose('Build', @b);
+
+        my @t = Zef::Tester.new.test(@b.map({ $_.<path> }));
+        verbose('Testing', @t);
+
+        my @r = Zef::Reporter.new( plugins => ['Zef::Plugin::P6C_Reporter']).report(
             @metas, 
             test-results  => @t, 
             build-results => @b,
-        ) if ?$report;
-        my @i  = Zef::Installer.new.install(@metas);
+        ) and verbose('Reporting', @r) if ?$report;
 
-        say "Testing failed" and exit 1 if @t.grep({ !$_.<ok>  });
+        my @i = Zef::Installer.new.install(@metas);
+        verbose('Install', @i.grep({ !$_.<skipped>}));
+        verbose('Skip (already installed!)', @i.grep({ ?$_.<skipped> }));
 
         take $module-name unless @i.grep({ !$_.<ok> });
     }

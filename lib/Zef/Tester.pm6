@@ -11,6 +11,7 @@ class Zef::Tester does Zef::Phase::Testing {
 
         my @results = eager gather for @repos -> $path {
             my @files = $path.IO.ls(:r, :f).grep(/\.t$/);
+            my %meta  = try %(from-json( $*SPEC.catpath('', $path.IO, 'META.info').IO.slurp ));
 
             my @tests = @files.map(-> $test-file {
                 my $test-file-rel = $*SPEC.abs2rel($test-file, $path);
@@ -24,9 +25,10 @@ class Zef::Tester does Zef::Phase::Testing {
             });
 
             take {  
-                ok    => ?( @tests.grep({ $_.<ok> == 1}) == @tests.elems ),
-                path  => $path,
-                tests => @tests, 
+                ok     => ?( @tests.grep({ $_.<ok> == 1}) == @tests.elems ),
+                path   => $path,
+                tests  => @tests,
+                module => %meta<name>,
             }
         }
         return @results;

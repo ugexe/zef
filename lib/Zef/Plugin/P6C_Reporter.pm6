@@ -71,6 +71,8 @@ role Zef::Plugin::P6C_Reporter does Zef::Phase::Reporting {
 
         my $client = Zef::Utils::HTTPClient.new;
         my @submissions = gather for @bones -> $bone {
+            KEEP take { ok => 1, module => %meta<name>, report => $bone }
+            UNDO take { ok => 0, module => %meta<name>, report => $bone }
             my $response  = $client.post("http://testers.perl6.org/report", payload => $bone);
             my $report-id = $response.body;
             say "==> Report location: http://testers.perl6.org/reports/$report-id.html";

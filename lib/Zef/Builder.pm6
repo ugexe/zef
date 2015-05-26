@@ -68,7 +68,8 @@ class Zef::Builder does Zef::Phase::Building {
                 precomp-path => @blibs[0], 
                 path         => $path, 
                 curlfs       => @compiled, 
-                sources      => @provides 
+                sources      => @provides,
+                module       => %meta<name>,
             }
         }
 

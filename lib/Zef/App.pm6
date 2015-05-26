@@ -43,7 +43,7 @@ multi MAIN('install', *@modules, Bool :$report) is export {
     sub verbose($phase, @_) {
         return unless @_;
         my %r = @_.classify({ $_.<ok> ?? 'ok' !! 'nok' });
-        say "***> $phase failed for: {%r<nok>.list.map({ $_.<module> })}" if %r<nok>;
+        say "!!!! $phase failed for: {%r<nok>.list.map({ $_.<module> })}" if %r<nok>;
         say "===> $phase OK for: {%r<ok>.list.map({ $_.<module> })}" if %r<ok>;
     }
 

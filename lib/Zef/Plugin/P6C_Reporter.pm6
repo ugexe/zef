@@ -8,10 +8,11 @@ role Zef::Plugin::P6C_Reporter does Zef::Phase::Reporting {
     # to @metas by comparing %_<path> (the root path of the repo).
     # Probably a good spot to use a .classify
     method report(*@metas, :@test-results, :@build-results) {
-        my @bones = gather for @metas -> $meta-path {
+        my @meta-reports = gather for @metas -> $meta-path {
             my $meta-json = from-json($meta-path.IO.slurp);
             my %meta      = %($meta-json);
             my $repo-path = $meta-path.IO.dirname;
+            KEEP take { %meta }
 
             my %test  = @test-results.first({ $_<path> eq $repo-path }).hash;
             my %build = @build-results.first({ $_<path> eq $repo-path }).hash;
@@ -19,7 +20,7 @@ role Zef::Plugin::P6C_Reporter does Zef::Phase::Reporting {
             my $build-output = %build.<curlfs>.map(-> $cu { $cu.build-output }).join("\n");
             my $test-output  = %test.<tests>.map({ $_<test-output> }).join("\n");
 
-            take to-json {
+            %meta<report> = to-json {
                 :name(%meta<name>),
                 :version(%meta<ver> // %meta<version> // '*'),
                 :dependencies(%meta<depends>),
@@ -70,9 +71,9 @@ role Zef::Plugin::P6C_Reporter does Zef::Phase::Reporting {
         }
 
         my $client = Zef::Utils::HTTPClient.new;
-        my @submissions = gather for @bones -> $bone {
-            KEEP take { ok => 1, module => $bone.name, report => $bone }
-            UNDO take { ok => 0, module => $bone.name, report => $bone }
+        my @submissions = gather for @meta-reports -> $meta {
+            KEEP take { ok => 1, module => $meta<name>, report => $meta<report> }
+            UNDO take { ok => 0, module => $meta<name>, report => $meta<report> }
             my $response  = $client.post("http://testers.perl6.org/report", payload => $bone);
             my $report-id = $response.body;
             say "==> Report location: http://testers.perl6.org/reports/$report-id.html";

@@ -7,7 +7,7 @@ class Zef::Builder does Zef::Phase::Building {
     # todo: lots of cleanup/refactoring
     method pre-compile(*@repos is copy, :$save-to is copy) {
         my @results = eager gather for @repos -> $path {
-            my $SPEC      := $*SPEC;
+            my $SPEC := $*SPEC;
 
             # NOTE: this may change
             # Currently treats relative paths as relative to the current repo's path ($path).
@@ -16,12 +16,11 @@ class Zef::Builder does Zef::Phase::Building {
                 ?? ($save-to.IO.is-absolute ?? $save-to.IO !! $SPEC.catdir($save-to, $path).IO) 
                 !! $path.IO;
 
-            say "==> Build directory: {$save-to.absolute}";
+            say "===> Build directory: {$save-to.absolute}";
             my %meta     = %(from-json( $SPEC.catpath('', $path, 'META.info').IO.slurp) );
             my @provides = %meta<provides>.list;
-            
             my @libs     = @provides.map({
-                $*SPEC.rel2abs($SPEC.splitdir($_.value.IO.dirname).[0].IO, $path)
+                $*SPEC.rel2abs($SPEC.splitdir($_.value.IO.dirname).[0].IO // $SPEC.curdir, $path)
             }).unique.map({ CompUnitRepo::Local::File.new($_).Str });
             state @blibs.push($_) for @libs.map({ 
                 CompUnitRepo::Local::File.new( $SPEC.rel2abs($SPEC.catdir('blib', $SPEC.abs2rel($_, $path)), $save-to) ).Str;
@@ -64,7 +63,7 @@ class Zef::Builder does Zef::Phase::Building {
             # that augments core functionality (Utils::PathTools and augment IO::Path?)
             # so we will use this structure for now instead of a custom CompUnit extension
             take {  
-                ok           => ?(@compiled.elems == @provides.elems),
+                ok           => ?(@compiled.grep({ ?$_.has-precomp }).elems == @provides.elems),
                 precomp-path => @blibs[0], 
                 path         => $path, 
                 curlfs       => @compiled, 

@@ -76,7 +76,7 @@ role Zef::Plugin::P6C_Reporter does Zef::Phase::Reporting {
             UNDO take { ok => 0, module => $meta<name>, report => $meta<report> }
             my $response  = $client.post("http://testers.perl6.org/report", payload => $meta<report>);
             my $report-id = $response.body;
-            say "==> Report location: http://testers.perl6.org/reports/$report-id.html";
+            say "===> Report location: http://testers.perl6.org/reports/$report-id.html";
         }
     }
 }

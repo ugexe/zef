@@ -13,7 +13,9 @@ role Zef::Plugin::P6C_Ecosystem does Zef::Phase::Getting {
         my @tree     = build-dep-tree( @projects, target => $_ ) for @wanted;
         my @results  = eager gather for @tree -> %node {
             say "Getting: {%node.<source-url>}";
-            my @git  = Zef::Plugin::Git.new.get(:$save-to, %node.<source-url>);
+            my $module-as-pathname = %node.<name>.trans(':' => '-');
+            temp $save-to          = $*SPEC.catdir($save-to, $module-as-pathname);
+            my @git                = Zef::Plugin::Git.new.get(:$save-to, %node.<source-url>);
             take { module => %node.<name>, path => @git.[0].<path>, ok => ?$save-to.IO.e }
         }
         return @results;

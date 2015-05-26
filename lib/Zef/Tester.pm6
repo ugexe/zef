@@ -25,7 +25,7 @@ class Zef::Tester does Zef::Phase::Testing {
             });
 
             take {  
-                ok     => ?( @tests.grep({ $_.<ok> == 1}) == @tests.elems ),
+                ok     => ?( @tests.grep({ ?$_.<ok> }).elems == @tests.elems ),
                 path   => $path,
                 tests  => @tests,
                 module => %meta<name>,

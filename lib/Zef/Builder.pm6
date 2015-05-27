@@ -3,6 +3,24 @@ use Zef::Utils::Depends;
 use Zef::Utils::PathTools;
 
 
+# We cannot use this CompUnit until we figure out how to make it work with 
+# MONKEY-TYPING modules that are currently loaded. In our case, Zef::Utils::PathTools 
+# will return a CompUnit and not the Zef::CompUnit
+class Zef::CompUnit is CompUnit {
+    has $!path;
+    has $!has-precomp;
+    has $.precomp-path;
+    has $.build-output is rw;
+
+    method precomp($out, |c) {
+        $!precomp-path = $out //= self.precomp-path // "{$!path}.{$*VM.precomp-ext}";
+        mkdirs(self.precomp-path.IO.dirname);
+
+        nextwith($!precomp-path, |c);
+    }
+}
+
+
 class Zef::Builder does Zef::Phase::Building {
     # todo: lots of cleanup/refactoring
     method pre-compile(*@repos is copy, :$save-to is copy) {
@@ -12,7 +30,7 @@ class Zef::Builder does Zef::Phase::Building {
             # NOTE: this may change
             # Currently treats relative paths as relative to the current repo's path ($path).
             # It may or may not be better to treat them as relative to the users CWD. We shall see.
-            temp $save-to  = $save-to 
+            temp $save-to = $save-to 
                 ?? ($save-to.IO.is-absolute ?? $save-to.IO !! $SPEC.catdir($save-to, $path).IO) 
                 !! $path.IO;
 
@@ -33,8 +51,8 @@ class Zef::Builder does Zef::Phase::Building {
 
             my @compiled = @ordered.map({
                 my $display-path = $SPEC.abs2rel($_.<path>, $path);
-                my $blib-file := $*SPEC.rel2abs($SPEC.catdir('blib', $SPEC.abs2rel($_.<path>, $path)).IO, $save-to).IO;
-                my $out       := $*SPEC.rel2abs($SPEC.catpath('', $blib-file.dirname, "{$blib-file.basename}.{$*VM.precomp-ext}"), $save-to).IO;
+                my $blib-file := $SPEC.rel2abs($SPEC.catdir('blib', $SPEC.abs2rel($_.<path>, $path)).IO, $save-to).IO;
+                my $out       := $SPEC.rel2abs($SPEC.catpath('', $blib-file.dirname, "{$blib-file.basename}.{$*VM.precomp-ext}"), $save-to).IO;
                 my $cu        := CompUnit.new( $_.<path> ) but role { # workaround for non-default :$out
                     has $!has-precomp;
                     has $!out;

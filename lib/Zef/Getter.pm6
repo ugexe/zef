@@ -18,7 +18,7 @@ class Zef::Getter does Zef::Phase::Getting {
             my $payload  = to-json({ name => $module });
             my $response = $ua.post('http://zef.pm/api/download', :$payload);
             my $data     = $response.body;
-            my $mode    = 0o0644;
+            my $mode     = 0o0644;
 
             try mkdirs($save-to);
             for @($data.substr(0, *-2).split("\r\n")) -> $path is copy, $enc is copy {

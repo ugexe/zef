@@ -44,88 +44,15 @@ CPAN but better. Maybe?
     zef test
     # test project in current directory
     
-    zef push
-    # upload module in cwd using meta.info or something like that?
-
-=head2 Social
-
-    zef register sbalmer winrtlol
-    # register <username> <password>
-
-    zef login sbalmer winrtlol
-    # login <username> <password>
-
-    # todo: proper password prompt
-    # ok, now...
-
-    zef like Zef
-    # Oops
-
-    zef unlike Zef
-    # thats better
-
-    zef comment Zef 'literal trash for idiots'
-    # dont let others make the same mistake!!
-
-=head1 ADVANCED USAGE
-    
-=head2 Plugins/Hooks
-
-Load plugins from config file or as initiator argument.
-
-    # Override default 'Testing' by applying Zef::Phase::Testing role
-    # and adding to config or doing Zef::Tester( :plugins(['Zef::Plugin::P5Prove']) )
-
-    use Zef::Phase::Testing;
-    
-    role Zef::Plugin::P5Prove does Zef::Phase::Testing {
-        method test(*@dirs) {
-            my $cmd = -> *@libs {
-                "prove -V && "
-                    ~"(cd $*CWD && "
-                        ~"prove -v -e '"
-                        ~ "perl6 " 
-                        ~ @libs.map({ "-I$_" }).join(' ')
-                        ~ "' {~@dirs} )";
-            }
-
-            # test /lib if /blib/lib fails or does not exist
-            'blib/lib'.IO.e && shell($cmd('blib/lib')).exitcode == 0
-                ?? True  
-                !! shell($cmd('lib')).exitcode == 0
-                    ?? ("ERROR: Source code passes test; Precomp fails".say andthen True)
-                    !! False;
-        }
-    }
-
-=head4 Phases
-
-Interface to hook into various phases.
-
-    * Zef::Phase::Getting
-    * Zef::Phase::Building
-    * Zef::Phase::Testing
-    * Zef::Phase::Reporting
-
-=head2 Config
-
-Stores plugins to automatically load and session id (if any)
-
-    {
-        "plugins" : [
-            "Zef::Plugin::P5Prove"
-        ]
-    }
-
 =head1 TOOLS
 
-=head2 Zef::Utils::HTTPClient
+=head2 Zef::Net::HTTP::Client
 
 Basic http client: Grammar based parser; uses IO::Socket::SSL if available for https.
 
-    use Zef::Utils::HTTPClient;
+    use Zef::Net::HTTP::Client;
     
-    my $client = Zef::Utils::HTTPClient.new;
+    my $client = Zef::Net::HTTP::Client.new;
 
     my $payload  = to-json({ term => "zef" });
     my $response = $client.post("http://zef.pm/api/search", $payload);
@@ -133,6 +60,16 @@ Basic http client: Grammar based parser; uses IO::Socket::SSL if available for h
 
     my $response = $client.get("https://www.google.com");
     say $reponse.content; # apply encoding/chunked/etc to $.body
+
+=head2 Zef::Net::HTTP::Response
+
+=head2 Zef::Net::HTTP::Request
+
+=head2 Zef::Net::HTTP::Grammar
+
+=head2 Zef::Net::URI
+
+=head2 Zef::Net::URI::Grammar
 
 =head2 Zef::Utils::Base64
 
@@ -150,7 +87,7 @@ Base64 encoding/decoding
     
 =head2 Zef::Utils::PathTools;
 
-Uses MONKEY_TYPING to add additional methods to L<IO::Path|http://doc.perl6.org/type/IO::Path>.
+Uses MONKEY-TYPING to add additional methods to L<IO::Path|http://doc.perl6.org/type/IO::Path>.
 
     use Zef::Utils::PathTools;
     
@@ -225,9 +162,7 @@ Build dependency order/tree from a list of dependency meta files. If :$target is
 
  * Test reporting to Zef servers
  * Rotating OS smoke testing server integration
- * ✓ Plugin stuff
  * ✓ Use perl6 github ecosystem as an additional authority
- * Finish up social junk
  * ✓ Small http client
 
 =cut

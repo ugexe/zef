@@ -1,0 +1,3 @@
+role Zef::Net::HTTP {
+
+}

@@ -1,7 +1,6 @@
-use Zef::Phase::Testing;
 use Zef::Utils::PathTools;
 
-class Zef::Tester does Zef::Phase::Testing {
+class Zef::Tester {
     method test(*@repos, :$lib = ['blib/lib','lib'], :$p6flags) {
         my @libs = gather for @repos -> $path { 
             for $lib.list -> $l {
@@ -19,7 +18,7 @@ class Zef::Tester does Zef::Phase::Testing {
                 my $proc = pipe( $cmd, :r );
 
                 my $test-output = $proc.slurp-rest;
-                my $test-result = shell($cmd).exitcode == 0 ?? 1  !! 0;
+                my $test-result = $proc.close.exitcode == 0 ?? 1  !! 0;
 
                 { ok => $test-result, test-output => $test-output, file => $test-file, path => $path }
             });
@@ -34,4 +33,3 @@ class Zef::Tester does Zef::Phase::Testing {
         return @results;
     }
 }
-

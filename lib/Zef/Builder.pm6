@@ -1,4 +1,3 @@
-use Zef::Phase::Building;
 use Zef::Utils::Depends;
 use Zef::Utils::PathTools;
 
@@ -21,7 +20,7 @@ class Zef::CompUnit is CompUnit {
 }
 
 
-class Zef::Builder does Zef::Phase::Building {
+class Zef::Builder {
     # todo: lots of cleanup/refactoring
     method pre-compile(*@repos is copy, :$save-to is copy) {
         my @results = eager gather for @repos -> $path {

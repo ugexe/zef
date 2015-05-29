@@ -1,12 +1,10 @@
 unit class Zef::App;
 
 #core modes 
-use Zef::Authority;
+use Zef::Authority::P6C;
 use Zef::Builder;
 use Zef::Config;
-use Zef::Getter;
 use Zef::Installer;
-use Zef::Reporter;
 use Zef::Tester;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
@@ -40,6 +38,8 @@ multi MAIN('test', *@paths) is export {
 
 #| Install with business logic
 multi MAIN('install', *@modules, Bool :$report) is export {
+    my $auth = Zef::Authority::P6C.new;
+
     sub verbose($phase, @_) {
         return unless @_;
         my %r = @_.classify({ $_.<ok> ?? 'ok' !! 'nok' });
@@ -49,7 +49,7 @@ multi MAIN('install', *@modules, Bool :$report) is export {
 
     # todo: Parallelization. Will mostly 'just work' if we tweak build-dep-tree
     # to return the actual tree instead of flattening it into an array
-    my @g = Zef::Getter.new( plugins => ["Zef::Plugin::P6C_Ecosystem"] ).get: @modules;
+    my @g = $auth.get: @modules;
     verbose('Fetching', @g);
 
     my @m = @g.grep({ $_<ok> }).map({ $_<ok> = ?$*SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
@@ -65,7 +65,7 @@ multi MAIN('install', *@modules, Bool :$report) is export {
 
     my @metas-to-install = @m.grep({ $_<ok> }).map({ $*SPEC.catpath('', $_.<path>, "META.info").IO.path });
 
-    my @r = Zef::Reporter.new( plugins => ['Zef::Plugin::P6C_Reporter'] ).report(
+    my @r = $auth.report(
         @metas-to-install,
         test-results  => @t, 
         build-results => @b,
@@ -88,11 +88,7 @@ multi MAIN('local-install', *@modules) is export {
 
 #| Get the freshness
 multi MAIN('get', :$save-to = "$*CWD/{time}", *@modules) is export {
-    # {time} can be removed when we fetch actual versioned archives
-    # so we dont accidently overwrite files in $*CWD
-    my $getter = Zef::Getter.new(:@plugins);
-    my @results = $getter.get(:$save-to, |@modules);
-    return @results;
+    say "NYI";
 }
 
 
@@ -104,42 +100,7 @@ multi MAIN('build', $path, :$save-to) {
     $builder.pre-compile($path, :$save-to);
 }
 
-multi MAIN('login', Str $username, Str $password? is copy) {
-    $password //= prompt 'Password: ';
-    say "Password required" && exit(1) unless $password;
-    my $auth = Zef::Authority.new;
-    $auth.login(:$username, :$password) or { $*ERR.say; exit(2) }();
-    %config<session-key> = $auth.session-key // exit(3);
-    save-config;
-}
-
-multi MAIN('register', Str $username, Str $password? is copy) {
-    $password //= prompt 'Password: ';
-    say "Password required" && exit(1) unless $password;
-    my $auth = Zef::Authority.new;
-    $auth.register(:$username, :$password) or { $*ERR.say; exit(5) }();
-    %config<session-key> = $auth.session-key or exit(6);
-    save-config;
-}
 
 multi MAIN('search', *@terms) {
-    my $auth = Zef::Authority.new;
-    my %results = $auth.search(@terms) or exit(4);
-    for %results.kv -> $term, @term-results {
-        say "No results for $term" and next unless @term-results;
-        try say @term-results.hash.<reason> and next if @term-results.hash.<failure>;
-        say "Results for $term";
-        say "Package\tAuthor\tVersion";
-        for @term-results -> %result {
-            say "{%result<name>}\t{%result<owner>}\t{%result<version>}";
-        }
-    }
-
-    exit(7) if [] ~~ all(%results.values);
-}
-
-multi MAIN('push', *@targets, Str :$session-key = %config<session-key>, :@exclude? = (/'.git'/,/'.gitignore'/), Bool :$force?) {
-    @targets.push($*CWD.IO.path) unless @targets.elems;
-    my $auth = Zef::Authority.new;
-    $auth.push(@targets, :$session-key, :@exclude, :$force) or { $*ERR.say; exit(7); }();
+    say "NYI";
 }

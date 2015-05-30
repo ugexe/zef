@@ -11,7 +11,6 @@
         "Zef::Builder"     : "lib/Zef/Builder.pm6",
         "Zef::Config"      : "lib/Zef/Config.pm6",
         "Zef::Installer"   : "lib/Zef/Installer.pm6",
-        "Zef::Tester"      : "lib/Zef/Tester.pm6",
         "Zef::Uninstaller" : "lib/Zef/Uninstaller.pm6",
 
         "Zef::Authority"      : "lib/Zef/Authority.pm6",
@@ -19,6 +18,8 @@
         "Zef::Authority::P6C" : "lib/Zef/Authority/P6C.pm6",
         "Zef::Authority::Zef" : "lib/Zef/Authority/Zef.pm6",
 
+        "Zef::Test"         : "lib/Zef/Test.pm6",
+        "Zef::Test::Result" : "lib/Zef/Test/Result.pm6",
 
         "Zef::Utils::Base64"    : "lib/Zef/Utils/Base64.pm6",
         "Zef::Utils::Depends"   : "lib/Zef/Utils/Depends.pm6",

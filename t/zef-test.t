@@ -1,12 +1,12 @@
 use v6;
-use Zef::Tester;
-plan 1;
+use Zef::Test;
 use Test;
+plan 1;
 
 
 # Test default tester
 subtest {
-    my $tester = Zef::Tester.new;
+    my $tester = Zef::Test.new(path => $?FILE.IO.dirname.IO.dirname);
 
     ok $tester.can('test'), 'Zef::Tester can do default tester method';
 

@@ -1,8 +1,8 @@
 use v6;
 use Zef::Utils::PathTools;
 use Zef::Utils::Depends;
-plan 1;
 use Test;
+plan 1;
 
 
 # Test parsing out POD from modules

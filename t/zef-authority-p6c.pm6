@@ -1,7 +1,7 @@
 use v6;
 use Zef::Authority::P6C;
-plan 1;
 use Test;
+plan 1;
 
 
 subtest {

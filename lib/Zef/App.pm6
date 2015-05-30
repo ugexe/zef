@@ -32,7 +32,6 @@ multi MAIN('test', *@paths, Bool :$v) is export {
     my @t = @test-results>>.list;
     my $failures = @t.grep({ !$_.ok }).elems;
     @t.map({ say $_.stdout }) if $v;
-
     say "-" x 42;
     say "Total  test files: {@t.elems}";
     say "Passed test files: {@t.elems - $failures}";
@@ -67,12 +66,11 @@ multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
     verbose('Build', @b);
 
     # first crack at supplies/parallelization
-    my @testers      = @repos.map: -> $path { Zef::Test.new(:$path) }
-    my @test-results = @testers.list>>.test;
-    await Promise.allof: @test-results.list.map({ $_.list.map({ $_.promise }) });
-    my @t = @test-results>>.list;
-    @t.map({ say $_.stdout }) if $v;
-    verbose('Testing', @t.map({ ok => $_.ok, module => $_.file.IO.basename })); # 'module' is a lie
+    my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
+    @t.list>>.test;
+    @t>>.results.list>>.stdout>>.tap({ say $_ }) if $v;
+    await Promise.allof: @t.list>>.results.list.map({ $_.list.map({ $_.promise }) });
+    verbose('Testing', @t.list>>.results>>.list.map({ ok => $_>>.ok, module => $_>>.file.IO.basename }));
 
     my @metas-to-install = @m.grep({ $_<ok> }).map({ $*SPEC.catpath('', $_.<path>, "META.info").IO.path });
 

@@ -1,6 +1,5 @@
 use Zef::Utils::Base64;
 use Test;
-
 plan 2;
 
 subtest {

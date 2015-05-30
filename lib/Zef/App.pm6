@@ -5,7 +5,7 @@ use Zef::Authority::P6C;
 use Zef::Builder;
 use Zef::Config;
 use Zef::Installer;
-use Zef::Tester;
+use Zef::Test;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 
@@ -25,7 +25,7 @@ has @!plugins;
 #| Test modules in the specified directories
 multi MAIN('test', *@paths) is export {
     @paths = $*CWD unless @paths;
-    my $tester  = Zef::Tester.new(:@plugins);
+    my $tester  = Zef::Test.new(:@plugins);
     my @results = $tester.test(@paths);
     my $failures = @results.grep({ !$_.<ok>  }).elems;
     say "-" x 42;
@@ -37,14 +37,15 @@ multi MAIN('test', *@paths) is export {
 }
 
 #| Install with business logic
-multi MAIN('install', *@modules, Bool :$report) is export {
+multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
     my $auth = Zef::Authority::P6C.new;
 
+    # will be replaced soon
     sub verbose($phase, @_) {
         return unless @_;
-        my %r = @_.classify({ $_.<ok> ?? 'ok' !! 'nok' });
-        say "!!!! $phase failed for: {%r<nok>.list.map({ $_.<module> })}" if %r<nok>;
-        say "===> $phase OK for: {%r<ok>.list.map({ $_.<module> })}" if %r<ok>;
+        my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
+        say "!!!! $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}" if %r<nok>;
+        say "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}" if %r<ok>;
     }
 
     # todo: Parallelization. Will mostly 'just work' if we tweak build-dep-tree
@@ -60,8 +61,13 @@ multi MAIN('install', *@modules, Bool :$report) is export {
     my @b = Zef::Builder.new.pre-compile: @repos;
     verbose('Build', @b);
 
-    my @t = Zef::Tester.new.test: @repos;
-    verbose('Testing', @t);
+    # first crack at supplies/parallelization
+    my @testers      = @repos.map: -> $path { Zef::Test.new(:$path) }
+    my @test-results = @testers.list>>.test;
+    await Promise.allof: @test-results.list.map({ $_.list.map({ $_.promise }) });
+    my @t = @test-results>>.list;
+    @t.map({ say $_.stdout }) if $v;
+    verbose('Testing', @t.map({ ok => $_.ok, module => $_.file.IO.basename })); # 'module' is a lie
 
     my @metas-to-install = @m.grep({ $_<ok> }).map({ $*SPEC.catpath('', $_.<path>, "META.info").IO.path });
 

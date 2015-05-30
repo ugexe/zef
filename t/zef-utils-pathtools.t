@@ -1,7 +1,7 @@
 use v6;
 use Zef::Utils::PathTools;
-plan 5;
 use Test;
+plan 5;
 
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;

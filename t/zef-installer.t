@@ -1,8 +1,8 @@
 use v6;
 use Zef::Installer;
 use Zef::Utils::PathTools;
-plan 1;
 use Test;
+plan 1;
 
 
 subtest {

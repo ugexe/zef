@@ -1,7 +1,7 @@
 use v6;
 use Zef::Net::HTTP::Client;
-plan 2;
 use Test;
+plan 2;
 
 
 ENTER {

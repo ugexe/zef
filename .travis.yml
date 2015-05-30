@@ -18,6 +18,6 @@ install:
     # need at least 1 statement in 'install'
     - perl6 -v
 script:
-    - perl6 -Ilib bin/zef test
+    - perl6 -Ilib bin/zef -v test
     - perl6 -Ilib bin/zef --save-to=precomp/ build ./
     - prove -v -e "perl6 -Iprecomp/blib/lib" t/

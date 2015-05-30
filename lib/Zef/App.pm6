@@ -23,14 +23,19 @@ has @!plugins;
 
 
 #| Test modules in the specified directories
-multi MAIN('test', *@paths) is export {
+multi MAIN('test', *@paths, Bool :$v) is export {
     @paths = $*CWD unless @paths;
-    my $tester  = Zef::Test.new(:@plugins);
-    my @results = $tester.test(@paths);
-    my $failures = @results.grep({ !$_.<ok>  }).elems;
+
+    my @testers      = @paths.map: -> $path { Zef::Test.new(:$path) }
+    my @test-results = @testers.list>>.test;
+    await Promise.allof: @test-results.list.map({ $_.list.map({ $_.promise }) });
+    my @t = @test-results>>.list;
+    my $failures = @t.grep({ !$_.ok }).elems;
+    @t.map({ say $_.stdout }) if $v;
+
     say "-" x 42;
-    say "Total  test files: {@results.elems}";
-    say "Passed test files: {@results.elems - $failures}";
+    say "Total  test files: {@t.elems}";
+    say "Passed test files: {@t.elems - $failures}";
     say "Failed test files: $failures";
     say "-" x 42;
     exit $failures;

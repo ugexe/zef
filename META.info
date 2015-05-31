@@ -27,6 +27,7 @@
         "Zef::Utils::PathTools" : "lib/Zef/Utils/PathTools.pm6",
 
         "Zef::Net::HTTP"           : "lib/Zef/Net/HTTP.pm6",
+        "Zef::Net::HTTP::Actions"  : "lib/Zef/Net/HTTP/Actions.pm6",
         "Zef::Net::HTTP::Request"  : "lib/Zef/Net/HTTP/Request.pm6",
         "Zef::Net::HTTP::Response" : "lib/Zef/Net/HTTP/Response.pm6",
         "Zef::Net::HTTP::Client"   : "lib/Zef/Net/HTTP/Client.pm6",

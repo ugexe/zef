@@ -21,36 +21,29 @@ has @!plugins;
 #    @plugins := @!plugins if @!plugins.defined;
 #}
 
+# will be replaced soon
+sub verbose($phase, @_) {
+    return unless @_;
+    my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
+    say "!!!! $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}" if %r<nok>;
+    say "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}" if %r<ok>;
+    return { ok => %r<ok>.elems, nok => %r<nok> }
+}
 
 #| Test modules in the specified directories
 multi MAIN('test', *@paths, Bool :$v) is export {
-    @paths = $*CWD unless @paths;
-
-    my @testers      = @paths.map: -> $path { Zef::Test.new(:$path) }
-    my @test-results = @testers.list>>.test;
-    await Promise.allof: @test-results.list.map({ $_.list.map({ $_.promise }) });
-    my @t = @test-results>>.list;
-    my $failures = @t.grep({ !$_.ok }).elems;
-    @t.map({ say $_.stdout }) if $v;
-    say "-" x 42;
-    say "Total  test files: {@t.elems}";
-    say "Passed test files: {@t.elems - $failures}";
-    say "Failed test files: $failures";
-    say "-" x 42;
-    exit $failures;
+    my @repos = @paths ?? @paths !! $*CWD;
+    my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
+    @t.list>>.test;
+    @t.list>>.results>>.list.map: -> $result { $result.stdout.tap({ say $_ }) } if $v;
+    await Promise.allof: @t.list>>.results.list.map({ $_.list.map({ $_.promise }) });
+    my $r = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
+    exit ?$r<nok> ?? $r<nok> !! 0;
 }
 
 #| Install with business logic
 multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
     my $auth = Zef::Authority::P6C.new;
-
-    # will be replaced soon
-    sub verbose($phase, @_) {
-        return unless @_;
-        my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
-        say "!!!! $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}" if %r<nok>;
-        say "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}" if %r<ok>;
-    }
 
     # todo: Parallelization. Will mostly 'just work' if we tweak build-dep-tree
     # to return the actual tree instead of flattening it into an array
@@ -68,9 +61,9 @@ multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
     # first crack at supplies/parallelization
     my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
     @t.list>>.test;
-    @t>>.results.list>>.stdout>>.tap({ say $_ }) if $v;
+    @t.list>>.results>>.list.map: -> $result { $result.stdout.tap({ say $_ }) } if $v;
     await Promise.allof: @t.list>>.results.list.map({ $_.list.map({ $_.promise }) });
-    verbose('Testing', @t.list>>.results>>.list.map({ ok => $_>>.ok, module => $_>>.file.IO.basename }));
+    verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
 
     my @metas-to-install = @m.grep({ $_<ok> }).map({ $*SPEC.catpath('', $_.<path>, "META.info").IO.path });
 

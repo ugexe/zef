@@ -1,17 +1,33 @@
+# Zef::Test::Result represents a single test file and the results of running it.
+# Pass an unstarted Proc::Async object. $file can likely be removed as a constructor 
+# and parsed from $process.args or $process.stdout.
+# 
+# method status
+# Get the exit code of the process that ran the tests.
+#
+# method ok
+# Convenience method. Returns `True` if the exit code was 0 (success). Otherwise, `False`.
+
 class Zef::Test::Result {
     has $.process;
     has $.promise;
     has $.file;
-    has $.stdout     is rw;
-    has $.stderr     is rw;
+    has $.path;
+    has Supply $.stdout;
+    has Supply $.stderr;
     has $.start-time is rw;
     has $.end-time   is rw;
+    has $.output     is rw;
 
-    submethod BUILD(:$!process, :$!file) {
-        LEAVE $!promise = $!process.start;
-        $!process.stdout.tap: -> $o { $!stdout ~= $o }
-        $!process.stderr.tap: -> $o { $!stderr ~= $o }
+    submethod BUILD(:$!process, :$!file, :$!path) {
+        LEAVE $!promise := $!process.start;
+        $!stdout := $!process.stdout;
+        $!stderr := $!process.stderr;
+
+        $!process.stdout.tap({ $!output ~= $_ });
+        $!process.stderr.tap({ $!output ~= $_ });
     }
+
     method status { $!promise.result.exitcode }
     method ok     { ?$!promise.result.exitcode ?? False !! True }
 }

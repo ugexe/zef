@@ -36,11 +36,11 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             my $repo-path = $meta-path.IO.dirname;
             KEEP take { %meta }
 
-            my %test  = @test-results.first({ $_<path> eq $repo-path }).hash;
+            my $test  = @test-results.list>>.results.grep({ $_.list>>.file.IO.absolute ~~ /^$repo-path/ });
             my %build = @build-results.first({ $_<path> eq $repo-path }).hash;
 
             my $build-output = %build.<curlfs>.map(-> $cu { $cu.build-output }).join("\n");
-            my $test-output  = %test.<tests>.map({ $_<test-output> }).join("\n");
+            my $test-output  = $test>>.list.map({ $_.list>>.output }).join("\n");
 
             # See Panda::Reporter
             %meta<report> = to-json {
@@ -51,7 +51,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 :build-output($build-output),
                 :build-passed(?%build<ok>),
                 :test-output($test-output),
-                :test-passed(?%test<ok>),
+                :test-passed(?all(?$test>>.list>>.ok)),
                 :distro({
                     :name($*DISTRO.name),
                     :version($*DISTRO.version.Str),
@@ -93,10 +93,10 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             }
         }
 
-        my @submissions = gather for @meta-reports -> $meta {
-            KEEP take { ok => 1, module => $meta<name>, report => $meta<report> }
-            UNDO take { ok => 0, module => $meta<name>, report => $meta<report> }
-            my $response  = $!ua.post("http://testers.perl6.org/report", payload => $meta<report>);
+        my @submissions = gather for @meta-reports -> $m {
+            KEEP take { ok => 1, module => $m<name>, report => $m<report> }
+            UNDO take { ok => 0, module => $m<name>, report => $m<report> }
+            my $response  = $!ua.post("http://testers.perl6.org/report", payload => $m<report>);
             my $report-id = $response.body;
             say "===> Report location: http://testers.perl6.org/reports/$report-id.html";
         }

@@ -16,6 +16,8 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         @!projects = @(from-json($response.content));
     }
 
+    # Use the p6c hosted projects.json to get a list of name => git-repo that 
+    # can then be fetched with Utils::Git
     method get(Zef::Authority::P6C:D: *@wants, :$save-to is copy = $*TMPDIR) {
         ENTER self.update-projects;
         my @wants-metas = @!projects.grep({ $_.<name> ~~ any(@wants) }); # unused now?
@@ -96,11 +98,9 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         }
 
         my @submissions = gather for @meta-reports -> $m {
-            KEEP take { ok => 1, module => $m<name>, report => $m<report> }
-            UNDO take { ok => 0, module => $m<name>, report => $m<report> }
             my $response  = $!ua.post("http://testers.perl6.org/report", payload => $m<report>);
-            my $report-id = $response.body;
-            say "===> Report location: http://testers.perl6.org/reports/$report-id.html";
+            my $body = $response.body;
+            take { ok => ?$body.isa(Int), module => $m<name>, report => $m<report> }
         }
     }
 }

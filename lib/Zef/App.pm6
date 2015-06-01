@@ -55,8 +55,9 @@ multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
     my @m = @g.grep({ $_<ok> }).map({ $_<ok> = ?$*SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
     verbose('META.info availability', @m);
 
-    # An array of `path`s to each modules repo (local directory, 1 per module)
+    # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
     my @repos = @m.grep({ $_<ok> }).map({ $_.<path> });
+    my @metas = @repos.map({ $*SPEC.catpath('', $_, "META.info").IO.path });
 
     # Precompile all modules and dependencies
     my @b = Zef::Builder.new.pre-compile: @repos;
@@ -72,17 +73,13 @@ multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
 
     # Send a build/test report
     my @r = $auth.report(
-        @metas-to-install,
+        @metas,
         test-results  => @t, 
         build-results => @b,
     ) and verbose('Reporting', @r) if ?$report;
 
-    # IO::Paths of all the modules that passed their tests
-    # todo: filter out modules that failed their tests, or exit immediately if some flag requires it
-    my @metas-to-install = @m.grep({ $_<ok> }).map({ $*SPEC.catpath('', $_.<path>, "META.info").IO.path });
-
     # Install the modules
-    my @i = Zef::Installer.new.install: @metas-to-install;
+    my @i = Zef::Installer.new.install: @metas;
     verbose('Install', @i.grep({ !$_.<skipped>}));
     verbose('Skip (already installed!)', @i.grep({ ?$_.<skipped> }));
 

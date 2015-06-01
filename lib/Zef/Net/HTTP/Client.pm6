@@ -4,6 +4,8 @@ use Zef::Net::URI;
 
 try require IO::Socket::SSL;
 
+
+# A http client using the grammar based Net::HTTP::Request, Net::HTTP::Response, and Net::URI
 class Zef::Net::HTTP::Client {
     has $.can-ssl = !::("IO::Socket::SSL").isa(Failure);
     has $.auto-check is rw;

@@ -15,6 +15,7 @@ use Zef::Net::HTTP::Grammar::RFC7235;
 use Zef::Net::URI::Grammar::RFC3986;
 use Zef::Net::URI::Grammar::RFC4234;
 
+# Mix in all the various RFCs into a usable grammar
 grammar Zef::Net::HTTP::Grammar {
     also does Zef::Net::HTTP::Grammar::Extensions;
     also does Zef::Net::HTTP::Grammar::RFC1035;

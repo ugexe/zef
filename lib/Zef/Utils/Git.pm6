@@ -1,3 +1,4 @@
+# This is hacky as all hell and will be replaced by something proper in Zef::Net eventually
 class Zef::Utils::Git {
     has @.flags = <--quiet>;
 

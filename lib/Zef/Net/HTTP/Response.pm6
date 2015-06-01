@@ -1,6 +1,8 @@
 use Zef::Net::HTTP::Grammar;
 use Zef::Net::HTTP::Actions;
 
+
+# A http response object built from HTTP::Grammar
 class Zef::Net::HTTP::Response {
     has $.grammar;
     has $.message;

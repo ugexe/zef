@@ -3,6 +3,8 @@ use Zef::Net::HTTP::Client;
 use Zef::Utils::Depends;
 use Zef::Utils::Git;
 
+
+# perl6 community ecosystem + test reporting
 class Zef::Authority::P6C does Zef::Authority::Net {
     has $!ua      = Zef::Net::HTTP::Client.new;
     has $!git     = Zef::Utils::Git.new;

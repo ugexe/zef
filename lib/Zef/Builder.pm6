@@ -20,6 +20,7 @@ class Zef::CompUnit is CompUnit {
 }
 
 
+# Provide functionality for precompiling modules
 class Zef::Builder {
     # todo: lots of cleanup/refactoring
     method pre-compile(*@repos is copy, :$save-to is copy) {

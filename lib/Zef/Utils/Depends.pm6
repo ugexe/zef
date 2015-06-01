@@ -4,6 +4,7 @@ has @!metas;
 
 submethod BUILD(:@!metas) { }
 
+# A poor attempt to parse module names from source code
 grammar Grammar::Dependency::Parser {
     token TOP {
         [.*? <load-statement>]+ .*? $
@@ -22,6 +23,7 @@ grammar Grammar::Dependency::Parser {
     token load-type:sym<require> { <sym> }
 }
 
+# Creates a build order from a list of meta files
 method build-dep-tree(@xmetas = @!metas, :$target) {
     my @depends = $target // @xmetas // @!metas;
     my @tree = eager gather while @depends.shift -> %meta {
@@ -56,6 +58,7 @@ method compress(@tree is copy) {
     return @ctree.grep({ $_.elems > 0 });
 }
 
+# Determine build order for a CompUnitRepo's provides by parsing the source
 method extract-deps(*@paths) {
     @paths //= @!metas.grep({ $_.<file> });
     my @modules = @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
@@ -90,6 +93,7 @@ method extract-deps(*@paths) {
     return @minimeta;
 }
 
+# Not used currently. May be used to parse dependencies from an exception message.
 method runtime-extract-deps(*@paths is copy) {
     #use Perl6::Grammar:from<NQP>; # prevents compile on jvm
     #use Perl6::Actions:from<NQP>;

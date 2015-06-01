@@ -1,6 +1,9 @@
 use Zef::Net::URI;
 use Zef::Utils::Base64;
 
+# todo: generate class from grammar via actions
+
+# A http request object that attempts to handle proxy and basic auth
 class Zef::Net::HTTP::Request {
     has $.grammar;
     has $.action;

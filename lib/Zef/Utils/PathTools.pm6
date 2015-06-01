@@ -1,4 +1,6 @@
 use MONKEY-TYPING;
+
+# Add some recursive helpers to IO::Path with new names to help avoid accidents from the MONKEY
 augment class IO::Path {
     # :r Recursive
     # :d Include directories

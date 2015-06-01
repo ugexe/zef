@@ -30,12 +30,13 @@ sub verbose($phase, @_) {
     return { ok => %r<ok>.elems, nok => %r<nok> }
 }
 
+
 #| Test modules in the specified directories
 multi MAIN('test', *@paths, Bool :$v) is export {
     my @repos = @paths ?? @paths !! $*CWD;
     my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
     @t.list>>.test;
-    @t.list>>.results>>.list.map: -> $result { $result.stdout.tap({ say $_ }) } if $v;
+    @t.list>>.results>>.list.map: { .stdout.tap({ .print }) } if $v;
     await Promise.allof: @t.list>>.results.list.map({ $_.list.map({ $_.promise }) });
     my $r = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
     exit ?$r<nok> ?? $r<nok> !! 0;
@@ -45,38 +46,47 @@ multi MAIN('test', *@paths, Bool :$v) is export {
 multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
     my $auth = Zef::Authority::P6C.new;
 
-    # todo: Parallelization. Will mostly 'just work' if we tweak build-dep-tree
-    # to return the actual tree instead of flattening it into an array
+    # Download the requested modules from some authority
+    # todo: allow turning dependency auth-download off
     my @g = $auth.get: @modules;
     verbose('Fetching', @g);
 
+    # Ignore anything we downloaded that doesn't have a META.info in its root directory
     my @m = @g.grep({ $_<ok> }).map({ $_<ok> = ?$*SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
     verbose('META.info availability', @m);
 
+    # An array of `path`s to each modules repo (local directory, 1 per module)
     my @repos = @m.grep({ $_<ok> }).map({ $_.<path> });
 
+    # Precompile all modules and dependencies
     my @b = Zef::Builder.new.pre-compile: @repos;
     verbose('Build', @b);
 
-    # first crack at supplies/parallelization
+    # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
+    # (note: first crack at supplies/parallelization)
     my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
     @t.list>>.test;
     @t.list>>.results>>.list.map: -> $result { $result.stdout.tap({ say $_ }) } if $v;
     await Promise.allof: @t.list>>.results.list.map({ $_.list.map({ $_.promise }) });
     verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
 
-    my @metas-to-install = @m.grep({ $_<ok> }).map({ $*SPEC.catpath('', $_.<path>, "META.info").IO.path });
-
+    # Send a build/test report
     my @r = $auth.report(
         @metas-to-install,
         test-results  => @t, 
         build-results => @b,
     ) and verbose('Reporting', @r) if ?$report;
 
+    # IO::Paths of all the modules that passed their tests
+    # todo: filter out modules that failed their tests, or exit immediately if some flag requires it
+    my @metas-to-install = @m.grep({ $_<ok> }).map({ $*SPEC.catpath('', $_.<path>, "META.info").IO.path });
+
+    # Install the modules
     my @i = Zef::Installer.new.install: @metas-to-install;
     verbose('Install', @i.grep({ !$_.<skipped>}));
     verbose('Skip (already installed!)', @i.grep({ ?$_.<skipped> }));
 
+    # exit code = number of modules that failed the install process
     exit @modules.elems - @i.grep({ !$_<ok> }).elems;
 }
 

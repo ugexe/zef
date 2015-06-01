@@ -19,7 +19,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     # Use the p6c hosted projects.json to get a list of name => git-repo that 
     # can then be fetched with Utils::Git
     method get(Zef::Authority::P6C:D: *@wants, :$save-to is copy = $*TMPDIR) {
-        ENTER self.update-projects;
+        once self.update-projects;
         my @wants-metas = @!projects.grep({ $_.<name> ~~ any(@wants) }); # unused now?
         my @tree        = build-dep-tree( @!projects, target => $_ ) for @wants-metas;
         my @results     = eager gather for @tree -> %node {
@@ -100,7 +100,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         my @submissions = gather for @meta-reports -> $m {
             my $response  = $!ua.post("http://testers.perl6.org/report", payload => $m<report>);
             my $body = $response.body;
-            take { ok => ?$body.isa(Int), module => $m<name>, report => $m<report> }
+            take { ok => ?$body.match(/^\d+$/), module => $m<name>, report => $m<report> }
         }
     }
 }

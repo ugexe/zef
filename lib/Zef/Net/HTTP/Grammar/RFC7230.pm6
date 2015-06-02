@@ -11,7 +11,7 @@ role Zef::Net::HTTP::Grammar::RFC7230 {
     token Connection        { 
         [[<.OWS> <connection-option>]*] *%% ',' 
     }
-    token Content-Length    { <digit>+ }
+    token Content-Length    { <.digit>+ }
     token HTTP-version      { <HTTP-name> '/' $<major>=[\d] '.' $<minor>=[\d] }
     token HTTP-name         { 'HTTP' }
     token Host              { <host> [':' <.port>]? } # `host` from 3986

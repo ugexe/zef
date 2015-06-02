@@ -1,5 +1,58 @@
 # Actions for applying to Net::HTTP::Grammar
+
+# todo: make this a separate set of actions
+role Zef::Net::HTTP::Actions::Header::Accept { 
+    method Accept($/) {
+        make [$/<media-range>>>.made];
+    }
+
+    method media-range($/) {
+        if $/<parameter>.elems {
+            make $/<name>.Str => [$/<parameter>>>.made];
+        }
+        else {
+            make $/<name>.Str;
+        }
+    }
+
+    method weight($/) {
+        make $/<qvalue>.Str;
+    }
+
+    method parameter($/) { 
+        make $/<name>.Str => $/<value>.Str; 
+    }
+
+    method accept-params($/) { 
+        if $/<accept-ext>.elems {
+            make $/<weight>.made => [$/<accept-ext>>>.made];
+        }
+        else {
+            make $/<weight>.made;
+        }
+    }
+
+    method accept-ext($/) {
+        if $/<value>.elems {
+            make $/<name>.Str => $/<value>.made;
+        }
+        else {
+            make $/<name>.Str;
+        }
+    }
+
+}
+
+role Zef::Net::HTTP::Actions::Header::Connection {
+    method Connection($/) {
+        make [$<connection-option>>>.Str]
+    }
+}
+
 class Zef::Net::HTTP::Actions {
+    also does Zef::Net::HTTP::Actions::Header::Accept;
+    also does Zef::Net::HTTP::Actions::Header::Connection;
+
     method start-line($/) {
         make $/.made;
     }
@@ -14,8 +67,13 @@ class Zef::Net::HTTP::Actions {
     }
 
     method header-field($/) {
-        # todo: we have rules for most known headers, so we should create a structure 
-        # that matches the Match tree (i.e. $/<value> could be an array or hash, not always a string)
-        make $/<name>.Str => $/<value>.Str;
+        if $/<value>.elems {
+            make $/<name>.Str => [$/<value>>>.made];
+        }
+        else {
+            make $/<name>.Str => $/<value>.Str;
+        }
     }
+
 }
+

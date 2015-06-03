@@ -1,21 +1,21 @@
 use v6;
 use Test;
-plan 3;
+plan 4;
 
 use Zef::Net::HTTP::Grammar;
 
 
 subtest {
-    my $response = q{GET /http.html HTTP/1.1}
+    my $request = q{GET /http.html HTTP/1.1}
         ~ "\r\n" ~ q{Host: www.http.header.free.fr}
-        ~ "\r\n" ~ q{Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg,}
-        ~ "\r\n" ~ q{Accept-Language: Fr}
+        ~ "\r\n" ~ q{Accept: image/gif; q=0.1, image/x-xbitmap, image/jpeg, image/pjpeg,}
+        ~ "\r\n" ~ q{Accept-Language: da, en-gb;q=0.9}
         ~ "\r\n" ~ q{Accept-Encoding: gzip, deflate}
         ~ "\r\n" ~ q{User-Agent: Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)}
         ~ "\r\n" ~ q{Connection: Keep-Alive}
         ~ "\r\n\r\n";
 
-    my $http = Zef::Net::HTTP::Grammar.parse($response);
+    my $http = Zef::Net::HTTP::Grammar.parse($request);
 
     is $http.<HTTP-message>.<start-line>.<request-line>.<method>, 'GET';
     is $http.<HTTP-message>.<start-line>.<request-line>.<request-target>, '/http.html';
@@ -24,9 +24,10 @@ subtest {
     is $http.<HTTP-message>.<header-field>.[0].<name>, 'Host';
     is $http.<HTTP-message>.<header-field>.[0].<value>, 'www.http.header.free.fr';
 
-
+    is $http.<HTTP-message>.<header-field>.[1].<name>, 'Accept';
     is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[0].<media-range>.<type>, 'image';
     is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[0].<media-range>.<subtype>, 'gif';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[0].<accept-params>.<weight>.<qvalue>, '0.1';
     is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[1].<media-range>.<type>, 'image';
     is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[1].<media-range>.<subtype>, 'x-xbitmap';
     is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[2].<media-range>.<type>, 'image';
@@ -34,9 +35,13 @@ subtest {
     is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[3].<media-range>.<type>, 'image';
     is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[3].<media-range>.<subtype>, 'pjpeg';
 
-    is $http.<HTTP-message>.<header-field>.[2], 'Accept-Language: Fr';
+    is $http.<HTTP-message>.<header-field>.[2], 'Accept-Language: da, en-gb;q=0.9';
     is $http.<HTTP-message>.<header-field>.[2].<name>, 'Accept-Language';
-    is $http.<HTTP-message>.<header-field>.[2].<value>.<language-range>.[0].<language-tag>, 'Fr';
+    is $http.<HTTP-message>.<header-field>.[2].<value>.<accept-language-value>.[0].<language-range>.<language-tag>, 'da';
+    is $http.<HTTP-message>.<header-field>.[2].<value>.<accept-language-value>.[0].<language-range>.<language-tag>.<primary-subtag>, 'da';
+    is $http.<HTTP-message>.<header-field>.[2].<value>.<accept-language-value>.[1].<language-range>.<language-tag>, 'en-gb';
+    is $http.<HTTP-message>.<header-field>.[2].<value>.<accept-language-value>.[1].<language-range>.<language-tag>.<primary-subtag>, 'en';
+    is $http.<HTTP-message>.<header-field>.[2].<value>.<accept-language-value>.[1].<language-range>.<language-tag>.<subtag>, 'gb';
 
     is $http.<HTTP-message>.<header-field>.[3], 'Accept-Encoding: gzip, deflate';
     is $http.<HTTP-message>.<header-field>.[3].<name>, 'Accept-Encoding';
@@ -50,8 +55,22 @@ subtest {
     is $http.<HTTP-message>.<header-field>.[5], 'Connection: Keep-Alive';
     is $http.<HTTP-message>.<header-field>.[5].<name>, 'Connection';
     is $http.<HTTP-message>.<header-field>.[5].<value>, 'Keep-Alive';
-}, 'Basic';
+}, 'Basic Request';
 
+subtest {
+    my $response = q{HTTP/1.1 200 OK}
+        ~ "\r\n" ~ q{Allow: GET, HEAD, PUT}
+        ~ "\r\n\r\n";
+
+    my $http = Zef::Net::HTTP::Grammar.parse($response);
+
+
+    is $http.<HTTP-message>.<header-field>.[0], 'Allow: GET, HEAD, PUT';
+    is $http.<HTTP-message>.<header-field>.[0].<name>, 'Allow';
+    is $http.<HTTP-message>.<header-field>.[0].<value>.<allow-value>.[0].<method>, 'GET';
+    is $http.<HTTP-message>.<header-field>.[0].<value>.<allow-value>.[1].<method>, 'HEAD';
+    is $http.<HTTP-message>.<header-field>.[0].<value>.<allow-value>.[2].<method>, 'PUT';
+}, 'Basic Response';
 
 
 subtest {

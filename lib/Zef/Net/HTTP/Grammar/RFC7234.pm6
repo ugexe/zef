@@ -12,8 +12,12 @@ role Zef::Net::HTTP::Grammar::RFC7234 {
 
     # token OWS 7230
 
-    token Pragma           { [[<.OWS> <pragma-directive>]*] *%% ',' }
-    token warning          { [[<.OWS> <warning-value>]*] *%% ','    }
+    token Pragma           { <pragma-value> +%% ','         }
+    token pragma-value     { [[<.OWS> <pragma-directive>]*] }
+
+    token warning          { <warning-value> +%% ','      }
+    token warning-value    { [[<.OWS> <warning-string>]*] }
+
     token cache-directive  { <.token> ['=' [<.token> || <.quoted-string>]]? }
     token delta-second     { <.DIGIT>+ }
     token extension-pragma { <.token> ['=' [<.token> || <.quoted-string>]]? }
@@ -43,6 +47,6 @@ role Zef::Net::HTTP::Grammar::RFC7234 {
 
     token warn-text { <.quoted-string> }
 
-    token warning-value { <.warn-code> <.SP> <.warn-agent> <.SP> <.warn-text> [<.SP> <.warn-date>]? }
+    token warning-string { <.warn-code> <.SP> <.warn-agent> <.SP> <.warn-text> [<.SP> <.warn-date>]? }
 }
 

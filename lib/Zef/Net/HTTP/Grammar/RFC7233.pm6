@@ -1,19 +1,21 @@
 # Hypertext Transfer Protocol (HTTP/1.1): Range Requests
 
 role Zef::Net::HTTP::Grammar::RFC7233 {
-    token Accept-Ranges { <acceptable-ranges> }
+    token Accept-Ranges { [<acceptable-ranges> + %% ','] || 'none' }
     token Content-Range { <.byte-content-range> || <.other-content-range> }
 
     token If-Range { <.entity-tag> || <.HTTP-date> }
 
     token Range { <.byte-ranges-specifier> || <.other-ranges-specifier>     }
-    token acceptable-ranges  { [[[<.OWS> <range-unit>]*] *%% ','] || 'none' }
+
+    token acceptable-ranges  { [[<.OWS> <range-unit>]*] }
 
     token byte-content-range { <.bytes-unit> <.SP> [<.byte-range-resp> || <.unsatisfied-range>]  }
     token byte-range         { <.first-byte-pos> '-' <.last-byte-pos>                            }
     token byte-range-resp    { <.byte-range> '/' [<.complete-length> || '*']                     }
 
-    token byte-range-set { [[<.OWS> [<.byte-range-spec> || <.suffix-byte-range-spec>]]*] *%% ',' }
+    token byte-range-set { <byte-range-set-value> +%% ',' }
+    token byte-range-set-value { [[<.OWS> [<.byte-range-spec> || <.suffix-byte-range-spec>]]*] }
 
     token byte-range-spec       { <.first-byte-pos> '-' <.last-byte-pos>? }
     token byte-ranges-specifier { <.bytes-unit> '=' <.byte-range-set>     }

@@ -1,5 +1,48 @@
 # Actions for applying to Net::HTTP::Grammar
 
+# todo: this all needs to be refactored
+
+role Zef::Net::HTTP::Actions::Header::Allow {
+    method Allow($/) {
+        make $/<allow-value>>>.made;
+    }
+
+    method allow-value($/) {
+        make $/<method>.made;
+    }
+
+    method method($/) {
+        make $/.Str;
+    }
+}
+
+role Zef::Net::HTTP::Actions::Header::Accept-Language {
+    method Accept-Language($/) {
+        make $/<accept-language-value>>>.made;
+    }
+
+    method accept-language-value($/) {
+        if $/<weight> {
+            make [tag => $/<language-range>.made, weight => $/<weight>.made];
+        }
+        else {
+            make [tag => $/<language-range>.made];
+        }
+    }
+
+    method language-range($/) {
+        make $/<language-tag>.made;
+    }
+
+    method language-tag($/) {
+        make $/.Str;
+    }
+
+    my method weight($/) {
+        make $/<qvalue>.made;
+    }
+}
+
 role Zef::Net::HTTP::Actions::Header::Accept-Encoding { 
     method Accept-Encoding($/) {
         make $/<accept-encoding-value>>>.made;
@@ -7,11 +50,15 @@ role Zef::Net::HTTP::Actions::Header::Accept-Encoding {
 
     method accept-encoding-value($/) {
         if $/<weight> {
-            make [coding => $/<codings>.Str, weight => $/<weight>.[0].made];
+            make [coding => $/<codings>.Str, weight => $/<weight>.made];
         }
         else {
             make [coding => $/<codings>.Str];
         }
+    }
+
+    my method weight($/) {
+        make $/<qvalue>.made;
     }
 
     method codings($/) {
@@ -79,10 +126,27 @@ role Zef::Net::HTTP::Actions::Header::Connection {
     }
 }
 
-class Zef::Net::HTTP::Actions {
+
+
+class Zef::Net::HTTP::Actions::Response {
+    also does Zef::Net::HTTP::Actions::Header::Allow;
+
+}
+
+class Zef::Net::HTTP::Actions::Request {
     also does Zef::Net::HTTP::Actions::Header::Accept;
     also does Zef::Net::HTTP::Actions::Header::Accept-Encoding;
+    also does Zef::Net::HTTP::Actions::Header::Accept-Language;
     also does Zef::Net::HTTP::Actions::Header::Connection;
+
+}
+
+
+# todo: eventually phase this out and use the Reponse and Request actions directly.
+# This just makes it easier for testing some initial things.
+class Zef::Net::HTTP::Actions {
+    also is Zef::Net::HTTP::Actions::Request;
+    also is Zef::Net::HTTP::Actions::Response;
 
     method start-line($/) {
         make $/.made;
@@ -106,5 +170,10 @@ class Zef::Net::HTTP::Actions {
         }
     }
 
+
+    # reponse
+    method Location($/) {
+        make $/.Str;
+    }
 }
 

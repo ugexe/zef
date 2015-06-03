@@ -1,4 +1,4 @@
-Timlanguage: perl
+language: perl
 perl:
     - '5.20'
 env:

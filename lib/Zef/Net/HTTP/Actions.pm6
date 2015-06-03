@@ -1,22 +1,45 @@
 # Actions for applying to Net::HTTP::Grammar
 
-# todo: make this a separate set of actions
+role Zef::Net::HTTP::Actions::Header::Accept-Encoding { 
+    method Accept-Encoding($/) {
+        make $/<accept-encoding-value>>>.made;
+    }
+
+    method accept-encoding-value($/) {
+        if $/<weight> {
+            make [coding => $/<codings>.Str, weight => $/<weight>.[0].made];
+        }
+        else {
+            make [coding => $/<codings>.Str];
+        }
+    }
+
+    method codings($/) {
+        make $/.Str;
+    } 
+}
+
 role Zef::Net::HTTP::Actions::Header::Accept { 
     method Accept($/) {
-        make [$/<media-range>>>.made];
+        make $/<accept-value>>>.made;
+    }
+
+    method accept-value($/) {
+        if $/<accept-params> {
+            make [range => $/<media-range>.made, $/<accept-params>.made.flat];
+        }
+        else {
+            make [range => $/<media-range>.made];
+        }
     }
 
     method media-range($/) {
-        if $/<parameter>.elems {
-            make $/<name>.Str => [$/<parameter>>>.made];
+        if $/<parameter> {
+            make [type => $/<type>.Str, subtype => $/<subtype>.Str, parameters => [$/<parameter>>>.made]];
         }
         else {
-            make $/<name>.Str;
+            make [type => $/<type>.Str, subtype => $/<subtype>.Str];            
         }
-    }
-
-    method weight($/) {
-        make $/<qvalue>.Str;
     }
 
     method parameter($/) { 
@@ -24,23 +47,30 @@ role Zef::Net::HTTP::Actions::Header::Accept {
     }
 
     method accept-params($/) { 
-        if $/<accept-ext>.elems {
-            make $/<weight>.made => [$/<accept-ext>>>.made];
+        if $/<accept-ext> {
+            make [weight => $/<weight>.made, parameters => [$/<accept-ext>>>.made]];
         }
         else {
-            make $/<weight>.made;
+            make [weight => $/<weight>.made];
         }
     }
 
+    method weight($/) {
+        make $/<qvalue>.made;
+    }
+
     method accept-ext($/) {
-        if $/<value>.elems {
-            make $/<name>.Str => $/<value>.made;
+        if $/<value> {
+            make $/<name>.Str => $/<value>.Str;
         }
         else {
             make $/<name>.Str;
         }
     }
 
+    method qvalue($/) {
+        make $/.Str;
+    }
 }
 
 role Zef::Net::HTTP::Actions::Header::Connection {
@@ -51,6 +81,7 @@ role Zef::Net::HTTP::Actions::Header::Connection {
 
 class Zef::Net::HTTP::Actions {
     also does Zef::Net::HTTP::Actions::Header::Accept;
+    also does Zef::Net::HTTP::Actions::Header::Accept-Encoding;
     also does Zef::Net::HTTP::Actions::Header::Connection;
 
     method start-line($/) {
@@ -67,7 +98,7 @@ class Zef::Net::HTTP::Actions {
     }
 
     method header-field($/) {
-        if $/<value>.elems {
+        if $/<value>.made {
             make $/<name>.Str => [$/<value>>>.made];
         }
         else {

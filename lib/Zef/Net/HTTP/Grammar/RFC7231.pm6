@@ -1,9 +1,15 @@
 # Hypertext Transfer Protocol (HTTP/1.1): Semantics and Content
 
 role Zef::Net::HTTP::Grammar::RFC7231  {
-    token Accept           { [<.OWS> <media-range> <.OWS> [<accept-params> <.OWS>]?] *%% ',' }
+    # note: tokens with `-value` postfix were added to help resolve quantification
+    token Accept           { <accept-value> *%% ','                                          }
+    token accept-value     { [<.OWS> <media-range> <.OWS> [<accept-params> <.OWS>]?]         }
+
     token Accept-Charset   { [<.OWS> [[<charset> || '*'] <weight>?]*] *%% ','                }
-    token Accept-Encoding  { [<.OWS> [<codings> <weight>?]*]          *%% ','                }
+
+    token Accept-Encoding  { <accept-encoding-value> *%% ','                                 }
+    token accept-encoding-value { [<.OWS> [<codings> <weight>?]*]                            }
+
     token Accept-Language  { [<.OWS> [<language-range> <weight>?]*]   *%% ','                }
     token Allow            { [<.OWS> <method>]                        *%% ','                }
     token Content-Encoding { [<.OWS> <content-coding>]                *%% ','                }
@@ -68,11 +74,11 @@ role Zef::Net::HTTP::Grammar::RFC7231  {
 
     # token mailbox = <mailbox, see [RFC5322], Section 3.4>
 
-    token media-range { 
-        $<name>=[
-        || '*/*' 
-        || [<type> '/*'] 
-        || [<type> '/' <subtype>]
+    token media-range {
+        [
+        || [$<type>='*' '/' $<subtype>='*']
+        || [<type>      '/' $<subtype>='*'] 
+        || [<type>      '/' <subtype>     ]
         ]
         [
         [<.OWS> ';' <.OWS> <parameter>]*

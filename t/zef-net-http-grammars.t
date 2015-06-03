@@ -24,13 +24,15 @@ subtest {
     is $http.<HTTP-message>.<header-field>.[0].<name>, 'Host';
     is $http.<HTTP-message>.<header-field>.[0].<value>, 'www.http.header.free.fr';
 
-    is $http.<HTTP-message>.<header-field>.[1], 'Accept: image/gif, image/x-xbitmap, image/jpeg, image/pjpeg,';
-    is $http.<HTTP-message>.<header-field>.[1].<name>, 'Accept';
 
-    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-range>.[0], 'image/gif';
-    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-range>.[1], 'image/x-xbitmap';
-    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-range>.[2], 'image/jpeg';
-    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-range>.[3], 'image/pjpeg';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[0].<media-range>.<type>, 'image';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[0].<media-range>.<subtype>, 'gif';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[1].<media-range>.<type>, 'image';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[1].<media-range>.<subtype>, 'x-xbitmap';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[2].<media-range>.<type>, 'image';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[2].<media-range>.<subtype>, 'jpeg';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[3].<media-range>.<type>, 'image';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<accept-value>.[3].<media-range>.<subtype>, 'pjpeg';
 
     is $http.<HTTP-message>.<header-field>.[2], 'Accept-Language: Fr';
     is $http.<HTTP-message>.<header-field>.[2].<name>, 'Accept-Language';
@@ -38,8 +40,8 @@ subtest {
 
     is $http.<HTTP-message>.<header-field>.[3], 'Accept-Encoding: gzip, deflate';
     is $http.<HTTP-message>.<header-field>.[3].<name>, 'Accept-Encoding';
-    is $http.<HTTP-message>.<header-field>.[3].<value>.<codings>.[0], 'gzip';
-    is $http.<HTTP-message>.<header-field>.[3].<value>.<codings>.[1], 'deflate';
+    is $http.<HTTP-message>.<header-field>.[3].<value>.<accept-encoding-value>.[0].<codings>, 'gzip';
+    is $http.<HTTP-message>.<header-field>.[3].<value>.<accept-encoding-value>.[1].<codings>, 'deflate';
 
     is $http.<HTTP-message>.<header-field>.[4], 'User-Agent: Mozilla/4.0 (compatible; MSIE 5.5; Windows NT 4.0)';
     is $http.<HTTP-message>.<header-field>.[4].<name>, 'User-Agent';
@@ -48,7 +50,6 @@ subtest {
     is $http.<HTTP-message>.<header-field>.[5], 'Connection: Keep-Alive';
     is $http.<HTTP-message>.<header-field>.[5].<name>, 'Connection';
     is $http.<HTTP-message>.<header-field>.[5].<value>, 'Keep-Alive';
-
 }, 'Basic';
 
 

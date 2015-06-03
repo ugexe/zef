@@ -33,11 +33,17 @@ sub verbose($phase, @_) {
 
 #| Test modules in the specified directories
 multi MAIN('test', *@paths, Bool :$v) is export {
+    say 1;
     my @repos = @paths ?? @paths !! $*CWD;
+    say 2;
     my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
+say 3;
     @t.list>>.test;
-    @t.list>>.results>>.list.map: { .stdout.tap({ .print }) } if $v;
+say 4;
+    @t.list>>.results>>.list.map: -> $result { $result.stdout.tap({ say $_ }) } if $v;
+say 5;
     await Promise.allof: @t.list>>.results.list.map({ $_.list.map({ $_.promise }) });
+say 6;
     my $r = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
     exit ?$r<nok> ?? $r<nok> !! 0;
 }
@@ -67,7 +73,6 @@ multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
     # (note: first crack at supplies/parallelization)
     my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
     @t.list>>.test;
-    @t.list>>.results>>.list.map: -> $result { $result.stdout.tap({ say $_ }) } if $v;
     await Promise.allof: @t.list>>.results.list.map({ $_.list.map({ $_.promise }) });
     verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
 

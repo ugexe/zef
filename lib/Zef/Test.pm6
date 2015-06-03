@@ -36,7 +36,9 @@ class Zef::Test {
             my $process  = Proc::Async.new("perl6", @!includes.map({ qqw/-I$_/ }), $file-rel);
 
             # Can probably ditch :$file and check $process.args
-            Zef::Test::Result.new(:$file, :$process); 
+            my $r = Zef::Test::Result.new(:$file, :$process); 
+#            say $r.perl;
+            $r;
         });
     }
 }

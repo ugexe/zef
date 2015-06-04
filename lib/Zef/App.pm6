@@ -35,9 +35,8 @@ sub verbose($phase, @_) {
 multi MAIN('test', *@paths, Bool :$v) is export {
     my @repos = @paths ?? @paths !! $*CWD;
     my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
-    @t.list>>.test;
-    @t.list>>.results>>.list.map: -> $result { $result.stdout.tap({ say $_ }) } if $v;
-    await Promise.allof: @t.list>>.results.list.map({ $_.list.map({ $_.promise }) });
+    @t.list>>.test>>.list.grep({$v})>>.stdout>>.tap(*.say); # start tests and tap output if -v
+    await Promise.allof: @t.list>>.results.list>>.list>>.promise;
     my $r = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
     exit ?$r<nok> ?? $r<nok> !! 0;
 }
@@ -66,8 +65,8 @@ multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
     my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
-    @t.list>>.test;
-    await Promise.allof: @t.list>>.results.list.map({ $_.list.map({ $_.promise }) });
+    @t.list>>.test>>.list.grep({$v})>>.stdout>>.tap(*.say);
+    await Promise.allof: @t.list>>.results.list>>.list>>.promise;
     verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
 
     # Send a build/test report

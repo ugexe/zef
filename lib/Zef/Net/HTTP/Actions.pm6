@@ -124,6 +124,19 @@ role Zef::Net::HTTP::Actions::Header::Connection {
     method Connection($/) {
         make [$<connection-option>>>.Str]
     }
+
+    method Content-Type($/) {
+        make $<media-type>.made.flat;
+    }
+
+    method media-type($/) {
+        if $/<parameter> {
+            make [type => $/<type>.Str, subtype => $/<subtype>.Str, parameters => [$/<parameter>>>.made]];
+        }
+        else {
+            make [type => $/<type>.Str, subtype => $/<subtype>.Str];            
+        }
+    }
 }
 
 

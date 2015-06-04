@@ -33,3 +33,10 @@ class Zef::Net::HTTP::Request {
     }
 }
 
+sub to-request(:$method, :$url, :$body, *%headers) {
+    my $start-line = "{$method} {$url} HTTP/1.1";
+
+    for %headers.kv -> $k, $v {
+        
+    }
+}

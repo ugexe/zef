@@ -60,6 +60,7 @@ subtest {
 subtest {
     my $response = q{HTTP/1.1 200 OK}
         ~ "\r\n" ~ q{Allow: GET, HEAD, PUT}
+        ~ "\r\n" ~ q{Content-Type: text/html; charset=utf-8}
         ~ "\r\n\r\n";
 
     my $http = Zef::Net::HTTP::Grammar.parse($response);
@@ -70,6 +71,14 @@ subtest {
     is $http.<HTTP-message>.<header-field>.[0].<value>.<allow-value>.[0].<method>, 'GET';
     is $http.<HTTP-message>.<header-field>.[0].<value>.<allow-value>.[1].<method>, 'HEAD';
     is $http.<HTTP-message>.<header-field>.[0].<value>.<allow-value>.[2].<method>, 'PUT';
+
+    is $http.<HTTP-message>.<header-field>.[1], 'Content-Type: text/html; charset=utf-8';
+    is $http.<HTTP-message>.<header-field>.[1].<name>, 'Content-Type';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-type>, 'text/html; charset=utf-8';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-type>.<type>, 'text';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-type>.<subtype>, 'html';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-type>.<parameter>.[0].<name>, 'charset';
+    is $http.<HTTP-message>.<header-field>.[1].<value>.<media-type>.<parameter>.[0].<value>, 'utf-8';
 }, 'Basic Response';
 
 

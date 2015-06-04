@@ -30,10 +30,10 @@ class Zef::Net::HTTP::Client {
         }
 
         return !$!can-ssl
-            ??  IO::Socket::INET.new( host => $host, port => $port )
+            ??  IO::Socket::INET.new( :$host, :$port )
             !! $scheme ~~ /^https/ 
-                    ?? ::('IO::Socket::SSL').new( host => $host, port => $port )
-                    !! IO::Socket::INET.new( host => $host, port => $port );
+                    ?? ::('IO::Socket::SSL').new( :$host, :$port )
+                    !! IO::Socket::INET.new( :$host, :$port );
     }
 
     method send(Str $action, Str $url, :$payload) {

@@ -124,14 +124,16 @@ role Zef::Net::HTTP::Actions::Header::Connection {
     method Connection($/) {
         make [$<connection-option>>>.Str]
     }
+}
 
+role Zef::Net::HTTP::Actions::Header::Content-Type {
     method Content-Type($/) {
         make $<media-type>.made.flat;
     }
 
     method media-type($/) {
         if $/<parameter> {
-            make [type => $/<type>.Str, subtype => $/<subtype>.Str, parameters => [$/<parameter>>>.made]];
+            make [type => $/<type>.Str, subtype => $/<subtype>.Str, parameters => [$/<parameter>>>.made.flat]];
         }
         else {
             make [type => $/<type>.Str, subtype => $/<subtype>.Str];            
@@ -140,10 +142,9 @@ role Zef::Net::HTTP::Actions::Header::Connection {
 }
 
 
-
 class Zef::Net::HTTP::Actions::Response {
     also does Zef::Net::HTTP::Actions::Header::Allow;
-
+    also does Zef::Net::HTTP::Actions::Header::Content-Type;
 }
 
 class Zef::Net::HTTP::Actions::Request {

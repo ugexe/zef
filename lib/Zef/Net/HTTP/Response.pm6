@@ -31,9 +31,12 @@ class Zef::Net::HTTP::Response {
                 # todo: check submatch "transfer-codings" to get each individual coding instead of the substring match
                 $!chunked = 1;
             }
-            if %!header<Content-Type>:exists {
-                #my @charsets = $v.<media-type>.<parameter>.list.grep({ $_.<name> ~~ /^charset/ }).map({ $_.<value> });
-                #$!encoding = @charsets[0] if @charsets;
+
+            if %!header<Content-Type>.hash -> %ct {
+                my @text-subtypes = <text html xhtml xml atom json javascript rss soap>;
+                if %ct.<type> eq 'text' || %ct.<subtype> ~~ any(@text-subtypes) {
+                    $!encoding = %ct.<parameters>.<charset> // 'utf-8';
+                }
             }
         }
     }
@@ -49,10 +52,8 @@ class Zef::Net::HTTP::Response {
                 my $chunked-grammar = Zef::Net::HTTP::Grammar.subparse($.body, :rule<chunked-body>);
                 my $c ~= $_.<chunk-data>.Str for $chunked-grammar.<chunk>.list;
                 $c
-            }
+            }        
 
-        
-
-        return $content;
+        return $!encoding ?? try { $content.decode($!encoding) } !! $content;
     }
 }

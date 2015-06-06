@@ -25,11 +25,13 @@ class Zef::Net::HTTP::Response {
             $!status-message = ~($g.<start-line>.<status-line>.<reason-phrase> //  '');
             $!body           = ~($g.<message-body>                             //  '') if $!grammar;
 
- 
             %!header = $g.<header-field>>>.made;
-            if %!header<Transfer-Encoding>:exists && %!header<Transfer-Encoding> ~~ /^chunked/ {
-                # todo: check submatch "transfer-codings" to get each individual coding instead of the substring match
-                $!chunked = 1;
+
+            for %!header<Transfer-Encoding>.list -> $te {
+                given $te {
+                    when /^chunked/ { $!chunked = 1                           }
+                    default         { fail "'{$te}' Transfer-Encoding is NYI" }
+                }
             }
 
             if %!header<Content-Type>.hash -> %ct {
@@ -54,6 +56,8 @@ class Zef::Net::HTTP::Response {
                 $c
             }        
 
-        return $!encoding ?? try { $content.decode($!encoding) } !! $content;
+        return $!encoding 
+            ?? try { $content.decode($!encoding) } 
+            !! $content;
     }
 }

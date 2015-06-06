@@ -45,17 +45,21 @@ subtest {
     my $response = q{HTTP/1.1 200 OK}
         ~ "\r\n" ~ q{Allow: GET, HEAD, PUT}
         ~ "\r\n" ~ q{Content-Type: text/html; charset=utf-8}
+        ~ "\r\n" ~ q{Transfer-Encoding: chunked, gzip}
         ~ "\r\n\r\n";
     my $actions = Zef::Net::HTTP::Actions.new;
     my $http    = Zef::Net::HTTP::Grammar.parse($response, :$actions);
     my %header  = $http.<HTTP-message>.<header-field>>>.made;
 
     is %header<Allow>, <GET HEAD PUT>;
+
     is %header<Content-Type>, [
         :type<text>, 
         :subtype<html>,
         :parameters([ :charset<utf-8> ])
     ], 'Content-Type';
+
+    is %header<Transfer-Encoding>, <chunked gzip>, 'Content-Type';
 
 }, 'Basic Response';
 

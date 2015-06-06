@@ -61,6 +61,7 @@ subtest {
     my $response = q{HTTP/1.1 200 OK}
         ~ "\r\n" ~ q{Allow: GET, HEAD, PUT}
         ~ "\r\n" ~ q{Content-Type: text/html; charset=utf-8}
+        ~ "\r\n" ~ q{Transfer-Encoding: chunked, gzip}
         ~ "\r\n\r\n";
 
     my $http = Zef::Net::HTTP::Grammar.parse($response);
@@ -79,6 +80,11 @@ subtest {
     is $http.<HTTP-message>.<header-field>.[1].<value>.<media-type>.<subtype>, 'html';
     is $http.<HTTP-message>.<header-field>.[1].<value>.<media-type>.<parameter>.[0].<name>, 'charset';
     is $http.<HTTP-message>.<header-field>.[1].<value>.<media-type>.<parameter>.[0].<value>, 'utf-8';
+
+    is $http.<HTTP-message>.<header-field>.[2], 'Transfer-Encoding: chunked, gzip';
+    is $http.<HTTP-message>.<header-field>.[2].<name>, 'Transfer-Encoding';
+    is $http.<HTTP-message>.<header-field>.[2].<value>.<transfer-encoding-value>.[0].<transfer-coding>, 'chunked';
+    is $http.<HTTP-message>.<header-field>.[2].<value>.<transfer-encoding-value>.[1].<transfer-coding>, 'gzip';
 }, 'Basic Response';
 
 

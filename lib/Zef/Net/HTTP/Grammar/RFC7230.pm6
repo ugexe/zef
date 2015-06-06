@@ -17,7 +17,10 @@ role Zef::Net::HTTP::Grammar::RFC7230 {
     token Host              { <host> [':' <.port>]? } # `host` from 3986
     token TE                { [[<.OWS> <t-codings>]*]       *%% ','                           }
     token Trailer           { [[<.OWS> <field-name>]*]      *%% ','                           }
-    token Transfer-Encoding { [[<.OWS> <transfer-coding>]*] *%% ','                           }
+
+    token Transfer-Encoding { <transfer-encoding-value> +%% ','                               }
+    token transfer-encoding-value { [<.OWS> <transfer-coding>]                                }
+
     token Upgrade { [[<.OWS> <protocol>]*]                  *%% ','                           }
     token Via { [[<received-protocol> <.RWS> <received-by> [<.RWS> <comment>]?]*] *%% ','     }
 

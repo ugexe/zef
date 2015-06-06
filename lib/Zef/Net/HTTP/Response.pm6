@@ -57,7 +57,7 @@ class Zef::Net::HTTP::Response {
             }        
 
         return $!encoding 
-            ?? try { $content.decode($!encoding) } 
+            ?? try { ~$content.encode($!encoding) } 
             !! $content;
     }
 }

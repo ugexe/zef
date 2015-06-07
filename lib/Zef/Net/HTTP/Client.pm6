@@ -46,7 +46,9 @@ class Zef::Net::HTTP::Client {
 
     method send(Str $method, Str $url, :$body) {
         my $request  = Zef::Net::HTTP::Request.new( :$method, :$url, :$body ) does Zef::Net::HTTP::Transport;
-        my $response = Zef::Net::HTTP::Response.new( :message($request.send.list) );
+        my $response-stream = $request.send;
+        my $response = Zef::Net::HTTP::Response.new( :message($response-stream.list) );
+
 
         @.history.push: RoundTrip.new(:$request, :$response);
 

@@ -53,7 +53,7 @@ class Zef::Net::HTTP::Request {
 
         %!header<Connection> = 'Close';
     }
-
+    
     method Str {
         my $req = "$!method {?$!proxy ?? $!uri.Str !! $!uri.path} HTTP/1.1\r\n"
                   ~ "Host: {$!uri.host}\r\n"

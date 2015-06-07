@@ -1,42 +1,66 @@
 use Zef::Net::URI;
 use Zef::Utils::Base64;
 
-# todo: generate class from grammar via actions
-
-# A http request object that attempts to handle proxy and basic auth
 class Zef::Net::HTTP::Request {
-    has $.grammar;
-    has $.action;
+    # start line
+    has $.method;
     has $.url;
     has $.uri;
-    has $.payload;
-    has $.proxy-url;
-    has $.proxy-uri;
-    has $!auth;
+    has $!proto       = 'HTTP';
+    has $!proto-major = 1;
+    has $!proto-minor = 1;
 
-    submethod BUILD(:$!action!, :$!url!, :$!payload, :$!proxy-url, :$user, :$pass) {
-        $!uri       = Zef::Net::URI.new(url => $!url);
-        $!proxy-uri = Zef::Net::URI.new(url => $!proxy-url) if ?$!proxy-url;
-        $!auth      = b64encode($user ?? "$user:{$pass // ''}" !! $!uri.user-info) if $user || $!uri.user-info;
+    # header stuff
+    has %.header;
+    has %.trailer;
+    has $.host;
+
+    # payload
+    has $.body;
+
+    # additional stuff
+    has $.proxy;
+
+    submethod BUILD(
+        :$!method = 'GET',
+        :$!url!,
+        :$!proxy where Bool|Str|Nil
+    ) {
+        $!uri = Zef::Net::URI.new(:$!url);
+        fail "HTTP Scheme not supported: {$!uri.scheme}" unless $!uri.scheme ~~ any(<http https>);
+
+        if ?$!proxy {
+            if ?$!proxy.isa(Str) {
+                $!proxy = Zef::Net::URI.new(url => $!proxy);
+            }
+            else {
+                if my $p = %*ENV.{$!uri.scheme ~ '_proxy'} {
+                    $!proxy = Zef::Net::URI.new(url => $p)
+                }
+                else {
+                    fail ":\$proxy set to true, but \%*ENV<{$!uri.scheme}_proxy> not found";
+                }
+            }
+
+            if ?$!proxy.uri.user-info {
+                %!header<Proxy-Authorization> = "Basic " ~ b64encode($!proxy.uri.user-info);
+            }
+        }
+
+        if $!uri.?user-info {
+            %!header<Authorization> = "Basic " ~ b64encode($!uri.user-info);
+        }
+
+        %!header<Connection> = 'Close';
     }
 
     method Str {
-        my $encoder = Zef::Utils::Base64.new;        
-        my $req =        "$!action $!url HTTP/1.1"                          # request
-            ~   "\r\n" ~ "Host: {$!uri.host}"                               # mandatory headers
-            ~ (("\r\n" ~ "Content-Length: {$!payload.chars}") if $!payload) # optional header fields
-            ~ (("\r\n" ~ "Proxy-Authorization: Basic {$encoder.b64encode($!proxy-uri.user-info)}") if ?$!proxy-uri && ?$!proxy-uri.user-info)
-            ~ (("\r\n" ~ "Authorization: Basic {$!auth}") if ?$!auth)
-            ~   "\r\n" ~ "Connection: close\r\n\r\n"                        # last header field
-            ~ ($!payload if $!payload);
+        my $req = "$!method {?$!proxy ?? $!uri.Str !! $!uri.path} HTTP/1.1\r\n"
+                  ~ "Host: {$!uri.host}\r\n"
+                  ~ "Content-Length: {$!body ?? $!body.chars !! 0}\r\n"
+                  ~ %!header.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n")
+                  ~ "\r\n\r\n" # \r\n\r\n marks the end of headers
+                  ~ ($!body // '');
         return $req;
-    }
-}
-
-sub to-request(:$method, :$url, :$body, *%headers) {
-    my $start-line = "{$method} {$url} HTTP/1.1";
-
-    for %headers.kv -> $k, $v {
-        
     }
 }

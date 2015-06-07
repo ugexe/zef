@@ -24,8 +24,7 @@ subtest {
     
     # Basic auth OK
     {
-        temp $ua.user = 'un';
-        temp $ua.pass = 'pw';
+        temp $url = 'http://un:pw@httpbin.org';
         is $ua.get($url ~ '/basic-auth/un/pw').status-code, 200, "Basic auth";
     }
 
@@ -40,7 +39,7 @@ subtest {
 
 
 subtest {
-    unless Zef::Net::HTTP::Client.new.can-ssl {
+    unless Zef::Net::HTTP::Client.new.?can-ssl {
         print("ok 2 - # Skip: Can't do SSL. Is IO::Socket::SSL available?\n");
         return;
     }
@@ -56,8 +55,7 @@ subtest {
 
     # Basic auth OK
     {
-        temp $ua.user = 'un';
-        temp $ua.pass = 'pw';
+        temp $url = 'https://un:pw@httpbin.org';
         is $ua.get($url ~ '/basic-auth/un/pw').status-code, 200, "Basic auth";
     }
 

@@ -10,6 +10,7 @@ class Zef::Net::URI {
     has $.query;
     has $.fragment;
     has $.location;
+    has $.path;
 
     submethod BUILD(:$!url) {
         $!grammar = Zef::Net::URI::Grammar.parse($!url) if $!url;
@@ -19,6 +20,7 @@ class Zef::Net::URI {
             $!host      = ~($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<host>     //  '').lc;
             $!port      =  ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<port>     // Int).Int;
             $!user-info = ~($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<userinfo> //  '');
+            $!path      = ~($!grammar.<URI-reference>.<URI>.<heir-part>.<path-abempty>         //  '');
         }
     }
 

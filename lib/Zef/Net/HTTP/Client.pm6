@@ -2,58 +2,61 @@ use Zef::Net::HTTP::Request;
 use Zef::Net::HTTP::Response;
 use Zef::Net::URI;
 
-try require IO::Socket::SSL;
-
-
-# A http client using the grammar based Net::HTTP::Request, Net::HTTP::Response, and Net::URI
-class Zef::Net::HTTP::Client {
+role Zef::Net::HTTP::Transport {
+    try require IO::Socket::SSL;
     has $.can-ssl = !::("IO::Socket::SSL").isa(Failure);
-    has $.auto-check is rw;
-    has @.history;
-    has $.proxy-url is rw;
-    has $.user is rw;
-    has $.pass is rw;
 
-    my class RoundTrip {
-        has $.request;
-        has $.response;
-    }
+    method connect(Zef::Net::HTTP::Request:D:) {
+        my $uri  := self.uri;
+        my $puri := self.proxy.uri if self.proxy.?uri;
 
-    submethod connect(Zef::Net::URI $uri) {
-        my $proxy-uri = Zef::Net::URI.new(url => $!proxy-url) if $!proxy-url;
-        my $scheme = (?$proxy-uri && ?$proxy-uri.scheme ?? $proxy-uri.scheme !! $uri.scheme) // 'http';
-        my $host   = ?$proxy-uri  && ?$proxy-uri.host   ?? $proxy-uri.host   !! $uri.host;
-        my $port   = (?$proxy-uri && ?$proxy-uri.port   ?? $proxy-uri.port   !! $uri.port) // ($scheme eq 'https' ?? 443 !! 80);
+        my $scheme = (?$puri && ?$puri.scheme ?? $puri.scheme !! $uri.scheme) // 'http';
+        my $host   =  ?$puri && ?$puri.host   ?? $puri.host   !! $uri.host;
+        my $port   = (?$puri && ?$puri.port   ?? $puri.port   !! $uri.port) // ($scheme eq 'https' ?? 443 !! 80);
 
-        if $scheme eq 'https' && !$!can-ssl {
+        if $scheme eq 'https' && !$.can-ssl {
             die "Please install IO::Socket::SSL for SSL support";
         }
 
-        return !$!can-ssl
+        return !$.can-ssl
             ??  IO::Socket::INET.new( :$host, :$port )
             !! $scheme ~~ /^https/ 
                     ?? ::('IO::Socket::SSL').new( :$host, :$port )
                     !! IO::Socket::INET.new( :$host, :$port );
     }
 
-    method send(Str $action, Str $url, :$payload) {
-        my $request    = Zef::Net::HTTP::Request.new( :$action, :$url, :$payload, :$.user, :$.pass );
-        my $connection = self.connect($request.uri);
-        $connection.send(~$request);
+    method send(Zef::Net::HTTP::Request:D:) {
+        my $socket = self.connect;
+        $socket.send(self.Str);
+        my $stream = Supply.from-list: gather while my $r = $socket.recv { take $r }
+        return $stream.Channel;
+    }
+}
 
-        my $response   = Zef::Net::HTTP::Response.new(message => do { 
-            my $d; while my $r = $connection.recv { $d ~= $r }; $d;
-        });
+# A http client using the grammar based Net::HTTP::Request, Net::HTTP::Response, and Net::URI
+class Zef::Net::HTTP::Client {
+    has $.auto-check is rw;
+    has @.history;
+
+    my class RoundTrip {
+        has $.request;
+        has $.response;
+    }
+
+
+    method send(Str $method, Str $url, :$body) {
+        my $request  = Zef::Net::HTTP::Request.new( :$method, :$url, :$body ) does Zef::Net::HTTP::Transport;
+        my $response = Zef::Net::HTTP::Response.new( :message($request.send.list) );
 
         @.history.push: RoundTrip.new(:$request, :$response);
 
         if $.auto-check {
-            return Zef::Net::HTTP::Request.new unless $response && $response.status-code;
-            
+            fail "Response not understood" unless $response && $response.status-code;
+
             given $response.status-code {
                 when /^2\d+$/ { }
                 when /^301/     {
-                    $response = self.send($action, ~$response.header.<Location>, :$payload);
+                    $response = self.send($method, ~$response.header.<Location>, :$body);
                 }
                 default {
                     die "[NYI] http-code: '$_'";
@@ -69,8 +72,8 @@ class Zef::Net::HTTP::Client {
         return $response;
     }
 
-    method post(Str $url, :$payload) {
-        my $response = self.send('POST', $url, :$payload);
+    method post(Str $url, :$body) {
+        my $response = self.send('POST', $url, :$body);
         return $response;
     }
 }

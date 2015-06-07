@@ -54,8 +54,8 @@ Basic http client: Grammar based parser; uses IO::Socket::SSL if available for h
     
     my $client = Zef::Net::HTTP::Client.new;
 
-    my $payload  = to-json({ term => "zef" });
-    my $response = $client.post("http://zef.pm/api/search", $payload);
+    my $body     = to-json({ term => "zef" });
+    my $response = $client.post("http://zef.pm/api/search", :$body);
     my $json     = from-json($response.<body>);
 
     my $response = $client.get("https://www.google.com");

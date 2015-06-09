@@ -13,6 +13,7 @@ class Zef::Net::HTTP::Client {
         my $request  = Zef::Net::HTTP::Request.new(:$method, :$url, :$body );
         my $rt = Zef::Net::HTTP::RoundTrip.new(:$request);
         $rt.init;
+
         @.history.push: $rt;
 
         if $.auto-check {

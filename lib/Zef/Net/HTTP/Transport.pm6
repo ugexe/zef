@@ -23,10 +23,21 @@ role Zef::Net::HTTP::Transport {
                     !! IO::Socket::INET.new( :$host, :$port );
     }
 
-    method get(Zef::Net::HTTP::Request:D:) {
+    method go(Zef::Net::HTTP::Request:D:) {
         my $socket = $.dial;
         $socket.send($.Str);
-        my $stream = Supply.from-list: gather while my $r = $socket.recv { take $r }
-        return $stream.Channel;
+
+        my $header;
+        while my $h = $socket.recv(1, :bin) {
+            $header ~= $h.decode('ascii');
+            last if $header.substr(*-4) eq "\r\n\r\n";
+        }
+
+        my $body = Supply.from-list: gather while my $b = $socket.recv(1, :bin) {
+            take $b;
+        }
+
+        # todo: this should return an interface implementation
+        return %(:$header, :$body);
     }
 }

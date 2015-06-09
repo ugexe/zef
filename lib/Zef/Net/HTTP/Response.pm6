@@ -15,15 +15,15 @@ class Zef::Net::HTTP::Response {
     has $!header-chunk;
     has $.header-grammar;
 
-    submethod BUILD(:$!message, :$!header-chunk) {
+    submethod BUILD(:$!message, :$!header-chunk, :$!body) {
         my $actions = Zef::Net::HTTP::Actions.new;
-        $!header-grammar = Zef::Net::HTTP::Grammar.parse($!header-chunk, :rule("TOP-Header"), :$actions) if $!header-chunk;
+        $!header-grammar = Zef::Net::HTTP::Grammar.parse($!header-chunk, :rule("TOP-header"), :$actions) if $!header-chunk;
         $!grammar = Zef::Net::HTTP::Grammar.parse($!message, :$actions) if $!message;
 
         if my $g = $!grammar ?? $!grammar.<HTTP-message> !! $!header-grammar ?? $!header-grammar.<HTTP-header> !! False {
             $!status-code    =  ($g.<start-line>.<status-line>.<status-code>   // Int).Int;
             $!status-message = ~($g.<start-line>.<status-line>.<reason-phrase> //  '');
-            $!body           = ~($g.<message-body>                             //  '') if $!grammar;
+            $!body         //= ~($g.<message-body>                             //  '') if $!grammar;
 
             %!header = $g.<header-field>>>.made;
 
@@ -57,7 +57,7 @@ class Zef::Net::HTTP::Response {
             }        
 
         return $!encoding 
-            ?? try { ~$content.encode($!encoding) } 
+            ?? $content>>.decode($!encoding).join
             !! $content;
     }
 }

@@ -11,7 +11,12 @@ class Zef::Net::HTTP::RoundTrip {
     }
 
     method init(Zef::Net::HTTP::RoundTrip:D:) {
-        my $stream   = $!request.get;
-        $!response = Zef::Net::HTTP::Response.new( :message($stream.list) );
+        my $req = $!request.go;
+
+        # In the future, $req.<body> should be streamed
+        $!response = Zef::Net::HTTP::Response.new( 
+            :header-chunk($req.<header>), 
+            :body($req.<body>.list), 
+        );
     }
 }

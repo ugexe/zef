@@ -2,7 +2,7 @@
 
 role Zef::Net::HTTP::Grammar::RFC7230 {
     token HTTP-message { <start-line> [<header-field> <.CRLF>]* <.CRLF> <message-body>? }
-    token HTTP-header  { <start-line> [<header-field> <.CRLF>]*                         }
+    token HTTP-header  { <start-line> [<header-field> <.CRLF>]* <.CRLF>                 }
 
     token OWS   { [<.SP> || <.HTAB>]* }
     token RWS   { [<.SP> || <.HTAB>]+ }

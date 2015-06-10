@@ -4,6 +4,25 @@ try require IO::Socket::SSL;
 role Zef::Net::HTTP::Transport {
     has $.can-ssl = !::("IO::Socket::SSL").isa(Failure);
 
+    class ByteStream {
+        has Promise $.promise;
+        has Channel $.buffer;
+
+        submethod BUILD(:$socket) {
+            $!buffer  = Channel.new;
+            $!promise = Promise.anyof(
+                $!buffer.closed,
+                Promise.in(30),
+                start {
+                    while my $b = $socket.recv(:bin) {
+                        $!buffer.send($b);
+                    }
+                    $!buffer.close;
+                }
+            );
+        }
+    }
+
     method dial(Zef::Net::HTTP::Request:D:) {
         my $uri  := $.uri;
         my $puri := $.proxy.uri if $.proxy.?uri;
@@ -33,10 +52,7 @@ role Zef::Net::HTTP::Transport {
             last if $header.substr(*-4) eq "\r\n\r\n";
         }
 
-        my $body = Supply.from-list: gather while my $b = $socket.recv(1, :bin) {
-            take $b;
-        }
-
+        my $body = ByteStream.new(:$socket);
         # todo: this should return an interface implementation
         return %(:$header, :$body);
     }

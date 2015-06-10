@@ -16,7 +16,7 @@ class Zef::Net::HTTP::RoundTrip {
         # In the future, $req.<body> should be streamed
         $!response = Zef::Net::HTTP::Response.new( 
             :header-chunk($req.<header>), 
-            :body($req.<body>.list), 
+            :body($req.<body>), 
         );
     }
 }

@@ -48,16 +48,14 @@ class Zef::Net::HTTP::Response {
     }
 
     method content {
-        my $content = !$!chunked 
-            ?? $!body
-            !! do { 
-                my $chunked-grammar = Zef::Net::HTTP::Grammar.subparse($.body, :rule<chunked-body>);
-                my $c ~= $_.<chunk-data>.Str for $chunked-grammar.<chunk>.list;
-                $c
-            }        
+        await $!body.promise;
+        return unless my $content = $!body.buffer.list;
+        $content = do { 
+            my $chunked-grammar = Zef::Net::HTTP::Grammar.subparse($content, :rule<chunked-body>);
+            my $c ~= $_.<chunk-data>.Str for $chunked-grammar.<chunk>.list;
+            $c
+        } if $!chunked;        
 
-        return $!encoding 
-            ?? $content>>.decode($!encoding).join
-            !! $content;
+        return $!encoding ?? $content>>.decode($!encoding).join !! $content.list.reduce({ $^a ~= $^b }).[0];
     }
 }

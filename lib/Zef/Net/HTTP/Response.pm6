@@ -48,8 +48,10 @@ class Zef::Net::HTTP::Response {
     }
 
     method content {
-        await $!body.promise;
-        return unless my $content = $!body.buffer.list;
+        my ($promise, $stream) = $!body.kv;
+        await $promise;
+        my $content = $stream.list;
+
         $content = do { 
             my $chunked-grammar = Zef::Net::HTTP::Grammar.subparse($content, :rule<chunked-body>);
             my $c ~= $_.<chunk-data>.Str for $chunked-grammar.<chunk>.list;

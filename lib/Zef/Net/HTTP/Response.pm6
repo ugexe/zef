@@ -44,20 +44,36 @@ class Zef::Net::HTTP::Response {
     }
 
     method Str {
-        return $!grammar ?? $!grammar.Str !! Str;
+        return $!grammar ?? $!grammar.Str !! ($!header-grammar ?? $!header-grammar.Str !! Str);
     }
 
     method content {
         my ($promise, $stream) = $!body.kv;
         await $promise;
-        my $content = $stream.list;
+        my buf8 $data = $stream.list.reduce(-> $a is copy, $b { $a ~= $b });
+        my $content = $!chunked ?? ChunkedReader($data) !! $data;
 
-        $content = do { 
-            my $chunked-grammar = Zef::Net::HTTP::Grammar.subparse($content, :rule<chunked-body>);
-            my $c ~= $_.<chunk-data>.Str for $chunked-grammar.<chunk>.list;
-            $c
-        } if $!chunked;        
-
-        return $!encoding ?? $content>>.decode($!encoding).join !! $content.list.reduce({ $^a ~= $^b }).[0];
+        return $!encoding ?? $content>>.decode($!encoding).join !! $content;
     }
+}
+
+sub ChunkedReader(buf8 $buf) {
+    my @data;
+    my $i = 0;
+
+    loop {
+        my $size-line;
+        loop {
+            $size-line ~= $buf.subbuf($i++,1).decode('latin-1');
+            last if $size-line ~~ /^\d+ [';' .*?]? \r\n/;
+        }
+        my $size = :16($size-line.substr(0,*-2));
+        last if $size == 0;
+        @data.push: $buf.subbuf($i,$size);
+        $i += $size + 2;
+        last if $i == $buf.bytes;
+    }
+
+    my buf8 $r = @data.reduce(-> $a is copy, $b { $a ~= $b });
+    return $r;
 }

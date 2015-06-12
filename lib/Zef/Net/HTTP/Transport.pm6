@@ -4,6 +4,8 @@ try require IO::Socket::SSL;
 # Fill a Channel with bytes (the HTTP message body) so we 
 # can process the header and possibly close the connection 
 # before we would have finished receiving the body.
+# Currently faked, as chunked encoding/keep alive and friends 
+# break the socket inside a start {}
 role ByteStream {
     my $buffer;
     method async-recv(|c, Bool :$bin) {
@@ -12,11 +14,18 @@ role ByteStream {
         my $promise = Promise.anyof(
             $buffer.closed,
             Promise.in(30),
-            start {
-                while my $b = $.recv(|c :$bin) {
+            do {
+                my $promise = Promise.new;
+                my $vow = $promise.vow;
+#            start {
+                while $.recv(|c, :$bin) -> $b {
                     $buffer.send($b);
                 }
-            }.then({ $buffer.close });
+#            }.then({ 
+                $buffer.close;
+                $vow.keep($promise);
+#            });
+            }
         );
 
         return $promise => $buffer;
@@ -35,11 +44,11 @@ role Zef::Net::HTTP::Transport {
         my $host   =  ?$puri && ?$puri.host   ?? $puri.host   !! $uri.host;
         my $port   = (?$puri && ?$puri.port   ?? $puri.port   !! $uri.port) // ($scheme eq 'https' ?? 443 !! 80);
 
-        if $scheme eq 'https' && !$.can-ssl {
+        if $scheme eq 'https' && !$!can-ssl {
             die "Please install IO::Socket::SSL for SSL support";
         }
 
-        return !$.can-ssl
+        return !$!can-ssl
             ??  IO::Socket::INET.new( :$host, :$port )
             !! $scheme ~~ /^https/ 
                     ?? ::('IO::Socket::SSL').new( :$host, :$port )
@@ -58,6 +67,7 @@ role Zef::Net::HTTP::Transport {
         }
 
         my $body = $socket.async-recv(:bin); #ByteStream.new(:$socket);
+
         # todo: this should return an interface implementation
         return %(:$header, :$body);
     }

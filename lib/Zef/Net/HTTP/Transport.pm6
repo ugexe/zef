@@ -1,11 +1,14 @@
-use Zef::Net::HTTP::Request;
-try require IO::Socket::SSL;
+use Zef::Net::HTTP;
+use Zef::Net::HTTP::Dialer;
 
 # Fill a Channel with bytes (the HTTP message body) so we 
 # can process the header and possibly close the connection 
 # before we would have finished receiving the body.
 # Currently faked, as chunked encoding/keep alive and friends 
 # break the socket inside a start {}
+#
+# todo: add an additional stream in case there are 
+# any trailing headers.
 role ByteStream {
     my $buffer;
     method async-recv(|c, Bool :$bin) {
@@ -33,32 +36,18 @@ role ByteStream {
 }
 
 # Manage connections (caching, proxies)
-role Zef::Net::HTTP::Transport {
-    has $.can-ssl = !::("IO::Socket::SSL").isa(Failure);
+class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
+    has HTTP::Dialer   $.dialer;
+    has HTTP::Response $.responder;
 
-    method dial(Zef::Net::HTTP::Request:D:) {
-        my $uri  := $.uri;
-        my $puri := $.proxy.uri if $.proxy.?uri;
-
-        my $scheme = (?$puri && ?$puri.scheme ?? $puri.scheme !! $uri.scheme) // 'http';
-        my $host   =  ?$puri && ?$puri.host   ?? $puri.host   !! $uri.host;
-        my $port   = (?$puri && ?$puri.port   ?? $puri.port   !! $uri.port) // ($scheme eq 'https' ?? 443 !! 80);
-
-        if $scheme eq 'https' && !$!can-ssl {
-            die "Please install IO::Socket::SSL for SSL support";
-        }
-
-        return !$!can-ssl
-            ??  IO::Socket::INET.new( :$host, :$port )
-            !! $scheme ~~ /^https/ 
-                    ?? ::('IO::Socket::SSL').new( :$host, :$port )
-                    !! IO::Socket::INET.new( :$host, :$port );
+    submethod BUILD(HTTP::Dialer :$!dialer, HTTP::Response :$!responder) {
+        $!dialer = Zef::Net::HTTP::Dialer.new unless $!dialer;
     }
 
-    method go(Zef::Net::HTTP::Request:D:) {
-        my $socket = $.dial;
+    method round-trip(HTTP::Request $req --> HTTP::Response) {
+        my $socket = $!dialer.dial($req.?proxy ?? $req.proxy.uri !! $req.uri);
         $socket does ByteStream;
-        $socket.send($.Str);
+        $socket.send($req.Str);
 
         my $header;
         while my $h = $socket.recv(1, :bin) {
@@ -66,9 +55,8 @@ role Zef::Net::HTTP::Transport {
             last if $header.substr(*-4) eq "\r\n\r\n";
         }
 
-        my $body = $socket.async-recv(:bin); #ByteStream.new(:$socket);
+        my $body = $socket.async-recv(:bin); 
 
-        # todo: this should return an interface implementation
-        return %(:$header, :$body);
+        return $!responder.new(:header-chunk($header), :$body);
     }
 }

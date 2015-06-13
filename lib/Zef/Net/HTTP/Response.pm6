@@ -1,9 +1,10 @@
+use Zef::Net::HTTP;
 use Zef::Net::HTTP::Grammar;
 use Zef::Net::HTTP::Actions;
 
 
 # A http response object built from HTTP::Grammar
-class Zef::Net::HTTP::Response {
+class Zef::Net::HTTP::Response does HTTP::Response {
     has $.grammar;
     has $.message;
     has $.status-code = Int;
@@ -12,7 +13,7 @@ class Zef::Net::HTTP::Response {
     has $.encoding;
     has $.body;
     has %.header;
-    has $!header-chunk;
+    has $.header-chunk;
     has $.header-grammar;
 
     submethod BUILD(:$!message, :$!header-chunk, :$!body) {
@@ -50,30 +51,13 @@ class Zef::Net::HTTP::Response {
     method content {
         my ($promise, $stream) = $!body.kv;
         await $promise;
-        my buf8 $data = $stream.list.reduce(-> $a is copy, $b { $a ~= $b });
+
+        # Right now $stream is a list of multi-byte buf8s, so we may need to combine them
+        my $data = buf8.new;
+        $data ~= buf8.new($_) for $stream.list;
+
         my $content = $!chunked ?? ChunkedReader($data) !! $data;
 
         return $!encoding ?? $content>>.decode($!encoding).join !! $content;
     }
-}
-
-sub ChunkedReader(buf8 $buf) {
-    my @data;
-    my $i = 0;
-
-    loop {
-        my $size-line;
-        loop {
-            $size-line ~= $buf.subbuf($i++,1).decode('latin-1');
-            last if $size-line ~~ /^\d+ [';' .*?]? \r\n/;
-        }
-        my $size = :16($size-line.substr(0,*-2));
-        last if $size == 0;
-        @data.push: $buf.subbuf($i,$size);
-        $i += $size + 2;
-        last if $i == $buf.bytes;
-    }
-
-    my buf8 $r = @data.reduce(-> $a is copy, $b { $a ~= $b });
-    return $r;
 }

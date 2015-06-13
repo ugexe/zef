@@ -29,9 +29,9 @@
         "Zef::Net::HTTP"            : "lib/Zef/Net/HTTP.pm6",
         "Zef::Net::HTTP::Actions"   : "lib/Zef/Net/HTTP/Actions.pm6",
         "Zef::Net::HTTP::Client"    : "lib/Zef/Net/HTTP/Client.pm6",
+        "Zef::Net::HTTP::Dialer"    : "lib/Zef/Net/HTTP/Dialer.pm6",
         "Zef::Net::HTTP::Request"   : "lib/Zef/Net/HTTP/Request.pm6",
         "Zef::Net::HTTP::Response"  : "lib/Zef/Net/HTTP/Response.pm6",
-        "Zef::Net::HTTP::RoundTrip" : "lib/Zef/Net/HTTP/RoundTrip.pm6",
         "Zef::Net::HTTP::Transport" : "lib/Zef/Net/HTTP/Transport.pm6",
 
         "Zef::Net::HTTP::Grammar"             : "lib/Zef/Net/HTTP/Grammar.pm6",

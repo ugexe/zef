@@ -1,6 +1,7 @@
+use Zef::Net::HTTP;
 use Zef::Net::URI::Grammar;
 
-class Zef::Net::URI {
+class Zef::Net::URI does HTTP::URI {
     has $.grammar;
     has $.url;
     has $.scheme;
@@ -17,10 +18,10 @@ class Zef::Net::URI {
 
         if $!grammar {
             $!scheme    = ~($!grammar.<URI-reference>.<URI>.<scheme>                           //  '').lc;
-            $!host      = ~($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<host>     //  '').lc;
+            $!host      = ~($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<host>     //  '');
             $!port      =  ($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<port>     // Int).Int;
             $!user-info = ~($!grammar.<URI-reference>.<URI>.<heir-part>.<authority>.<userinfo> //  '');
-            $!path      = ~($!grammar.<URI-reference>.<URI>.<heir-part>.<path-abempty>         //  '');
+            $!path      = ~$!grammar.<URI-reference>.<URI>.<heir-part>.<path-abempty> || '/';
         }
     }
 

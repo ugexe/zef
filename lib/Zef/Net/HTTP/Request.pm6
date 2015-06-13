@@ -1,7 +1,8 @@
+use Zef::Net::HTTP;
 use Zef::Net::URI;
 use Zef::Utils::Base64;
 
-class Zef::Net::HTTP::Request {
+class Zef::Net::HTTP::Request does HTTP::Request {
     # start line
     has $.method;
     has $.url;

@@ -26,7 +26,7 @@ class Zef::Net::HTTP::Client {
     }
 
     method method($method, $url, :$body) {
-        my $request  = $!requestor.new(:$method, :$url, :$body );
+        my $request  = $!requestor.new(:$method, :$url, :$body);
         my $response = $!transporter.round-trip($request);
 
         @.history.push: $response;

@@ -1,7 +1,11 @@
 my class Zef::Net::HTTP { }
 
 role HTTP::Request {
-    method Str { ... }
+    method start-line { ... }
+    method header     { ... }
+    method body       { ... }
+    method trailer    { ... }
+
     method url { ... }
     method uri { ... }
 }

@@ -54,13 +54,41 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         %!header<Connection> = 'Close';
     }
 
-    method Str {
-        my $req = "$!method {?$!proxy ?? $!uri.Str !! $!uri.path} HTTP/1.1\r\n"
-                  ~ "Host: {$!uri.host}\r\n"
-                  ~ "Content-Length: {$!body ?? $!body.chars !! 0}\r\n"
-                  ~ %!header.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n")
-                  ~ "\r\n\r\n" # \r\n\r\n marks the end of headers
-                  ~ ($!body // '');
-        return $req;
+    method content-length { $!body ?? $!body.bytes !! 0 }
+    method start-line     { $.DUMP(:start-line)         }
+
+    method DUMP(Bool :$start-line, Bool :$headers, Bool :$body, Bool :$trailers --> Str) {
+        # Default to dumping everything, otherwise we dump what was specified
+        my $all = ?(!$start-line && !$headers && !$body && !$trailers);
+
+        my $req;
+
+        # start-line
+        $req ~= "$!method {?$!proxy ?? $!uri.Str !! $!uri.path} HTTP/1.1\r\n" 
+            if $start-line && ($all || $start-line);
+
+        # headers
+        $req ~= "Host: {$!uri.host}\r\n"
+                ~ "Content-Length: {$.content-length}\r\n"
+                ~ %!header.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n")
+                ~ "\r\n\r\n" if %!header && ($all || $headers);
+
+        $req ~= $.DUMP-BODY 
+            if $!body && ($all || $body);
+
+        $req ~= %!trailer.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n") 
+            if %!trailer && ($all || $trailers);
+
+        return $req // '';
+    }
+
+    submethod !DUMP-BODY {
+        given $!body {
+            return $_.perl when Buf;
+            return $_      when Str;
+
+            # for utf8 types (which are !~~ Str)
+            return $_.Str  when .Str;
+        }
     }
 }

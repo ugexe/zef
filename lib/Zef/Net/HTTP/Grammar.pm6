@@ -37,4 +37,4 @@ grammar Zef::Net::HTTP::Grammar {
 
     token TOP        { <HTTP-message> }
     token TOP-header { <HTTP-header>  }
-} 
+}

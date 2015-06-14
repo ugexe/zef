@@ -4,7 +4,7 @@ try require IO::Socket::SSL;
 class Zef::Net::HTTP::Dialer does HTTP::Dialer {
     has $.can-ssl = !::("IO::Socket::SSL").isa(Failure);
 
-    method dial(HTTP::URI $uri) {
+    method dial(HTTP::URI $uri --> IO::Socket) {
         my $scheme = $uri.scheme // 'http';
         my $host   = $uri.host;
         my $port   = $uri.port // ($scheme eq 'https' ?? 443 !! 80);

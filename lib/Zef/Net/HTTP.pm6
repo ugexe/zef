@@ -1,6 +1,5 @@
 my class Zef::Net::HTTP { }
 
-# interfaces for building HTTP appliances
 role HTTP::Request {
     method Str { ... }
     method url { ... }
@@ -19,10 +18,12 @@ role HTTP::URI {
     method port   { ... }
 }
 
+# Interface for returning different IO::Socket subclasses
 role HTTP::Dialer {
-    method dial { ... }
+    method dial(HTTP::URI $uri --> IO::Socket) { ... }
 }
 
+# Interface for sending a single request and getting a single response
 role HTTP::RoundTrip {
     method round-trip(HTTP::Request $req --> HTTP::Response) { ... }
 }

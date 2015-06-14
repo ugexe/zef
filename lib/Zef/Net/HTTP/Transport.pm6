@@ -44,6 +44,9 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
         $!dialer = Zef::Net::HTTP::Dialer.new unless $!dialer;
     }
 
+    # A HTTP::RoundTrip that returns an HTTP::Response once the header 
+    # has been received, and a Promise that will be kept once it fills 
+    # Channels ($.body/$.trailer-chunk) with the optional body and/or trailer data
     method round-trip(HTTP::Request $req --> HTTP::Response) {
         my $socket = $!dialer.dial($req.?proxy ?? $req.proxy.uri !! $req.uri);
         $socket does ByteStream;
@@ -55,8 +58,9 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
             last if $header.substr(*-4) eq "\r\n\r\n";
         }
 
-        my $body = $socket.async-recv(:bin); 
+        my $body = $socket.async-recv(:bin);
+        # my $trailer = $socket.async-recv(:bin);
 
-        return $!responder.new(:header-chunk($header), :$body);
+        return $!responder.new(:header-chunk($header), :$body); #, :$trailer);
     }
 }

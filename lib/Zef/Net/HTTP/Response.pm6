@@ -13,10 +13,13 @@ class Zef::Net::HTTP::Response does HTTP::Response {
     has $.encoding;
     has $.body;
     has %.header;
+    has %.trailer;
     has $.header-chunk;
     has $.header-grammar;
+    has $.trailer-chunk;
+    has $.trailer-grammar;
 
-    submethod BUILD(:$!message, :$!header-chunk, :$!body) {
+    submethod BUILD(:$!message, :$!header-chunk, :$!body, :$!trailer-chunk) {
         my $actions = Zef::Net::HTTP::Actions.new;
         $!header-grammar = Zef::Net::HTTP::Grammar.parse($!header-chunk, :rule("TOP-header"), :$actions) if $!header-chunk;
         $!grammar = Zef::Net::HTTP::Grammar.parse($!message, :$actions) if $!message;
@@ -48,6 +51,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
         return $!grammar ?? $!grammar.Str !! ($!header-grammar ?? $!header-grammar.Str !! Str);
     }
 
+    # Apply transfer codings, content encoding, etc to the body data
     method content {
         my ($promise, $stream) = $!body.kv;
         await $promise;

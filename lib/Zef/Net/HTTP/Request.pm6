@@ -16,14 +16,15 @@ class Zef::Net::HTTP::Request does HTTP::Request {
     has %.trailer;
     has $.host;
 
-    # payload
     has $.body;
 
+    # todo: move proxy stuff into its own interface/class
     has $.proxy;
 
     submethod BUILD(
         :$!method = 'GET',
         :$!url!,
+        :$!body,
         :$!proxy where Bool|Str|Nil
     ) {
         $!uri = Zef::Net::URI.new(:$!url);
@@ -54,7 +55,13 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         %!header<Connection> = 'Close';
     }
 
-    method content-length { $!body ?? $!body.bytes !! 0 }
+    method content-length {
+        do given $!body {
+            return $_.bytes when Buf;
+            return $_.chars when Str;
+            default { 0 }
+        }
+    }
     method start-line     { $.DUMP(:start-line)         }
 
     method DUMP(Bool :$start-line, Bool :$headers, Bool :$body, Bool :$trailers --> Str) {
@@ -65,7 +72,7 @@ class Zef::Net::HTTP::Request does HTTP::Request {
 
         # start-line
         $req ~= "$!method {?$!proxy ?? $!uri.Str !! $!uri.path} HTTP/1.1\r\n" 
-            if $start-line && ($all || $start-line);
+            if $all || $start-line;
 
         # headers
         $req ~= "Host: {$!uri.host}\r\n"
@@ -87,8 +94,7 @@ class Zef::Net::HTTP::Request does HTTP::Request {
             return $_.perl when Buf;
             return $_      when Str;
 
-            # for utf8 types (which are !~~ Str)
-            return $_.Str  when .Str;
+            return $_.bytes  when .bytes;
         }
     }
 }

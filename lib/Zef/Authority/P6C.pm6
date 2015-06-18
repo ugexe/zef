@@ -13,22 +13,26 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
     method update-projects {
         my $response = $!ua.get: @!mirrors.[0];
-        @!projects = @(from-json($response.content));
+        @!projects = @(from-json($response.content)).grep({ ?$_.<name> });
     }
 
     # Use the p6c hosted projects.json to get a list of name => git-repo that 
     # can then be fetched with Utils::Git
     method get(Zef::Authority::P6C:D: *@wants, :$save-to is copy = $*TMPDIR) {
         once self.update-projects;
-        my @wants-metas = @!projects.grep({ $_.<name> ~~ any(@wants) }); # unused now?
-        my @tree        = build-dep-tree( @!projects, target => $_ ) for @wants-metas;
-        my @results     = eager gather for @tree -> %node {
-            say "Getting: {%node.<source-url>}";
-            my $basename   = %node.<name>.trans(':' => '-');
-            temp $save-to  = $*SPEC.catdir($save-to, $basename);
-            my @git        = $!git.clone(:$save-to, %node.<source-url>);
-            take { module => %node.<name>, path => @git.[0].<path>, ok => ?$save-to.IO.e }
+        my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) });
+        my @levels      = Zef::Utils::Depends.new(:@!projects).topological-sort(@wants-dists);# for @wants-dists;
+        my @results     = eager gather for @levels -> $level {
+            for $level.list -> $package-name {
+                my %dist = @!projects.first({ $_.<name> eq $package-name }).hash;
+                say "Getting: {%dist.<source-url>}";
+                my $basename   = %dist.<name>.trans(':' => '-');
+                temp $save-to  = $*SPEC.catdir($save-to, $basename);
+                my @git        = $!git.clone(:$save-to, %dist.<source-url>);
+                take { module => %dist.<name>, path => @git.[0].<path>, ok => ?$save-to.IO.e }
+            }
         }
+
         return @results;
     }
 

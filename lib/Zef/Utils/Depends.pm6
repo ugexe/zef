@@ -1,13 +1,9 @@
 class Zef::Utils::Depends {
-    has @!metas;
-
-    submethod BUILD(:@!metas) { }
+    has @.projects;
 
     # A poor attempt to parse module names from source code
     grammar Grammar::Dependency::Parser {
-        token TOP {
-            [.*? <load-statement>]+ .*? $
-        }
+        token TOP { [[^^ || \s+] <load-statement>]+ .*? $$ }
 
         token load-statement { <load-type> \s+ <short-name>               }
         token short-name     { <name-piece> [<.colon-pair> <name-piece>]* }
@@ -22,9 +18,62 @@ class Zef::Utils::Depends {
         token load-type:sym<require> { <sym> }
     }
 
+
+    # http://rosettacode.org/wiki/Topological_sort/Extracted_top_item#Perl_6
+    method topological-sort ( *@wanted ) {
+        my @top  = @wanted.flatmap({ $_.<name> });
+        my %deps = @!projects.map({ $_.<name> => ($_.<depends> // []) }).hash;
+
+        my %ba;
+        for %deps.kv -> $after, $befores {
+            for $befores.list -> $before {
+                %ba{$after}{$before} = 0 if $before ne $after;
+                %ba{$before} //= {};
+            }
+            %ba{$after} //= {};
+        }
+
+        if @top {
+            my @want = @top;
+            my %care;
+            %care{@want} = 1 xx *;
+            repeat while @want {
+                my @newwant;
+                for @want -> $before {
+                    if %ba{$before} {
+                        for %ba{$before}.keys -> $after {
+                            if not %ba{$before}{$after} {
+                                %ba{$before}{$after}++;
+                                push @newwant, $after;
+                            }
+                        }
+                    }
+                }
+                @want = @newwant;
+                %care{@want} = 1 xx *;
+            }
+         
+
+            for %ba.kv -> $before, $after {
+               %ba{$before}:delete unless %care{$before};
+            }
+        }
+     
+        my @levels;
+
+        while %ba.grep( not *.value )».key -> @befores {
+            push @levels, [@befores.sort];
+            %ba{@befores}:delete;
+            for %ba.values { .{@befores}:delete }
+        }
+
+        return @levels;
+    }
+
+
     # Creates a build order from a list of meta files
-    method build-dep-tree(@xmetas = @!metas, :$target) {
-        my @depends = $target // @xmetas // @!metas;
+    method build-dep-tree(@xmetas = @!projects, :$target) {
+        my @depends = $target // @xmetas // @!projects;
         my @tree = eager gather while @depends.shift -> %meta {
             state %marked;
             unless %marked.{%meta.<name>} {
@@ -59,45 +108,57 @@ class Zef::Utils::Depends {
 
     # Determine build order for a CompUnitRepo's provides by parsing the source
     method extract-deps(*@paths) {
-        @paths //= @!metas.grep({ $_.<file> });
-        my @modules = @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
-        my $slash = / [ \/ | '\\' ]  /;
+        my @pm-files = @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
+        my $slash    = / [ \/ | '\\' ]  /;
+        my $not-deps = any(<v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>);
 
-        my @minimeta = eager gather for @modules -> $f is copy {
-            my $t = $f.IO.slurp;
-            while $t ~~ /^^ \s* '=begin' \s+ <ident> .* '=end' \s+ <ident> / {
-                $t = $t.substr(0,$/.from) ~ $t.substr($/.to);
+        my @minimeta = eager gather for @pm-files -> $f is copy {
+            my @depends = gather for $f.IO.slurp.lines -> $line is copy {
+                state Int $pod-block;
+                my $code-only = do given $line {
+                    # remove pod
+                    $pod-block-- and next when /^^ \s* '=' 'end' [\s || $$]/;
+                    $pod-block++ and next when /^^ \s* '=' 'begin' [\s || $$]/;
+                    next when /^^ \s* '=' \w/;
+                    next if $pod-block;
+
+
+                    # remove comments (broken; too naive)
+                    # but keep non-commented part of line
+                    when /^^ $<pre-comment>=[.*?] '#'/ {
+                        $/<pre-comment>.Str ;
+                    }
+
+                    default { $_ }
+                }
+
+                # Only bother parsing if the line has enough chars for a `use *`
+                next unless $code-only.chars > 5;
+
+                my $dep-parser = Grammar::Dependency::Parser.parse($code-only);
+                for $dep-parser.<load-statement>.list -> $dep {
+                    next if $dep.<short-name>.Str ~~ any($not-deps);
+                    take $dep.<short-name>.Str;
+                }
             }
-
-            my $not-deps   = any(<v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>);
-            my $dep-parser = Grammar::Dependency::Parser.parse($t);
-
-            my @depends = gather for $dep-parser.<load-statement>.list -> $dep {
-                next if $dep.<short-name>.Str ~~ any($not-deps);
-                take $dep.<short-name>.Str;
-            }
-
-            my @splitdir    = $*SPEC.splitdir($f.IO.dirname);
-            my $ext         = ".{$f.IO.extension}";
-            my $base-name   = $f.IO.basename.subst(/$ext$/,'');
-            my $module-name = [@splitdir[@splitdir.last-index("lib")+1..*], $base-name].join('::');
-
+  
             take {
-                name         => $module-name,
                 path         => $f.IO.path,
-                depends      => @depends, 
+                name         => $f.IO.path,
+                depends      => @depends,
             }
         }
 
         return @minimeta;
     }
 
+
     # Not used currently. May be used to parse dependencies from an exception message.
     method runtime-extract-deps(*@paths is copy) {
         #use Perl6::Grammar:from<NQP>; # prevents compile on jvm
         #use Perl6::Actions:from<NQP>;
 
-        @paths //= @!metas.grep({ $_.<file> });
+        @paths //= @!projects.grep({ $_.<file> });
         my @pm6-files := @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
 
         # Try to parse exceptions for missing dependencies
@@ -129,6 +190,10 @@ sub extract-deps(*@paths) is export {
     Zef::Utils::Depends.new.extract-deps(@paths);
 }
 
-sub build-dep-tree(*@metas, :$target) is export {\
-    Zef::Utils::Depends.new(:@metas).build-dep-tree(:$target);    
+sub build-dep-tree(*@projects, :$target) is export {\
+    Zef::Utils::Depends.new(:@projects).build-dep-tree(:$target);    
+}
+
+sub topological-sort(*@projects, :$target) is export {\
+    Zef::Utils::Depends.new(:@projects).topological-sort(:$target);    
 }

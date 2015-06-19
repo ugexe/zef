@@ -116,7 +116,9 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
         my @submissions = eager gather for @meta-reports -> $m {
             my $response  = $!ua.post("http://testers.perl6.org/report", body => $m<report>);
-            my $body      = $response.body.list;
+            my $body      = $response.content;
+
+            # P6C reponse body to a successful report submission is just the ID of the report
             my $report-id = ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;
 
             take {

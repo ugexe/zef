@@ -24,7 +24,7 @@ role HTTP::URI {
 
 # Interface for returning different IO::Socket subclasses
 role HTTP::Dialer {
-    method dial(HTTP::URI $uri --> IO::Socket) { ... }
+    method dial(HTTP::URI $uri) { ... }
 }
 
 # Interface for sending a single request and getting a single response

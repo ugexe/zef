@@ -77,7 +77,7 @@ class Zef::Net::HTTP::Request does HTTP::Request {
 
         # headers
         $req ~= "Host: {$!uri.host}\r\n"
-                #~ "Content-Length: {$.content-length}\r\n"
+                ~ "Content-Length: {$.content-length}\r\n"
                 ~ %!header.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n")
                 ~ "\r\n\r\n" if %!header && ($all || $headers);
 

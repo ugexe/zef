@@ -26,6 +26,7 @@ class Zef::Builder {
     method pre-compile(*@repos is copy, :$save-to is copy) {
         my @results = eager gather for @repos -> $path {
             my $SPEC := $*SPEC;
+            my %meta  = %(from-json( $SPEC.catpath('', $path, 'META.info').IO.slurp) );
 
             # NOTE: this may change
             # Currently treats relative paths as relative to the current repo's path ($path).
@@ -33,9 +34,10 @@ class Zef::Builder {
             temp $save-to = $save-to 
                 ?? ($save-to.IO.is-absolute ?? $save-to.IO !! $SPEC.catdir($save-to, $path).IO) 
                 !! $path.IO;
-
             say "===> Build directory: {$save-to.absolute}";
-            my %meta     = %(from-json( $SPEC.catpath('', $path, 'META.info').IO.slurp) );
+
+            # Determine the paths where the sources are located, where the pre-compiled 
+            # code should go, and what $INC should include before pre-compiling.
             my @libs     = %meta<provides>.list.map({
                 $*SPEC.rel2abs($SPEC.splitdir($_.value.IO.dirname).[0].IO // $SPEC.curdir, $path)
             }).unique.map({ CompUnitRepo::Local::File.new($_).Str });
@@ -45,25 +47,36 @@ class Zef::Builder {
             my $INC     := @blibs.unique, @libs, @*INC;
             my @files    = %meta<provides>.list.map({ $SPEC.rel2abs($_.value, $path).IO.path });
 
-            # Build the @dep chain for the %META.<provides> by parsing the source
+            # Build the @dep chain for the %META.<provides> by parsing the 
+            # use/require/need from the module source.
             my @provides-as-deps = gather for @(extract-deps( @files ).list) -> $info is rw {
-                $info.<depends> = [$info.<depends>.list.map({ %meta.<provides>.{$_} })];
-                $info.<name>    = %meta.<provides>.list.grep({ my $f = $_.value; $info.<path> ~~ /$f$/ }).[0].value;
+                my @provided-ok = eager gather for $info.<depends>.list -> $dep {
+                    unless %meta.<provides>.{$dep}:exists {
+                        say "!!!> Confused. META `provides` has no mapping for: $dep";
+                        next;
+                    }
+                    take $dep;
+                }
+
+                $info.<depends> = [@provided-ok.map({ %meta.<provides>.{$_} })];
+                $info.<name>    = %meta.<provides>.list.first({ $info.<path>.ends-with($_.value) }).value;
                 take $info;
             }
 
-            # @deps is a partial META.info hash, so pass the provides
+            # @provides-as-deps is a partial META.info hash, so pass the provides
             my @levels   = Zef::Utils::Depends.new(projects => @provides-as-deps).topological-sort;
             my @compiled = eager gather for @levels -> $level {
-                # $module-key may be a module name (Zef::Builder) or a file path (/lib/Zef/Builder.pm6)
+                # $module-key may be a module name (Zef::Builder) or a file path (lib/Zef/Builder.pm6)
                 # For provides we use file paths as some module names (provides key) may share a path (provides value)
                 for $level.list -> $module-key {
                     my $display-path = $module-key;
-                    my $full-path   := $*SPEC.rel2abs($module-key, $path);
+                    my $full-path := $*SPEC.rel2abs($module-key, $path);
                     my $blib-file := $SPEC.rel2abs($SPEC.catdir('blib', $module-key).IO, $save-to).IO;
                     my $out       := $SPEC.rel2abs($SPEC.catpath('', $blib-file.dirname, "{$blib-file.basename}.{$*VM.precomp-ext}"), $save-to).IO;
+
                     my $cu        := CompUnit.new( $*SPEC.rel2abs($module-key, $path) ) but role { 
-                        # workaround for non-default :$out path (use /blib/lib instead of /lib)
+                        # Workaround for non-default :$out path (use /blib/lib instead of /lib)
+                        # CompUnit was not designed to be subclassed, so this is kinda ugly.
                         has $!has-precomp;
                         has $!out;
                         has $.build-output is rw;
@@ -74,9 +87,12 @@ class Zef::Builder {
                         method precomp-path { $!out.absolute }
                     }
 
+                    # Directories don't always get created (and thus fail) on JVM without these 
                     mkdirs($blib-file.dirname);
                     mkdirs($cu.precomp-path.IO.dirname);
 
+                    # todo: .build-output should really be a Channel/Supply to let the client
+                    # tap/receieve the output instead of just printing it (like Zef::Test)
                     $cu.build-output  = "[{$display-path}] {'.' x 42 - $display-path.chars} ";
                     $cu.build-output ~= ($cu.precomp($out, :$INC, :force)
                         ?? "ok: {$SPEC.abs2rel($cu.precomp-path, $save-to)}\n"

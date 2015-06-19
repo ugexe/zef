@@ -55,6 +55,7 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         %!header<Connection> = 'Close';
     }
 
+    # TEMPORARY
     method content-length {
         do given $!body {
             return $_.bytes when Buf;
@@ -62,7 +63,7 @@ class Zef::Net::HTTP::Request does HTTP::Request {
             default { 0 }
         }
     }
-    method start-line     { $.DUMP(:start-line)         }
+    method start-line     { $.DUMP(:start-line) }
 
     method DUMP(Bool :$start-line, Bool :$headers, Bool :$body, Bool :$trailers --> Str) {
         # Default to dumping everything, otherwise we dump what was specified
@@ -76,10 +77,11 @@ class Zef::Net::HTTP::Request does HTTP::Request {
 
         # headers
         $req ~= "Host: {$!uri.host}\r\n"
-                ~ "Content-Length: {$.content-length}\r\n"
+                #~ "Content-Length: {$.content-length}\r\n"
                 ~ %!header.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n")
                 ~ "\r\n\r\n" if %!header && ($all || $headers);
 
+        # TEMPORARY
         $req ~= $.DUMP-BODY 
             if $!body && ($all || $body);
 
@@ -89,12 +91,12 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         return $req // '';
     }
 
-    submethod !DUMP-BODY {
+    # TEMPORARY
+    submethod DUMP-BODY {
         given $!body {
-            return $_.perl when Buf;
-            return $_      when Str;
-
-            return $_.bytes  when .bytes;
+            return $_.perl  when Buf;
+            return $_       when Str;
+            return $_.bytes when .bytes;
         }
     }
 }

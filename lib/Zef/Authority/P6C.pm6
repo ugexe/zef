@@ -13,7 +13,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
     method update-projects {
         my $response = $!ua.get: @!mirrors.[0];
-        @!projects = @(from-json($response.content)).grep({ ?$_.<name> });
+        @!projects = try @(from-json($response.content)).grep({ ?$_.<name> });
     }
 
     # Use the p6c hosted projects.json to get a list of name => git-repo that 
@@ -21,15 +21,28 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     method get(Zef::Authority::P6C:D: *@wants, :$save-to is copy = $*TMPDIR) {
         once self.update-projects;
         my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) });
-        my @levels      = Zef::Utils::Depends.new(:@!projects).topological-sort(@wants-dists);# for @wants-dists;
+
+        # Determine the distribution dependencies we need
+        my @levels      = Zef::Utils::Depends.new(:@!projects).topological-sort(@wants-dists);
+
+        # Try to fetch each distribution dependency
         my @results     = eager gather for @levels -> $level {
             for $level.list -> $package-name {
+                # todo: filter projects by version/auth
                 my %dist = @!projects.first({ $_.<name> eq $package-name }).hash;
+
                 say "Getting: {%dist.<source-url>}";
+
+                # todo: implement the rest of however github.com transliterates paths
                 my $basename   = %dist.<name>.trans(':' => '-');
                 temp $save-to  = $*SPEC.catdir($save-to, $basename);
                 my @git        = $!git.clone(:$save-to, %dist.<source-url>);
-                take { module => %dist.<name>, path => @git.[0].<path>, ok => ?$save-to.IO.e }
+
+                take { 
+                    module => %dist.<name>, 
+                    path   => @git.[0].<path>, 
+                    ok     => ?$save-to.IO.e
+                }
             }
         }
 
@@ -44,7 +57,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             my $repo-path = $meta-path.IO.dirname;
             KEEP take { %meta }
 
-            my $test  = @test-results.list>>.results.grep({ $_.list>>.file.IO.absolute ~~ /^$repo-path/ });
+            my $test  = @test-results.list>>.results.grep({ $_.list>>.file.IO.absolute.starts-with($repo-path) });
             my %build = @build-results.first({ $_<path> eq $repo-path }).hash;
 
             my $build-output = %build.<curlfs>.map(-> $cu { $cu.build-output }).join("\n");
@@ -101,10 +114,17 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             }
         }
 
-        my @submissions = gather for @meta-reports -> $m {
-            my $response  = $!ua.post("http://testers.perl6.org/report", payload => $m<report>);
-            my $body = $response.body;
-            take { ok => ?$body.match(/^\d+$/), module => $m<name>, report => $m<report> }
+        my @submissions = eager gather for @meta-reports -> $m {
+            my $response  = $!ua.post("http://testers.perl6.org/report", body => $m<report>);
+            my $body      = $response.body.list;
+            my $report-id = ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;
+
+            take {
+                ok     => ?$report-id, 
+                module => $m.<name>, 
+                report => $m.<report>,
+                id     => $report-id,
+            }
         }
     }
 }

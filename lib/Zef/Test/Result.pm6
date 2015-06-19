@@ -19,6 +19,7 @@ class Zef::Test::Result {
     has $.end-time   is rw;
     has $.output     is rw;
 
+    # Starts the test as soon as object is initiated. This may change.
     submethod BUILD(:$!process, :$!file, :$!path) {
         LEAVE $!promise := $!process.start;
         $!stdout := $!process.stdout;

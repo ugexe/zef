@@ -18,19 +18,25 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
     # Use the p6c hosted projects.json to get a list of name => git-repo that 
     # can then be fetched with Utils::Git
-    method get(Zef::Authority::P6C:D: *@wants, :$save-to is copy = $*TMPDIR) {
+    method get(
+        Zef::Authority::P6C:D: 
+        *@wants,
+        :$save-to is copy,
+        Bool :$skip-depends,
+    ) {
         once self.update-projects;
         my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) });
 
-        # Determine the distribution dependencies we need
-        my @levels      = Zef::Utils::Depends.new(:@!projects).topological-sort(@wants-dists);
+        # Determine the distribution dependencies we want/need
+        my @levels = $skip-depends
+            ?? @wants-dists.map({ $_.hash.<name> })
+            !! Zef::Utils::Depends.new(:@!projects).topological-sort(@wants-dists);
 
         # Try to fetch each distribution dependency
         my @results     = eager gather for @levels -> $level {
             for $level.list -> $package-name {
                 # todo: filter projects by version/auth
                 my %dist = @!projects.first({ $_.<name> eq $package-name }).hash;
-
                 say "Getting: {%dist.<source-url>}";
 
                 # todo: implement the rest of however github.com transliterates paths

@@ -90,23 +90,42 @@ multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
 
 #| Install local freshness
 multi MAIN('local-install', *@modules) is export {
-    my $installer = Zef::Installer.new(:@plugins);
-    $installer.install($_) for @modules;
+    say "NYI";
 }
 
+#! Download a single module and change into its directory
+multi MAIN('look', $module, :$save-to = $*SPEC.catdir($*CWD,time)) { 
+    my $auth = Zef::Authority::P6C.new;
+    my @g    = $auth.get: $module, :$save-to, :skip-depends;
+    verbose('Fetching', @g);
+
+    if @g.[0].<ok> {
+        say "===> Shell-ing into directory: {@g.[0].<path>}";
+        chdir @g.[0].<path>;
+        shell(%*ENV<SHELL> // %*ENV<ComSpec>);
+        exit 0 if $*CWD.IO.path eq @g.[0].<path>;
+    }
+
+    # Failed to get the module or change directories
+    say "!!!> Failed to fetch module or change into the target directory...";
+    exit 1;
+}
 
 #| Get the freshness
-multi MAIN('get', :$save-to = "$*CWD/{time}", *@modules) is export {
-    say "NYI";
+multi MAIN('get', *@modules, :$save-to = $*TMPDIR, Bool :$skip-depends) is export {
+    my $auth = Zef::Authority::P6C.new;
+    my @g    = $auth.get: @modules, :$save-to, :$skip-depends;
+    verbose('Fetching', @g);
+    say $_.<path> for @g.grep({ $_.<ok> });
+    exit @g.grep({ not $_.<ok> }).elems;
 }
 
 
 #| Build modules in cwd
 multi MAIN('build') is export { &MAIN('build', $*CWD) }
-#| Build modules in the specified directories
+#| Build modules in the specified directory
 multi MAIN('build', $path, :$save-to) {
-    my $builder = Zef::Builder.new(:@plugins);
-    $builder.pre-compile($path, :$save-to);
+    say "NYI";
 }
 
 

@@ -75,7 +75,8 @@ multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
         test-results  => @t, 
         build-results => @b,
     ) and verbose('Reporting', @r) if ?$report;
-    say "http://testers.perl6.org/reports/$_.html" for @r.grep(*.<id>).map({ $_.<id> });
+    say "===> Report{'s' if @r.elems > 1} can be seen shortly at:";
+    say "\thttp://testers.perl6.org/reports/$_.html" for @r.grep(*.<id>).map({ $_.<id> });
 
     # Install the modules
     my @i = Zef::Installer.new.install: @metas;

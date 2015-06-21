@@ -3,10 +3,10 @@ perl:
     - '5.20'
 env:
     - BACKEND=moar
-#    - BACKEND=jvm
+    - BACKEND=jvm
 matrix:
-#    allow_failures:
-#        - env: BACKEND=jvm
+    allow_failures:
+        - env: BACKEND=jvm
     fast_finish: true
 before_install:
     - git config --global user.name "TravisCI"

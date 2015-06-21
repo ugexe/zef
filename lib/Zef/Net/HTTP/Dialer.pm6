@@ -12,18 +12,12 @@ class Zef::Net::HTTP::Dialer does HTTP::Dialer {
         my $client-socket = IO::Socket::INET.new( :$host, :$port );
 
         given $scheme {
-            when 'http' {
-                return $client-socket;
-            }
             when 'https' {
-                unless $!can-ssl {
-                    die "Please install IO::Socket::SSL to use https";
-                }
+                die "Please install IO::Socket::SSL to use https" unless $!can-ssl;
                 return ::('IO::Socket::SSL').new( :$client-socket );
             }
-            default {
-                die "Scheme: '$scheme' is NYI";
-            }
+            when 'http'  { return $client-socket          }
+            default      { die "Scheme: '$scheme' is NYI" }
         }
     }
 }

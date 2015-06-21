@@ -38,6 +38,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
                 }
             }
 
+            # todo: contribute something similiar to HTTP::UserAgent (beyond how it currently checks this)
             if %!header<Content-Type>.hash -> %ct {
                 my @text-subtypes = <text html xhtml xml atom json javascript rss soap>;
                 if %ct.<type> eq 'text' || %ct.<subtype> ~~ any(@text-subtypes) {
@@ -61,7 +62,6 @@ class Zef::Net::HTTP::Response does HTTP::Response {
         $data ~= buf8.new($_) for $stream.list;
 
         my $content = $!chunked ?? ChunkedReader($data) !! $data;
-
         return $!encoding ?? $content>>.decode($!encoding).join !! $content;
     }
 }

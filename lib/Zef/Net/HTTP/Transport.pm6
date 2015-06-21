@@ -55,12 +55,16 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
         $socket.send: $req.DUMP(:start-line);
         $socket.send: $req.DUMP(:headers);
 
-        # todo: the body may be text or binary so we need to choose between 
-        # .send and .write accordingly. We could also try to do the encoding 
-        # ourselves This happens behind the scenes with .send/.write, and they 
-        # do it with nqp ops, so by not encoding ourselves we avoid the speed 
-        # penalty of pure perl6 code and having any extra nqp code in our codebase.
-        $socket.send: $req.DUMP(:body);
+        given $req.body {
+            when *.not { #`<no body in request; skip this> }
+
+            when Buf { $socket.write($_) }
+            when Str { $socket.send($_)  }
+
+            default {
+                die "{::?CLASS} doesn't know how to handle :\$body of this type: {$_.perl}";
+            }
+        }
 
         $socket.send: $req.DUMP(:trailers);
 

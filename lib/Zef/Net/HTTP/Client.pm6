@@ -29,15 +29,22 @@ class Zef::Net::HTTP::Client {
         my $request  = $!requestor.new(:$method, :$url, :$body);
         my $response = $!transporter.round-trip($request);
 
-        @.history.push: $response;
+        @!history.push: $response;
 
-        if $.auto-check {
+        if $!auto-check {
             fail "Response not understood" unless $response && $response.status-code;
 
             given $response.status-code {
-                when /^2\d+$/ { }
-                when /^301/     {
-                    $response = self.send($method, ~$response.header.<Location>, :$body);
+                when /^2\d\d$/ { }
+                when /^3\d\d$/ {
+                    my $location   = Zef::Net::URI.new(url => ~$response.header.<Location>);
+                    my $forward-to = $location.is-relative 
+                        ?? $location.rel2abs("{$request.uri.scheme}://{$request.uri.host}")
+                        !! $location;
+
+                    # We put the original response in the history already. We set $response now 
+                    # so after all forwarding is done we can return the final response.
+                    $response = $.method($request.method, $forward-to.url, body => $request.body);
                 }
                 default {
                     die "[NYI] http-code: '$_'";

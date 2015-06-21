@@ -197,10 +197,10 @@ sub extract-deps(*@paths) is export {
     Zef::Utils::Depends.new.extract-deps(@paths);
 }
 
-sub build-dep-tree(*@projects, :$target) is export {\
+sub build-dep-tree(*@projects, :$target) is export {
     Zef::Utils::Depends.new(:@projects).build-dep-tree(:$target);    
 }
 
-sub topological-sort(*@projects, :$target) is export {\
+sub topological-sort(*@projects, :$target) is export {
     Zef::Utils::Depends.new(:@projects).topological-sort(:$target);    
 }

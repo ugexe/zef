@@ -56,7 +56,9 @@ Basic http client: Grammar based parser; uses IO::Socket::SSL if available for h
 
     my $body     = to-json({ term => "zef" });
     my $response = $client.post("http://zef.pm/api/search", :$body);
-    my $json     = from-json($response.<body>);
+
+    # .content takes care of encoding. The .body attribute has the raw data for manual processing
+    my $json     = from-json($response.content);
 
     my $response = $client.get("https://www.google.com");
     say $reponse.content; # apply encoding/chunked/etc to $.body
@@ -151,6 +153,10 @@ Attempt to extract dependencies via source parsing.
     
     say extract-deps("lib/Zef.pm6").perl
     # ({:dependencies(["Zef::Authority", "Zef::Builder", "Zef::Config", "Zef::Exception", "Zef::Getter", "Zef::Installer", "Zef::Reporter", "Zef::Tester", "Zef::Uninstaller", "Zef::Utils::Base64", "Zef::Utils::Depends", "Zef::Utils::PathTools"]), :file("lib/Zef.pm6"), :name("Zef")},)
+
+=head4 topological-sort(*@meta-files, :$target)
+
+Build dependency order, in levels, from a list of dependency meta files. If :$target is passed then the tree will built with :$target as the base node. Otherwise the order will determine a base node(s) in the form of @level[*-1]
 
 =head4 build-dep-tree(*@meta-files, :$target)
 

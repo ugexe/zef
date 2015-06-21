@@ -125,7 +125,8 @@ multi MAIN('get', *@modules, :$save-to = $*TMPDIR, Bool :$skip-depends) is expor
 multi MAIN('build') is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directory
 multi MAIN('build', $path, :$save-to) {
-    say "NYI";
+    my $builder = Zef::Builder.new(:@plugins);
+    $builder.pre-compile($path, :$save-to);
 }
 
 

@@ -84,6 +84,6 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
 
         # my $trailer = $socket.async-recv(:bin);
 
-        return $!responder.new(:header-chunk($header), :$body); #, :$trailer);
+        return $!responder.new(:$header, :$body); #, :$trailer);
     }
 }

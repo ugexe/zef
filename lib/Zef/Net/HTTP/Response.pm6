@@ -5,33 +5,41 @@ use Zef::Net::HTTP::Actions;
 
 # A http response object built from HTTP::Grammar
 class Zef::Net::HTTP::Response does HTTP::Response {
-    has $.grammar;
-    has $.message;
+    # start-line
     has $.status-code = Int;
     has $.status-message;
-    has $.chunked;
-    has $.encoding;
+
+    # the raw data for each of these sections
+    has $.header;
     has $.body;
-    has %.header;
-    has %.trailer;
-    has $.header-chunk;
+    has $.trailer;
+
+    # the raw data in structured form
+    has %.headers;
+    has %.trailers;
+
     has $.header-grammar;
-    has $.trailer-chunk;
     has $.trailer-grammar;
 
-    submethod BUILD(:$!message, :$!header-chunk, :$!body, :$!trailer-chunk) {
+    # easy access to common options. temporary?
+    has $.chunked;
+    has $.encoding;
+
+
+    submethod BUILD(Str :$!header!, :$!body, :$!trailer) {
         my $actions = Zef::Net::HTTP::Actions.new;
-        $!header-grammar = Zef::Net::HTTP::Grammar.parse($!header-chunk, :rule("TOP-header"), :$actions) if $!header-chunk;
-        $!grammar = Zef::Net::HTTP::Grammar.parse($!message, :$actions) if $!message;
+        if Zef::Net::HTTP::Grammar.parse($!header, :rule("TOP-headers"), :$actions) -> $hg {
+            $!header-grammar = $hg.<HTTP-headers>;
+        }
 
-        if my $g = $!grammar ?? $!grammar.<HTTP-message> !! $!header-grammar ?? $!header-grammar.<HTTP-header> !! False {
-            $!status-code    =  ($g.<start-line>.<status-line>.<status-code>   // Int).Int;
-            $!status-message = ~($g.<start-line>.<status-line>.<reason-phrase> //  '');
-            $!body         //= ~($g.<message-body>                             //  '') if $!grammar;
+        # todo: parse each header one at a time instead of all at once
+        if $!header-grammar {
+            $!status-code    =  ($!header-grammar.<start-line>.<status-line>.<status-code>   // Int).Int;
+            $!status-message = ~($!header-grammar.<start-line>.<status-line>.<reason-phrase> //  '');
 
-            %!header = $g.<header-field>>>.made;
+            %!headers = $!header-grammar.<header-field>>>.made;
 
-            for %!header<Transfer-Encoding>.list -> $te {
+            for %!headers<Transfer-Encoding>.list -> $te {
                 given $te {
                     when /^chunked/ { $!chunked = 1                           }
                     default         { fail "'{$te}' Transfer-Encoding is NYI" }
@@ -39,7 +47,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
             }
 
             # todo: contribute something similiar to HTTP::UserAgent (beyond how it currently checks this)
-            if %!header<Content-Type>.hash -> %ct {
+            if %!headers<Content-Type>.hash -> %ct {
                 my @text-subtypes = <text html xhtml xml atom json javascript rss soap>;
                 if %ct.<type> eq 'text' || %ct.<subtype> ~~ any(@text-subtypes) {
                     $!encoding = %ct.<parameters>.<charset> // 'utf-8';
@@ -49,7 +57,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
     }
 
     method Str {
-        return $!grammar ?? $!grammar.Str !! ($!header-grammar ?? $!header-grammar.Str !! Str);
+        return $!header.Str;
     }
 
     # Apply transfer codings, content encoding, etc to the body data

@@ -34,6 +34,9 @@ grammar Zef::Net::HTTP::Grammar {
     also does Zef::Net::URI::Grammar::RFC3986;
     also does Zef::Net::URI::Grammar::RFC4234;
 
-    token TOP        { <HTTP-message> }
-    token TOP-header { <HTTP-header>  }
+    token TOP         { <HTTP-message> }
+    token TOP-start   { <HTTP-start>   }
+    token TOP-headers { <HTTP-headers> }
+    token TOP-header  { <HTTP-header>  }
+    # token TOP-trailer { <HTTP-trailer> }
 }

@@ -14,7 +14,7 @@ ENTER {
 
 subtest {
     my $url = "http://httpbin.org";
-    my $ua  = Zef::Net::HTTP::Client.new(auto-check => True);
+    my $ua  = Zef::Net::HTTP::Client.new(:auto-check);
 
     # Status code
     {
@@ -45,7 +45,7 @@ subtest {
     }
 
     my $url = "https://httpbin.org";
-    my $ua  = Zef::Net::HTTP::Client.new(auto-check => True);
+    my $ua  = Zef::Net::HTTP::Client.new(:auto-check);
 
     # Status code
     {

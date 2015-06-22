@@ -12,7 +12,7 @@ role HTTP::Request {
 
 role HTTP::Response {
     method status-code  { ... }
-    method header-chunk { ... }
+    method header       { ... }
     method body         { ... }
 }
 

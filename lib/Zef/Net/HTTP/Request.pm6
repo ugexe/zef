@@ -11,12 +11,21 @@ class Zef::Net::HTTP::Request does HTTP::Request {
     has $!proto-major = 1;
     has $!proto-minor = 1;
 
-    # header stuff
-    has %.header;
-    has %.trailer;
-    has $.host;
-
+    # the raw data for each of these sections
+    has $.header;
     has $.body;
+    has $.trailer;
+
+    # the raw data in structured form
+    has %.headers;
+    has %.trailers;
+
+    has $.header-grammar;
+    has $.trailer-grammar;
+
+    # easy access to common options. temporary?
+    has $.chunked;
+    has $.encoding;
 
     # todo: move proxy stuff into its own interface/class
     has $.proxy;
@@ -44,15 +53,15 @@ class Zef::Net::HTTP::Request does HTTP::Request {
             }
 
             if ?$!proxy.uri.user-info {
-                %!header<Proxy-Authorization> = "Basic " ~ b64encode($!proxy.uri.user-info);
+                %!headers<Proxy-Authorization> = "Basic " ~ b64encode($!proxy.uri.user-info);
             }
         }
 
         if $!uri.?user-info {
-            %!header<Authorization> = "Basic " ~ b64encode($!uri.user-info);
+            %!headers<Authorization> = "Basic " ~ b64encode($!uri.user-info);
         }
 
-        %!header<Connection> = 'Close';
+        %!headers<Connection> = 'Close';
     }
 
     # TEMPORARY
@@ -78,15 +87,15 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         # headers
         $req ~= "Host: {$!uri.host}\r\n"
                 ~ "Content-Length: {$.content-length}\r\n"
-                ~ %!header.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n")
-                ~ "\r\n\r\n" if %!header && ($all || $headers);
+                ~ %!headers.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n")
+                ~ "\r\n\r\n" if %!headers && ($all || $headers);
 
         # TEMPORARY
         $req ~= $.DUMP-BODY 
             if $!body && ($all || $body);
 
-        $req ~= %!trailer.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n") 
-            if %!trailer && ($all || $trailers);
+        $req ~= %!trailers.kv.map(->$key, $value { "{$key}: {$value}" }).join("\r\n") 
+            if %!trailers && ($all || $trailers);
 
         return $req // '';
     }

@@ -38,6 +38,7 @@ class Zef::Net::HTTP::Client {
                 when /^2\d\d$/ { }
                 when /^3\d\d$/ {
                     my $location   = Zef::Net::URI.new(url => ~$response.header.<Location>);
+                    say $location.Str;
                     my $forward-to = $location.is-relative 
                         ?? $location.rel2abs("{$request.uri.scheme}://{$request.uri.host}")
                         !! $location;

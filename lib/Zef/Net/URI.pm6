@@ -25,12 +25,14 @@ class Zef::Net::URI does HTTP::URI {
                     $!port      =  ($g.<heir-part>.<authority>.<port>     // Int).Int;
                     $!user-info = ~($g.<heir-part>.<authority>.<userinfo> //  '');
                     $!path      = ~($g.<heir-part>.<path-abempty>         || '/');
+                    $!query      = ~($g.<query> || '/');
             }
             elsif $!grammar.<URI-reference>.<relative-ref> -> $g {
                     $!is-relative = True;
 
                     $!scheme    = ~($g.<scheme>        //  '').lc;
                     $!path      = ~($g.<relative-part> || '/');
+                    $!query      = ~($g.<query> || '/');
             }
         }
     }

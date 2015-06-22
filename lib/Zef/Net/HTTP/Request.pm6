@@ -72,7 +72,7 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         my $req;
 
         # start-line
-        $req ~= "$!method {?$!proxy ?? $!uri.Str !! $!uri.path} HTTP/1.1\r\n" 
+        $req ~= "$!method {?$!proxy ?? $!uri.Str !! $!uri.path}{'?'~$!uri.query if ?$!uri.query} HTTP/1.1\r\n" 
             if $all || $start-line;
 
         # headers

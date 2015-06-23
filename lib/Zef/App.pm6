@@ -42,12 +42,12 @@ multi MAIN('test', *@paths, Bool :$v) is export {
 }
 
 #| Install with business logic
-multi MAIN('install', *@modules, Bool :$report, Bool :$v) is export {
+multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v) is export {
     my $auth = Zef::Authority::P6C.new;
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
-    my @g = $auth.get: @modules;
+    my @g = $auth.get: @modules, :$save-to;
     verbose('Fetching', @g);
 
     # Ignore anything we downloaded that doesn't have a META.info in its root directory

@@ -39,7 +39,7 @@ subtest {
 
 
 subtest {
-    unless Zef::Net::HTTP::Client.new.?can-ssl {
+    unless Zef::Net::HTTP::Client.new.transporter.dialer.?can-ssl {
         print("ok 2 - # Skip: Can't do SSL. Is IO::Socket::SSL available?\n");
         return;
     }

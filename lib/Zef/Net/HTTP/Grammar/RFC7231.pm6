@@ -9,7 +9,7 @@ role Zef::Net::HTTP::Grammar::RFC7231  {
     token Accept-Charset   { <accept-charset-value> +%% ','              }
     token accept-charset-value { [<.OWS> [[<charset> || '*'] <weight>?]] }
 
-    token Accept-Encoding  { <accept-encoding-value> +%% ','      }
+    token Accept-Encoding  { <accept-encoding-value> +%% ','     }
     token accept-encoding-value { [<.OWS> [<codings> <weight>?]] }
 
     token Accept-Language  { <accept-language-value> +%% ','            }
@@ -51,9 +51,9 @@ role Zef::Net::HTTP::Grammar::RFC7231  {
     token codings { <.content-coding> || 'identity' || '*' }
     token content-coding { <.token> }
 
-    token date1 { <day> <.SP> <month> <.SP> <year>   }
-    token date2 { <day> '-' <month> '-' $<year>=(\d\d)       }
-    token date3 { <month> <.SP> [(\d\d) || (<.SP>\d)] }
+    token date1 { <day> <.SP> <month> <.SP> <year>     }
+    token date2 { <day> '-' <month> '-' $<year>=(\d\d) }
+    token date3 { <month> <.SP> [(\d\d) || (<.SP>\d)]  }
     token day   { \d\d }
     token day-name {
         || Mon
@@ -126,9 +126,9 @@ role Zef::Net::HTTP::Grammar::RFC7231  {
 
     token rfc850-date  { <day-name1> ',' <.SP> <date2> <.SP> <time-of-day> <.SP> <.GMT> }
     token second       { \d\d }
-    token subtype      { <.token>}
-    token time-of-day  { <hour> ':' <minute> ':' <second> }
     token type         { <.token> }
-    token weight       { <.OWS> ';' <.OWS> 'q=' <qvalue> }
+    token subtype      { <.token> }
+    token time-of-day  { <hour> ':' <minute> ':' <second> }
+    token weight       { <.OWS> ';' <.OWS> 'q=' <qvalue>  }
     token year         { \d\d\d\d }
 } 

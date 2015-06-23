@@ -18,21 +18,21 @@ class Zef::Net::URI does HTTP::URI {
     submethod BUILD(:$!url) {
         $!grammar = Zef::Net::URI::Grammar.parse($!url) if $!url;
 
-        if $!grammar {
-            if $!grammar.<URI-reference>.<URI> -> $g {
+        if $!grammar.<URI-reference> -> $uri-ref {
+            if $uri-ref.<URI> -> $g {
                     $!scheme    = ~($g.<scheme>                           //  '').lc;
                     $!host      = ~($g.<heir-part>.<authority>.<host>     //  '');
                     $!port      =  ($g.<heir-part>.<authority>.<port>     // Int).Int;
                     $!user-info = ~($g.<heir-part>.<authority>.<userinfo> //  '');
-                    $!path      = ~($g.<heir-part>.<path-abempty>         || '/');
-                    $!query      = ~($g.<query> || '/');
+                    $!path      = ~($g.<heir-part>.<path-abempty>         // '/');
+                    $!query     =  ~$g.<query> if ?$g.<query>;
             }
-            elsif $!grammar.<URI-reference>.<relative-ref> -> $g {
+            elsif $uri-ref.<relative-ref> -> $g {
                     $!is-relative = True;
 
                     $!scheme    = ~($g.<scheme>        //  '').lc;
                     $!path      = ~($g.<relative-part> || '/');
-                    $!query      = ~($g.<query> || '/');
+                    $!query     =  ~$g.<query> if ?$g.<query>;
             }
         }
     }

@@ -37,7 +37,6 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         :$!proxy where Bool|Str|Nil
     ) {
         $!uri = Zef::Net::URI.new(:$!url);
-        fail "HTTP Scheme not supported: {$!uri.scheme}" unless $!uri.scheme ~~ any(<http https>);
 
         if ?$!proxy {
             if ?$!proxy.isa(Str) {
@@ -67,8 +66,8 @@ class Zef::Net::HTTP::Request does HTTP::Request {
     # TEMPORARY
     method content-length {
         do given $!body {
-            return $_.bytes when Buf;
-            return $_.chars when Str;
+            when Buf { $_.bytes        }
+            when Str { $_.encode.bytes }
             default { 0 }
         }
     }
@@ -81,8 +80,12 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         my $req;
 
         # start-line
-        $req ~= "$!method {?$!proxy ?? $!uri.Str !! $!uri.path}{'?'~$!uri.query if ?$!uri.query} HTTP/1.1\r\n" 
-            if $all || $start-line;
+        if $all || $start-line {
+            $req ~= $!method                                                   ~ ' '
+                  ~  (?$!proxy ?? ($!uri.Str || $!url) !! ($!uri.path || '/')) ~ ' '
+                  ~ (!$!uri.query ?? '' !! ('?'~$!uri.query                ~ ' ')) 
+                  ~ "HTTP/1.1\r\n"; 
+        }
 
         # headers
         $req ~= "Host: {$!uri.host}\r\n"
@@ -107,5 +110,9 @@ class Zef::Net::HTTP::Request does HTTP::Request {
             return $_       when Str;
             return $_.bytes when .bytes;
         }
+    }
+
+    method Str {
+        self.DUMP(:headers);
     }
 }

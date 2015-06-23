@@ -32,6 +32,7 @@ class Zef::Net::HTTP::Client {
         @!history.push: $response;
 
         if $!auto-check {
+            say $response.perl;
             fail "Response not understood" unless $response && $response.status-code;
 
             given $response.status-code {

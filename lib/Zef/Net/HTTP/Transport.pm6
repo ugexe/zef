@@ -50,6 +50,9 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
     # has been received, and a Promise that will be kept once it fills 
     # Channels ($.body/$.trailer-chunk) with the optional body and/or trailer data
     method round-trip(HTTP::Request $req --> HTTP::Response) {
+        fail "HTTP Scheme not supported: {$req.uri.scheme}" 
+            unless $req.uri.scheme ~~ any(<http https>);
+
         my $socket = $!dialer.dial($req.?proxy ?? $req.proxy.uri !! $req.uri);
         $socket does ByteStream;
         $socket.send: $req.DUMP(:start-line);

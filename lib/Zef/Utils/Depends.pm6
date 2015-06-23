@@ -160,7 +160,6 @@ class Zef::Utils::Depends {
         return @minimeta;
     }
 
-
     # Not used currently. May be used to parse dependencies from an exception message.
     method runtime-extract-deps(*@paths is copy) {
         #use Perl6::Grammar:from<NQP>; # prevents compile on jvm
@@ -189,6 +188,7 @@ class Zef::Utils::Depends {
         }
     }
 }
+
 
 sub runtime-extract-deps(*@paths) is export {
     Zef::Utils::Depends.new.runtime-extract-deps(@paths);

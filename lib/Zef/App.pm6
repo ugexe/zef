@@ -25,7 +25,7 @@ has @!plugins;
 sub verbose($phase, @_) {
     return unless @_;
     my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
-    say "!!!! $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}" if %r<nok>;
+    say "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}" if %r<nok>;
     say "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}" if %r<ok>;
     return { ok => %r<ok>.elems, nok => %r<nok> }
 }

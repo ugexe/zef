@@ -75,10 +75,11 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
         test-results  => @t, 
         build-results => @b,
     ) and verbose('Reporting', @r) if ?$report;
-    say "===> Report{'s' if @r.elems > 1} can be seen shortly at:";
+    say "===> Report{'s' if @r.elems > 1} can be seen shortly at:" if ?$report;
     say "\thttp://testers.perl6.org/reports/$_.html" for @r.grep(*.<id>).map({ $_.<id> });
 
     # Install the modules
+    say "===> Installing...";
     my @i = Zef::Installer.new.install: @metas;
     verbose('Install', @i.grep({ !$_.<skipped>}));
     verbose('Skip (already installed!)', @i.grep({ ?$_.<skipped> }));

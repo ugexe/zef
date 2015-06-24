@@ -79,10 +79,22 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     say "\thttp://testers.perl6.org/reports/$_.html" for @r.grep(*.<id>).map({ $_.<id> });
 
     # Install the modules
-    say "===> Installing...";
+    my $loading = Supply.interval(1);
+    my $m; # state for loading animation
+    $loading.tap({
+        my $e = do given ++$m { 
+            when 2  { "-==" }
+            when 3  { "=-=" }
+            when 4  { "==-" }
+            default { $m = 1; "===" }
+        }
+
+        print "$e> Installing...\r";
+    });
     my @i = Zef::Installer.new.install: @metas;
     verbose('Install', @i.grep({ !$_.<skipped>}));
     verbose('Skip (already installed!)', @i.grep({ ?$_.<skipped> }));
+    $loading.close;
 
     # exit code = number of modules that failed the install process
     exit @modules.elems - @i.grep({ !$_<ok> }).elems;

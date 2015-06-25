@@ -36,6 +36,7 @@ sub show-await($message, *@promises) {
     my $out = $*OUT;
     my $err = $*ERR;
     my $in  = $*IN;
+    my @queue;
 
     $*ERR = $*OUT = class :: {
         my $lock = Lock.new;
@@ -51,17 +52,18 @@ sub show-await($message, *@promises) {
                 default { $m = 1; "===" }
             }
 
-            print "\r";
+            print "";
         });
 
         method print(*@_) {
+            my $hijacked  = @_.join;
             $lock.protect({
+                my $msg       = "$e> $message...\r";
+                my $output    = ($last-line-len ?? ((" " x $last-line-len) ~ "\r") !! '') ~ $hijacked ~ $msg;
+                $last-line-len = $output.lines.[*-1].chars;
+
                 my $out2 = $*OUT;
                 $*ERR = $*OUT = $out;
-                my $hijacked  = @_.join;
-                my $msg       = "$e> $message...\r";
-                my $output    = ($last-line-len ?? "\r" ~ (" " x $last-line-len) ~ "\r" !! '') ~ $hijacked ~ "$e> $message...\r";
-                $last-line-len = $output.lines.[*-1].chars;
                 print $output;
                 $*ERR = $*OUT = $out2;
             });
@@ -129,7 +131,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     my $build-promise = Promise.new;
     my $build-vow     = $build-promise.vow;
     my $build-await   = start { show-await("Building", $build-promise) };
-    my @b = Zef::Builder.new.pre-compile: @repos;
+    my @b;# = Zef::Builder.new.pre-compile: @repos;
     $build-vow.keep(1);
     await $build-await;
     verbose('Build', @b);
@@ -145,7 +147,19 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
         take $*SPEC.catdir($path, "lib");
     }
     my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
-    @t.list>>.test>>.list.grep({$v})>>.stdout>>.tap(*.print);
+    my $longest = @t.list>>.test>>.list.reduce({ # for verbose output formatting
+        $^a.file.IO.basename.chars > $^b.file.IO.basename.chars ?? $^a !! $^b
+    }).file.IO.basename.chars if $v;
+    for @t.list>>.test>>.list.grep({$v}) -> $tst {
+        my $tfile = $tst.file.IO.basename;
+        my $spaces = $longest - $tfile.chars;
+        $tst.stdout.tap(-> $stdout {
+            if $stdout.words {
+                my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
+                print $prefix ~ $stdout.subst(/\n/, "\n$prefix", :x( ($stdout.lines.elems // 1) - 1)).chomp ~ "\n";
+            }
+        });
+    }
     await Promise.allof: @t.list>>.results>>.list>>.promise;
     $test-vow.keep(1);
     await $test-await;

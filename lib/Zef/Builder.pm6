@@ -107,11 +107,11 @@ class Zef::Builder {
                     # tap/receieve the output instead of just printing it (like Zef::Test)
                     $cu.build-output  = "[{$module-id}] {'.' x 42 - $module-id.chars} ";
                     $cu.build-output ~= do given $cu.precomp($new-id-absolute, :$INC, :force) {
-                        when *.so  { "ok: {$SPEC.abs2rel($cu.precomp-path, $save-to)}\n" }
-                        when *.not { "FAILED\n"                                          }
+                        when *.so  { "ok: {$SPEC.abs2rel($cu.precomp-path, $save-to)}" }
+                        when *.not { "FAILED"                                          }
                     }
 
-                    print $cu.build-output;
+                    print $cu.build-output ~ "\n";
 
                     take $cu;
                 }

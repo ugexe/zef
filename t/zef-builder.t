@@ -13,7 +13,7 @@ subtest {
 
     my $lib-base  := $*SPEC.catdir($CWD, "lib").IO;
     my $blib-base = $*SPEC.catdir($save-to,"blib").IO;
-    LEAVE try rm($save-to, :d, :f, :r);
+    #LEAVE try rm($save-to, :d, :f, :r);
 
     my @source-files  = ls($lib-base, :f, :r, d => False);
     my @target-files := gather for @source-files.grep({ $_.IO.basename ~~ / \.pm6? $/ }) -> $file {

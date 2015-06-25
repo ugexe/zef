@@ -9,7 +9,7 @@ class Zef::Utils::Git {
             given $git_result {
                 when 128 { # directory already exists and is not empty                    
                     print "Folder exists: Will attempt updating via `git pull`\n";
-                    $git_result = shell("(cd {$save-to.IO.path} && git pull {@.flags.join(' ')})").exitcode;
+                    $git_result = shell("(cd {$save-to.IO.path} && git pull {@.flags.join(' ')} 2>&1)").exitcode;
                 }
             }
 

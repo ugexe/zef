@@ -78,7 +78,6 @@ sub show-await($message, *@promises) {
 }
 
 
-
 #| Test modules in the specified directories
 multi MAIN('test', *@paths, Bool :$v) is export {
     my @repos = @paths ?? @paths !! $*CWD;
@@ -127,7 +126,8 @@ multi MAIN('test', *@paths, Bool :$v) is export {
 
 #| Install with business logic
 multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v) is export {
-    my $auth = Zef::Authority::P6C.new;
+    my $SPEC := $*SPEC;
+    my $auth  = Zef::Authority::P6C.new;
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
@@ -141,11 +141,11 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
 
 
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m = @g.grep({ $_<ok> }).map({ $_<ok> = ?$*SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
+    my @m = @g.grep({ $_<ok> }).map({ $_<ok> = ?$SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
     verbose('META.info availability', @m);
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
     my @repos = @m.grep({ $_<ok> }).map({ $_.<path> });
-    my @metas = @repos.map({ $*SPEC.catpath('', $_, "META.info").IO.path });
+    my @metas = @repos.map({ $SPEC.catpath('', $_, "META.info").IO.path });
 
 
     # Precompile all modules and dependencies
@@ -164,15 +164,14 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     my $test-vow     = $test-promise.vow;
     my $test-await   = start { show-await("Testing", $test-promise) };
     my @includes = gather for @repos -> $path {
-        take $*SPEC.catdir($path, "blib");
-        take $*SPEC.catdir($path, "lib");
+        take $SPEC.catdir($path, "blib");
+        take $SPEC.catdir($path, "lib");
     }
     my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
-    my $longest = @t.list>>.test>>.list.reduce({ # for verbose output formatting
-        $^a.file.IO.basename.chars > $^b.file.IO.basename.chars ?? $^a !! $^b
-    }).file.IO.basename.chars if $v;
-    for @t.list>>.test>>.list.grep({$v}) -> $tst {
-        my $tfile = $tst.file.IO.basename;
+    my @test-files = @t.list>>.test>>.list.map({ $_.file.basename }); # For templating: `00-testfile.t[spaces]# [output]`
+    my $longest = @test-files.reduce({ $^a.chars > $^b.chars ?? $^a !! $^b }).chars if $v; # Spaces needed for template^^
+    for @t.list>>.test>>.list.grep({$v}) -> $tst { # Print verbose test output
+        my $tfile  = $tst.file.IO.basename;
         my $spaces = $longest - $tfile.chars;
         $tst.stdout.tap(-> $stdout {
             if $stdout.words {

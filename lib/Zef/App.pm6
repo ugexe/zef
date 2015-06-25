@@ -34,11 +34,19 @@ sub verbose($phase, @_) {
 #| Test modules in the specified directories
 multi MAIN('test', *@paths, Bool :$v) is export {
     my @repos = @paths ?? @paths !! $*CWD;
-    my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
-    @t.list>>.test>>.list.grep({$v})>>.stdout>>.tap(*.say); # start tests and tap output if -v
+
+    my @includes = gather for @repos -> $path {
+        take $*SPEC.catdir($path, "blib");
+        take $*SPEC.catdir($path, "lib");
+    }
+    # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
+    # (note: first crack at supplies/parallelization)
+    my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
+    @t.list>>.test>>.list.grep({$v})>>.stdout>>.tap(*.say);
     await Promise.allof: @t.list>>.results>>.list>>.promise;
     my $r = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
-    exit ?$r<nok> ?? $r<nok> !! 0;
+    say "Failed tests. Aborting." and exit $r<nok> if $r<nok>;
+    exit 0;
 }
 
 #| Install with business logic
@@ -50,24 +58,34 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     my @g = $auth.get: @modules, :$save-to;
     verbose('Fetching', @g);
 
+
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
     my @m = @g.grep({ $_<ok> }).map({ $_<ok> = ?$*SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
     verbose('META.info availability', @m);
+
 
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
     my @repos = @m.grep({ $_<ok> }).map({ $_.<path> });
     my @metas = @repos.map({ $*SPEC.catpath('', $_, "META.info").IO.path });
 
+
     # Precompile all modules and dependencies
     my @b = Zef::Builder.new.pre-compile: @repos;
     verbose('Build', @b);
 
+
+    my @includes = gather for @repos -> $path {
+        take $*SPEC.catdir($path, "blib");
+        take $*SPEC.catdir($path, "lib");
+    }
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
-    my @t = @repos.map: -> $path { Zef::Test.new(:$path) }
+    my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
     @t.list>>.test>>.list.grep({$v})>>.stdout>>.tap(*.say);
     await Promise.allof: @t.list>>.results>>.list>>.promise;
-    verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
+    my $r = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
+    say "Failed tests. Aborting." and exit $r<nok> if $r<nok>;
+
 
     # Send a build/test report
     my @r = $auth.report(
@@ -77,6 +95,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     ) and verbose('Reporting', @r) if ?$report;
     say "===> Report{'s' if @r.elems > 1} can be seen shortly at:" if ?$report;
     say "\thttp://testers.perl6.org/reports/$_.html" for @r.grep(*.<id>).map({ $_.<id> });
+
 
     # Install the modules
     my $loading = Supply.interval(1);
@@ -92,7 +111,8 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
         print "$e> Installing...\r";
     });
     my @i = Zef::Installer.new.install: @metas;
-    verbose('Install', @i.grep({ !$_.<skipped>}));
+
+    verbose('Install', @i.grep({ !$_.<skipped> }));
     verbose('Skip (already installed!)', @i.grep({ ?$_.<skipped> }));
     $loading.close;
 

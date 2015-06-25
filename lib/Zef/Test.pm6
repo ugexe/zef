@@ -16,19 +16,19 @@ class Zef::Test {
     has @.test-files;
     has @.includes;
     has $.results;
+    has $!cwd;
 
-    submethod BUILD(:$!path!, :@!test-files, :@!includes) {
+    submethod BUILD(:$!path!, :@!test-files, :@!includes, :$!cwd) {
         @!test-files = $!path.IO.ls(:r, :f).grep(/\.t$/) unless @!test-files.elems;
-        @!includes   = $*SPEC.catdir($!path, "blib"), $*SPEC.catdir($!path, "lib") unless @!includes.elems;
+        $!cwd := $*CWD;
     }
 
     method test(Zef::Test:D: :$p6flags) {
         # (Related to comment below in @!test-files.map) 
         # We often need to use a relative path for some tests to pass. Ideally the tests 
         # themselves would be improved, but changing directories will suffice for now.
-        PRE   my $orig-cwd = $*CWD;
         ENTER chdir($!path);
-        LEAVE chdir($orig-cwd);
+        LEAVE chdir($!cwd);
 
         $!results = Supply.from-list: @!test-files.map(-> $file {
             # Some modules fail tests when using an absolute path, hence the seemingly unnecessary abs2rel

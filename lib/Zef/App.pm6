@@ -57,11 +57,11 @@ sub show-await($message, *@promises) {
             $*OUT = $out2;
         });
 
-        method print(*@args) {
+        method print(*@_) {
             $locked = 1;
             my $out2 = $*OUT;
             $*OUT = $out;
-            print @args.join ~ "$e> $message...\r";
+            print @_.join ~ "$e> $message...\r";
             $*OUT = $out2;
             $locked = 0;
         }
@@ -129,9 +129,9 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     my $build-vow     = $build-promise.vow;
     my $build-await   = start { show-await("Building...", $build-promise) };
     my @b = Zef::Builder.new.pre-compile: @repos;
-    verbose('Build', @b);
     $build-vow.keep(1);
     await $build-await;
+    verbose('Build', @b);
 
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)

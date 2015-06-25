@@ -94,12 +94,33 @@ multi MAIN('test', *@paths, Bool :$v) is export {
         take $*SPEC.catdir($path, "lib");
     }
     my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
-    @t.list>>.test>>.list.grep({$v})>>.stdout>>.tap(*.print);
+    my $longest = @t.list>>.test>>.list.reduce({ # for verbose output formatting
+        $^a.file.IO.basename.chars > $^b.file.IO.basename.chars ?? $^a !! $^b
+    }).file.IO.basename.chars if $v;
+    for @t.list>>.test>>.list.grep({$v}) -> $tst {
+        my $tfile = $tst.file.IO.basename;
+        my $spaces = $longest - $tfile.chars;
+        $tst.stdout.tap(-> $stdout {
+            if $stdout.words {
+                my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
+                print $prefix ~ $stdout.subst(/\n/, "\n$prefix", :x( ($stdout.lines.elems // 1) - 1)).chomp ~ "\n";
+            }
+        });
+        $tst.stderr.tap(-> $stderr {
+            if $stderr.words {
+                my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
+                print $prefix ~ $stderr.subst(/\n/, "\n$prefix", :x( ($stderr.lines.elems // 1) - 1)).chomp ~ "\n";
+            }
+        });
+
+    }
     await Promise.allof: @t.list>>.results>>.list>>.promise;
     $test-vow.keep(1);
     await $test-await;
     my $r = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
-    say "Failed tests. Aborting." and exit $r<nok> if $r<nok>;
+    print "Failed tests. Aborting.\n" and exit $r<nok> if $r<nok>;
+
+
     exit 0;
 }
 

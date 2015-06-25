@@ -25,8 +25,8 @@ has @!plugins;
 sub verbose($phase, @_) {
     return unless @_;
     my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
-    say "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}" if %r<nok>;
-    say "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}" if %r<ok>;
+    print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
+    print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
     return { ok => %r<ok>.elems, nok => %r<nok> }
 }
 
@@ -159,12 +159,19 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
                 print $prefix ~ $stdout.subst(/\n/, "\n$prefix", :x( ($stdout.lines.elems // 1) - 1)).chomp ~ "\n";
             }
         });
+        $tst.stderr.tap(-> $stderr {
+            if $stderr.words {
+                my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
+                print $prefix ~ $stderr.subst(/\n/, "\n$prefix", :x( ($stderr.lines.elems // 1) - 1)).chomp ~ "\n";
+            }
+        });
+
     }
     await Promise.allof: @t.list>>.results>>.list>>.promise;
     $test-vow.keep(1);
     await $test-await;
     my $r = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
-    say "Failed tests. Aborting." and exit $r<nok> if $r<nok>;
+    print "Failed tests. Aborting.\n" and exit $r<nok> if $r<nok>;
 
 
     # Send a build/test report
@@ -180,8 +187,8 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
         $report-vow.keep(1);
         await $report-await;
         verbose('Reporting', @r);
-        say "===> Report{'s' if @r.elems > 1} can be seen shortly at:";
-        say "\thttp://testers.perl6.org/reports/$_.html" for @r.grep(*.<id>).map({ $_.<id> });
+        print "===> Report{'s' if @r.elems > 1} can be seen shortly at:\n";
+        print "\thttp://testers.perl6.org/reports/$_.html\n" for @r.grep(*.<id>).map({ $_.<id> });
     }
 
 

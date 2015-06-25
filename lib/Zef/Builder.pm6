@@ -106,7 +106,11 @@ class Zef::Builder {
                     # todo: .build-output should really be a Channel/Supply to let the client
                     # tap/receieve the output instead of just printing it (like Zef::Test)
                     $cu.build-output  = "[{$module-id}] {'.' x 42 - $module-id.chars} ";
-                    $cu.build-output ~= do given $cu.precomp($new-id-absolute, :$INC, :force) {
+                    my $dd = try {
+                        CATCH { default { print "FUCK: $_\n"; die }}
+                        $cu.precomp($new-id-absolute, :$INC, :force);
+                    }
+                    $cu.build-output ~= do given $dd {
                         when *.so  { "ok: {$SPEC.abs2rel($cu.precomp-path, $save-to)}" }
                         when *.not { "FAILED"                                          }
                     }

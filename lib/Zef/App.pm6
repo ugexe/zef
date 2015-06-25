@@ -131,7 +131,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     my $build-promise = Promise.new;
     my $build-vow     = $build-promise.vow;
     my $build-await   = start { show-await("Building", $build-promise) };
-    my @b;# = Zef::Builder.new.pre-compile: @repos;
+    my @b = Zef::Builder.new.pre-compile: @repos;
     $build-vow.keep(1);
     await $build-await;
     verbose('Build', @b);

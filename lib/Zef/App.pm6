@@ -31,7 +31,6 @@ sub verbose($phase, @_) {
 }
 
 
-
 sub show-await($message, *@promises) {
     my $loading = Supply.interval(1);
     my $out = $*OUT;
@@ -39,9 +38,10 @@ sub show-await($message, *@promises) {
     my $in  = $*IN;
 
     $*ERR = $*OUT = class :: {
-        my $locked;
+        my $lock = Lock.new;
         my $e;
         my $m;
+        my $last-line-len = 0;
 
         $loading.tap({
             $e = do given ++$m { 
@@ -51,19 +51,20 @@ sub show-await($message, *@promises) {
                 default { $m = 1; "===" }
             }
 
-            my $out2 = $*OUT;
-            $*OUT = $out;
-            print "$e> $message...\r" unless $locked;
-            $*OUT = $out2;
+            print "\r";
         });
 
         method print(*@_) {
-            $locked = 1;
-            my $out2 = $*OUT;
-            $*OUT = $out;
-            print @_.join ~ "$e> $message...\r";
-            $*OUT = $out2;
-            $locked = 0;
+            $lock.protect({
+                my $out2 = $*OUT;
+                $*ERR = $*OUT = $out;
+                my $hijacked  = @_.join;
+                my $msg       = "$e> $message...\r";
+                my $output    = ($last-line-len ?? "\r" ~ (" " x $last-line-len) ~ "\r" !! '') ~ $hijacked ~ "$e> $message...\r";
+                $last-line-len = $output.lines.[*-1].chars;
+                print $output;
+                $*ERR = $*OUT = $out2;
+            });
         }
         method flush {}
     }
@@ -76,7 +77,6 @@ sub show-await($message, *@promises) {
 
 
 
-
 #| Test modules in the specified directories
 multi MAIN('test', *@paths, Bool :$v) is export {
     my @repos = @paths ?? @paths !! $*CWD;
@@ -86,7 +86,7 @@ multi MAIN('test', *@paths, Bool :$v) is export {
     # (note: first crack at supplies/parallelization)
     my $test-promise = Promise.new;
     my $test-vow     = $test-promise.vow;
-    my $test-await   = start { show-await("Testing...", $test-promise) };
+    my $test-await   = start { show-await("Testing", $test-promise) };
     my @includes = gather for @repos -> $path {
         take $*SPEC.catdir($path, "blib");
         take $*SPEC.catdir($path, "lib");
@@ -101,6 +101,7 @@ multi MAIN('test', *@paths, Bool :$v) is export {
     exit 0;
 }
 
+
 #| Install with business logic
 multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v) is export {
     my $auth = Zef::Authority::P6C.new;
@@ -109,7 +110,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     # todo: allow turning dependency auth-download off
     my $get-promise = Promise.new;
     my $get-vow     = $get-promise.vow;
-    my $get-await   = start { show-await("Fetching...", $get-promise) };
+    my $get-await   = start { show-await("Fetching", $get-promise) };
     my @g = $auth.get: @modules, :$save-to;
     $get-vow.keep(1);
     await $get-await;
@@ -127,7 +128,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     # Precompile all modules and dependencies
     my $build-promise = Promise.new;
     my $build-vow     = $build-promise.vow;
-    my $build-await   = start { show-await("Building...", $build-promise) };
+    my $build-await   = start { show-await("Building", $build-promise) };
     my @b = Zef::Builder.new.pre-compile: @repos;
     $build-vow.keep(1);
     await $build-await;
@@ -138,7 +139,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     # (note: first crack at supplies/parallelization)
     my $test-promise = Promise.new;
     my $test-vow     = $test-promise.vow;
-    my $test-await   = start { show-await("Testing...", $test-promise) };
+    my $test-await   = start { show-await("Testing", $test-promise) };
     my @includes = gather for @repos -> $path {
         take $*SPEC.catdir($path, "blib");
         take $*SPEC.catdir($path, "lib");
@@ -156,7 +157,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     if ?$report {
         my $report-promise = Promise.new;
         my $report-vow     = $report-promise.vow;
-        my $report-await   = start { show-await("Uploading Test Reports...", $report-promise) };
+        my $report-await   = start { show-await("Uploading Test Reports", $report-promise) };
         my @r = $auth.report(
             @metas,
             test-results  => @t, 
@@ -172,7 +173,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
 
     my $install-promise = Promise.new;
     my $install-vow     = $install-promise.vow;
-    my $install-await   = start { show-await("Installing...", $install-promise) };
+    my $install-await   = start { show-await("Installing", $install-promise) };
     my @i = Zef::Installer.new.install: @metas;
     $install-vow.keep(1);
     await $install-await;
@@ -189,6 +190,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
 multi MAIN('local-install', *@modules) is export {
     say "NYI";
 }
+
 
 #! Download a single module and change into its directory
 multi MAIN('look', $module, :$save-to = $*SPEC.catdir($*CWD,time)) { 
@@ -207,6 +209,7 @@ multi MAIN('look', $module, :$save-to = $*SPEC.catdir($*CWD,time)) {
     say "!!!> Failed to fetch module or change into the target directory...";
     exit 1;
 }
+
 
 #| Get the freshness
 multi MAIN('get', *@modules, :$save-to = $*TMPDIR, Bool :$skip-depends) is export {

@@ -19,7 +19,7 @@ class Zef::Builder {
             temp $save-to = $save-to 
                 ?? ($save-to.IO.is-absolute ?? $save-to.IO !! $SPEC.catdir($save-to, $path).IO) 
                 !! $path.IO;
-            say "===> Build directory: {$save-to.absolute}";
+            print "===> Build directory: {$save-to.absolute}\n";
 
 
             # Determine the paths where the sources are located, where the pre-compiled 

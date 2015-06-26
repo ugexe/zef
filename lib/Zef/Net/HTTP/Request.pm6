@@ -81,9 +81,9 @@ class Zef::Net::HTTP::Request does HTTP::Request {
 
         # start-line
         if $all || $start-line {
-            $req ~= $!method                                                   ~ ' '
-                  ~  (?$!proxy ?? ($!uri.Str || $!url) !! ($!uri.path || '/')) ~ ' '
-                  ~ (!$!uri.query ?? '' !! ('?'~$!uri.query                ~ ' ')) 
+            $req ~= $!method ~ ' '
+                  ~  (?$!proxy ?? ($!uri.Str || $!url) !! ($!uri.path || '/'))
+                  ~ (('?'~$!uri.query) if ?$!uri.query) ~ ' '
                   ~ "HTTP/1.1\r\n"; 
         }
 
@@ -113,6 +113,6 @@ class Zef::Net::HTTP::Request does HTTP::Request {
     }
 
     method Str {
-        self.DUMP(:headers);
+        self.DUMP(:start-line, :headers);
     }
 }

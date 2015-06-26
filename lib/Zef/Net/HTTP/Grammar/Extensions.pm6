@@ -18,10 +18,10 @@ role Zef::Net::HTTP::Grammar::Extensions {
     token known-header:sym<X-UA-Compatible>    { <.sym> }
     token known-header:sym<X-XSS-Protection>   { <.sym> }
 
-    token Alternate-Protocol { [[<port> ':' <protocol>] || <directive>] *%% ',' }
-    token Keep-Alive         { [<directive>]?  [";" [ <directive> ]?]*          }
-    token P3P                { [<directive>]?  [";" [ <directive> ]?]*          }
-    token Strict-Transport-Security { [<directive>]?  [";" [ <directive> ]?]*   }
+    token Alternate-Protocol { [[<port> ':' <protocol>] || <directive>] *%% ','       }
+    token Keep-Alive         { [<directive>]?  [";" [<.OWS> <directive> ]?]*          }
+    token P3P                { [<directive>]?  [";" [<.OWS> <directive> ]?]*          }
+    token Strict-Transport-Security { [<directive>]?  [";" [<.OWS> <directive> ]?]*   }
 
     # field-value should handle this, but doesn't. A fix for field-value should be
     # used ideally and then this can be removed
@@ -29,8 +29,8 @@ role Zef::Net::HTTP::Grammar::Extensions {
 
 
     token X-Robots-Tag       { (<.token>) *%% ','                               }
-    token X-XSS-Protection   { [<directive>]?  [";" [ <directive> ]?]*          }
-    token X-UA-Compatible    { [<directive>]?  [";" [ <directive> ]?]*          }
+    token X-XSS-Protection   { [<directive>]?  [";" [<.OWS> <directive> ]?]*    }
+    token X-UA-Compatible    { [<directive>]?  [";" [<.OWS> <directive> ]?]*    }
 
     # todo:
     #Strict-Transport-Security # max-age=16070400; includeSubDomains

@@ -17,27 +17,34 @@ class Zef::Test {
     has @.includes;
     has $.results;
     has $!cwd;
+    has $.lock;
 
     submethod BUILD(:$!path!, :@!test-files, :@!includes, :$!cwd) {
         @!test-files = $!path.IO.ls(:r, :f).grep(/\.t$/) unless @!test-files.elems;
         $!cwd := $*CWD;
+        $!lock = Lock.new;
     }
 
     method test(Zef::Test:D: :$p6flags) {
         # (Related to comment below in @!test-files.map) 
         # We often need to use a relative path for some tests to pass. Ideally the tests 
         # themselves would be improved, but changing directories will suffice for now.
-        ENTER chdir($!path);
-        LEAVE chdir($!cwd);
+        $.lock.protect({
+            chdir($!path);
 
-        $!results = Supply.from-list: @!test-files.map(-> $file {
-            # Some modules fail tests when using an absolute path, hence the seemingly unnecessary abs2rel
-            my $file-rel = $*SPEC.abs2rel($file, $!path);
-            my $process  = Proc::Async.new("perl6", @!includes.map({ qqw/-I$_/ }), $file-rel);
+            $!results = Supply.from-list: @!test-files.map(-> $file {
+                # Some modules fail tests when using an absolute path, hence the seemingly unnecessary abs2rel
+                my $file-rel = $*SPEC.abs2rel($file, $!path);
+                my $process  = Proc::Async.new("perl6", @!includes.map({ qqw/-I$_/ }), $file-rel);
 
-            # Can probably ditch :$file and check $process.args
-            Zef::Test::Result.new(:$file, :$process); 
+                # Can probably ditch :$file and check $process.args
+                Zef::Test::Result.new(:$file, :$process); 
+            });
+
+            chdir($!cwd);
         });
+
+        $!results;
     }
 }
 

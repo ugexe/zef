@@ -168,7 +168,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
         take $SPEC.catdir($path, "lib");
     }
     my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
-    my @test-files = @t.list>>.test>>.list.map({ $_.file.basename }); # For templating: `00-testfile.t[spaces]# [output]`
+    my @test-files = @t.list>>.test-files>>.IO>>.basename; # For templating: `00-testfile.t[spaces]# [output]`
     my $longest = @test-files.reduce({ $^a.chars > $^b.chars ?? $^a !! $^b }).chars if $v; # Spaces needed for template^^
     for @t.list>>.test>>.list.grep({$v}) -> $tst { # Print verbose test output
         my $tfile  = $tst.file.IO.basename;

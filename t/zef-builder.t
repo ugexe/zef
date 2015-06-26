@@ -9,17 +9,16 @@ plan 1;
 # Basic tests on default builder method
 subtest {
     my $CWD     := $*CWD;
-    my $SPEC    := $*SPEC;
     my $save-to := $*SPEC.catdir($CWD,"test-libs").IO;
 
-    my $lib-base  := $SPEC.catdir($CWD, "lib").IO;
-    my $blib-base  = $SPEC.catdir($save-to,"blib").IO;
+    my $lib-base  := $*SPEC.catdir($CWD, "lib").IO;
+    my $blib-base = $*SPEC.catdir($save-to,"blib").IO;
     #LEAVE try rm($save-to, :d, :f, :r);
 
     my @source-files  = ls($lib-base, :f, :r, d => False);
     my @target-files := gather for @source-files.grep({ $_.IO.basename ~~ / \.pm6? $/ }) -> $file {
-        my $mod-path := $SPEC.catdir($blib-base, "{$file.IO.dirname.IO.relative}").IO;
-        my $target   := $SPEC.catpath('', $mod-path.IO.path, "{$file.IO.basename}.{$*VM.precomp-ext}").IO;
+        my $mod-path := $*SPEC.catdir($blib-base, "{$file.IO.dirname.IO.relative}").IO;
+        my $target   := $*SPEC.catpath('', $mod-path.IO.path, "{$file.IO.basename}.{$*VM.precomp-ext}").IO;
         take $target.IO.path;
     }
 
@@ -30,8 +29,9 @@ subtest {
     is @results.[0].<curlfs>.list.grep({ $_.has-precomp }).elems, 
        @results.[0].<curlfs>.list.elems, 
        "Default builder precompiled all modules";
+    my $result-expects = any(@results.[0].<curlfs>.list.map({ $_.precomp-path }));
     for @target-files -> $file {
-        is any(@results.[0].<curlfs>.list.map({ $_.precomp-path })), $file.IO.absolute, "Found: {$file.IO.path}";
+        is $result-expects, $file.IO.absolute, "Found: {$file.IO.path}";
     }
 }, 'Zef::Builder';
 

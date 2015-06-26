@@ -8,7 +8,7 @@ plan 1;
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to);
-    LEAVE rm($save-to, :d, :f, :r);
+    #LEAVE rm($save-to, :d, :f, :r);
 
     my @results = Zef::Installer.new.install(:$save-to, "META.info");
 

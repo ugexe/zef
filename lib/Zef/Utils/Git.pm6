@@ -4,7 +4,7 @@ class Zef::Utils::Git {
 
     method clone(:$save-to is copy = $*TMPDIR, *@urls) {
         my @results = eager gather for @urls -> $url {
-            my $cmd = "git clone " ~ @.flags.join(' ') ~ " $url {$save-to.IO.path}";
+            my $cmd = "git clone " ~ @.flags.join(' ') ~ " $url {$save-to.IO.path} 2>&1";
             my $git_result = shell($cmd).exitcode;
             given $git_result {
                 when 128 { # directory already exists and is not empty                    

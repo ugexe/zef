@@ -25,7 +25,7 @@ class Zef::Builder {
             # Determine the paths where the sources are located, where the pre-compiled 
             # code should go, and what $INC should include before pre-compiling.
             my @libs     = %meta<provides>.list.map({
-                $*SPEC.rel2abs($SPEC.splitdir($_.value.IO.dirname).[0].IO // $SPEC.curdir, $path)
+                $SPEC.rel2abs($SPEC.splitdir($_.value.IO.dirname).[0].IO // $SPEC.curdir, $path)
             }).unique.map({ CompUnitRepo::Local::File.new($_).Str });
             state @blibs.push($_) for @libs.map({ 
                 CompUnitRepo::Local::File.new( $SPEC.rel2abs($SPEC.catdir('blib', $SPEC.abs2rel($_, $path)), $save-to) ).Str;
@@ -80,8 +80,9 @@ class Zef::Builder {
                             return $return;
                         }
 
-                        method precomp($out, |c) { 
-                            mkdirs($out.IO.dirname);
+                        method precomp($out, |c) {
+                            my $dir := $out.IO.dirname.IO;
+                            try mkdirs($dir);
                             $!precomp-path = $out;
                             $!has-precomp  = callwith($out, |c);
                         }

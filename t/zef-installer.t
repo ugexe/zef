@@ -8,7 +8,10 @@ plan 1;
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to);
-    #LEAVE rm($save-to, :d, :f, :r);
+    LEAVE {       # Cleanup
+        sleep 1;  # bug-fix for CompUnit related pipe file race
+        try rm($save-to, :d, :f, :r);
+    }
 
     my @results = Zef::Installer.new.install(:$save-to, "META.info");
 

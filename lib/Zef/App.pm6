@@ -190,9 +190,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     await Promise.allof: @t.list>>.results>>.list>>.promise;
     $test-vow.keep(1);
     await $test-await;
-    my $r = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
-    print "Failed tests. Aborting.\n" and exit $r<nok> if $r<nok>;
-
+    my $test-result = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
 
     # Send a build/test report
     if ?$report {
@@ -210,6 +208,9 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
         print "===> Report{'s' if @r.elems > 1} can be seen shortly at:\n";
         print "\thttp://testers.perl6.org/reports/$_.html\n" for @r.grep(*.<id>).map({ $_.<id> });
     }
+
+
+    print "Failed tests. Aborting.\n" and exit $test-result<nok> if $test-result<nok>;
 
 
     my $install-promise = Promise.new;

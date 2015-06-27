@@ -5,7 +5,11 @@ plan 5;
 
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    LEAVE rm($save-to, :f, :d, :r);
+    LEAVE { # Cleanup
+        sleep 1;
+        try rm($save-to, :d, :f, :r);
+    }
+
 
     my $sub-save-to = $*SPEC.catdir($save-to.IO.path, 'sub1');
     my $sub-sub-save-to = $*SPEC.catdir($sub-save-to.IO.path, 'sub2');
@@ -26,7 +30,11 @@ subtest {
     # All 4 items should get deleted
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    LEAVE rm($save-to, :f, :d, :r);
+    LEAVE { # Cleanup
+        sleep 1;
+        try rm($save-to, :d, :f, :r);
+    }
+
     @delete-us.push(try mkdirs($save-to));
     my $sub-folder = $*SPEC.catdir($save-to.IO.path, 'deleteme-subfolder').IO;
     @delete-us.push(try mkdirs($sub-folder));
@@ -67,7 +75,11 @@ subtest {
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to);
-    LEAVE rm($save-to, :f, :d, :r);
+    LEAVE { # Cleanup
+        sleep 1;
+        try rm($save-to, :d, :f, :r);
+    }
+
 
     my $sub-folder = $*SPEC.catdir($save-to.IO.path, 'deleteme-subfolder');
     try mkdirs($sub-folder);
@@ -110,7 +122,11 @@ subtest {
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to);
-    LEAVE rm($save-to, :f, :d, :r);
+    LEAVE { # Cleanup
+        sleep 1;
+        try rm($save-to, :d, :f, :r);
+    }
+
 
     my $sub-folder = $*SPEC.catdir($save-to, 'deleteme-subfolder');
     try mkdirs($sub-folder);
@@ -154,7 +170,11 @@ subtest {
 
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
     try mkdirs($save-to.IO.path);
-    LEAVE rm($save-to, :f, :d, :r);
+    LEAVE { # Cleanup
+        sleep 1;
+        try rm($save-to, :d, :f, :r);
+    }
+
     my $sub-folder = $*SPEC.catdir($save-to.IO.path, 'deleteme-subfolder').IO;
     try mkdirs($sub-folder);
     my $sub-folder-empty = $*SPEC.catdir($save-to.IO.path, 'empty-subfolder').IO;

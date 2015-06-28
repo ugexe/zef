@@ -2,7 +2,7 @@
     "perl"        : "v6.0.0",
     "name"        : "Zef",
     "version"     : "*",
-    "description" : "CPAN but better. Maybe?",
+    "description" : "It's like [cpanm] wearing high heels with a tracksuit.",
     "depends"     : [ ],
     "provides"    : {
         "Zef" : "lib/Zef.pm6",

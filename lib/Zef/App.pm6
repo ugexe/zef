@@ -192,6 +192,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     await $test-await;
     my $test-result = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
 
+
     # Send a build/test report
     if ?$report {
         my $report-promise = Promise.new;
@@ -240,12 +241,14 @@ multi MAIN('look', $module, :$save-to = $*SPEC.catdir($*CWD,time)) {
     my @g    = $auth.get: $module, :$save-to, :skip-depends;
     verbose('Fetching', @g);
 
+
     if @g.[0].<ok> {
         say "===> Shell-ing into directory: {@g.[0].<path>}";
         chdir @g.[0].<path>;
         shell(%*ENV<SHELL> // %*ENV<ComSpec>);
         exit 0 if $*CWD.IO.path eq @g.[0].<path>;
     }
+
 
     # Failed to get the module or change directories
     say "!!!> Failed to fetch module or change into the target directory...";
@@ -276,10 +279,52 @@ multi MAIN('build', $path, :$save-to) {
 multi MAIN('search', *@names, *%fields) {
     my $auth = Zef::Authority::P6C.new;
     $auth.update-projects;
-    my @results     = $auth.search(|@names, |%fields);
-    my @names-found = @results.map({ "{$_.<name>} => {$_.<ver> // $_.<version> // '*'}" });
-    say "Found " ~ @names-found.elems ~ " results";
-    .say for @names-found;
+    my @results = $auth.search(|@names, |%fields);
+    say "===> Found " ~ @results.elems ~ " results";
 
-    exit ?@names-found ?? 0 !! 1;
+    my @rows = @results.map({ [
+        "{state $id += 1}",
+         $_.<name>, 
+        ($_.<ver> // $_.<version> // '*'), 
+        ($_.<description> // '')
+    ] });
+    @rows.unshift([<ID Package Version Description>]);
+
+    my @widths     = _get_column_widths(@rows);
+    my @fixed-rows = @rows.map({ _row2str(@widths, @$_) });
+    my $width      = [+] _get_column_widths(@fixed-rows);
+    my $sep        = '-' x $width;
+
+    if @fixed-rows.end {
+        say "{$sep}\n{@fixed-rows[0]}\n{$sep}";
+        .say for @fixed-rows[1..*];
+        say $sep;
+    }
+
+    exit ?@rows ?? 0 !! 1;
+}
+
+
+# returns formatted row
+sub _row2str (@widths, @cells, :$max-width = 120) {
+    # sprintf format
+    my $format   = join(" | ", @widths.map({"%-{$_}s"}) );
+    my $init-row = sprintf( $format, @cells.map({ $_ // '' }) ).substr(0, $max-width);
+    my $row      = $init-row.chars >= $max-width ?? _widther($init-row) !! $init-row;
+
+    return $row;
+}
+
+
+# Iterate over ([1,2,3],[2,3,4,5],[33,4,3,2]) to find the longest string in each column
+sub _get_column_widths ( *@rows ) is export {
+    return (0..@rows[0].elems-1).map( -> $col { reduce { max($^a, $^b)}, map { .chars }, @rows[*;$col]; } );
+}
+
+
+sub _widther($str is copy) {
+    return ($str.substr(0,*-3) ~ '...') if $str.substr(*-1,1) ~~ /\S/;
+    return ($str.substr(0,*-3) ~ '...') if $str.substr(*-2,1) ~~ /\S/;
+    return ($str.substr(0,*-3) ~ '...') if $str.substr(*-3,1) ~~ /\S/;
+    return $str;
 }

@@ -77,7 +77,7 @@ or build your own client by satisfying the interface requirements during object 
     use Zef::Net::HTTP::Client;
 
     use Different::Responder;
-    use Different:Requestor;
+    use Different::Requestor;
     use You::Get::The::Idea;
 
     Zef::Net::HTTP::Client.new(              # Zef::Net::HTTP interface type
@@ -92,6 +92,20 @@ or build your own client by satisfying the interface requirements during object 
 
 L<Zef.pm|https://zef.pm/>
 
-L<https://github.com/tony-o/perl-zefserver>
+L<http://modules.perl6.org/>
+
+=head2 Full Flex
+
+ ✓ No external dependencies
+ ✓ CompUnitRepo::Local based
+ * Test reporting to Zef servers
+ * Rotating OS smoke testing server integration
+ * ✓ Use perl6 github ecosystem as an additional authority
+ * ✓ HTTP library
+ * HPACK/HTTP2 compatability
+ * ✓ Parallelized testing
+ * Parallelized building
+ * ✓ Basic CLI overlay/hud
+ * Pure Perl6 decompression/git-clone library
 
 =cut

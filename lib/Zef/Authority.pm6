@@ -17,21 +17,20 @@ role Zef::Authority {
             my $ver = Version.new: CLEAN-VER( ~($project.<ver> // $project.<version> // '*') );
 
             for $project.keys -> $k {
-                $project{$k}:delete and next unless $project{$k}.isa(Str) || $project{$k}.isa(Int);
-                if $k ne $k.lc {
-                    $project{$k.lc} = $project{$k};
-                    $project{$k}:delete;
-                }
+                $project{$k}:delete and next
+                    unless $project{$k}.isa(Str) || $project{$k}.isa(Int) || $project{$k}.isa(Whatever);
+                $project{$k.lc} = $project{$k}:delete;
             }
 
             FIELDS:
             for %fields.kv -> $field, $filters {
                 FILTERS:
                 for $filters.list -> $f {
-                    say $f.perl if $project.<name> eq 'zef';
-                    next unless $f.isa(Str) || $f.isa(Int);
-                    temp $ver;
+                    next FILTERS unless $f;
+                    next FILTERS unless $f.isa(Str) || $f.isa(Int) || $f.isa(Whatever);
                     next FILTERS unless $project{$field.lc}:exists;
+                    temp $ver;
+
                     if $field.lc ~~ /^ver[sion]?/ {
                         next PROJECTS unless $f;
                         my $want-ver = Version.new: CLEAN-VER($f);
@@ -53,7 +52,7 @@ role Zef::Authority {
                         next PROJECTS unless $want-ver.ACCEPTS($ver);
                     }
                     else {
-                        next PROJECTS unless any($project.{$field.lc}.lc cmp $f.lc) == Order::Same;
+                        next PROJECTS unless ($project.{$field.lc}.lc cmp $f.lc) == Order::Same;
                     }
                 }
             }

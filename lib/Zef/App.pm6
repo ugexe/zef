@@ -277,8 +277,9 @@ multi MAIN('search', *@names, *%fields) {
     my $auth = Zef::Authority::P6C.new;
     $auth.update-projects;
     my @results     = $auth.search(|@names, |%fields);
-    my @names-found = @results.map(*.<name>);
-    say "Found: {@names-found.join(',')}" if ?@names;
+    my @names-found = @results.map({ "{$_.<name>} => {$_.<ver> // $_.<version> // '*'}" });
+    say "Found " ~ @names-found.elems ~ " results";
+    .say for @names-found;
 
-    exit ?@names ?? 0 !! 1;
+    exit ?@names-found ?? 0 !! 1;
 }

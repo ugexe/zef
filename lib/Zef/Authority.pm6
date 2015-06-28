@@ -26,8 +26,7 @@ role Zef::Authority {
             for %fields.kv -> $field, $filters {
                 FILTERS:
                 for $filters.list -> $f {
-                    next FILTERS unless $f;
-                    next FILTERS unless $f.isa(Str) || $f.isa(Int) || $f.isa(Whatever);
+                    next FILTERS unless $f.isa(Str) || $f.isa(Int) || $f.isa(Num) || $f.isa(Rat);
                     next FILTERS unless $project{$field.lc}:exists;
                     temp $ver;
 
@@ -39,13 +38,16 @@ role Zef::Authority {
                         # Version objects ACCEPTS do not seem to give a valid `cmp` result 
                         # so this chops up version string in such a way that it ACCEPTS 
                         # works as expected.
-                        if $ver.Str.chars > ($want-ver.Str.chars - ($want-ver.plus ?? 1 !! 0)) {
+                        if $want-ver.Str eq '*' {
+                            # Take anything
+                        }
+                        elsif $ver.Str.chars > ($want-ver.Str.chars - ($want-ver.plus ?? 1 !! 0)) {
                             my $leftovers = $ver.Str.substr($want-ver.Str.chars - 1).subst(/[\d || \w]/, '*', :g);
-                            $want-ver = Version.new: CLEAN-VER($want-ver.Str.subst(0, ($want-ver.plus ?? '*-1' !! '*')) ~ $leftovers ~ ($want-ver.plus ?? '+' !! ''));
+                            $want-ver = Version.new: CLEAN-VER($want-ver.Str.substr(0, ($want-ver.plus ?? ($want-ver.Str.chars - 1) !! $want-ver.Str.chars)) ~ $leftovers ~ ($want-ver.plus ?? '+' !! ''));
                             $want-ver = Version.new( CLEAN-VER($want-ver.Str.subst(/\.'*'/, '.0', :g)) ) unless $want-ver.plus;
                         }
                         elsif $ver.Str.chars < ($want-ver.Str.chars - ($want-ver.plus ?? 1 !! 0)) {
-                            my $leftovers = $want-ver.Str.substr($ver.Str.chars, *-1).subst(/[\d || \w]/, $want-ver.plus ?? '*' !! 0);
+                            my $leftovers = $want-ver.Str.substr($ver.Str.chars - 1, *-1).subst(/[\d || \w]/, $want-ver.plus ?? '*' !! 0);
                             $ver = Version.new: CLEAN-VER($ver.Str ~ $leftovers);
                         }
 

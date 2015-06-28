@@ -14,23 +14,27 @@ role Zef::Authority {
 
         # todo: turn this into a method `cmp` for Distribution objects
         my @matches = gather PROJECTS: for @!projects -> $project is copy {
-            my $ver = Version.new: CLEAN-VER( ~($project.<ver> // $project.<version> // '*') );
-
-            for $project.keys -> $k {
-                $project{$k}:delete and next
-                    unless $project{$k}.isa(Str) || $project{$k}.isa(Int) || $project{$k}.isa(Whatever);
-                $project{$k.lc} = $project{$k}:delete;
+            my %META;
+            for $project.kv -> $k, $v {
+                if $v.defined && $v ~~ Str|Int|Num|Rat|Array|List {
+                    %META{$k.lc} = $v>>.lc if $v.so;
+                }
             }
+            my $ver = Version.new: CLEAN-VER( ~(%META<ver> // %META<version> // '*') );
+            my $ok  = 0;
 
             FIELDS:
-            for %fields.kv -> $field, $filters {
+            for %fields.kv -> $field-orig, $filters {
+                my $field = $field-orig.lc;
+                next FIELDS unless %META{$field}:exists && %META{$field}.so;
                 FILTERS:
+
                 for $filters.list -> $f {
+                    next unless $f.so;
                     next FILTERS unless $f.isa(Str) || $f.isa(Int) || $f.isa(Num) || $f.isa(Rat);
-                    next FILTERS unless $project{$field.lc}:exists;
                     temp $ver;
 
-                    if $field.lc ~~ /^ver[sion]?/ {
+                    if $field ~~ /^ver[sion]?/ {
                         next PROJECTS unless $f;
                         my $want-ver = Version.new: CLEAN-VER($f);
                         next PROJECTS if $ver.Str eq '*' && $want-ver.Str ne '*';
@@ -52,14 +56,17 @@ role Zef::Authority {
                         }
 
                         next PROJECTS unless $want-ver.ACCEPTS($ver);
+                        $ok++;
                     }
                     else {
-                        next PROJECTS unless ($project.{$field.lc}.lc cmp $f.lc) == Order::Same;
+                        next PROJECTS unless %META{$field}.so;
+                        my $compare = any(%META{$field}.values) cmp $f.lc;
+                        $ok++ if any($compare) == Order::Same;
                     }
                 }
             }
 
-            take $project;
+            take $project if $ok == %fields.keys.elems;
         }
 
         return @matches;

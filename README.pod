@@ -2,173 +2,96 @@
 
 =encoding utf8
 
-=head2 WARNING
-
-Only mostly works.
-
 =head2 Name
 
 Zef - Perl6 Module Management
 
 =for HTML <a href="https://travis-ci.org/ugexe/zef"><img src="https://travis-ci.org/ugexe/zef.svg?branch=master"></a>
 
-=head2 Description
-
-L<Zef.pm|https://zef.pm/>
-
-L<https://github.com/tony-o/perl-zefserver>
-
-CPAN but better. Maybe?
-
 =head1 USAGE
 
-=head2 Module Management
+=head1 The CLI
 
-    zef install CSV::Parser
+    zef -v install CSV::Parser
     # duh
 
-    zef uninstall CSV::Parser
+    zef -v uninstall CSV::Parser
     # noooooo!
 
-    zef --report install CSV::Parser
+    zef -v --report install CSV::Parser
     # fire off test reports this time *onomatopoeia of an uzi*
 
-    zef search CSV
-    # search modules names for CSV
+    zef -v search CSV::Parser
+    # search for module names matching `CSV::Parser`
 
-=head2 Module Development
-
-    zef build
+    zef -v build
     # build project in current directory
     
-    zef test
+    zef -v test
     # test project in current directory
+
+=head2 More CLI
+
+=head4 search
+
+Take I<*%args> filters. That is, any I<--[field]="term"> passed will search for "term" in it's META [field].
+
+Note: Currently only does exact matches (except for version)
+
+    # search by name
+    zef -v search Text::Table::Simple            # or zef -v --name="Text::Table::Simple"
+
+    # search by version
+    zef -v --version="*" search                  # Version filter only
+    zef -v --version="*" search HTTP::Server     # Can search for 'whatevers'
+    zef -v --version="0.1" search HTTP::Server   # Version matching
+    zef -v --version="0.1+" search HTTP::Server  # Basic version ranges
+
+    # search by other fields in META
+    zef -v --depends="HTTP::Server" search       # Match `HTTP::Server` inside --`depends`
+
+    # sure
+    zef -v --depends="HTTP::Server" --version="0.1+" search HTTP::Server::Threaded
     
-=head1 TOOLS
+=head1 INCLUDED TOOLS
 
-=head2 Zef::Net::HTTP::Client
+=head2 Zef::Net::HTTP
 
-Basic http client: Grammar based parser; uses IO::Socket::SSL if available for https.
+HTTP library interfaces and Grammars.
 
     use Zef::Net::HTTP::Client;
     
-    my $client = Zef::Net::HTTP::Client.new;
+    my $client = Zef::Net::HTTP::Client.new(:auto-check);
 
     my $body     = to-json({ term => "zef" });
-    my $response = $client.post("http://zef.pm/api/search", :$body);
+    my $response = $client.post("http://httpbin.org/post", :$body);
 
     # .content takes care of encoding. The .body attribute has the raw data for manual processing
     my $json     = from-json($response.content);
 
     my $response = $client.get("https://www.google.com");
-    say $reponse.content; # apply encoding/chunked/etc to $.body
+    say $reponse.content; # returns $.body with encoding/chunked/etc applied
 
-=head2 Zef::Net::HTTP::Response
+or build your own client by satisfying the interface requirements during object construction:
 
-=head2 Zef::Net::HTTP::Request
+    use Zef::Net::HTTP::Client;
 
-=head2 Zef::Net::HTTP::Grammar
+    use Different::Responder;
+    use Different:Requestor;
+    use You::Get::The::Idea;
 
-=head2 Zef::Net::URI
-
-=head2 Zef::Net::URI::Grammar
-
-=head2 Zef::Utils::Base64
-
-Base64 encoding/decoding
-
-    use Zef::Utils::Base64;
-
-    my $b64 = Zef::Utils::Base64.new;
-
-    say $b64.b64encode("Perl");
-    # UGVybA==
-    
-    say $b64.b64decode("UGVybA==").decode('utf8');
-    # Perl
-    
-=head2 Zef::Utils::PathTools;
-
-Uses MONKEY-TYPING to add additional methods to L<IO::Path|http://doc.perl6.org/type/IO::Path>.
-
-    use Zef::Utils::PathTools;
-    
-    say $*CWD.ls(:f, d => False)    
-    # "/home/user/perl6/zef/META6.json".IO "/home/user/perl6/zef/META.info".IO "/home/user/perl6/zef/README.pod".IO
-
-    $*CWD.ls(:f, :r, :a)
-    # list all files recursively including dot files
-    
-    $*CWD.rm(:f, :d, :r);
-    # (rm -rf) recursively delete files and folders
-    
-    $*CWD.mkdirs("new-dir/new-sub-dir");
-    # (original mkdir does this already on MoarVM, but not JVM)
-    
-=head3 Methods/Subroutines
-
-B<Note>: I<All methods have a corresponding subroutine>.
-
-=head4 ls(IO::Path:D $path, :f => True, :d => True, :r => False, :a => False)
-
-List files and/or folders for a path.
-
-    # ls FILTERS
-    :f - file
-    :d - directory
-    :r - recursive
-    :a - all (otherwise dot files/folders ignored)
-    
-=head4 rm(IO::Path:D $path, :f => True, :d => False, :r => False, :a => False)
-
-Delete files and/or folders for a given path.
-
-    # rm FILTERS
-    :f - file
-    :d - directory
-    :r - recursive
-    :a - all (otherwise dot files/folders ignored)
-    
-=head4 mkdirs(IO::Path:D $path, :mode => 0o777)
-
-Create new path, including non-existant parent directories.
-
-=head2 Zef::Utils::Depends
-
-Utilities for extracting dependencies from Perl6 projects/code.
-    
-    use Zef::Utils::Depends;
-    use Zef::Utils::PathTools; # for .ls
-    
-    my @libs    = $lib-dir.IO.ls(:r, :f, d => False);
-    my @depends = Zef::Utils::Depends.build-dep-tree: extract-deps(@libs);
-
-=head3 Methods/Subroutines
-
-=head4 extract-deps(*@paths)
-
-Attempt to extract dependencies via source parsing.
-
-    use Zef::Utils::Depends;
-    
-    say extract-deps("lib/Zef.pm6").perl
-    # ({:dependencies(["Zef::Authority", "Zef::Builder", "Zef::Config", "Zef::Exception", "Zef::Getter", "Zef::Installer", "Zef::Reporter", "Zef::Tester", "Zef::Uninstaller", "Zef::Utils::Base64", "Zef::Utils::Depends", "Zef::Utils::PathTools"]), :file("lib/Zef.pm6"), :name("Zef")},)
-
-=head4 topological-sort(*@meta-files, :$target)
-
-Build dependency order, in levels, from a list of dependency meta files. If :$target is passed then the tree will built with :$target as the base node. Otherwise the order will determine a base node(s) in the form of @level[*-1]
-
-=head4 build-dep-tree(*@meta-files, :$target)
-
-Build dependency order/tree from a list of dependency meta files. If :$target is passed then the tree will built with :$target as the base node.
+    Zef::Net::HTTP::Client.new(              # Zef::Net::HTTP interface type
+        responder   => Different::Responder, # HTTP::Response
+        requestor   => Different::Requestor, # HTTP::Request
+        transporter => You::Get::The::Idea   # HTTP::Transport
+    );
 
 =head1 NOTES
 
-=head2 Full Flex
+=head2 Links
 
- * Test reporting to Zef servers
- * Rotating OS smoke testing server integration
- * ✓ Use perl6 github ecosystem as an additional authority
- * ✓ Small http client
+L<Zef.pm|https://zef.pm/>
+
+L<https://github.com/tony-o/perl-zefserver>
 
 =cut

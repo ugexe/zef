@@ -96,8 +96,8 @@ L<http://modules.perl6.org/>
 
 =head2 Full Flex
 
- ✓ No external dependencies
- ✓ CompUnitRepo::Local based
+ * ✓ No external dependencies
+ * ✓ CompUnitRepo::Local based
  * Test reporting to Zef servers
  * Rotating OS smoke testing server integration
  * ✓ Use perl6 github ecosystem as an additional authority

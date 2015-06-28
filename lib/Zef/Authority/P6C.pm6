@@ -24,7 +24,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         :$save-to is copy,
         Bool :$skip-depends,
     ) {
-        once self.update-projects;
+        self.update-projects unless @!projects;
         my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) });
 
         # Determine the distribution dependencies we want/need
@@ -33,7 +33,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             !! Zef::Utils::Depends.new(:@!projects).topological-sort(@wants-dists);
 
         # Try to fetch each distribution dependency
-        my @results     = eager gather for @levels -> $level {
+        my @results = eager gather for @levels -> $level {
             for $level.list -> $package-name {
                 # todo: filter projects by version/auth
                 my %dist = @!projects.first({ $_.<name> eq $package-name }).hash;

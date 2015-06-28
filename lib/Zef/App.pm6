@@ -272,6 +272,13 @@ multi MAIN('build', $path, :$save-to) {
 }
 
 
-multi MAIN('search', *@terms) {
-    say "NYI";
+# todo: non-exact matches on non-version fields
+multi MAIN('search', *@names, *%fields) {
+    my $auth = Zef::Authority::P6C.new;
+    $auth.update-projects;
+    my @results     = $auth.search(|@names, |%fields);
+    my @names-found = @results.map(*.<name>);
+    say "Found: {@names-found.join(',')}" if ?@names;
+
+    exit ?@names ?? 0 !! 1;
 }

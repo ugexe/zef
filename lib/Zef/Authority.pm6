@@ -62,8 +62,16 @@ role Zef::Authority {
                     }
                     else {
                         next PROJECTS unless %META{$field}.so;
-                        my $compare = any(%META{$field}.values) cmp $f.lc;
-                        $ok++ if any($compare) == Order::Same;
+
+                        if $f ~~ /'*'/ {
+                            my ($sub-search, $) = $f.lc.split('*', 2);
+                            my $matches = any(%META{$field}.values>>.starts-with($sub-search));
+                            $ok++ if $matches;
+                        }
+                        else {
+                            my $matches = any(%META{$field}.values) cmp $f.lc;
+                            $ok++ if any($matches) == Order::Same;
+                        }
                     }
                 }
             }

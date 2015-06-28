@@ -36,7 +36,9 @@ Zef - Perl6 Module Management
 
 Take I<*%args> filters. That is, any I<--[field]="term"> passed will search for "term" in it's META [field].
 
-Note: Currently only does exact matches (except for version)
+Add a I<*> to any filter to have the filter apply a C<.starts-with()> filter using the string to the left of the I<*>.
+
+Note: I<*> behaves slightly differently for versions
 
     # search by name
     zef -v search Text::Table::Simple            # or zef -v --name="Text::Table::Simple"
@@ -49,6 +51,9 @@ Note: Currently only does exact matches (except for version)
 
     # search by other fields in META
     zef -v --depends="HTTP::Server" search       # Match `HTTP::Server` inside --`depends`
+
+    # a naive substring search using a wildcard
+    zef -v --depends="HTTP*" search              # Matches anything that $results.starts-with("HTTP")
 
     # sure
     zef -v --depends="HTTP::Server" --version="0.1+" search HTTP::Server::Threaded

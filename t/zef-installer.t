@@ -7,7 +7,10 @@ plan 1;
 
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    try mkdirs($save-to);
+    ENTER {
+        try mkdirs($save-to);
+        sleep 1;
+    }
     LEAVE {       # Cleanup
         sleep 1;  # bug-fix for CompUnit related pipe file race
         try rm($save-to, :d, :f, :r);

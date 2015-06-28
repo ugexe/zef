@@ -7,12 +7,12 @@ plan 1;
 
 subtest {
     my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
-    ENTER {
+    ENTER {       # bufix for no writeable path?
         try mkdirs($save-to);
         sleep 1;
     }
     LEAVE {       # Cleanup
-        sleep 1;  # bug-fix for CompUnit related pipe file race
+        sleep 1;  # bugfix for CompUnit related pipe file race
         try rm($save-to, :d, :f, :r);
     }
 

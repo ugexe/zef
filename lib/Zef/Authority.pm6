@@ -9,10 +9,12 @@ role Zef::Authority {
     method update-projects { ... }
 
     method search(*@names, *%fields) {
-        return unless @names || %fields;
+        return () unless @names || %fields;
         temp %fields<name> .= push($_) for @names;
 
-        # todo: turn this into a method `cmp` for Distribution objects
+        # todo: turn this into a method `cmp` for Distribution objects.
+        # Also probably need to create specialized rules for each field
+        # so we can do things like version ranges in a dependency string.
         my @matches = gather PROJECTS: for @!projects -> $project is copy {
             my %META;
             for $project.kv -> $k, $v {

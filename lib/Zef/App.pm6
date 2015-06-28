@@ -282,7 +282,7 @@ multi MAIN('search', *@names, *%fields) {
     my @results = $auth.search(|@names, |%fields);
     say "===> Found " ~ @results.elems ~ " results";
 
-    my @rows = @results.map({ [
+    my @rows = @results.grep(*).map({ [
         "{state $id += 1}",
          $_.<name>, 
         ($_.<ver> // $_.<version> // '*'), 

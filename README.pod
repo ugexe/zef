@@ -98,6 +98,7 @@ L<http://modules.perl6.org/>
 
  * ✓ No external dependencies
  * ✓ CompUnitRepo::Local based
+ * ✓ Test reporting to P6C servers
  * Test reporting to Zef servers
  * Rotating OS smoke testing server integration
  * ✓ Use perl6 github ecosystem as an additional authority

@@ -38,7 +38,7 @@ Take C<*%args> filters. That is, any C<--[field]="term"> passed will search for 
 
 Add a C<*> to any filter to have the filter apply a C<.starts-with()> filter using the string to the left of the C<*>.
 
-Note: C<*> behaves slightly differently for versions
+Note: C<*> behaves slightly differently for C<--version>
 
     # search by name
     zef -v search Text::Table::Simple            # or zef -v --name="Text::Table::Simple"

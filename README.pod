@@ -110,6 +110,7 @@ L<http://modules.perl6.org/>
  * ✓ HTTP library
  * HPACK/HTTP2 compatability
  * ✓ Parallelized testing
+ * TAP Harness/Grammar
  * Parallelized building
  * ✓ Basic CLI overlay/hud
  * Pure Perl6 decompression/git-clone library

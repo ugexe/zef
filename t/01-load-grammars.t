@@ -1,6 +1,22 @@
 use v6;
 use Test;
-plan 1;
+plan 3;
+
+
+subtest {
+    lives-ok { use Zef::Test::Grammar }, 
+        'Test Anything Protocol Specification';
+}, 'TAP Grammars';
+
+
+subtest {
+    lives-ok { use Zef::Net::URI::Grammar::RFC3986 }, 
+        '3986: Uniform Resource Identifier (URI): Generic Syntax';
+
+    lives-ok { use Zef::Net::URI::Grammar::RFC4234 },
+        '4234: Augmented BNF for Syntax Specifications: ABNF';
+}, 'URI Grammars';
+
 
 subtest {
     lives-ok { use Zef::Net::HTTP::Grammar::RFC1035 }, 
@@ -8,12 +24,6 @@ subtest {
 
     lives-ok { use Zef::Net::HTTP::Grammar::RFC3066 }, 
         '3066: Tags for Identification of Languages';
-
-    lives-ok { use Zef::Net::URI::Grammar::RFC3986 }, 
-        '3986: Uniform Resource Identifier (URI): Generic Syntax';
-    
-    lives-ok { use Zef::Net::URI::Grammar::RFC4234 },
-        '4234: Augmented BNF for Syntax Specifications: ABNF';
 
     lives-ok { use Zef::Net::HTTP::Grammar::RFC4647 },
         '4647: Matching of Language Tags';
@@ -47,6 +57,7 @@ subtest {
 
     lives-ok { use Zef::Net::HTTP::Grammar::RFC7235 }, 
         '7235: Hypertext Transfer Protocol (HTTP/1.1): Authentication';
-}, 'Sanity tests';
+}, 'HTTP Grammars';
+
 
 done();

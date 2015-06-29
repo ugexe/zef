@@ -5,7 +5,7 @@ use Zef::Utils::PathTools;
 # 1) Automatically grepping all `.t` files recursively.
 # 2) Setting the $CWD to run the tests in the directory they expect.
 # - :@test-files: Skip search for test files and run only these instead.
-# - :@includes: add `lib`s via -`I$include`. Defaults to `("$!path/blib", $!path/lib")`
+# - :@includes: add `lib`s via `-I$include`. Defaults to `("$!path/blib", $!path/lib")`
 # 
 # method test
 # Create a supply of Zef::Test::Result objects. Each Zef::Test::Result object has a `.promise` attribute

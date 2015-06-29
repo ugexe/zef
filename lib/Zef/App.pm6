@@ -31,6 +31,7 @@ sub verbose($phase, @_) {
 }
 
 
+# NOTE: On Win32 perl6 does not *currently* display \r properly
 sub show-await($message, *@promises) {
     my $loading = Supply.interval(1);
     my $out = $*OUT;
@@ -193,6 +194,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     my $test-result = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
 
 
+    # todo: Make sure we are sending reports for dependencies
     # Send a build/test report
     if ?$report {
         my $report-promise = Promise.new;

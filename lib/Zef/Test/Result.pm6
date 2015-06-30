@@ -25,8 +25,8 @@ class Zef::Test::Result {
         $!stdout := $!process.stdout;
         $!stderr := $!process.stderr;
 
-        $!process.stdout.tap({ $!output ~= $_ });
-        $!process.stderr.tap({ $!output ~= $_ });
+        $!process.stdout.act: { $!output ~= $_ };
+        $!process.stderr.act: { $!output ~= $_ };
     }
 
     method status { $!promise.result.exitcode }

@@ -1,17 +1,9 @@
-module Zef::Uninstaller {
-
-    sub uninstall(
-        @modules, 
-        CompUnitRepo::Local::Installation $repo = {
-            try { mkdir('~/.zef/depot'); };
-            .new("~/.zef/depot".IO.abs_path);
-        },
-        %options?
-    ) is export {
+class Zef::Uninstaller {
+    method uninstall(CompUnitRepo::Local::Installation:D: @modules, %options?) is export {
         my $removes; 
         my %toremove;
         for @modules -> $module {
-            for @($repo.candidates($module)) -> $dist {
+            for @(self.candidates($module)) -> $dist {
                 %toremove{$dist<id>} = [];
                 for $dist<provides>.keys -> $file {
                     for $dist<provides>{$file}.keys -> $types {
@@ -27,7 +19,7 @@ module Zef::Uninstaller {
                 }
             }
         }
-        my $manifest = "{$repo.path.Str}/MANIFEST";
+        my $manifest = $*SPEC.catpath('', self.path, 'MANIFEST');
         my $jmanif   = from-json($manifest.IO.slurp);
         my @dists    = @($jmanif<dists>);
         my @delid;
@@ -38,7 +30,7 @@ module Zef::Uninstaller {
         }
         @delid.sort.reverse.map({@dists.splice($_,1);});
         $jmanif<dists> = @dists;
-        "{$repo.path.Str}/MANIFEST".IO.spurt(to-json($jmanif));
+        $manifest.IO.spurt(to-json($jmanif));
         for %toremove.keys -> $f { 
             for @(%toremove{$f}) -> $file {
                 unlink $file; 

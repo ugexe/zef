@@ -34,7 +34,7 @@ augment class IO::Path {
     method rm(IO::Path:D: Bool :$f = True, Bool :$d = False, Bool :$r = False, |c) {
         my @paths = self.ls(:$f, :$d, :$r, |c);
         my @files = @paths.grep(*.IO.f); # >>.resolve; On windows this returns C:\C:\path
-        my @dirs  = @paths.grep(*.IO.d); # >>.resolve; # until .IO.resolve returns IO::Path, not str
+        my @dirs  = @paths.grep(*.IO.d);
 
         my @deleted; 
         for @files -> $file { @deleted.push($file) if $file.IO.unlink }

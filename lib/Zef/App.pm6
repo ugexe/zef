@@ -8,30 +8,11 @@ use Zef::Installer;
 use Zef::Test;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
+use Zef::Utils::SystemInfo;
 
-our $MAX-TERM-COLS = get-term-cols();
-
-# Try to determine the terminal width to attempt pretty formatting
-sub get-term-cols {
-    if $*DISTRO.is-win {
-        my $r    = run("mode", :out, :err);
-        my $line = $r.out.lines.join("\n");
-        if $line ~~ /'CON:' \n <.ws> '-'+ \n .*? \n \N+? $<cols>=[<.digit>+]/ {
-            my $cols = $/<cols>.comb(/\d/).join;
-            return +$cols - 1 if try { +$cols }
-        }
-        return 80 - 1;
-    }
-    else {
-        my $r = run("tput", "cols", :out, :err);
-        my $line = $r.out.lines.join;
-        if $line ~~ /$<cols>=<.digit>+/ {
-            my $cols = ~$/<cols>.comb(/\d/).join;
-            return +$cols - 1 if try { +$cols }
-        }
-        return 120 - 1;
-    }
-}
+# todo: check if a terminal is even being used
+our $MAX-TERM-COLS = GET-TERM-COLUMNS();
+signal(Signal::SIGWINCH).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 # will be replaced soon
 sub verbose($phase, @_) {
@@ -52,7 +33,7 @@ sub show-await($message, *@promises) {
     my $err = $*ERR;
     my $in  = $*IN;
 
-    $*ERR = $*OUT = class :: {
+    my $*ERR = my $*OUT = class :: {
         my $lock = Lock.new;
         my $e;
         my $m;
@@ -332,7 +313,7 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
     @rows.unshift([<ID Package Version Description>]);
 
     my @widths     = _get_column_widths(@rows);
-    my @fixed-rows = @rows.map({ _row2str(@widths, @$_) });
+    my @fixed-rows = @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
     my $width      = [+] _get_column_widths(@fixed-rows);
     my $sep        = '-' x $width;
 
@@ -347,7 +328,7 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
 
 
 # returns formatted row
-sub _row2str (@widths, @cells, :$max-width = $MAX-TERM-COLS) {
+sub _row2str (@widths, @cells, Int :$max-width) {
     # sprintf format
     my $format   = join(" | ", @widths.map({"%-{$_}s"}) );
     my $init-row = sprintf( $format, @cells.map({ $_ // '' }) ).substr(0, $max-width);

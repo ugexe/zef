@@ -42,7 +42,7 @@ sub show-await($message, *@promises) {
     my $err = $*ERR;
     my $in  = $*IN;
 
-    my $*ERR = my $*OUT = class :: {
+    $*ERR = $*OUT = class :: {
         my $lock = Lock.new;
         my $e;
         my $m;
@@ -59,8 +59,8 @@ sub show-await($message, *@promises) {
 
             print r-print('');
         },
-            done    => { print r-print(''); },
-            closing => { print r-print(''); },
+            done    => { print r-print(""); },
+            closing => { print r-print(""); },
         );
 
         sub fake-carriage($len) { my Str $str = ("\b" x $len) || ''; ~$str }

@@ -30,8 +30,9 @@ sub verbose($phase, @_) {
     return { ok => %r<ok>.elems, nok => %r<nok> }
 }
 
-
-# NOTE: On Win32 perl6 does not *currently* display \r properly
+# This works *much* better when using "\r" instead of some number of "\b"
+# Unfortunately MoarVM on Windows has a bug where it prints "\r" as if it were "\n"
+# (JVM is OK on windows, JVM/Moar are ok on linux)
 sub show-await($message, *@promises) {
     my $loading = Supply.interval(1);
     my $out = $*OUT;
@@ -45,7 +46,8 @@ sub show-await($message, *@promises) {
         my $m;
         my $last-line-len = 0;
 
-        $loading.tap({
+        $loading.tap(
+        {
             $e = do given ++$m { 
                 when 2  { "-==" }
                 when 3  { "=-=" }
@@ -53,24 +55,48 @@ sub show-await($message, *@promises) {
                 default { $m = 1; "===" }
             }
 
-            print "";
-        });
+            print r-print("");
+        },
+            done    => { print r-print(''); },
+            closing => { print r-print(''); },
+        );
+
+        sub fake-carriage($len) { my Str $str = ("\b" x $len) || ''; ~$str }
+        sub clear-line($len)    { my Str $str = (" "  x $len) || ''; ~$str }
+        sub r-print($str = '', $last-len = 0) { 
+            if $last-line-len {
+                my $fc  = fake-carriage($last-len);
+                my $cl  = clear-line($last-len);
+                my $ret = "$fc$cl$fc$str";
+            }
+            else {
+                return $str;
+            }
+        }
 
         method print(*@_) {
-            my $hijacked  = @_.join;
+            my $lines = @_.join;
             $lock.protect({
-                my $msg       = "$e> $message...\r";
-                my $output    = ($last-line-len ?? ((" " x $last-line-len) ~ "\r") !! '') ~ $hijacked ~ $msg;
-                $last-line-len = $output.lines.[*-1].chars;
-
                 my $out2 = $*OUT;
                 $*ERR = $*OUT = $out;
-                print $output;
+                if $lines.chars {
+                    my $line = r-print($lines.trim-trailing, $last-line-len);
+                    $line ~= "\n";
+                    print $line;
+                    $last-line-len = 0;
+                }
+
+                my $msg = "$e> $message...";
+                my $status-bar = r-print($msg, $last-line-len);
+                print $status-bar;
+                $last-line-len = $msg.chars;
                 $*ERR = $*OUT = $out2;
             });
         }
+
         method flush {}
     }
+
 
     await Promise.allof: @promises;
     $loading.close;
@@ -89,6 +115,7 @@ multi MAIN('test', *@paths, Bool :$v) is export {
     my $test-promise = Promise.new;
     my $test-vow     = $test-promise.vow;
     my $test-await   = start { show-await("Testing", $test-promise) };
+
     my @includes = gather for @repos -> $path {
         take $*SPEC.catdir($path, "blib");
         take $*SPEC.catdir($path, "lib");
@@ -194,7 +221,6 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
     my $test-result = verbose('Testing', @t.list>>.results>>.list.map({ ok => all($_>>.ok), module => $_>>.file.IO.basename }));
 
 
-    # todo: Make sure we are sending reports for dependencies
     # Send a build/test report
     if ?$report {
         my $report-promise = Promise.new;
@@ -281,7 +307,7 @@ multi MAIN('build', $path, :$save-to) {
 multi MAIN('search', *@names, *%fields) {
     my $auth = Zef::Authority::P6C.new;
     $auth.update-projects;
-    my @results = $auth.search(|@names, |%fields);
+    my @results = $auth.search(|@names.grep({ !$_.starts-with('-') }), |%fields);
     say "===> Found " ~ @results.elems ~ " results";
 
     my @rows = @results.grep(*).map({ [

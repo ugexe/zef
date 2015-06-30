@@ -13,7 +13,8 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
     method update-projects {
         my $response = $!ua.get: @!mirrors.[0];
-        @!projects = try @(from-json($response.content)).grep({ ?$_.<name> });
+        my $fuck = $response.content;
+        @!projects = try @(from-json($fuck)).grep({ ?$_.<name> });
     }
 
     # Use the p6c hosted projects.json to get a list of name => git-repo that 

@@ -9,6 +9,29 @@ use Zef::Test;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 
+our $MAX-TERM-COLS = get-term-cols();
+
+# Try to determine the terminal width to attempt pretty formatting
+sub get-term-cols {
+    if $*DISTRO.is-win {
+        my $r    = run("mode", :out, :err);
+        my $line = $r.out.lines.join("\n");
+        if $line ~~ /'CON:' \n <.ws> '-'+ \n .*? \n \N+? $<cols>=[<.digit>+]/ {
+            my $cols = $/<cols>.comb(/\d/).join;
+            return +$cols - 1 if try { +$cols }
+        }
+        return 80 - 1;
+    }
+    else {
+        my $r = run("tput", "cols", :out, :err);
+        my $line = $r.out.lines.join;
+        if $line ~~ /$<cols>=<.digit>+/ {
+            my $cols = ~$/<cols>.comb(/\d/).join;
+            return +$cols - 1 if try { +$cols }
+        }
+        return 120 - 1;
+    }
+}
 
 # will be replaced soon
 sub verbose($phase, @_) {
@@ -18,6 +41,7 @@ sub verbose($phase, @_) {
     print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
     return { ok => %r<ok>.elems, nok => %r<nok> }
 }
+
 
 # This works *much* better when using "\r" instead of some number of "\b"
 # Unfortunately MoarVM on Windows has a bug where it prints "\r" as if it were "\n"
@@ -285,8 +309,8 @@ multi MAIN('get', *@modules, Bool :$v, :$save-to = $*TMPDIR, Bool :$skip-depends
 #| Build modules in cwd
 multi MAIN('build', Bool :$v) is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directory
-multi MAIN('build', Bool :$v, $path, :$save-to) {
-    my $builder = Zef::Builder.new(:@plugins);
+multi MAIN('build', $path, Bool :$v, :$save-to) {
+    my $builder = Zef::Builder.new;
     $builder.pre-compile($path, :$save-to);
 }
 
@@ -323,7 +347,7 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
 
 
 # returns formatted row
-sub _row2str (@widths, @cells, :$max-width = 120) {
+sub _row2str (@widths, @cells, :$max-width = $MAX-TERM-COLS) {
     # sprintf format
     my $format   = join(" | ", @widths.map({"%-{$_}s"}) );
     my $init-row = sprintf( $format, @cells.map({ $_ // '' }) ).substr(0, $max-width);

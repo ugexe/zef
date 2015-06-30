@@ -9,17 +9,6 @@ use Zef::Test;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 
-# load plugins from config file
-BEGIN our @plugins := %config<plugins>.list;
-
-# when invoked as a class, we have the usual @.plugins
-has @!plugins;
-
-# override config file plugins if invoked as a class
-# *and* :@plugins was passed to initializer 
-#submethod BUILD(:@!plugins) { 
-#    @plugins := @!plugins if @!plugins.defined;
-#}
 
 # will be replaced soon
 sub verbose($phase, @_) {
@@ -38,7 +27,6 @@ sub show-await($message, *@promises) {
     my $out = $*OUT;
     my $err = $*ERR;
     my $in  = $*IN;
-    my @queue;
 
     $*ERR = $*OUT = class :: {
         my $lock = Lock.new;
@@ -264,7 +252,7 @@ multi MAIN('local-install', *@modules) is export {
 
 
 #! Download a single module and change into its directory
-multi MAIN('look', $module, :$save-to = $*SPEC.catdir($*CWD,time)) { 
+multi MAIN('look', $module, Bool :$v, :$save-to = $*SPEC.catdir($*CWD,time)) { 
     my $auth = Zef::Authority::P6C.new;
     my @g    = $auth.get: $module, :$save-to, :skip-depends;
     verbose('Fetching', @g);
@@ -285,7 +273,7 @@ multi MAIN('look', $module, :$save-to = $*SPEC.catdir($*CWD,time)) {
 
 
 #| Get the freshness
-multi MAIN('get', *@modules, :$save-to = $*TMPDIR, Bool :$skip-depends) is export {
+multi MAIN('get', *@modules, Bool :$v, :$save-to = $*TMPDIR, Bool :$skip-depends) is export {
     my $auth = Zef::Authority::P6C.new;
     my @g    = $auth.get: @modules, :$save-to, :$skip-depends;
     verbose('Fetching', @g);
@@ -295,19 +283,20 @@ multi MAIN('get', *@modules, :$save-to = $*TMPDIR, Bool :$skip-depends) is expor
 
 
 #| Build modules in cwd
-multi MAIN('build') is export { &MAIN('build', $*CWD) }
+multi MAIN('build', Bool :$v) is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directory
-multi MAIN('build', $path, :$save-to) {
+multi MAIN('build', Bool :$v, $path, :$save-to) {
     my $builder = Zef::Builder.new(:@plugins);
     $builder.pre-compile($path, :$save-to);
 }
 
 
 # todo: non-exact matches on non-version fields
-multi MAIN('search', *@names, *%fields) {
+multi MAIN('search', Bool :$v, *@names, *%fields) {
     my $auth = Zef::Authority::P6C.new;
     $auth.update-projects;
-    my @results = $auth.search(|@names.grep({ !$_.starts-with('-') }), |%fields);
+
+    my @results = $auth.search(|@names, |%fields);
     say "===> Found " ~ @results.elems ~ " results";
 
     my @rows = @results.grep(*).map({ [

@@ -10,9 +10,18 @@ use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
 
+
 # todo: check if a terminal is even being used
+# The reason for the strange signal handling code is due to JVM
+# failing at the compile stage for checks we need to be at runtime.
+# (No symbols for 'signal' or 'Signal::*') So we have to get the 
+# symbols into world ourselves.
 our $MAX-TERM-COLS = GET-TERM-COLUMNS();
-signal(Signal::SIGWINCH).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
+sub signal-jvm($) { Supply.new }
+my $signal-handler = &::("signal") ~~ Failure ?? &::("signal-jvm") !! &::("signal");
+my $sig-resize = ::("Signal::SIGWINCH");
+$signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
+
 
 # will be replaced soon
 sub verbose($phase, @_) {
@@ -42,13 +51,13 @@ sub show-await($message, *@promises) {
         $loading.tap(
         {
             $e = do given ++$m { 
-                when 2  { "-==" }
-                when 3  { "=-=" }
-                when 4  { "==-" }
-                default { $m = 1; "===" }
+                when 2  { '-==' }
+                when 3  { '=-=' }
+                when 4  { '==-' }
+                default { $m = 1; '===' }
             }
 
-            print r-print("");
+            print r-print('');
         },
             done    => { print r-print(''); },
             closing => { print r-print(''); },

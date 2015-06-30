@@ -1,22 +1,4 @@
-language: perl
-perl:
-    - '5.20'
-env:
-    - BACKEND=moar
-    - BACKEND=jvm
-matrix:
-    allow_failures:
-        - env: BACKEND=jvm
-    fast_finish: true
-before_install:
-    - git config --global user.name "TravisCI"
-    - git config --global user.email $HOSTNAME":not-for-mail@travis-ci.org"
-    - git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew
-    - export PATH=~/.rakudobrew/bin:$PATH
-    - rakudobrew build $BACKEND
-install:
-    # need at least 1 statement in 'install'
-    - perl6 -v
+language: perl6
 script:
     - perl6 -Ilib bin/zef -v test
     - perl6 -Ilib bin/zef --save-to=precomp/ build ./

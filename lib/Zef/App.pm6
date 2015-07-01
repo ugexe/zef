@@ -87,7 +87,6 @@ sub show-await($message, *@promises) {
                     print $line;
                     $last-line-len = 0;
                 }
-
                 my $msg = "$e> $message...";
                 my $status-bar = r-print($msg, $last-line-len);
                 print $status-bar;

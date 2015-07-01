@@ -1,5 +1,17 @@
 language: perl6
+env:
+    - VM=moar
+#    - VM=jvm
+#matrix:
+#    allow_failures:
+#        - env: BACKEND=jvm
+#    fast_finish: true
+#before_install:
+#    - if [ $VM == "jvm" ]; then rakudobrew build $VM; fi
 script:
+    # test ourself with ourself
     - perl6 -Ilib bin/zef -v test
+    # build to a non-default directory as to not interfere with the
+    # redundant build output from testing our precompiled self with prove
     - perl6 -Ilib bin/zef --save-to=precomp/ build ./
     - prove -v -e "perl6 -Iprecomp/blib/lib" t/

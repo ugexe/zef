@@ -17,10 +17,10 @@ class Zef::Installer {
                 next;
             }
 
-            my @pm = $dist.provides.values.map({ $*SPEC.catpath('', $meta-path.IO.dirname, $_) })>>.IO;
-            my @precomp = $meta-path.IO.dirname.IO.ls(:r, :f).grep({ $_.ends-with($*VM.precomp-ext) })>>.IO;
+            my @precomp = $meta-path.IO.dirname.IO.ls(:r, :f).grep({ $_.ends-with($*VM.precomp-ext) });
+            my @precomp-as-rel = @precomp.map({ $_.IO.is-absolute ?? $*SPEC.abs2rel($_, $meta-path) !! $_ });
 
-            %result<ok> = 1 if try $curli.install(:$dist, @pm, @precomp);
+            %result<ok> = 1 if $curli.install(:$dist, $dist.provides.values, @precomp-as-rel);
             take { %result }
         }
 

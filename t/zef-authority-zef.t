@@ -14,9 +14,8 @@ subtest {
 }, 'SSL not required';
 
 subtest {
-    try require IO::Socket::SSL;
-    if ::('IO::Socket::SSL') ~~ Failure {
-        print("ok 2 - # Skip: IO::Socket::SSL not available\n");
+    unless Zef::Net::HTTP::Client.new.transporter.dialer.?can-ssl {
+        print("ok 2 - # Skip: Can't do SSL. Is IO::Socket::SSL available?\n");
         return;
     }
 

@@ -37,22 +37,8 @@ class Zef::Builder {
             # Build the @dep chain for the %META.<provides> by parsing the 
             # use/require/need from the module source.
             my @provides-as-deps = eager gather for @(extract-deps( @files ).list) -> $info is rw {
-                #my @provided-ok = eager gather for $info.<depends>.list -> $dep {
-                    # If more than once module is to be built, then they won't show up in @available until
-                    # installed. A proper queue is needed so we can know we have access to depends that 
-                    # was just downloaded but not yet installed.
-                    #unless %meta.<provides>.{$dep}:exists {
-                    #    say "!!!> Confused. META `provides` has no mapping for: $dep";
-                    #    next;
-                    #}
-                    #unless %meta.<provides>.{$dep}.IO.is-relative {
-                    #    say "!!!> Confused. META `provides` mapping for `$dep` isn't a relative file path.";
-                    #    next;                        
-                    #}
-                   # take $dep;
-                #}
-                $info.<depends> = %meta.<provides>.hash.{$_} for $info.<depends>.list;
-                $info.<name> = %meta.<provides>.list.first({ 
+                $info.<depends> = $info.<depends>.list.map(-> $name { %meta.<provides>.first({ $_.key eq $name }).value });
+                $info.<name>    = %meta.<provides>.list.first({ 
                     $SPEC.rel2abs($_.value, $path).IO.path eq $SPEC.rel2abs($info.<path>, $path) 
                 }).value;
                 take $info;

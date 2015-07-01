@@ -28,9 +28,8 @@ class Zef::Utils::Depends {
         # Handle where provides has 2+ package names mapped to the same path
         # todo: don't do the unique call on every iteration
         for @!projects -> $meta {
-            for $meta.<depends>.list -> $name {
-                %deps{$meta.<name>} .= push($name) unless %deps{$meta.<name>}.list.grep($name);
-            }
+            %deps{$meta.<name>} .= push($_) for $meta.<depends>.list;
+            %deps{$meta.<name>} = [%deps{$meta.<name>}.list.unique];
         }
 
         my %ba;

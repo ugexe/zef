@@ -37,12 +37,13 @@ class Zef::Builder {
             # Build the @dep chain for the %META.<provides> by parsing the 
             # use/require/need from the module source.
             my @provides-as-deps = eager gather for @(extract-deps( @files ).list) -> $info is rw {
-                $info.<depends> = $info.<depends>.list.map(-> $name { %meta.<provides>.first({ $_.key eq $name }).value });
+                $info.<depends> = [$info.<depends>.list.map(-> $name { %meta.<provides>.first({ $_.key eq $name }).value })];
                 $info.<name>    = %meta.<provides>.list.first({ 
                     $SPEC.rel2abs($_.value, $path).IO.path eq $SPEC.rel2abs($info.<path>, $path) 
                 }).value;
                 take $info;
             }
+
 
             # @provides-as-deps is a partial META.info hash, so pass the $meta.<provides>
             # Note topological-sort with no arguments will sort the class's @projects (provides in this case)

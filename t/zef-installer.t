@@ -15,7 +15,7 @@ subtest {
     my @results   = $installer.install(:$save-to, "META.info");
 
     ok @results.elems,                                "Got non-zero number of results"; 
-    is all(@results.grep({ $_<ok>.so }).elems),    1, "All modules installed OK";
+    is @results.grep({ $_<ok>.so }).elems,         1, "All modules installed OK";
     is any(@results>>.hash.<name>,             'Zef', "name:Zef matches in pass results";
     ok $*SPEC.catpath('', $save-to, 'MANIFEST').IO.e, "MANIFEST created";
 }, 'Zef can install zef';

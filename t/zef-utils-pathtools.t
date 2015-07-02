@@ -4,7 +4,7 @@ use Test;
 plan 5;
 
 subtest {
-    my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
+    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
     LEAVE { # Cleanup
         sleep 1;
         try rm($save-to, :d, :f, :r);

@@ -6,7 +6,7 @@ plan 1;
 
 
 subtest {
-    my $save-to := $*SPEC.catdir($*TMPDIR, time).IO;
+    my $save-to := $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
     try mkdirs($save-to);
 
     LEAVE { sleep 1; try rm($save-to, :d, :f, :r) }

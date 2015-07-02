@@ -29,7 +29,7 @@ class Zef::Utils::Depends {
         # todo: don't do the unique call on every iteration
         for @!projects -> $meta {
             %deps{$meta.<name>} .= push($_) for $meta.<depends>.list;
-            %deps{$meta.<name>} = [%deps{$meta.<name>}.list.unique];
+            %deps{$meta.<name>} = [%deps{$meta.<name>}.list.grep(*.so).unique];
         }
 
         my %ba;

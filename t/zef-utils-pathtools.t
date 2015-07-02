@@ -50,8 +50,6 @@ subtest {
     my @ls      = ls($save-to, :f, :d, :r);
     my @deleted = rm($save-to, :f, :d, :r);
 
-    is (@ls.elems + 1), @deleted.elems, 'Correct number of deleted items';
-
     my $to-be-deleted = any($save-to, $sub-folder, $save-to-file, $sub-folder-file);
     for @delete-us -> $path-to-delete {
         is $path-to-delete, any(@ls,$save-to), 'file was found in .ls';
@@ -73,7 +71,7 @@ subtest {
     # 4. File:   /tmp/{time}/deleteme-subfolder/base-delete.me
     # Only item 2 should get deleted
 
-    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}".IO;
+    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
     try mkdirs($save-to);
     LEAVE { # Cleanup
         sleep 1;

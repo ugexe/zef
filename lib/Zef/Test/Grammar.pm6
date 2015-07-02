@@ -1,16 +1,18 @@
+# todo: actions to finish out the rules, like test counting
 grammar Zef::Test::Grammar {
-    token TOP { [<line> \n]+ }
+    token TOP { ^^ <line>+ [$$ || $] }
 
     token line { 
         [
-        || <version>? [<plan> || <test>]
-        || <diagnostics>?
+        || [<version>? [<plan> || <test>] [\h* <directive>]?]
+        || <diagnostics>
         ]
+        \n
     }
 
     token version { 
         [:i version]
-        <.ws>
+        \h+
         [
         | [1 [2..9]]
         | [[2..9] [0..9]]
@@ -18,22 +20,21 @@ grammar Zef::Test::Grammar {
         ]
     }
 
-    token plan { <digit> '..' <digit> [<.ws> <directive>]? }
+    token plan { $<start>=[<.digit>] '..' $<end>=[<.digit>] }
     token test { 
-        <grade> <.ws> <test-number> 
-        [
-        || [<.ws> <why>]?
-        || [<.ws> <directive>]? 
-        ]
+        <grade> [\h+ <test-number>]? [\h+ <why>]?
     }
 
-    token why         { <-[#] -[\n]>*                    }
+    token why         { <[\N] - [#]>*                    }
     token grade       { 'ok' || 'not ok'                 }
-    token directive   { '#' [<.ws> [<todo> || <skip>]]?  }
-    token skip        { [:!i [SKIP] \S*] [<.ws> <why>]?  }
-    token todo        { [:!i TODO] [<.ws> <why>]?        }
+
+    # actions should mark tests with the skip or todo directive as passed
+    token directive   { '#' [\h+ [<todo> || <skip>]]?    }
+    token skip        { [:!i 'SKIP'] \S* [<.ws> <why>]?  }
+    token todo        { [:!i 'TODO'] [\h+ <why>]?        }
+
     token test-number { <.digit>+                        }
-    token diagnostics { '#' <why>                        }
+    token diagnostics { '#' <.why>                       }
     token bail-out    { 'Bail out!' <dump>               }
     token dump        { .* }
 }

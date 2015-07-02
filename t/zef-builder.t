@@ -9,7 +9,7 @@ plan 1;
 # Basic tests on default builder method
 subtest {
     my $CWD     := $*CWD;
-    my $save-to := $*SPEC.catdir($CWD,"test-libs").IO;
+    my $save-to := $*SPEC.catdir($CWD,"test-libs_{time}{100000.rand.Int}").IO;
 
     my $lib-base  := $*SPEC.catdir($CWD, "lib").IO;
     my $blib-base = $*SPEC.catdir($save-to,"blib").IO;

@@ -29,7 +29,7 @@ subtest {
     # 4. File:   /tmp/{time}/deleteme-subfolder/base-delete.me
     # All 4 items should get deleted
 
-    my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
+    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
     LEAVE { # Cleanup
         sleep 1;
         try rm($save-to, :d, :f, :r);
@@ -73,7 +73,7 @@ subtest {
     # 4. File:   /tmp/{time}/deleteme-subfolder/base-delete.me
     # Only item 2 should get deleted
 
-    my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
+    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}".IO;
     try mkdirs($save-to);
     LEAVE { # Cleanup
         sleep 1;
@@ -120,7 +120,7 @@ subtest {
     # 5. Folder  /tmp/{time}/empty-subfolder
     # Only item 5 will be deleted
 
-    my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
+    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
     try mkdirs($save-to);
     LEAVE { # Cleanup
         sleep 1;
@@ -168,7 +168,7 @@ subtest {
     # 5. Folder  /tmp/{time}/empty-subfolder
     # Delete items 2 and 4
 
-    my $save-to = $*SPEC.catdir($*TMPDIR, time).IO;
+    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
     try mkdirs($save-to.IO.path);
     LEAVE { # Cleanup
         sleep 1;

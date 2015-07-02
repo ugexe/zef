@@ -1,7 +1,9 @@
 use Zef::Utils::PathTools;
 
 class Zef::Installer {
-    method install(:$save-to = %*CUSTOM_LIB<site>, *@metafiles, *%options) is export {
+    has $.force;
+
+    method install(:$save-to = %*CUSTOM_LIB<site>, *@metafiles, Bool :$force = True) is export {
         mkdirs($save-to);
         my $curli := CompUnitRepo::Local::Installation.new($save-to);
 
@@ -12,15 +14,20 @@ class Zef::Installer {
 
             # todo: pass all @curli locations instead of just a single $curli
             my @installed-at = IS-INSTALLED($dist, $curli);
-            if @installed-at && !%options<force> {
+            if @installed-at && !$force {
                 take %result<skipped> = @installed-at;
                 next;
             }
 
-            my @precomp = $meta-path.IO.dirname.IO.ls(:r, :f).grep({ $_.ends-with($*VM.precomp-ext) });
-            my @precomp-as-rel = @precomp.map({ $_.IO.is-absolute ?? $*SPEC.abs2rel($_, $meta-path) !! $_ });
+            my @precomp = $meta-path.IO.dirname.IO.ls(:r, :f).grep({ 
+                $_.ends-with($*VM.precomp-ext) 
+            }).map(-> $file { 
+                IO::Path.new-from-absolute-path($file.IO.absolute, CWD => $meta-path.IO) 
+            });
 
+            my @precomp-as-rel = @precomp.map({ $_.IO.relative(CWD => $meta-path.IO) });
             %result<ok> = 1 if $curli.install(:$dist, $dist.provides.values, @precomp-as-rel);
+
             take { %result }
         }
 
@@ -42,7 +49,6 @@ sub IS-INSTALLED(Distribution $dist, *@curlis) {
             next CANDI unless $have-n.lc eq $want-n.lc;
             next CANDI unless $have-a.lc eq $want-a.lc;
             next CANDI unless ($have-v.lc eq $want-v.lc || $want-v eq '*');
-            say $curli.perl;
             take $curli;
         }
     }

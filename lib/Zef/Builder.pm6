@@ -87,15 +87,15 @@ class Zef::Builder {
                         '', $SPEC.catdir('blib', $module-id.IO.dirname),  # add blib/ path prefix
                         "{$module-id.IO.basename}.{$*VM.precomp-ext}"     # add precomp-extension
                     ).IO;
+                    $new-id-rel = $new-id-rel.relative if $new-id-rel.is-absolute;
                     # relative to '$save-to', not relative to the repo source ($path)
                     my $new-id-absolute := $SPEC.rel2abs($new-id-rel, $save-to).IO;
 
-
                     # todo: .build-output should really be a Channel/Supply to let the client
                     # tap/receieve the output instead of just printing it (like Zef::Test)
-                    my $result = $cu.precomp($new-id-absolute, :$INC, :force);
+                    my $status = ?$cu.precomp($new-id-absolute, :$INC, :force);
                     $cu.build-output  = "[{$module-id}] {'.' x 42 - $module-id.chars} ";
-                    my $output-rest   = $result ?? "ok: {$SPEC.abs2rel($cu.precomp-path, $save-to)}" !! "FAILED";
+                    my $output-rest   = $status ?? "ok: {$SPEC.abs2rel($cu.precomp-path, $save-to)}" !! "FAILED";
                     $cu.build-output ~= $output-rest;
                     print $cu.build-output ~ "\n";
 

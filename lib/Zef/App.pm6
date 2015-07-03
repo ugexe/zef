@@ -153,7 +153,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
             $auth.report(
                 @metas,
                 test-results  => $tests.list, 
-                build-results => $b.list,
+                build-results => [$b.list],
             )
         }, "Reporting";
         verbose('Reporting', $r.list);

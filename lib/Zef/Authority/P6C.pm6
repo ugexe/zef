@@ -67,7 +67,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             my $test  = @test-results.list>>.results.grep({ $_.list>>.file.IO.absolute.starts-with($repo-path) });
             my %build = @build-results.first({ $_<path> eq $repo-path }).hash;
 
-            my $build-output = %build.<curlfs>.map(-> $cu { $cu.build-output }).join("\n");
+            my $build-output = %build.<curlfs>.list.map(-> $cu { $cu.build-output }).join("\n");
             my $test-output  = $test>>.list.map({ $_.list>>.output }).join("\n");
 
             # See Panda::Reporter

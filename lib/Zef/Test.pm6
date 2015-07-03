@@ -35,7 +35,7 @@ class Zef::Test {
             $!results = Supply.from-list: @!test-files.map(-> $file {
                 # Some modules fail tests when using an absolute path, hence the seemingly unnecessary abs2rel
                 my $file-rel = $*SPEC.abs2rel($file, $!path);
-                my $process  = Proc::Async.new("perl6", @!includes.map({ qqw/-I$_/ }), $file-rel);
+                my $process  = Proc::Async.new($*EXECUTABLE, @!includes.map({ qqw/-I$_/ }), $file-rel);
 
                 # Can probably ditch :$file and check $process.args
                 Zef::Test::Result.new(:$file, :$process); 

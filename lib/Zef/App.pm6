@@ -142,9 +142,9 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
         await Promise.allof: @t.list>>.results>>.list>>.promise;
         @t;
     }, "Testing";
-    my $test-result;# = verbose('Testing', $tests.list>>.results>>.list.map({ 
-    #    ok => all($_>>.ok), module => $_>>.file.IO.basename 
-    #}));
+    my $test-result = verbose('Testing', $tests.list>>.results>>.list.map({ 
+        ok => all($_>>.ok), module => $_>>.file.IO.basename 
+    }));
 
 
     # Send a build/test report

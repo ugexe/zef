@@ -3,7 +3,7 @@ use Zef::Utils::PathTools;
 
 # Zef::Test should have $!path set to the base of a module's repo/directory. This is used for 2 things:
 # 1) Automatically grepping all `.t` files recursively.
-# 2) Setting the $CWD to run the tests in the directory they expect.
+# 2) Setting the $cwd to run the tests in the directory they expect.
 # - :@test-files: Skip search for test files and run only these instead.
 # - :@includes: add `lib`s via `-I$include`. Defaults to `("$!path/blib", $!path/lib")`
 # 
@@ -29,7 +29,7 @@ class Zef::Test {
             # Some modules fail tests when using an absolute path, hence the seemingly unnecessary abs2rel
             my $file-rel = $*SPEC.abs2rel($file, $!path);
             my @includes-as-args = @!includes.map({ qqw/-I$_/ });
-            my $process  = Proc::Async.new($*EXECUTABLE, @includes-as-args, $file-rel, :CWD($!path));
+            my $process  = Proc::Async.new($*EXECUTABLE, @includes-as-args, $file-rel, :cwd($!path));
 
             # Can probably ditch :$file and check $process.args
             Zef::Test::Result.new(:$file, :$process); 

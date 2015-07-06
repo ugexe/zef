@@ -79,9 +79,9 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 :version(%meta<ver> // %meta<version> // '*'),
                 :dependencies(%meta<depends>),
                 :metainfo($meta-json),
-                :build-output($build-output),
+                :build-output($build-output // ''),
                 :build-passed(?%build<ok>),
-                :test-output($test-output),
+                :test-output($test-output // ''),
                 :test-passed(?all(?$test.ok)),
                 :distro({
                     :name($*DISTRO.name),

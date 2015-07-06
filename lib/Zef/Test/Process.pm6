@@ -14,7 +14,7 @@ class Zef::Test::Process {
     has @.includes is rw;
     has $.stdout;
     has $.stderr;
-    has $.stdmerged;
+    has $.stdmerge;
     has $.start-time;
     has $.end-time;
     has $.process;
@@ -37,8 +37,8 @@ class Zef::Test::Process {
 
         $!process = Proc::Async.new($*EXECUTABLE, @includes-as-args, $test-path);
         
-        $!process.stdout.act: { $!stdout.emit($_); $!stdmerged ~= $_ };
-        $!process.stderr.act: { $!stderr.emit($_); $!stdmerged ~= $_ };
+        $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ };
+        $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ };
 
         $!started  := $!process.started;
         $!promise   = $!process.start(:$!cwd);

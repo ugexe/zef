@@ -37,10 +37,9 @@ sub verbose($phase, @_) {
 # `file-name.t \s* # <output>` such that we can just print everything as it comes 
 # and still make a little sense of it (and allow it to be sorted)
 sub procs2stdout(*@processes) {
-    my $longest-basename = @processes.reduce({ # for verbose output formatting
-        $^a.file.IO.basename.chars > $^b.file.IO.basename.chars ?? $^a !! $^b
-    }).file.IO.basename;
-
+    my @basenames = @processes>>.file>>.IO>>.basename;
+    my $longest-basename = @basenames.reduce({ $^a.chars > $^b.chars ?? $^a !! $^b });
+    
     for @processes -> $proc {
         my $tfile  = $proc.file.IO.basename;
         my $spaces = $longest-basename.chars - $tfile.chars;

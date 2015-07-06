@@ -19,14 +19,13 @@ class Zef::Installer {
                 next;
             }
 
-            my @precomp = $meta-path.IO.dirname.IO.ls(:r, :f).grep({ 
-                $_.ends-with($*VM.precomp-ext) 
-            }).map(-> $file { 
-                IO::Path.new-from-absolute-path($file.IO.absolute, CWD => $meta-path.IO) 
-            });
+            my @provides = $dist.provides.values.map({ $_.IO.absolute($meta-path.IO.dirname) });
 
-            my @precomp-as-rel = @precomp.map({ $_.IO.relative(CWD => $meta-path.IO) });
-            %result<ok> = 1 if $curli.install(:$dist, $dist.provides.values, @precomp-as-rel);
+            my @precomp = $meta-path.IO.dirname.IO.ls(:r, :f)\
+                .grep({ $_.ends-with($*VM.precomp-ext) })\
+                .map({ $_.IO.absolute($meta-path.IO.dirname) });
+
+            %result<ok> = 1 if $curli.install(:$dist, @provides, @precomp);
 
             take { %result }
         }

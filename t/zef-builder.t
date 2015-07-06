@@ -29,9 +29,10 @@ subtest {
     my @results = $builder.pre-compile($CWD, :$save-to);
 
     is @results.elems, 1, '1 repo';
-    my @result-expects = @results.[0].<curlfs>.list.map({ $_.precomp-path });
+
+    my @expecting = @results.[0].<curlfs>.list.map({ $_.precomp-path });
     for @target-files -> $file {
-        is any(@result-expects), $file.IO.absolute, "Found: {$file.IO.path}";
+        is $file.IO.absolute, any(@expecting), "Found: {$file.IO.path}";
     }
 }, 'Zef::Builder';
 

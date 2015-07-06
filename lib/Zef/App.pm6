@@ -33,7 +33,32 @@ sub verbose($phase, @_) {
     return { ok => %r<ok>.elems, nok => %r<nok> }
 }
 
+# redirect all sub=processes stdout/stderr to current stdout with the format:
+# `file-name.t \s* # <output>` such that we can just print everything as it comes 
+# and still make a little sense of it (and allow it to be sorted)
+sub procs2stdout(*@processes) {
+    my $longest-basename = @processes.reduce({ # for verbose output formatting
+        $^a.file.IO.basename.chars > $^b.file.IO.basename.chars ?? $^a !! $^b
+    }).file.IO.basename;
 
+    for @processes -> $proc {
+        my $tfile  = $proc.file.IO.basename;
+        my $spaces = $longest-basename.chars - $tfile.chars;
+
+        $proc.stdout.tap(-> $stdout {
+            if $stdout.words {
+                my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
+                print $prefix ~ $stdout.subst(/\n/, "\n$prefix", :x( ($stdout.lines.elems // 1) - 1)).chomp ~ "\n";
+            }
+        });
+        $proc.stderr.tap(-> $stderr {
+            if $stderr.words {
+                my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
+                print $prefix ~ $stderr.subst(/\n/, "\n$prefix", :x( ($stderr.lines.elems // 1) - 1)).chomp ~ "\n";
+            }
+        });
+    }
+}
 
 #| Test modules in the specified directories
 multi MAIN('test', *@paths, Bool :$v) is export {
@@ -46,34 +71,19 @@ multi MAIN('test', *@paths, Bool :$v) is export {
             take $*SPEC.catdir($path, "blib");
             take $*SPEC.catdir($path, "lib");
         }
+
         my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
-        my $longest = @t.list>>.test>>.list.reduce({ # for verbose output formatting
-            $^a.file.IO.basename.chars > $^b.file.IO.basename.chars ?? $^a !! $^b
-        }).file.IO.basename.chars if $v;
 
-        for @t.list>>.test>>.list.grep({$v}) -> $tst {
-            my $tfile = $tst.file.IO.basename;
-            my $spaces = $longest - $tfile.chars;
-            $tst.stdout.tap(-> $stdout {
-                if $stdout.words {
-                    my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
-                    print $prefix ~ $stdout.subst(/\n/, "\n$prefix", :x( ($stdout.lines.elems // 1) - 1)).chomp ~ "\n";
-                }
-            });
-            $tst.stderr.tap(-> $stderr {
-                if $stderr.words {
-                    my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
-                    print $prefix ~ $stderr.subst(/\n/, "\n$prefix", :x( ($stderr.lines.elems // 1) - 1)).chomp ~ "\n";
-                }
-            });
+        # verbose sends test output to stdout
+        procs2stdout(@t>>.processes) if $v;
 
-        }
-
-        await Promise.allof: @t.list>>.results>>.list>>.promise;
+        await Promise.allof: @t>>.start;
         @t;
     }, "Testing";
-    my $test-result = verbose('Testing', $tests.list>>.results>>.list.map({ 
-        ok => all($_>>.ok), module => $_>>.file.IO.basename 
+
+
+    my $test-result = verbose('Testing', $tests.list>>.processes.map({ 
+        ok => all($_.ok), module => $_.file.IO.basename
     }));
 
 
@@ -116,34 +126,19 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
             take $*SPEC.catdir($path, "blib");
             take $*SPEC.catdir($path, "lib");
         }
+
         my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
-        my $longest = @t.list>>.test>>.list.reduce({ # for verbose output formatting
-            $^a.file.IO.basename.chars > $^b.file.IO.basename.chars ?? $^a !! $^b
-        }).file.IO.basename.chars if $v;
 
-        for @t.list>>.test>>.list.grep({$v}) -> $tst {
-            my $tfile = $tst.file.IO.basename;
-            my $spaces = $longest - $tfile.chars;
-            $tst.stdout.tap(-> $stdout {
-                if $stdout.words {
-                    my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
-                    print $prefix ~ $stdout.subst(/\n/, "\n$prefix", :x( ($stdout.lines.elems // 1) - 1)).chomp ~ "\n";
-                }
-            });
-            $tst.stderr.tap(-> $stderr {
-                if $stderr.words {
-                    my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
-                    print $prefix ~ $stderr.subst(/\n/, "\n$prefix", :x( ($stderr.lines.elems // 1) - 1)).chomp ~ "\n";
-                }
-            });
+        # verbose sends test output to stdout
+        procs2stdout(@t>>.processes) if $v;
 
-        }
-
-        await Promise.allof: @t.list>>.results>>.list>>.promise;
+        await Promise.allof: @t>>.start;
         @t;
     }, "Testing";
-    my $test-result = verbose('Testing', $tests.list>>.results>>.list.map({ 
-        ok => all($_>>.ok), module => $_>>.file.IO.basename 
+
+
+    my $test-result = verbose('Testing', $tests.list>>.processes.map({ 
+        ok => all($_.ok), module => $_.file.IO.basename
     }));
 
 
@@ -152,8 +147,8 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
         my $r = CLI-WAITING-BAR {
             $auth.report(
                 @metas,
-                test-results  => $tests.list, 
-                build-results => [$b.list],
+                test-results  => $tests, 
+                build-results => $b,
             )
         }, "Reporting";
         verbose('Reporting', $r.list);

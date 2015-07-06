@@ -62,7 +62,6 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             my $meta-json = from-json($meta-path.IO.slurp);
             my %meta      = %($meta-json);
             my $repo-path = $meta-path.IO.dirname;
-            KEEP take { %meta }
 
             my $test  = @test-results.list>>.results.grep({ $_.list>>.file.IO.absolute.starts-with($repo-path) });
             my %build = @build-results.first({ $_<path> eq $repo-path }).hash;
@@ -119,6 +118,8 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                     :prefix($*VM.prefix.Str),
                 }),
             }
+            take { %meta }
+
         }
 
         my @submissions = eager gather for @meta-reports -> $m {

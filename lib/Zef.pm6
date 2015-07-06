@@ -10,7 +10,7 @@ require Zef::Authority::Net;
 require Zef::Authority::P6C;
 
 require Zef::Test;
-require Zef::Test::Result;
+require Zef::Test::Process;
 
 require Zef::Net::HTTP;
 require Zef::Net::HTTP::Client;

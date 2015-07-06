@@ -21,7 +21,7 @@
         "Zef::CLI::StatusBar" : "lib/Zef/CLI/StatusBar.pm6",
 
         "Zef::Test"          : "lib/Zef/Test.pm6",
-        "Zef::Test::Result"  : "lib/Zef/Test/Result.pm6",
+        "Zef::Test::Process" : "lib/Zef/Test/Process.pm6",
         "Zef::Test::Grammar" : "lib/Zef/Test/Grammar.pm6",
 
         "Zef::Utils::Base64"     : "lib/Zef/Utils/Base64.pm6",

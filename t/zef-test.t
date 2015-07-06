@@ -6,9 +6,10 @@ plan 1;
 
 # Test default tester
 subtest {
-    my $tester = Zef::Test.new(path => $?FILE.IO.dirname.IO.dirname);
+    my $tester;
 
-    ok $tester.can('test'), 'Zef::Tester can do default tester method';
+    lives-ok { $tester = Zef::Test.new(path => $?FILE.IO.dirname.IO.dirname) }
+
 
     # my @results := $tester.test("t/00-load.t");
     # ok @results[0].<ok>, 'Test passed';

@@ -61,13 +61,17 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         my @meta-reports = gather for @metas -> $meta-path {
             my $meta-json = from-json($meta-path.IO.slurp);
             my %meta      = %($meta-json);
-            my $repo-path = $meta-path.IO.dirname;
+            my $repo-path = IO::Path.new(
+                volumn   => $meta-path.IO.volume,
+                dirname  => $meta-path.IO.dirname,
+                basename => '',
+            );
 
-            my $test  = @test-results.list>>.results.grep({ $_.list>>.file.IO.absolute.starts-with($repo-path) });
-            my %build = @build-results.first({ $_<path> eq $repo-path }).hash;
+            my $test  = @test-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
+            my %build = @build-results.first({ $_.<path>.IO.ACCEPTS($repo-path.IO) }).hash;
 
-            my $build-output = %build.<curlfs>.list.map(-> $cu { $cu.build-output }).join("\n");
-            my $test-output  = $test>>.list.map({ $_.list>>.output }).join("\n");
+            my $build-output = %build.<curlfs>.list.map({ $_.build-output }).join("\n");
+            my $test-output  = $test.processes.list.map({ $_.stdmerge     }).join("\n");
 
             # See Panda::Reporter
             %meta<report> = to-json {
@@ -78,7 +82,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 :build-output($build-output),
                 :build-passed(?%build<ok>),
                 :test-output($test-output),
-                :test-passed(?all(?$test>>.list>>.ok)),
+                :test-passed(?all(?$test.ok)),
                 :distro({
                     :name($*DISTRO.name),
                     :version($*DISTRO.version.Str),
@@ -123,17 +127,17 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         }
 
         my @submissions = eager gather for @meta-reports -> $m {
-            my $response  = $!ua.post("http://testers.perl6.org/report", body => $m<report>);
-            my $body      = $response.content;
-
-            # P6C reponse body to a successful report submission is just the ID of the report
-            my $report-id = ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;
+            my $report-id = try {
+                my $response  = $!ua.post("http://testers.perl6.org/report", body => $m<report>);
+                my $body      = $response.content;
+                ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;
+            }
 
             take {
                 ok     => ?$report-id, 
                 module => $m.<name>, 
                 report => $m.<report>,
-                id     => $report-id,
+                id     => $report-id // '',
             }
         }
     }

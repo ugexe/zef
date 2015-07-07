@@ -20,5 +20,5 @@ install:
 script:
     - perl6 -Ilib bin/zef -v test
     # we don't have time to do thse on jvm, but they are mostly redundant anyway
-    - if [ "$VM" == "moar" ]; then perl6 -Ilib bin/zef --save-to=precomp/ build ./ fi
-    - if [ "$VM" == "moar" ]; then prove -v -e "perl6 -Iprecomp/blib/lib" t/ fi
+    - if [[ "$VM" == "moar" ]]; then perl6 -Ilib bin/zef --save-to=precomp/ build ./ fi
+    - if [[ "$VM" == "moar" ]]; then prove -v -e "perl6 -Iprecomp/blib/lib" t/ fi

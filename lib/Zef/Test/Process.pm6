@@ -1,13 +1,3 @@
-# Zef::Test::Process represents a single test file and the results of running it.
-# Pass an unstarted Proc::Async object. $file can likely be removed as a constructor 
-# and parsed from $process.args or $process.stdout.
-# 
-# method status
-# Get the exit code of the process that ran the tests.
-#
-# method ok
-# Convenience method. Returns `True` if the exit code was 0 (success). Otherwise, `False`.
-
 class Zef::Test::Process {
     has $.file     is rw;
     has $.cwd      is rw;
@@ -19,6 +9,7 @@ class Zef::Test::Process {
     has $.end-time;
     has $.process;
     has $.promise;
+    has $.is-async = !::("Proc::Async").isa(Failure);
 
     has $.started;
     has $.finished;
@@ -29,24 +20,47 @@ class Zef::Test::Process {
     }
 
     method start {
-        # Example of @!includes usage:
-        # @!includes = "lib", "blib/lib", "/tmp/Dependency/blib";
-        # --> -Ilib -Iblib/lib -I/tmp/Dependency/blib
         my @includes-as-args = @!includes.map({ qqw/-I$_/ });
         my $test-path = ?$!file.IO.is-relative ?? $!file.IO.relative !! $*SPEC.abs2rel($!file, $!cwd);
 
-        $!process = Proc::Async.new($*EXECUTABLE, @includes-as-args, $test-path);
-        
-        $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ };
-        $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ };
+        if $!is-async {
+            $!process = Proc::Async.new($*EXECUTABLE, @includes-as-args, $test-path);
+            
+            $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }
+            $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
 
-        $!started  := $!process.started;
-        $!promise   = $!process.start(:$!cwd);
-        $!finished := $!promise.Bool;
+            $!started  := $!process.started;
+            $!promise   = $!process.start(:$!cwd);
+            $!finished := $!promise.Bool;
+
+            $!promise;
+        }
+        else {
+            # No Proc::Async on JVM yet, so we will make do with this Proc wrapper
+            my $cmd = "{$*EXECUTABLE} {@includes-as-args.join(' ')} $test-path";
+            $!process = shell("$cmd 2>&1", :out, :$!cwd, :!chomp);
+
+            $!promise = Promise.new; #start({
+                $!stdout.act: { $!stdmerge ~= $_ }
+                $!started = True;
+                $!stdout.emit($_) for $!process.out.lines;
+                $!finished = ?$!promise.keep($!process.status);
+            #}).then({ 
+                $!stdout.close; $!stderr.close; $!process.out.close; 
+            #});
+        }
 
         $!promise;
     }
 
-    method status { $!promise.result.status }
-    method ok     { $!promise.result.exitcode == 0 ?? True !! False }
+    method status { $!process.status }
+    method ok     { 
+        if $!promise.^find_method('result').DEFINITE 
+            && $!promise.result.^find_method('exitcode').DEFINITE {
+            return $!promise.result.exitcode == 0 ?? True !! False 
+        }
+        else {
+            return $!process.exitcode == 0 ?? True !! False 
+        }
+    }
 }

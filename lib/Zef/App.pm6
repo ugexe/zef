@@ -23,7 +23,6 @@ my $signal-handler = &::("signal") ~~ Failure ?? &::("signal-jvm") !! &::("signa
 my $sig-resize = ::("Signal::SIGWINCH");
 $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
-
 # will be replaced soon
 sub verbose($phase, @_) {
     return unless @_;
@@ -39,7 +38,7 @@ sub verbose($phase, @_) {
 sub procs2stdout(*@processes) {
     my @basenames = @processes>>.file>>.IO>>.basename;
     my $longest-basename = @basenames.reduce({ $^a.chars > $^b.chars ?? $^a !! $^b });
-    
+
     for @processes -> $proc {
         my $tfile  = $proc.file.IO.basename;
         my $spaces = $longest-basename.chars - $tfile.chars;

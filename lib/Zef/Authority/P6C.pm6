@@ -70,8 +70,14 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             my $test  = @test-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
             my %build = @build-results.first({ $_.<path>.IO.ACCEPTS($repo-path.IO) }).hash;
 
-            my $build-output = %build.<curlfs>.list.map({ $_.build-output }).join("\n");
-            my $test-output  = $test.processes.list.map({ $_.stdmerge     }).join("\n");
+            my $build-output = %build.<curlfs>.list\
+                .grep(*.build-output.so)\
+                .map({ $_.build-output })\
+                .join("\n");
+            my $test-output  = $test.processes.list\
+                .grep(*.stdmerge)\
+                .map({ $_.stdmerge })\
+                .join("\n");
 
             # See Panda::Reporter
             %meta<report> = to-json {

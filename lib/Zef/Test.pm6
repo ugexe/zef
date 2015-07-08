@@ -6,13 +6,14 @@ class Zef::Test {
     has @.includes;
     has @.processes;
     has $.promise;
+    has $.async;
 
-    submethod BUILD(:$!path!, :@!includes) {
+    submethod BUILD(:$!path!, :@!includes, :$!async) {
         my $test-dir   = $*SPEC.catdir($!path, 't').IO;
         my @test-files = $test-dir.IO.ls(:r, :f).grep(*.extension eq 't');
 
         @!processes = eager gather for @test-files -> $file {
-            take Zef::Test::Process.new( :$file, :@!includes, cwd => $!path );
+            take Zef::Test::Process.new( :$file, :@!includes, cwd => $!path, :$!async );
         }
     }
 

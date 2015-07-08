@@ -59,7 +59,7 @@ sub procs2stdout(*@processes) {
 }
 
 #| Test modules in the specified directories
-multi MAIN('test', *@paths, Bool :$v) is export {
+multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
     my @repos = @paths ?? @paths !! $*CWD;
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
@@ -70,7 +70,7 @@ multi MAIN('test', *@paths, Bool :$v) is export {
             take $*SPEC.catdir($path, "lib");
         }
 
-        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
+        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async) }
 
         # verbose sends test output to stdout
         procs2stdout(@t>>.processes) if $v;
@@ -93,7 +93,7 @@ multi MAIN('test', *@paths, Bool :$v) is export {
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v) is export {
+multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v) is export {
     my $SPEC := $*SPEC;
     my $auth  = Zef::Authority::P6C.new;
 
@@ -125,7 +125,7 @@ multi MAIN('install', *@modules, Bool :$report, IO::Path :$save-to = $*TMPDIR, B
             take $*SPEC.catdir($path, "lib");
         }
 
-        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes) }
+        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async) }
 
         # verbose sends test output to stdout
         procs2stdout(@t>>.processes) if $v;

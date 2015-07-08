@@ -32,6 +32,22 @@ Zef - Perl6 Module Management
 
 =head2 More CLI
 
+=head4 install
+
+Fetch, build, test, optional report, and install.
+
+    # verbose output
+    # -v
+
+    # send a test report
+    # --report
+
+    # parallel testing # todo: parallel build/install
+    # --async
+
+    # livin that multi thread life
+    perl6 -Ilib bin/zef -v --report --async install HTTP::Server::Threaded
+
 =head4 search
 
 Take C<*%args> filters. That is, any C<--[field]="term"> passed will search for "term" in it's META [field].

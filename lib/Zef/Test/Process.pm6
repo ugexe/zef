@@ -1,3 +1,4 @@
+# this will be meant to be a non-blocking compatability wrapper for Proc and Proc::Async
 class Zef::Test::Process {
     has $.file     is rw;
     has $.cwd      is rw;
@@ -9,21 +10,31 @@ class Zef::Test::Process {
     has $.end-time;
     has $.process;
     has $.promise;
-    has $.is-async = !::("Proc::Async").isa(Failure);
-
+    has $!proc;
+    has $.async;
+    has $!can-async;
     has $.started;
     has $.finished;
 
-    submethod BUILD(:$!file, :$!cwd, :@!includes) {
+    submethod BUILD(:$!file, :$!cwd, :@!includes, Bool :$!async) {
+        $!can-async = !::("Proc::Async").isa(Failure);
         $!stdout = Supply.new;
-        $!stderr = Supply.new;        
+        $!stderr = Supply.new;
+        $!proc   = $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
+
+         die "Proc::Async not available, but option :\$!async explicitily requested it (JVM NYI)"
+            if $!async && !$!can-async;
     }
 
     method start {
+        # error check is duplicated here because, dun dun dunnn, JVM won't die otherwise
+        die "Proc::Async not available, but option :\$!async explicitily requested it (JVM NYI)"
+            if $!async && !$!can-async;
+
         my @includes-as-args = @!includes.map({ qqw/-I$_/ });
         my $test-path = ?$!file.IO.is-relative ?? $!file.IO.relative !! $*SPEC.abs2rel($!file, $!cwd);
 
-        if $!is-async {
+        if $!async {
             $!process = Proc::Async.new($*EXECUTABLE, @includes-as-args, $test-path);
             
             $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }

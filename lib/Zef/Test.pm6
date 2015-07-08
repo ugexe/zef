@@ -8,7 +8,7 @@ class Zef::Test {
     has $.promise;
     has $.async;
 
-    submethod BUILD(:$!path!, :@!includes, :$!async) {
+    submethod BUILD(:$!path!, :@!includes, Bool :$!async) {
         my $test-dir   = $*SPEC.catdir($!path, 't').IO;
         my @test-files = $test-dir.IO.ls(:r, :f).grep(*.extension eq 't');
 

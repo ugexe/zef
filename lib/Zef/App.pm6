@@ -108,7 +108,17 @@ multi MAIN('smoke', *@ignore, Bool :$report, Bool :$v) {
         say "===> SKIPPING: [$result] is ignored" and next if $result ~~ any(@ignore);
         my @deps = $auth.projects.grep({ $_.<name> }).first({ $_.<name> eq $result }).<depends>.list;
         say "===> SKIPPING: [$result] depends on ignored modules" and next if any(@deps) ~~ any(@ignore);
-        try { &MAIN('install', $result, :$report, :$v, :!exit) }
+        my $promise = Promise.anyof(
+            Promise.in(600),
+            do {
+                # todo: make this work with the Cli::StatusBar
+                my $p = Promise.new;
+                my $vow = $p.vow;
+                my $proc = run($*EXECUTABLE, '-Ilib', 'bin/zef', '-v', '--report', 'install', $result, :out);
+                say $_ for $proc.out.lines;
+                $vow.keep($p);
+            }
+        );
     }
 }
 
@@ -184,7 +194,7 @@ multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to
         verbose('Skip (already installed!)', $install.list.grep({ ?$_.<skipped> }));
     } if $exit;
 
-    ?$exit ?? exit (@modules.elems - $install.list.grep({ !$_<ok> }).elems) !! return True;
+    exit (@modules.elems - $install.list.grep({ !$_<ok> }).elems);
 }
 
 

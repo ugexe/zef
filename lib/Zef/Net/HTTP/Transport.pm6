@@ -20,15 +20,15 @@ role ByteStream {
             $buffer.closed,
             Promise.in(30),
             do {
-                my $promise = Promise.new;
-                my $vow = $promise.vow;
+                my $p = Promise.new;
+                my $vow = $p.vow;
 #            start {
                 while $.recv(|c, :$bin) -> $b {
                     $buffer.send($b);
                 }
 #            }.then({ 
                 $buffer.close;
-                $vow.keep($promise);
+                $vow.keep($p);
 #            });
             }
         );

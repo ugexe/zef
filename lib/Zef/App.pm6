@@ -92,11 +92,30 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
 }
 
 
+multi MAIN('smoke', *@ignore, Bool :$report, Bool :$v) {
+    my $SPEC := $*SPEC;
+    my $auth = CLI-WAITING-BAR {
+        my $p6c = Zef::Authority::P6C.new;
+        $p6c.update-projects;
+        $p6c;
+    }, "Querying Server";
+
+    my @modules = $auth.projects.grep({ $_.<name>:exists }).map({ $_.<name> });
+
+    for @modules -> $result {
+        say "$result";
+        say "===> SKIPPING: [$result] is ignored" and next if $result ~~ any(@ignore);
+        my @deps = $auth.projects.grep({ $_.<name> }).first({ $_.<name> eq $result }).<depends>.list;
+        say "===> SKIPPING: [$result] depends on ignored modules" and next if any(@deps) ~~ any(@ignore);
+        &MAIN('install', $result, :$report, :$v, :!exit);
+    }
+}
+
+
 #| Install with business logic
-multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v) is export {
+multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v, Bool :$exit = True) is export {
     my $SPEC := $*SPEC;
     my $auth  = Zef::Authority::P6C.new;
-
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
@@ -164,7 +183,8 @@ multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to
 
 
     # exit code = number of modules that failed the install process
-    exit @modules.elems - $install.list.grep({ !$_<ok> }).elems;
+    my $exit-code = @modules.elems - $install.list.grep({ !$_<ok> }).elems;
+    ?$exit ?? exit $exit-code !! return $exit-code;
 }
 
 

@@ -48,6 +48,12 @@ Fetch, build, test, optional report, and install.
     # livin that multi thread life
     perl6 -Ilib bin/zef -v --report --async install HTTP::Server::Threaded
 
+=head4 smoke
+
+Tests every module in the ecosystem, ignoring any modules with a name (or dependency name) matching argument C<*@ignores>
+
+    snoop@cali:~/ perl6 -Ilib bin/zef -v --report smoke
+
 =head4 search
 
 Take C<*%args> filters. That is, any C<--[field]="term"> passed will search for "term" in it's META [field].

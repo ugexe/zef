@@ -177,10 +177,11 @@ multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to
     print "Failed tests. Aborting.\n" and exit $test-result<nok> if $test-result<nok>;
 
 
-    my $install = CLI-WAITING-BAR { Zef::Installer.new.install(@metas) }, "Installing";
-    verbose('Install', $install.list.grep({ !$_.<skipped> }));
-    verbose('Skip (already installed!)', $install.list.grep({ ?$_.<skipped> }));
-
+    my $install = do {
+        CLI-WAITING-BAR { Zef::Installer.new.install(@metas) }, "Installing";
+        verbose('Install', $install.list.grep({ !$_.<skipped> }));
+        verbose('Skip (already installed!)', $install.list.grep({ ?$_.<skipped> }));
+    } if $exit;
 
     ?$exit ?? exit (@modules.elems - $install.list.grep({ !$_<ok> }).elems) !! return True;
 }

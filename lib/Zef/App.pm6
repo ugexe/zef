@@ -149,7 +149,7 @@ multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to
         # verbose sends test output to stdout
         procs2stdout(@t>>.processes) if $v;
 
-        await Promise.allof: @t>>.start;
+        await Promise.allof(@t>>.start) if @t.processes.elems;
         @t;
     }, "Testing";
 

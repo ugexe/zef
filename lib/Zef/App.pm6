@@ -12,6 +12,14 @@ use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
 
 
+# Module blacklist reasons:
+# * An excessive number of non-author tests (don't waste user resources with tests that are doing
+#       nothing more than spectesting perl6 itself. Test your *module*
+# * No tests (user resources wasted on fetching/building)
+# * Abandoned
+my @smoke-blacklist = <DateTime::TimeZone mandrelbrot>;
+
+
 # todo: check if a terminal is even being used
 # The reason for the strange signal handling code is due to JVM
 # failing at the compile stage for checks we need to be at runtime.
@@ -93,7 +101,7 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
 }
 
 
-multi MAIN('smoke', :@ignore, Bool :$report, Bool :$v) {
+multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v) {
     say "===> Smoke testing started [{time}]";
 
     my $auth  = CLI-WAITING-BAR {

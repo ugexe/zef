@@ -107,7 +107,9 @@ multi MAIN('smoke', *@ignore, Bool :$report, Bool :$v) {
         say "===> SKIPPING: [$result] is ignored" and next if $result ~~ any(@ignore);
         my @deps = $auth.projects.grep({ $_.<name> }).first({ $_.<name> eq $result }).<depends>.list;
         say "===> SKIPPING: [$result] depends on ignored modules" and next if any(@deps) ~~ any(@ignore);
-        &MAIN('install', $result, :$report, :$v, :!exit);
+        try {
+            &MAIN('install', $result, :$report, :$v, :!exit);
+        }
     }
 }
 

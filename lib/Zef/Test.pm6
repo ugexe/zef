@@ -18,8 +18,16 @@ class Zef::Test {
     }
 
     method start(:$p6flags) {
-        @!processes>>.start;
-        $!promise = Promise.allof( @!processes>>.promise );
+        if @!processes {
+            @!processes>>.start;
+            $!promise = Promise.allof( @!processes>>.promise );
+        }
+        else {
+            $!promise = Promise.new;
+            $!promise.keep(1);
+        }
+
+        $!promise;
     }
 
     method ok {

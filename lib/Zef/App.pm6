@@ -36,6 +36,7 @@ sub verbose($phase, @_) {
 # `file-name.t \s* # <output>` such that we can just print everything as it comes 
 # and still make a little sense of it (and allow it to be sorted)
 sub procs2stdout(*@processes) {
+    return unless @processes;
     my @basenames = @processes>>.file>>.IO>>.basename;
     my $longest-basename = @basenames.reduce({ $^a.chars > $^b.chars ?? $^a !! $^b });
 
@@ -148,8 +149,8 @@ multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to
 
         # verbose sends test output to stdout
         procs2stdout(@t>>.processes) if $v;
+        await Promise.allof(@t>>.start);
 
-        await Promise.allof(@t>>.start) if @t.processes.elems;
         @t;
     }, "Testing";
 

@@ -93,46 +93,59 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
 }
 
 
-multi MAIN('smoke', *@ignore, Bool :$report, Bool :$v) {
-    my $SPEC := $*SPEC;
-    my $auth = CLI-WAITING-BAR {
+multi MAIN('smoke', :@ignore, Bool :$report, Bool :$v) {
+    say "===> Smoke testing started [{time}]";
+
+    my $auth  = CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
         $p6c.update-projects;
+        $p6c.projects = $p6c.projects\
+            .grep({ $_.<name>:exists })\
+            .grep({ $_.<name>    ~~ none(@ignore) })\
+            .grep({ $_.<depends> ~~ none(@ignore) });
         $p6c;
-    }, "Querying Server";
+    }, "Getting ecosystem data";
 
-    my @modules = $auth.projects.grep({ $_.<name>:exists }).map({ $_.<name> });
+    say "===> Module count: {$auth.projects.list.elems}";
 
-    for @modules -> $result {
-        say "$result";
-        say "===> SKIPPING: [$result] is ignored" and next if $result ~~ any(@ignore);
-        my @deps = $auth.projects.grep({ $_.<name> }).first({ $_.<name> eq $result }).<depends>.list;
-        say "===> SKIPPING: [$result] depends on ignored modules" and next if any(@deps) ~~ any(@ignore);
-        my $promise = Promise.anyof(
-            Promise.in(600),
-            do {
-                # todo: make this work with the Cli::StatusBar
-                my $p = Promise.new;
-                my $vow = $p.vow;
-                my $proc = run($*EXECUTABLE, '-Ilib', 'bin/zef', '-v', '--report', 'install', $result, :out);
-                say $_ for $proc.out.lines;
-                $vow.keep($p);
-            }
-        );
+    for $auth.projects.list -> $result {
+        # todo: make this work with the Cli::StatusBar
+        my @args = '-Ilib', 'bin/zef';
+        @args.push('-v') if $v;
+        @args.push('--report') if $report;
+        @args.push($_) for @ignore.map({ "--ignore={$_}" });
+
+        my $proc = run($*EXECUTABLE, @args, 'install', $result.<name>, :out);
+        say $_ for $proc.out.lines;
     }
+
+    say "===> Smoke testing ended [{time}]";
 }
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v, Bool :$exit = True) is export {
+multi MAIN('install', *@modules, :@ignore, Bool :$async, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v, Bool :$exit = True) is export {
     my $SPEC := $*SPEC;
-    my $auth  = Zef::Authority::P6C.new;
+    my $auth  = CLI-WAITING-BAR {
+        my $p6c = Zef::Authority::P6C.new;
+        $p6c.update-projects;
+        $p6c.projects = $p6c.projects\
+            .grep({ $_.<name>:exists })\
+            .grep({ $_.<name>    ~~ none(@ignore) })\
+            .grep({ $_.<depends> ~~ none(@ignore) });
+        $p6c;
+    }, "Querying Authority";
+
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
     my $fetched = CLI-WAITING-BAR { $auth.get(@modules, :$save-to) }, "Fetching";
     verbose('Fetching', $fetched.list);
 
+    unless $fetched.list {
+        say "!!!> No matches found.";
+        exit 1;
+    }
 
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
     my @m = $fetched.list.grep({ $_<ok> }).map({ $_<ok> = ?$SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });

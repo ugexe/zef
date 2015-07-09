@@ -10,7 +10,6 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     has $!git     = Zef::Utils::Git.new;
     has @!mirrors = <http://ecosystem-api.p6c.org/projects.json>;
 
-
     method update-projects {
         my $response = $!ua.get: @!mirrors.[0];
         my $content  = $response.content;
@@ -27,6 +26,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     ) {
         self.update-projects unless @!projects;
         my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) });
+        return () unless @wants-dists;
 
         # Determine the distribution dependencies we want/need
         my @levels = $skip-depends
@@ -45,7 +45,8 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 temp $save-to  = $*SPEC.catdir($save-to, $basename);
                 my @git        = $!git.clone(:$save-to, %dist.<source-url>);
 
-                take { 
+                take {
+                    dist   => %dist,
                     module => %dist.<name>, 
                     path   => @git.[0].<path>, 
                     ok     => ?$save-to.IO.e

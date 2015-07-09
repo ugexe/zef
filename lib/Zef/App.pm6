@@ -107,9 +107,7 @@ multi MAIN('smoke', *@ignore, Bool :$report, Bool :$v) {
         say "===> SKIPPING: [$result] is ignored" and next if $result ~~ any(@ignore);
         my @deps = $auth.projects.grep({ $_.<name> }).first({ $_.<name> eq $result }).<depends>.list;
         say "===> SKIPPING: [$result] depends on ignored modules" and next if any(@deps) ~~ any(@ignore);
-        try {
-            &MAIN('install', $result, :$report, :$v, :!exit);
-        }
+        try { &MAIN('install', $result, :$report, :$v, :!exit) }
     }
 }
 
@@ -184,9 +182,7 @@ multi MAIN('install', *@modules, Bool :$async, Bool :$report, IO::Path :$save-to
     verbose('Skip (already installed!)', $install.list.grep({ ?$_.<skipped> }));
 
 
-    # exit code = number of modules that failed the install process
-    my $exit-code = @modules.elems - $install.list.grep({ !$_<ok> }).elems;
-    ?$exit ?? exit $exit-code !! return $exit-code;
+    ?$exit ?? exit (@modules.elems - $install.list.grep({ !$_<ok> }).elems) !! return True;
 }
 
 

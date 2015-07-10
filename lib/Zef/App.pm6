@@ -5,6 +5,7 @@ use Zef::Builder;
 use Zef::Config;
 use Zef::Installer;
 use Zef::CLI::StatusBar;
+use Zef::ProcessManager;
 use Zef::Test;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
@@ -25,41 +26,6 @@ my $signal-handler = &::("signal") ~~ Failure ?? &::("signal-jvm") !! &::("signa
 my $sig-resize = ::("Signal::SIGWINCH");
 $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
-# will be replaced soon
-sub verbose($phase, @_) {
-    return unless @_;
-    my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
-    print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
-    print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
-    return { ok => %r<ok>.elems, nok => %r<nok> }
-}
-
-# redirect all sub=processes stdout/stderr to current stdout with the format:
-# `file-name.t \s* # <output>` such that we can just print everything as it comes 
-# and still make a little sense of it (and allow it to be sorted)
-sub procs2stdout(*@processes) {
-    return unless @processes;
-    my @basenames = @processes>>.file>>.IO>>.basename;
-    my $longest-basename = @basenames.reduce({ $^a.chars > $^b.chars ?? $^a !! $^b });
-
-    for @processes -> $proc {
-        my $tfile  = $proc.file.IO.basename;
-        my $spaces = $longest-basename.chars - $tfile.chars;
-
-        $proc.stdout.tap(-> $stdout {
-            if $stdout.words {
-                my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
-                print $prefix ~ $stdout.subst(/\n/, "\n$prefix", :x( ($stdout.lines.elems // 1) - 1)).chomp ~ "\n";
-            }
-        });
-        $proc.stderr.tap(-> $stderr {
-            if $stderr.words {
-                my $prefix = $tfile ~ (' ' x $spaces) ~ "# ";
-                print $prefix ~ $stderr.subst(/\n/, "\n$prefix", :x( ($stderr.lines.elems // 1) - 1)).chomp ~ "\n";
-            }
-        });
-    }
-}
 
 #| Test modules in the specified directories
 multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
@@ -67,7 +33,7 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
-    my $tests = CLI-WAITING-BAR {
+    my $test-groups = CLI-WAITING-BAR {
         my @includes = gather for @repos -> $path {
             take $*SPEC.catdir($path, "blib");
             take $*SPEC.catdir($path, "lib");
@@ -76,15 +42,14 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
         my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async) }
 
         # verbose sends test output to stdout
-        procs2stdout(@t>>.processes) if $v;
+        procs2stdout(@t>>.pm>>.processes) if $v;
 
         await Promise.allof: @t>>.start;
         @t;
     }, "Testing";
 
-
-    my $test-result = verbose('Testing', $tests.list>>.processes.map({ 
-        ok => all($_.ok), module => $_.file.IO.basename
+    my $test-result = verbose('Testing', $test-groups.list>>.pm>>.processes.map({ 
+        ok => all($_.ok), module => $_.id.IO.basename
     }));
 
 
@@ -166,7 +131,7 @@ multi MAIN('install', *@modules, :@ignore,
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
-    my $tests = CLI-WAITING-BAR {
+    my $test-groups = CLI-WAITING-BAR {
         my @includes = gather for @repos -> $path {
             take $*SPEC.catdir($path, "blib");
             take $*SPEC.catdir($path, "lib");
@@ -175,15 +140,14 @@ multi MAIN('install', *@modules, :@ignore,
         my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async) }
 
         # verbose sends test output to stdout
-        procs2stdout(@t>>.processes) if $v;
-        await Promise.allof(@t>>.start);
+        procs2stdout(@t>>.pm>>.processes) if $v;
 
+        await Promise.allof: @t>>.start;
         @t;
     }, "Testing";
 
-
-    my $test-result = verbose('Testing', $tests.list>>.processes.map({ 
-        ok => all($_.ok), module => $_.file.IO.basename
+    my $test-result = verbose('Testing', $test-groups.list>>.pm>>.processes.map({ 
+        ok => all($_.ok), module => $_.id.IO.basename
     }));
 
 
@@ -192,7 +156,7 @@ multi MAIN('install', *@modules, :@ignore,
         my $r = CLI-WAITING-BAR {
             $auth.report(
                 @metas,
-                test-results  => $tests, 
+                test-results  => $test-groups, 
                 build-results => $b,
             );
         }, "Reporting";
@@ -260,6 +224,7 @@ multi MAIN('build', $path, Bool :$v, :$save-to) {
     $builder.pre-compile($path, :$save-to);
 }
 
+
 # todo: non-exact matches on non-version fields
 multi MAIN('search', Bool :$v, *@names, *%fields) {
     # Get the projects.json file
@@ -297,6 +262,41 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
     }
 
     exit ?@rows ?? 0 !! 1;
+}
+
+
+# will be replaced soon
+sub verbose($phase, @_) {
+    return unless @_;
+    my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
+    print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
+    print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
+    return { ok => %r<ok>.elems, nok => %r<nok> }
+}
+
+
+# redirect all sub-processes stdout/stderr to current stdout with the format:
+# `file-name.t \s* # <output>` such that we can just print everything as it comes 
+# and still make a little sense of it (and allow it to be sorted)
+sub procs2stdout(*@processes) {
+    return unless @processes;
+    my @basenames = @processes>>.id>>.IO>>.basename;
+    my $longest-basename = @basenames.reduce({ $^a.chars > $^b.chars ?? $^a !! $^b });
+    
+    for @processes -> $proc {
+        for $proc.stdout, $proc.stderr -> $stdio {
+            $stdio.tap: -> $out { 
+                for $out.lines.grep(*.so) -> $line {
+                    state $to-print ~= sprintf(
+                        "%-{$longest-basename.chars}s# %s\n",
+                        $proc.id.IO.basename, 
+                        $line 
+                    );
+                    LAST { print $to-print if $to-print }
+                }
+            }
+        }
+    }
 }
 
 

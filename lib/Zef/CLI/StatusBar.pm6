@@ -51,6 +51,7 @@ sub show-await($message, *@promises) {
         );
 
         method print(*@_) {
+            return unless @_;
             my $lines = @_.join;
             $lock.protect({
                 my $out2 = $*OUT;

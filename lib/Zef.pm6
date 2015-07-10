@@ -3,14 +3,12 @@ unit module Zef;
 require Zef::Builder;
 require Zef::Config;
 require Zef::Installer;
+require Zef::Test;
 require Zef::Uninstaller;
 
 require Zef::Authority;
 require Zef::Authority::Net;
 require Zef::Authority::P6C;
-
-require Zef::Test;
-require Zef::Test::Process;
 
 require Zef::Net::HTTP;
 require Zef::Net::HTTP::Client;

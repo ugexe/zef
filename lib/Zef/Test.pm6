@@ -1,26 +1,35 @@
-use Zef::Test::Process;
+use Zef::ProcessManager;
 use Zef::Utils::PathTools;
 
 class Zef::Test {
+    has $.pm;
     has $.path;
     has @.includes;
-    has @.processes;
     has $.promise;
     has $.async;
 
-    submethod BUILD(:$!path!, :@!includes, Bool :$!async) {
-        my $test-dir   = $*SPEC.catdir($!path, 't').IO;
-        my @test-files = $test-dir.IO.ls(:r, :f).grep(*.extension eq 't');
+    submethod BUILD(:$!path!, :@!includes, Bool :$!async, :$!pm) {
+        my $test-dir   = $!path.IO.child('t');
+        my @test-files = $test-dir.ls(:r, :f).grep(*.extension eq 't');
 
-        @!processes = eager gather for @test-files -> $file {
-            take Zef::Test::Process.new( :$file, :@!includes, cwd => $!path, :$!async );
+        $!pm = !$!pm.defined ?? Zef::ProcessManager.new(:$!async)
+                             !! $!pm.DEFINITE
+                                ?? $!pm
+                                !! ::($!pm).new;
+
+        my @includes-as-args = @!includes.map({ qqw/-I$_/ });
+
+        for @test-files -> $file {
+            # Many tests are (incorrectly) written with the assumption the cwd is their projects base directory.
+            my $file-rel = ?$file.IO.is-relative ?? $file.IO.relative !! $file.IO.relative($!path);
+            $!pm.create( $*EXECUTABLE, @includes-as-args, $file-rel, :cwd($!path), :id($file-rel) );
         }
     }
 
     method start(:$p6flags) {
-        if @!processes {
-            @!processes>>.start;
-            $!promise = Promise.allof( @!processes>>.promise );
+        if $!pm.processes {
+            $!pm.start-all;
+            $!promise = Promise.allof: $!pm.processes>>.promise;
         }
         else {
             $!promise = Promise.new;
@@ -30,20 +39,18 @@ class Zef::Test {
         $!promise;
     }
 
-    method ok {
-        all(@!processes>>.ok) ?? True !! False;
-    }
+    method tap(&code) { $!pm.tap-all(&code) }
 
-    method nok {
-        self.ok ?? False !! True;
-    }
+    method ok { $!pm.ok-all }
+
+    method nok { ?$.ok() ?? False !! True }
 
     method passes {
-        @!processes.grep(*.ok.so)>>.path;
+        $!pm.processes.list.grep(*.ok.so)>>.path;
     }
 
     method failures {
-        @!processes.grep(*.ok.not)>>.path;
+        $!pm.processes.list.grep(*.ok.not)>>.path;
     }
 }
 

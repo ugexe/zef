@@ -1,8 +1,9 @@
-# this will be meant to be a non-blocking compatability wrapper for Proc and Proc::Async
-class Zef::Test::Process {
+# A wrapper around Proc and Proc::Async
+class Zef::Process {
+    has $.id       is rw;
     has $.file     is rw;
+    has @.args     is rw;
     has $.cwd      is rw;
-    has @.includes is rw;
     has $.stdout;
     has $.stderr;
     has $.stdmerge;
@@ -10,17 +11,17 @@ class Zef::Test::Process {
     has $.end-time;
     has $.process;
     has $.promise;
-    has $!proc;
+    has $!type;
     has $.async;
     has $!can-async;
     has $.started;
     has $.finished;
 
-    submethod BUILD(:$!file, :$!cwd, :@!includes, Bool :$!async) {
+    submethod BUILD(:$!file, :@!args, :$!cwd, Bool :$!async, Str :$!id) {
         $!can-async = !::("Proc::Async").isa(Failure);
         $!stdout = Supply.new;
         $!stderr = Supply.new;
-        $!proc   = $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
+        $!type   = $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
 
          die "Proc::Async not available, but option :\$!async explicitily requested it (JVM NYI)"
             if $!async && !$!can-async;
@@ -31,11 +32,8 @@ class Zef::Test::Process {
         die "Proc::Async not available, but option :\$!async explicitily requested it (JVM NYI)"
             if $!async && !$!can-async;
 
-        my @includes-as-args = @!includes.map({ qqw/-I$_/ });
-        my $test-path = ?$!file.IO.is-relative ?? $!file.IO.relative !! $*SPEC.abs2rel($!file, $!cwd);
-
         if $!async {
-            $!process = Proc::Async.new($*EXECUTABLE, @includes-as-args, $test-path);
+            $!process = Proc::Async.new($*EXECUTABLE, @!args);
             
             $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }
             $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
@@ -47,11 +45,11 @@ class Zef::Test::Process {
             $!promise;
         }
         else {
-            # No Proc::Async on JVM yet, so we will make do with this Proc wrapper
-            my $cmd = "{$*EXECUTABLE} {@includes-as-args.join(' ')} $test-path";
+            my $cmd = "{$*EXECUTABLE} {@!args.join(' ')}";
             $!process = shell("$cmd 2>&1", :out, :$!cwd, :!chomp);
 
-            $!promise = Promise.new; #start({
+            #start({
+                $!promise = Promise.new;
                 $!stdout.act: { $!stdmerge ~= $_ }
                 $!started = True;
                 $!stdout.emit($_) for $!process.out.lines;

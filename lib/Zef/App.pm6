@@ -126,7 +126,9 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v) {
 
 #| Install with business logic
 multi MAIN('install', *@modules, :@ignore, 
-    Bool :$async, Bool :$report, Bool :$v, Bool :$dry, IO::Path :$save-to = $*TMPDIR) is export {
+    Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, 
+    IO::Path :$save-to = $*TMPDIR) is export {
+    
     my $SPEC := $*SPEC;
     my $auth  = CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
@@ -136,7 +138,7 @@ multi MAIN('install', *@modules, :@ignore,
             .grep({ $_.<name>    ~~ none(@ignore) })\
             .grep({ $_.<depends> ~~ none(@ignore) });
         $p6c;
-    }, "Querying Authority";
+    }, "Querying Authority",;
 
 
     # Download the requested modules from some authority

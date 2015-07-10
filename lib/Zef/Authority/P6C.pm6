@@ -59,7 +59,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
     method report(*@metas, :@test-results, :@build-results) {
         my @meta-reports = eager gather for @metas -> $meta-path {
-            my $meta-json = from-json { $meta-path.IO.slurp };
+            my $meta-json = to-json { $meta-path.IO.slurp };
             my %meta      = %($meta-json);
             my $repo-path = $meta-path.IO.parent;
 

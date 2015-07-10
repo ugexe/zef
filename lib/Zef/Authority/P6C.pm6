@@ -46,7 +46,6 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 my @git        = $!git.clone(:$save-to, %dist.<source-url>);
 
                 take {
-                    dist   => %dist,
                     module => %dist.<name>, 
                     path   => @git.[0].<path>, 
                     ok     => ?$save-to.IO.e
@@ -59,14 +58,10 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
 
     method report(*@metas, :@test-results, :@build-results) {
-        my @meta-reports = gather for @metas -> $meta-path {
-            my $meta-json = from-json($meta-path.IO.slurp);
+        my @meta-reports = eager gather for @metas -> $meta-path {
+            my $meta-json = from-json { $meta-path.IO.slurp };
             my %meta      = %($meta-json);
-            my $repo-path = IO::Path.new(
-                volumn   => $meta-path.IO.volume,
-                dirname  => $meta-path.IO.dirname,
-                basename => '',
-            );
+            my $repo-path = $meta-path.IO.parent;
 
             my $test  = @test-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
             my %build = @build-results.first({ $_.<path>.IO.ACCEPTS($repo-path.IO) }).hash;
@@ -76,7 +71,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 .map({ $_.build-output })\
                 .join("\n");
             my $test-output  = $test.processes.list\
-                .grep(*.stdmerge)\
+                .grep(*.stdmerge.so)\
                 .map({ $_.stdmerge })\
                 .join("\n");
 

@@ -1,6 +1,5 @@
 unit class Zef::App;
 
-#core modes 
 use Zef::Authority::P6C;
 use Zef::Builder;
 use Zef::Config;
@@ -12,12 +11,7 @@ use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
 
 
-# Module blacklist reasons:
-# * An excessive number of non-author tests (don't waste user resources with tests that are doing
-#       nothing more than spectesting perl6 itself. Test your *module*
-# * No tests (user resources wasted on fetching/building)
-# * Abandoned
-my @smoke-blacklist = <DateTime::TimeZone mandrelbrot>;
+BEGIN our @smoke-blacklist = <DateTime::TimeZone mandelbrot BioInfo Text::CSV>;
 
 
 # todo: check if a terminal is even being used
@@ -117,11 +111,10 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v) {
     say "===> Module count: {$auth.projects.list.elems}";
 
     for $auth.projects.list -> $result {
-        # todo: make this work with the Cli::StatusBar
-        my @args = '-Ilib', 'bin/zef';
+        # todo: make this work with the CLI::StatusBar
+        my @args = '-Ilib', 'bin/zef', '--dry', @ignore.map({ "--ignore={$_}" });
         @args.push('-v') if $v;
         @args.push('--report') if $report;
-        @args.push($_) for @ignore.map({ "--ignore={$_}" });
 
         my $proc = run($*EXECUTABLE, @args, 'install', $result.<name>, :out);
         say $_ for $proc.out.lines;
@@ -132,7 +125,8 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v) {
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :@ignore, Bool :$async, Bool :$report, IO::Path :$save-to = $*TMPDIR, Bool :$v, Bool :$exit = True) is export {
+multi MAIN('install', *@modules, :@ignore, 
+    Bool :$async, Bool :$report, Bool :$v, Bool :$dry, IO::Path :$save-to = $*TMPDIR) is export {
     my $SPEC := $*SPEC;
     my $auth  = CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
@@ -198,7 +192,7 @@ multi MAIN('install', *@modules, :@ignore, Bool :$async, Bool :$report, IO::Path
                 @metas,
                 test-results  => $tests, 
                 build-results => $b,
-            )
+            );
         }, "Reporting";
         verbose('Reporting', $r.list);
         print "===> Report{'s' if $r.list.elems > 1} can be seen shortly at:\n";
@@ -213,9 +207,9 @@ multi MAIN('install', *@modules, :@ignore, Bool :$async, Bool :$report, IO::Path
         CLI-WAITING-BAR { Zef::Installer.new.install(@metas) }, "Installing";
         verbose('Install', $install.list.grep({ !$_.<skipped> }));
         verbose('Skip (already installed!)', $install.list.grep({ ?$_.<skipped> }));
-    } if $exit;
+    } unless $dry;
 
-    exit (@modules.elems - $install.list.grep({ !$_<ok> }).elems);
+    exit $dry ?? $test-result<nok> !! (@modules.elems - $install.list.grep({ !$_<ok> }).elems);
 }
 
 

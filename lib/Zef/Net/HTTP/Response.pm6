@@ -62,8 +62,8 @@ class Zef::Net::HTTP::Response does HTTP::Response {
 
     # Apply transfer codings, content encoding, etc to the body data
     method content {
-        my ($promise, $stream) = $!body.kv;
-        await $promise;
+        my $stream := $!body;
+        #await $promise;
 
         # Right now $stream is a list of multi-byte buf8s, so we may need to combine them
         my $data = buf8.new;

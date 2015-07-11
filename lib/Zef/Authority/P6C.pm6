@@ -11,7 +11,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     has @!mirrors = <http://ecosystem-api.p6c.org/projects.json>;
 
     method update-projects {
-        my $response = $!ua.get: @!mirrors.pick(1);
+        my $response = $!ua.get: ~@!mirrors.pick(1);
         my $content  = $response.content;
         @!projects = @(from-json($content)).grep({ ?$_.<name> });
     }

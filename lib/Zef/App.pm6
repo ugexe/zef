@@ -127,7 +127,7 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
     verbose('META.info availability', @m);
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
     my @repos = @m.grep({ $_.<ok>.so }).map({ $_.<path> });
-    my @metas = @repos.map({ $SPEC.catpath('', $_, "META.info").IO.path }).grep(*.e);
+    my @metas = @repos.map({ $SPEC.catpath('', $_, "META.info").IO.path }).grep(*.IO.e);
 
     # Precompile all modules and dependencies
     my $b = CLI-WAITING-BAR { Zef::Builder.new.pre-compile(@repos) }, "Building", :$boring;

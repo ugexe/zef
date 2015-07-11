@@ -13,7 +13,7 @@ use Zef::Utils::SystemInfo;
 use Zef::CLI::STDMux;
 
 
-BEGIN our @smoke-blacklist = <DateTime::TimeZone mandelbrot BioInfo Text::CSV>;
+BEGIN our @smoke-blacklist = <DateTime::TimeZone mandelbrot BioInfo Text::CSV BioPerl Flower>;
 
 
 # todo: check if a terminal is even being used
@@ -29,7 +29,7 @@ $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 
 #| Test modules in the specified directories
-multi MAIN('test', *@paths, Bool :$async, Bool :$v, Bool :$boring) is export {
+multi MAIN('test', *@paths, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffle) is export {
     my @repos = @paths ?? @paths !! $*CWD;
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
@@ -40,14 +40,17 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v, Bool :$boring) is export {
             take $*SPEC.catdir($path, "lib");
         }
 
-        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async) }
+        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async, :$shuffle) }
 
-        # verbose sends test output to stdout
-        procs2stdout(@t>>.pm>>.processes) if $v;
+        if @t {
+            # verbose sends test output to stdout
+            procs2stdout(@t>>.pm>>.processes) if $v;
+            await Promise.allof(@t.map({ $_.start }));
+        }
 
-        await Promise.allof: @t>>.start;
         @t;
     }, "Testing", :$boring;
+
 
     my $test-result = verbose('Testing', $test-groups.list>>.pm>>.processes.map({ 
         ok => all($_.ok), module => $_.id.IO.basename
@@ -119,12 +122,11 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
 
 
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m = $fetched.list.grep({ $_<ok> }).map({ $_<ok> = ?$SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
+    my @m = $fetched.list.grep({ $_.<ok>.so }).map({ $_.<ok> = ?$SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
     verbose('META.info availability', @m);
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
-    my @repos = @m.grep({ $_<ok> }).map({ $_.<path> });
-    my @metas = @repos.map({ $SPEC.catpath('', $_, "META.info").IO.path });
-
+    my @repos = @m.grep({ $_.<ok>.so }).map({ $_.<path> });
+    my @metas = @repos.map({ $SPEC.catpath('', $_, "META.info").IO.path }).grep(*.e);
 
     # Precompile all modules and dependencies
     my $b = CLI-WAITING-BAR { Zef::Builder.new.pre-compile(@repos) }, "Building", :$boring;
@@ -141,10 +143,12 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
 
         my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async, :$shuffle) }
 
-        # verbose sends test output to stdout
-        procs2stdout(@t>>.pm>>.processes) if $v;
+        if @t {
+            # verbose sends test output to stdout
+            procs2stdout(@t>>.pm>>.processes) if $v;
+            await Promise.allof(@t.map({ $_.start }));
+        }
 
-        await Promise.allof: @t>>.start;
         @t;
     }, "Testing", :$boring;
 
@@ -273,7 +277,7 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
 
 # will be replaced soon
 sub verbose($phase, @_) {
-    return unless @_;
+    say "!!!> $phase stage is empty" and return unless @_;
     my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
     print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
     print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;

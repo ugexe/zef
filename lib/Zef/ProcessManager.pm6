@@ -16,16 +16,11 @@ class Zef::ProcessManager {
     }
 
     method start-all(:$p6flags) {
-        if @!processes {
-            @!processes>>.start;
-            $!promise = Promise.allof( @!processes>>.promise );
-        }
-        else {
-            $!promise = Promise.new;
-            $!promise.keep(1);
-        }
-
-        $!promise;
+        $_.start for @!processes;
+        $!promise = @!processes
+            ?? Promise.allof( @!processes.map({ $_.promise }) )
+            !! do { my $p = Promise.new; $p.keep($p) }; 
+            # ^ todo: more appropriate action where `@!processes.elems == 0`
     }
 
     method tap-all(&code) {

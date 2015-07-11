@@ -16,6 +16,7 @@ role ByteStream {
         }
 #            }.then({ 
         $buffer.close;
+        $.close;
         $vow.keep($buffer);
 #            });
     }
@@ -36,9 +37,10 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
     method round-trip(HTTP::Request $req --> HTTP::Response) {
         fail "HTTP Scheme not supported: {$req.uri.scheme}" 
             unless $req.uri.scheme ~~ any(<http https>);
-
+        my $t = $req.DUMP(:start-line);
+        $t ~= $req.DUMP(:headers);
         my $socket = $!dialer.dial($req.?proxy ?? $req.proxy.uri !! $req.uri);
-        $socket does ByteStream;
+        $socket does ByteStream;;
         $socket.send: $req.DUMP(:start-line);
         $socket.send: $req.DUMP(:headers);
 
@@ -46,7 +48,7 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
             when *.not { #`<no body in request; skip this> }
 
             when Buf { $socket.write($_) }
-            when Str { $socket.send($_)  }
+            when Str { $t ~= $_; $socket.send($_)  }
 
             default {
                 die "{::?CLASS} doesn't know how to handle :\$body of this type: {$_.perl}";
@@ -54,7 +56,7 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
         }
 
         $socket.send: $req.DUMP(:trailers);
-
+"FUCK".IO.spurt($t);
         # ?: should we allow cancelation of the receiving socket (not including
         # timeout related canceling) before it has finished reading the header?
         my $header;

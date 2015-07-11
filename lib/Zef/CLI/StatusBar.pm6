@@ -1,6 +1,7 @@
 unit module Zef::CLI::StatusBar;
 
-sub CLI-WAITING-BAR(&code, $status) is export {
+sub CLI-WAITING-BAR(&code, $status, Bool :$boring) is export {
+    say "===> $status" and return code() if $boring;
     my $promise = Promise.new;
     my $vow     = $promise.vow;
     my $await   = start { show-await($status, $promise) };
@@ -51,23 +52,24 @@ sub show-await($message, *@promises) {
         );
 
         method print(*@_) {
-            return unless @_;
-            my $lines = @_.join;
-            $lock.protect({
-                my $out2 = $*OUT;
-                $*ERR = $*OUT = $out;
-                if $lines.chars {
-                    my $line = r-print($lines.trim-trailing, :$last-line-len);
-                    $line ~= "\n";
-                    print $line;
-                    $last-line-len = 0;
-                }
-                my $msg = "$e> $message$d";
-                my $status-bar = r-print($msg, :$last-line-len);
-                print $status-bar;
-                $last-line-len = $msg.chars;
-                $*ERR = $*OUT = $out2;
-            });
+            if @_ {
+                my $lines = @_.join;
+                $lock.protect({
+                    my $out2 = $*OUT;
+                    $*ERR = $*OUT = $out;
+                    if $lines.chars {
+                        my $line = r-print($lines.trim-trailing, :$last-line-len);
+                        $line ~= "\n";
+                        print $line;
+                        $last-line-len = 0;
+                    }
+                    my $msg = "$e> $message$d";
+                    my $status-bar = r-print($msg, :$last-line-len);
+                    print $status-bar;
+                    $last-line-len = $msg.chars;
+                    $*ERR = $*OUT = $out2;
+                });
+            }
         }
 
         method flush {}

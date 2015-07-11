@@ -13,7 +13,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     method update-projects {
         my $response = $!ua.get: @!mirrors.[0];
         my $content  = $response.content;
-        @!projects = try @(from-json($content)).grep({ ?$_.<name> });
+        @!projects = @(from-json($content)).grep({ ?$_.<name> });
     }
 
     # Use the p6c hosted projects.json to get a list of name => git-repo that 
@@ -24,7 +24,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         :$save-to is copy,
         Bool :$skip-depends,
     ) {
-        self.update-projects unless @!projects;
+        self.update-projects unless @!projects.elems;
         my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) });
         return () unless @wants-dists;
 
@@ -59,18 +59,18 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
     method report(*@metas, :@test-results, :@build-results) {
         my @meta-reports = eager gather for @metas -> $meta-path {
-            my $meta-json = to-json { $meta-path.IO.slurp };
+            my $meta-json = from-json($meta-path.IO.slurp);
             my %meta      = %($meta-json);
             my $repo-path = $meta-path.IO.parent;
 
-            my $test  = @test-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
+            my $test-group  = @test-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
             my %build = @build-results.first({ $_.<path>.IO.ACCEPTS($repo-path.IO) }).hash;
 
             my $build-output = %build.<curlfs>.list\
                 .grep(*.build-output.so)\
                 .map({ $_.build-output })\
                 .join("\n");
-            my $test-output  = $test.processes.list\
+            my $test-output  = $test-group.pm.processes.list\
                 .grep(*.stdmerge.so)\
                 .map({ $_.stdmerge })\
                 .join("\n");
@@ -84,7 +84,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 :build-output($build-output // ''),
                 :build-passed(?%build<ok>),
                 :test-output($test-output // ''),
-                :test-passed(?all(?$test.ok)),
+                :test-passed(?all(?$test-group.ok)),
                 :distro({
                     :name($*DISTRO.name),
                     :version($*DISTRO.version.Str),
@@ -130,6 +130,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
         my @submissions = eager gather for @meta-reports -> $m {
             my $report-id = try {
+                CATCH { default { print "===> Error while POSTing: $_" }}
                 my $response  = $!ua.post("http://testers.perl6.org/report", body => $m<report>);
                 my $body      = $response.content;
                 ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;

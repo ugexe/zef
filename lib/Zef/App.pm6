@@ -10,6 +10,7 @@ use Zef::Test;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
+use Zef::CLI::STDMux;
 
 
 BEGIN our @smoke-blacklist = <DateTime::TimeZone mandelbrot BioInfo Text::CSV>;
@@ -28,7 +29,7 @@ $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 
 #| Test modules in the specified directories
-multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
+multi MAIN('test', *@paths, Bool :$async, Bool :$v, Bool :$boring) is export {
     my @repos = @paths ?? @paths !! $*CWD;
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
@@ -46,7 +47,7 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
 
         await Promise.allof: @t>>.start;
         @t;
-    }, "Testing";
+    }, "Testing", :$boring;
 
     my $test-result = verbose('Testing', $test-groups.list>>.pm>>.processes.map({ 
         ok => all($_.ok), module => $_.id.IO.basename
@@ -60,7 +61,7 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v) is export {
 }
 
 
-multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v) {
+multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :$boring) {
     say "===> Smoke testing started [{time}]";
 
     my $auth  = CLI-WAITING-BAR {
@@ -71,13 +72,13 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v) {
             .grep({ $_.<name>    ~~ none(@ignore) })\
             .grep({ $_.<depends> ~~ none(@ignore) });
         $p6c;
-    }, "Getting ecosystem data";
+    }, "Getting ecosystem data", :$boring;
 
     say "===> Module count: {$auth.projects.list.elems}";
 
     for $auth.projects.list -> $result {
         # todo: make this work with the CLI::StatusBar
-        my @args = '-Ilib', 'bin/zef', '--dry', @ignore.map({ "--ignore={$_}" });
+        my @args = '-Ilib', 'bin/zef', '--dry', '--boring', @ignore.map({ "--ignore={$_}" });
         @args.push('-v') if $v;
         @args.push('--report') if $report;
 
@@ -90,10 +91,9 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v) {
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :@ignore, 
-    Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, 
-    IO::Path :$save-to = $*TMPDIR) is export {
-    
+multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
+    Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle) is export {
+
     my $SPEC := $*SPEC;
     my $auth  = CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
@@ -103,7 +103,7 @@ multi MAIN('install', *@modules, :@ignore,
             .grep({ $_.<name>    ~~ none(@ignore) })\
             .grep({ $_.<depends> ~~ none(@ignore) });
         $p6c;
-    }, "Querying Authority",;
+    }, "Querying Authority", :$boring;
 
 
     # Download the requested modules from some authority
@@ -116,6 +116,7 @@ multi MAIN('install', *@modules, :@ignore,
         exit 1;
     }
 
+
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
     my @m = $fetched.list.grep({ $_<ok> }).map({ $_<ok> = ?$SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
     verbose('META.info availability', @m);
@@ -125,7 +126,7 @@ multi MAIN('install', *@modules, :@ignore,
 
 
     # Precompile all modules and dependencies
-    my $b = CLI-WAITING-BAR { Zef::Builder.new.pre-compile(@repos) }, "Building";
+    my $b = CLI-WAITING-BAR { Zef::Builder.new.pre-compile(@repos) }, "Building", :$boring;
     verbose('Build', $b.list);
 
 
@@ -137,14 +138,15 @@ multi MAIN('install', *@modules, :@ignore,
             take $*SPEC.catdir($path, "lib");
         }
 
-        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async) }
+        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async, :$shuffle) }
 
         # verbose sends test output to stdout
         procs2stdout(@t>>.pm>>.processes) if $v;
 
         await Promise.allof: @t>>.start;
         @t;
-    }, "Testing";
+    }, "Testing", :$boring;
+
 
     my $test-result = verbose('Testing', $test-groups.list>>.pm>>.processes.map({ 
         ok => all($_.ok), module => $_.id.IO.basename
@@ -159,10 +161,12 @@ multi MAIN('install', *@modules, :@ignore,
                 test-results  => $test-groups, 
                 build-results => $b,
             );
-        }, "Reporting";
+        }, "Reporting", :$boring;
+
         verbose('Reporting', $r.list);
-        print "===> Report{'s' if $r.list.elems > 1} can be seen shortly at:\n";
-        print "\thttp://testers.perl6.org/reports/$_.html\n" for $r.list.grep(*.<id>).map({ $_.<id> });
+        my @ok = $r.list.grep(*.<id>.so);
+        print "===> Report{'s' if $r.list.elems > 1} can be seen shortly at:\n" if @ok;
+        print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
     }
 
 
@@ -170,10 +174,11 @@ multi MAIN('install', *@modules, :@ignore,
 
 
     my $install = do {
-        CLI-WAITING-BAR { Zef::Installer.new.install(@metas) }, "Installing";
-        verbose('Install', $install.list.grep({ !$_.<skipped> }));
-        verbose('Skip (already installed!)', $install.list.grep({ ?$_.<skipped> }));
-    } unless $dry;
+        my $i = CLI-WAITING-BAR { Zef::Installer.new.install(@metas) }, "Installing", :$boring;
+        verbose('Install', $i.list.grep({ !$_.<skipped> }));
+        verbose('Skip (already installed!)', $i.list.grep({ ?$_.<skipped> }));
+    } unless ?$dry;
+
 
     exit $dry ?? $test-result<nok> !! (@modules.elems - $install.list.grep({ !$_<ok> }).elems);
 }
@@ -272,31 +277,6 @@ sub verbose($phase, @_) {
     print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
     print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
     return { ok => %r<ok>.elems, nok => %r<nok> }
-}
-
-
-# redirect all sub-processes stdout/stderr to current stdout with the format:
-# `file-name.t \s* # <output>` such that we can just print everything as it comes 
-# and still make a little sense of it (and allow it to be sorted)
-sub procs2stdout(*@processes) {
-    return unless @processes;
-    my @basenames = @processes>>.id>>.IO>>.basename;
-    my $longest-basename = @basenames.reduce({ $^a.chars > $^b.chars ?? $^a !! $^b });
-    
-    for @processes -> $proc {
-        for $proc.stdout, $proc.stderr -> $stdio {
-            $stdio.tap: -> $out { 
-                for $out.lines.grep(*.so) -> $line {
-                    state $to-print ~= sprintf(
-                        "%-{$longest-basename.chars}s# %s\n",
-                        $proc.id.IO.basename, 
-                        $line 
-                    );
-                    LAST { print $to-print if $to-print }
-                }
-            }
-        }
-    }
 }
 
 

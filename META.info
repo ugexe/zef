@@ -21,6 +21,7 @@
         "Zef::Authority::Zef" : "lib/Zef/Authority/Zef.pm6",
 
         "Zef::CLI::StatusBar" : "lib/Zef/CLI/StatusBar.pm6",
+        "Zef::CLI::STDMux"    : "lib/Zef/CLI/STDMux.pm6",
 
         "Zef::Test"          : "lib/Zef/Test.pm6",
         "Zef::Test::Grammar" : "lib/Zef/Test/Grammar.pm6",

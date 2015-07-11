@@ -61,7 +61,7 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v, Bool :$boring) is export {
 }
 
 
-multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :$boring) {
+multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle) {
     say "===> Smoke testing started [{time}]";
 
     my $auth  = CLI-WAITING-BAR {
@@ -79,8 +79,9 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
     for $auth.projects.list -> $result {
         # todo: make this work with the CLI::StatusBar
         my @args = '-Ilib', 'bin/zef', '--dry', '--boring', @ignore.map({ "--ignore={$_}" });
-        @args.push('-v') if $v;
-        @args.push('--report') if $report;
+        @args.push('-v')        if $v;
+        @args.push('--report')  if $report;
+        @args.push('--shuffle') if $shuffle;
 
         my $proc = run($*EXECUTABLE, @args, 'install', $result.<name>, :out);
         say $_ for $proc.out.lines;

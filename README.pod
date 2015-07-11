@@ -45,6 +45,18 @@ Fetch, build, test, optional report, and install.
     # parallel testing # todo: parallel build/install
     # --async
 
+    # no status bar or other CLI eye candy
+    --boring
+
+    # do everything except the actually install
+    --dry
+
+    # run the tests in a random order instead of sorted
+    --shuffle
+
+    # skip modules with matching names (or any modules depending on them)
+    --ignore=Acme::Virus --ignore=Acme::TakesForever
+
     # livin that multi thread life
     perl6 -Ilib bin/zef -v --report --async install HTTP::Server::Threaded
 
@@ -53,6 +65,15 @@ Fetch, build, test, optional report, and install.
 Tests every module in the ecosystem, ignoring any modules with a name (or dependency name) matching argument C<*@ignores>
 
     snoop@cali:~/ perl6 -Ilib bin/zef -v --report smoke
+
+    # skip modules with matching names (or any modules depending on them)
+    --ignore=Acme::Virus --ignore=Acme::TakesForever
+
+    # same as install options
+    --boring
+    --smoke
+    --dry
+    -v
 
 =head4 search
 

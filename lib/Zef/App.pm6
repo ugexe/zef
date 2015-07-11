@@ -36,8 +36,8 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffl
     # (note: first crack at supplies/parallelization)
     my $test-groups = CLI-WAITING-BAR {
         my @includes = gather for @repos -> $path {
-            take $*SPEC.catdir($path, "blib");
-            take $*SPEC.catdir($path, "lib");
+            take $path.child('blib');
+            take $path.child('lib');
         }
 
         my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async, :$shuffle) }
@@ -99,7 +99,6 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
 multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
     Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle) is export {
 
-    my $SPEC := $*SPEC;
     my $auth  = CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
         $p6c.update-projects;
@@ -123,11 +122,11 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
 
 
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m = $fetched.list.grep({ $_.<ok>.so }).map({ $_.<ok> = ?$SPEC.catpath('', $_.<path>, "META.info").IO.e; $_ });
+    my @m = $fetched.list.grep({ $_.<ok>.so }).map({ $_.<ok> = ?$_.<path>.IO.child('META.info').IO.e; $_ });
     verbose('META.info availability', @m);
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
     my @repos = @m.grep({ $_.<ok>.so }).map({ $_.<path> });
-    my @metas = @repos.map({ $SPEC.catpath('', $_, "META.info").IO.path }).grep(*.IO.e);
+    my @metas = @repos.map({ $_.IO.child('META.info').IO.path }).grep(*.IO.e);
 
     # Precompile all modules and dependencies
     my $b = CLI-WAITING-BAR { Zef::Builder.new.pre-compile(@repos) }, "Building", :$boring;
@@ -138,8 +137,8 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
     # (note: first crack at supplies/parallelization)
     my $test-groups = CLI-WAITING-BAR {
         my @includes = gather for @repos -> $path {
-            take $*SPEC.catdir($path, "blib");
-            take $*SPEC.catdir($path, "lib");
+            take $path.child('lib');
+            take $path.child('blib');
         }
 
         my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async, :$shuffle) }
@@ -147,7 +146,7 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
         if @t {
             # verbose sends test output to stdout
             procs2stdout(@t>>.pm>>.processes) if $v;
-            await Promise.allof(@t.map({ $_.start }));
+            await Promise.allof: @t.map({ $_.start });
         }
 
         @t;
@@ -197,13 +196,13 @@ multi MAIN('local-install', *@modules) is export {
 
 
 #! Download a single module and change into its directory
-multi MAIN('look', $module, Bool :$v, :$save-to = $*SPEC.catdir($*CWD,time)) { 
+multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.child(time)) { 
     my $auth = Zef::Authority::P6C.new;
     my @g    = $auth.get: $module, :$save-to, :skip-depends;
     verbose('Fetching', @g);
 
 
-    if @g.[0].<ok> {
+    if @g.[0].<ok>.so {
         say "===> Shell-ing into directory: {@g.[0].<path>}";
         chdir @g.[0].<path>;
         shell(%*ENV<SHELL> // %*ENV<ComSpec>);
@@ -222,7 +221,7 @@ multi MAIN('get', *@modules, Bool :$v, :$save-to = $*TMPDIR, Bool :$skip-depends
     my $auth = Zef::Authority::P6C.new;
     my @g    = $auth.get: @modules, :$save-to, :$skip-depends;
     verbose('Fetching', @g);
-    say $_.<path> for @g.grep({ $_.<ok> });
+    say $_.<path> for @g.grep({ $_.<ok>.so });
     exit @g.grep({ not $_.<ok> }).elems;
 }
 

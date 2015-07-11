@@ -7,8 +7,8 @@ plan 1;
 
 # Test parsing out POD from modules
 subtest {
-    my $tlib-dir   = $*SPEC.catdir($?FILE.IO.dirname, 'lib').IO;
-    my $tlib-file  = $*SPEC.catpath('', $tlib-dir.IO.path, 'depends.pm6').IO;
+    my $tlib-dir   = $?FILE.IO.dirname.IO.child('lib').IO;
+    my $tlib-file  = $tlib-dir.IO.child('depends.pm6').IO;
     my @libs       = $tlib-dir.IO.ls(:r, :f, d => False);
     my @depends    = Zef::Utils::Depends.build-dep-tree: extract-deps(@libs);
 

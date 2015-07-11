@@ -4,15 +4,15 @@ use Test;
 plan 5;
 
 subtest {
-    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
+    my $save-to = $*TMPDIR.child("{time}{100000.rand.Int}").IO;
     LEAVE { # Cleanup
         sleep 1;
         try rm($save-to, :d, :f, :r);
     }
 
 
-    my $sub-save-to = $*SPEC.catdir($save-to.IO.path, 'sub1');
-    my $sub-sub-save-to = $*SPEC.catdir($sub-save-to.IO.path, 'sub2');
+    my $sub-save-to = $save-to.IO.child('sub1');
+    my $sub-sub-save-to = $sub-save-to.IO.child('sub2');
     my $dir = try mkdirs($sub-sub-save-to);
 
     ok $sub-sub-save-to.IO.e, "Created {$sub-sub-save-to}";
@@ -29,19 +29,19 @@ subtest {
     # 4. File:   /tmp/{time}/deleteme-subfolder/base-delete.me
     # All 4 items should get deleted
 
-    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
+    my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
     LEAVE { # Cleanup
         sleep 1;
         try rm($save-to, :d, :f, :r);
     }
 
     @delete-us.push(try mkdirs($save-to));
-    my $sub-folder = $*SPEC.catdir($save-to.IO.path, 'deleteme-subfolder').IO;
+    my $sub-folder = $save-to.IO.child('deleteme-subfolder').IO;
     @delete-us.push(try mkdirs($sub-folder));
 
     # create 2 test files, one in each directory we created above
-    my $save-to-file    = $*SPEC.catpath('', $save-to.IO.path, 'base-delete.me').IO;
-    my $sub-folder-file = $*SPEC.catpath('', $sub-folder.IO.path, 'sub-delete.me').IO;
+    my $save-to-file    = $save-to.IO.child('base-delete.me').IO;
+    my $sub-folder-file = $sub-folder.IO.child('sub-delete.me').IO;
     @delete-us.push($save-to-file.IO.path) if try open($save-to-file.IO.path, :w);
     @delete-us.push($sub-folder-file.IO.path) if try open($sub-folder-file.IO.path, :w);
 
@@ -71,7 +71,7 @@ subtest {
     # 4. File:   /tmp/{time}/deleteme-subfolder/base-delete.me
     # Only item 2 should get deleted
 
-    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
+    my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
     try mkdirs($save-to);
     LEAVE { # Cleanup
         sleep 1;
@@ -79,12 +79,12 @@ subtest {
     }
 
 
-    my $sub-folder = $*SPEC.catdir($save-to.IO.path, 'deleteme-subfolder');
+    my $sub-folder = $save-to.IO.child('deleteme-subfolder');
     try mkdirs($sub-folder);
 
     # create 2 test files, one in each directory we created above
-    my $save-to-file    = $*SPEC.catpath('', $save-to.IO.path, 'base-delete.me').IO;
-    my $sub-folder-file = $*SPEC.catpath('', $sub-folder.IO.path, 'sub-delete.me').IO;
+    my $save-to-file    = $save-to.IO.child('base-delete.me').IO;
+    my $sub-folder-file = $sub-folder.IO.child('sub-delete.me').IO;
     @delete-us.push($save-to-file.IO.path) if open($save-to-file.IO, :w).close;
     try open($sub-folder-file, :w).close;
 
@@ -118,7 +118,7 @@ subtest {
     # 5. Folder  /tmp/{time}/empty-subfolder
     # Only item 5 will be deleted
 
-    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
+    my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
     try mkdirs($save-to);
     LEAVE { # Cleanup
         sleep 1;
@@ -126,14 +126,14 @@ subtest {
     }
 
 
-    my $sub-folder = $*SPEC.catdir($save-to, 'deleteme-subfolder');
+    my $sub-folder = $save-to.IO.child('deleteme-subfolder');
     try mkdirs($sub-folder);
-    my $sub-folder-empty = $*SPEC.catdir($save-to, 'empty-subfolder');
+    my $sub-folder-empty = $save-to.child('empty-subfolder');
     @delete-us.push($sub-folder-empty) if try mkdirs($sub-folder-empty);
 
     # create 2 test files, one in each directory we created above
-    my $save-to-file    = $*SPEC.catpath('', $save-to, 'base-delete.me');
-    my $sub-folder-file = $*SPEC.catpath('', $sub-folder, 'sub-delete.me');
+    my $save-to-file    = $save-to.IO.child('base-delete.me');
+    my $sub-folder-file = $sub-folder.IO.child('sub-delete.me');
     try open($save-to-file, :w);
     try open($sub-folder-file, :w);
 
@@ -166,21 +166,21 @@ subtest {
     # 5. Folder  /tmp/{time}/empty-subfolder
     # Delete items 2 and 4
 
-    my $save-to = $*SPEC.catdir($*TMPDIR, "{time}{100000.rand.Int}").IO;
+    my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
     try mkdirs($save-to.IO.path);
     LEAVE { # Cleanup
         sleep 1;
         try rm($save-to, :d, :f, :r);
     }
 
-    my $sub-folder = $*SPEC.catdir($save-to.IO.path, 'deleteme-subfolder').IO;
+    my $sub-folder = $save-to.IO.child('deleteme-subfolder').IO;
     try mkdirs($sub-folder);
-    my $sub-folder-empty = $*SPEC.catdir($save-to.IO.path, 'empty-subfolder').IO;
+    my $sub-folder-empty = $save-to.IO.child('empty-subfolder').IO;
     try mkdirs($sub-folder-empty);
 
     # create 2 test files, one in each directory we created above
-    my $save-to-file    = $*SPEC.catpath('', $save-to.IO.path, 'base-delete.me').IO;
-    my $sub-folder-file = $*SPEC.catpath('', $sub-folder.IO.path, 'sub-delete.me').IO;
+    my $save-to-file    = $save-to.IO.child('base-delete.me').IO;
+    my $sub-folder-file = $sub-folder.IO.child('sub-delete.me').IO;
     @delete-us.push($save-to-file) if try open($save-to-file.IO.path, :w);
     @delete-us.push($sub-folder-file) if try open($sub-folder-file.IO.path, :w);
 

@@ -11,7 +11,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     has @!mirrors = <http://ecosystem-api.p6c.org/projects.json>;
 
     method update-projects {
-        my $response = $!ua.get: @!mirrors.[0];
+        my $response = $!ua.get: @!mirrors.pick(1);
         my $content  = $response.content;
         @!projects = @(from-json($content)).grep({ ?$_.<name> });
     }
@@ -42,7 +42,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
                 # todo: implement the rest of however github.com transliterates paths
                 my $basename   = %dist.<name>.trans(':' => '-');
-                temp $save-to  = $*SPEC.catdir($save-to, $basename);
+                temp $save-to  = $save-to.IO.child($basename);
                 my @git        = $!git.clone(:$save-to, %dist.<source-url>);
 
                 take {
@@ -128,7 +128,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
         }
 
-        my @submissions = eager gather for @meta-reports -> $m {
+        my @submissions = eager gather for @meta-reports.grep({ $_.<report>.so }) -> $m {
             my $report-id = try {
                 CATCH { default { print "===> Error while POSTing: $_" }}
                 my $response  = $!ua.post("http://testers.perl6.org/report", body => $m<report>);

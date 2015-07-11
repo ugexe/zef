@@ -6,41 +6,55 @@ use Zef::Utils::PathTools;
 class Zef::Builder {
     # todo: lots of cleanup/refactoring
     method pre-compile(*@repos is copy, :$save-to is copy) {
-        # my $manifest  = from-json( $*SPEC.catpath('', %*CUSTOM_LIB<site>, 'MANIFEST').IO.slurp );
+        # my $manifest  = from-json( %*CUSTOM_LIB<site>.IO.child('MANIFEST').IO.slurp );
 
         my @results = eager gather for @repos -> $path {
-            my $SPEC := $*SPEC;
-            my %meta  = %(from-json( $SPEC.catpath('', $path, 'META.info').IO.slurp) );
+            my %meta  = %(from-json( $path.IO.child('META.info').IO.slurp) );
 
 
             # NOTE: this may change
             # Currently treats relative paths as relative to the current repo's path ($path).
             # It may or may not be better to treat them as relative to the users CWD. We shall see.
             temp $save-to = $save-to 
-                ?? ($save-to.IO.is-absolute ?? $save-to.IO !! $SPEC.catdir($save-to, $path).IO) 
+                ?? ($save-to.IO.is-absolute ?? $save-to.IO !! $save-to.IO.absolute($path).IO) 
                 !! $path.IO;
             print "===> Build directory: {$save-to.absolute}\n";
 
 
             # Determine the paths where the sources are located, where the pre-compiled 
             # code should go, and what $INC should include before pre-compiling.
-            my @libs     = %meta<provides>.list.map({
-                $SPEC.rel2abs($SPEC.splitdir($_.value.IO.dirname).[0].IO // $SPEC.curdir, $path)
-            }).unique.map({ CompUnitRepo::Local::File.new($_).Str });
-            state @blibs.push($_) for @libs.map({ 
-                CompUnitRepo::Local::File.new( $SPEC.rel2abs($SPEC.catdir('blib', $SPEC.abs2rel($_, $path)), $save-to) ).Str;
+
+
+            my @libs = %meta<provides>.list\
+                .grep({ $_.value.IO.absolute($path).IO.f })\
+                .map({ ($*SPEC.splitdir($_.value.IO.dirname).[0].IO // $*SPEC.curdir).IO.absolute($path) })\
+                .unique\
+                .map({ CompUnitRepo::Local::File.new($_).Str });
+
+            state @blibs.push($_) for @libs.map({  
+                my $blib = $_.IO.relative($path).IO\
+                    .parent.IO\
+                    .child('blib').IO\
+                    .child('lib').IO\
+                    .absolute($save-to);
+                CompUnitRepo::Local::File.new( $blib ).Str;
             });
-            my $INC     := @blibs.unique, @libs, @*INC;
-            my @files    = %meta<provides>.list.map({ $SPEC.rel2abs($_.value, $path).IO.path });
+
+            my $INC  := @blibs, @libs, @*INC;
+            my @files = %meta<provides>.list.map({ $_.value.IO.absolute($path).IO.path });
 
 
             # Build the @dep chain for the %META.<provides> by parsing the 
             # use/require/need from the module source.
             my @provides-as-deps = eager gather for @(extract-deps( @files ).list) -> $info is rw {
-                $info.<depends> = [$info.<depends>.list.map(-> $name { %meta.<provides>.first({ $_.key eq $name }).value })];
+                $info.<depends> = [$info.<depends>.list.map(-> $name { 
+                    %meta.<provides>.first({ $_.key eq $name }).value 
+                } )];
+
                 $info.<name>    = %meta.<provides>.list.first({ 
-                    $SPEC.rel2abs($_.value, $path).IO.path eq $SPEC.rel2abs($info.<path>, $path) 
+                    $_.value.IO.absolute($path).IO.path eq $info.<path>.IO.absolute($path)
                 }).value;
+
                 take $info;
             }
 
@@ -56,7 +70,7 @@ class Zef::Builder {
                     # Workaround for non-default precomp-path 
                     # i.e. $out = /blib/lib/Name.pm6.ext instead of /lib/Name.pm6.ext
                     # CompUnit was not designed to be subclassed, so this is kinda ugly.
-                    my $cu := CompUnit.new( $SPEC.rel2abs($module-id, $path) ) but role { 
+                    my $cu = CompUnit.new( $module-id.IO.absolute($path) ) but role { 
                         has $!has-precomp = False;
                         has $.build-output is rw;
                         has $.precomp-path is rw;
@@ -68,13 +82,12 @@ class Zef::Builder {
                         }
 
                         method precomp($out, |c) {
-                            my $dir := $out.IO.dirname.IO;
-                            try mkdirs($dir);
+                            mkdirs($out.IO.dirname);
                             $!precomp-path = $out;
                             $!has-precomp  = callwith($out, |c);
                         }
 
-                        sub pp() is rw {
+                        sub pp() is rw { # 'precomp-path'
                             my $storage;
                             Proxy.new: FETCH => method ()   { $storage.IO.absolute if ?$storage },
                                        STORE => method ($p) { $storage = $p };
@@ -83,19 +96,19 @@ class Zef::Builder {
                     
 
                     # Relative and absolute file paths of where to *save* compiled ouput.
-                    my $new-id-rel      := $SPEC.catpath(
-                        '', $SPEC.catdir('blib', $module-id.IO.dirname),  # add blib/ path prefix
-                        "{$module-id.IO.basename}.{$*VM.precomp-ext}"     # add precomp-extension
-                    ).IO;
-                    $new-id-rel = $new-id-rel.relative if $new-id-rel.is-absolute;
+                    my $new-id-rel = 'blib'.IO.child($module-id.IO.dirname)\
+                                              .child("{$module-id.IO.basename}.{$*VM.precomp-ext}").IO;
+
+                    $new-id-rel = $new-id-rel.relative if $new-id-rel.is-absolute; # todo: delete? leftovers?
+
                     # relative to '$save-to', not relative to the repo source ($path)
-                    my $new-id-absolute := $SPEC.rel2abs($new-id-rel, $save-to).IO;
+                    my $new-id-absolute = $new-id-rel.IO.absolute($save-to).IO;
 
                     # todo: .build-output should really be a Channel/Supply to let the client
                     # tap/receieve the output instead of just printing it (like Zef::Test)
                     my $status = ?$cu.precomp($new-id-absolute, :$INC, :force);
                     $cu.build-output  = "[{$module-id}] {'.' x 42 - $module-id.chars} ";
-                    my $output-rest   = $status ?? "ok: {$SPEC.abs2rel($cu.precomp-path, $save-to)}" !! "FAILED";
+                    my $output-rest   = $status ?? "ok: {$cu.precomp-path.IO.relative($save-to)}" !! "FAILED";
                     $cu.build-output ~= $output-rest;
                     print $cu.build-output ~ "\n";
 

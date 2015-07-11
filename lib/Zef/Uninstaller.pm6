@@ -19,7 +19,7 @@ class Zef::Uninstaller {
                 }
             }
         }
-        my $manifest = $*SPEC.catpath('', self.path, 'MANIFEST');
+        my $manifest = self.path.IO.child('MANIFEST');
         my $jmanif   = from-json($manifest.IO.slurp);
         my @dists    = @($jmanif<dists>);
         my @delid;

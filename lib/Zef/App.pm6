@@ -73,7 +73,8 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
         $p6c.projects = $p6c.projects\
             .grep({ $_.<name>:exists })\
             .grep({ $_.<name>    ~~ none(@ignore) })\
-            .grep({ $_.<depends> ~~ none(@ignore) });
+            .grep({ $_.<depends> ~~ none(@ignore) })\
+            .pick(*); # randomize order for smoke runs
         $p6c;
     }, "Getting ecosystem data", :$boring;
 

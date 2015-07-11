@@ -19,7 +19,7 @@ class Zef::Net::HTTP::Client {
         HTTP::Request   :$!requestor,
         HTTP::Response  :$!responder,
         Bool :$!auto-check,
-    ) { #30746
+    ) {
         $!responder   := Zef::Net::HTTP::Response                    unless $!responder;
         $!requestor   := Zef::Net::HTTP::Request                     unless $!requestor;
         $!transporter  = Zef::Net::HTTP::Transport.new(:$!responder) unless $!transporter;

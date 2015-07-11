@@ -108,7 +108,7 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
-    my $fetched = CLI-WAITING-BAR { $auth.get(@modules, :$save-to) }, "Fetching";
+    my $fetched = CLI-WAITING-BAR { $auth.get(@modules, :$save-to) }, "Fetching", :$boring;
     verbose('Fetching', $fetched.list);
 
     unless $fetched.list {
@@ -180,7 +180,7 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
     } unless ?$dry;
 
 
-    exit $dry ?? $test-result<nok> !! (@modules.elems - $install.list.grep({ !$_<ok> }).elems);
+    exit $dry ?? $test-result<nok>.elems !! (@modules.elems - $install.list.grep({ !$_<ok> }).elems);
 }
 
 

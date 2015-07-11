@@ -21,7 +21,7 @@ class Zef::Test {
 
         my @includes-as-args = @!includes.map({ qqw/-I$_/ });
 
-        for @test-files.sort -> $file {
+        for @test-files -> $file {
             # Many tests are (incorrectly) written with the assumption the cwd is their projects base directory.
             my $file-rel = ?$file.IO.is-relative ?? $file.IO.relative !! $file.IO.relative($!path);
             $!pm.create( $*EXECUTABLE, @includes-as-args, $file-rel, :cwd($!path), :id($file-rel) );

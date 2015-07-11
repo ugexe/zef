@@ -48,7 +48,7 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
             when *.not { #`<no body in request; skip this> }
 
             when Buf { $socket.write($_) }
-            when Str { $t ~= $_; $socket.send($_)  }
+            when Str { $socket.send($_)  }
 
             default {
                 die "{::?CLASS} doesn't know how to handle :\$body of this type: {$_.perl}";
@@ -56,7 +56,7 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
         }
 
         $socket.send: $req.DUMP(:trailers);
-"FUCK".IO.spurt($t);
+
         # ?: should we allow cancelation of the receiving socket (not including
         # timeout related canceling) before it has finished reading the header?
         my $header;

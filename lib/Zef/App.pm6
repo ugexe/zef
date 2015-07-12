@@ -36,8 +36,8 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffl
     # (note: first crack at supplies/parallelization)
     my $test-groups = CLI-WAITING-BAR {
         my @includes = gather for @repos -> $path {
-            take $path.child('blib');
-            take $path.child('lib');
+            take $path.IO.child('blib');
+            take $path.IO.child('lib');
         }
 
         my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async, :$shuffle) }
@@ -137,8 +137,8 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
     # (note: first crack at supplies/parallelization)
     my $test-groups = CLI-WAITING-BAR {
         my @includes = gather for @repos -> $path {
-            take $path.child('lib');
-            take $path.child('blib');
+            take $path.IO.child('lib');
+            take $path.IO.child('blib');
         }
 
         my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async, :$shuffle) }
@@ -180,8 +180,11 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
 
     my $install = do {
         my $i = CLI-WAITING-BAR { Zef::Installer.new.install(@metas) }, "Installing", :$boring;
-        verbose('Install', $i.list.grep({ !$_.<skipped> }));
-        verbose('Skip (already installed!)', $i.list.grep({ ?$_.<skipped> }));
+        my @installed = $i.list.grep({ !$_.<skipped> });
+        my @skipped   = $i.list.grep({ ?$_.<skipped> });
+        verbose('Install', @installed)                 if @installed;
+        verbose('Skip (already installed!)', @skipped) if @skipped;
+        $i;
     } unless ?$dry;
 
 
@@ -196,7 +199,7 @@ multi MAIN('local-install', *@modules) is export {
 
 
 #! Download a single module and change into its directory
-multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.child(time)) { 
+multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) { 
     my $auth = Zef::Authority::P6C.new;
     my @g    = $auth.get: $module, :$save-to, :skip-depends;
     verbose('Fetching', @g);

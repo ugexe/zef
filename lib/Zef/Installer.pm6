@@ -15,7 +15,8 @@ class Zef::Installer {
             # todo: pass all @curli locations instead of just a single $curli
             my @installed-at = IS-INSTALLED($dist, $curli);
             if @installed-at && !$force {
-                take %result<skipped> = @installed-at;
+                %result<skipped> = @installed-at;
+                take { %result }
                 next;
             }
 

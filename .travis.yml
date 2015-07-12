@@ -19,6 +19,8 @@ install:
     - perl6 -v
 script:
     - perl6 -Ilib bin/zef -v --boring test
-    # we don't have time to do thse on jvm, but they are mostly redundant anyway
-    - 'if [[ $VM == "moar" ]]; then perl6 -Ilib bin/zef --save-to=precomp/ build ./; fi'
-    - 'if [[ $VM == "moar" ]]; then prove -v -e "perl6 -Iprecomp/blib/lib" t/; fi'
+after_success:
+    # We don't have time to do thse on jvm, but they are mostly redundant anyway
+    # (tests use the default blib so would otherwise break the test itself)
+    - 'if [[ $BACKEND == "moar" ]]; then perl6 -Ilib bin/zef --save-to=precomp/ build ./; fi'
+    - 'if [[ $BACKEND == "moar" ]]; then prove -v -e "perl6 -Iprecomp/blib/lib" t/; fi'

@@ -8,6 +8,7 @@ matrix:
     allow_failures:
         - env: BACKEND=jvm
     fast_finish: true
+sudo: false
 before_install:
     - git config --global user.name "TravisCI"
     - git config --global user.email $HOSTNAME":not-for-mail@travis-ci.org"

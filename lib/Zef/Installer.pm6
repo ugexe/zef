@@ -22,12 +22,16 @@ class Zef::Installer {
 
             # this fakes a relative path for:
             # https://github.com/rakudo/rakudo/blob/nom/src/core/CompUnitRepo/Local/Installation.pm#L115
+            # Note that depending on $*CWD the copy at the end of method install may fail. todo: fix
             my @bins = $meta-path.IO.dirname.IO.child('bin').ls(:f).map({ "bin/{$_.IO.basename}" });
 
             my @provides = $dist.provides.values.map({ $_.IO.absolute($meta-path.IO.dirname) });
 
+            # Currently we need to send absolute paths to .install, but we use the relative path
+            # still for discovering the correct file (hopefully)
+            my @provides-precomps = $dist.provides.values.map({ "{$_}.{$*VM.precomp-ext}"});
             my @precomp = $meta-path.IO.dirname.IO.ls(:r, :f)\
-                .grep({ $_.ends-with($*VM.precomp-ext) })\
+                .grep({ $_.ends-with(any(@provides-precomps)) })\
                 .map({ $_.IO.absolute($meta-path.IO.dirname) });
 
             %result<ok> = 1 if $curli.install(:$dist, @provides, @precomp, @bins);

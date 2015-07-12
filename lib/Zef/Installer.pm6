@@ -1,7 +1,7 @@
 use Zef::Utils::PathTools;
 
 class Zef::Installer {
-    has $.force;
+    has $.force is rw;
 
     method install(:$save-to = %*CUSTOM_LIB<site>, *@metafiles, Bool :$force = True) is export {
         mkdirs($save-to);
@@ -20,13 +20,17 @@ class Zef::Installer {
                 next;
             }
 
+            # this fakes a relative path for:
+            # https://github.com/rakudo/rakudo/blob/nom/src/core/CompUnitRepo/Local/Installation.pm#L115
+            my @bins = $meta-path.IO.dirname.IO.child('bin').ls(:f).map({ "bin/{$_.IO.basename}" });
+
             my @provides = $dist.provides.values.map({ $_.IO.absolute($meta-path.IO.dirname) });
 
             my @precomp = $meta-path.IO.dirname.IO.ls(:r, :f)\
                 .grep({ $_.ends-with($*VM.precomp-ext) })\
                 .map({ $_.IO.absolute($meta-path.IO.dirname) });
 
-            %result<ok> = 1 if $curli.install(:$dist, @provides, @precomp);
+            %result<ok> = 1 if $curli.install(:$dist, @provides, @precomp, @bins);
 
             take { %result }
         }

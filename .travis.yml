@@ -25,5 +25,5 @@ after_success:
     # (tests use the default blib so would otherwise break the test itself)
     - 'if [[ $BACKEND == "moar" ]]; then perl6 -Ilib bin/zef --save-to=precomp/ build ./; fi'
     - 'if [[ $BACKEND == "moar" ]]; then prove -v -e "perl6 -Iprecomp/blib/lib" t/; fi'
-    - 'if [[ $BACKEND == "moar" ]]; then perl6 -Iprecomp/blib/lib -v --report --boring install P6TCI; fi'
+    - 'if [[ $BACKEND == "moar" ]]; then perl6 -Iprecomp/blib/lib bin/zef -v --report --boring install P6TCI; fi'
     - perl6 -e 'use P6TCI;'

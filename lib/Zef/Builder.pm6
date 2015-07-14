@@ -5,7 +5,7 @@ use Zef::Utils::PathTools;
 # Provide functionality for precompiling modules
 class Zef::Builder {
     # todo: lots of cleanup/refactoring
-    method pre-compile(*@repos is copy, :$save-to is copy) {
+    method precomp(*@repos is copy, :$save-to is copy) {
         # my $manifest  = from-json( %*CUSTOM_LIB<site>.IO.child('MANIFEST').IO.slurp );
 
         my @results = eager gather for @repos -> $path {

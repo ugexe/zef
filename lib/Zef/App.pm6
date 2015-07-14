@@ -5,12 +5,13 @@ use Zef::Builder;
 use Zef::Config;
 use Zef::Installer;
 use Zef::CLI::StatusBar;
+use Zef::CLI::STDMux;
 use Zef::ProcessManager;
 use Zef::Test;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
-use Zef::CLI::STDMux;
+
 
 
 BEGIN our @smoke-blacklist = <DateTime::TimeZone mandelbrot BioInfo Text::CSV BioPerl Flower>;
@@ -29,12 +30,12 @@ $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 
 #| Test modules in the specified directories
-multi MAIN('test', *@paths, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffle) is export {
-    my @repos = @paths ?? @paths !! $*CWD;
+multi MAIN('test', *@repos, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$force) is export {
+    @repos .= push($*CWD) unless @repos;
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
-    my $test-groups = CLI-WAITING-BAR {
+    my $tested = CLI-WAITING-BAR {
         my @includes = gather for @repos -> $path {
             take $path.IO.child('blib');
             take $path.IO.child('lib');
@@ -52,15 +53,18 @@ multi MAIN('test', *@paths, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffl
     }, "Testing", :$boring;
 
 
-    my $test-result = verbose('Testing', $test-groups.list>>.pm>>.processes.map({ 
+    my $test-result = verbose('Testing', $tested.list>>.pm>>.processes.map({ 
         ok => all($_.ok), module => $_.id.IO.basename
     }));
 
 
-    print "Failed tests. Aborting.\n" and exit $test-result<nok> if $test-result<nok>;
+    if $test-result<nok> && !$force {
+        print "Failed tests. Aborting.\n";
+        exit $test-result<nok>;
+    }
 
 
-    exit 0;
+    return $tested;
 }
 
 
@@ -96,29 +100,11 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
+multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :$force,
     Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle) is export {
 
-    my $auth  = CLI-WAITING-BAR {
-        my $p6c = Zef::Authority::P6C.new;
-        $p6c.update-projects;
-        $p6c.projects = $p6c.projects\
-            .grep({ $_.<name>:exists })\
-            .grep({ $_.<name>    ~~ none(@ignore) })\
-            .grep({ $_.<depends> ~~ none(@ignore) });
-        $p6c;
-    }, "Querying Authority", :$boring;
 
-
-    # Download the requested modules from some authority
-    # todo: allow turning dependency auth-download off
-    my $fetched = CLI-WAITING-BAR { $auth.get(@modules, :$save-to) }, "Fetching", :$boring;
-    verbose('Fetching', $fetched.list);
-
-    unless $fetched.list {
-        say "!!!> No matches found.";
-        exit 1;
-    }
+    my $fetched = &MAIN('get', @modules, :@ignore, :$save-to, :$boring, :$async);
 
 
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
@@ -128,54 +114,38 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
     my @repos = @m.grep({ $_.<ok>.so }).map({ $_.<path> });
     my @metas = @repos.map({ $_.IO.child('META.info').IO.path }).grep(*.IO.e);
 
+
     # Precompile all modules and dependencies
-    my $b = CLI-WAITING-BAR { Zef::Builder.new.pre-compile(@repos) }, "Building", :$boring;
-    verbose('Build', $b.list);
+    my $built = &MAIN('build', @repos, :$v, :$save-to, :$boring, :$async);
 
 
-    # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
-    # (note: first crack at supplies/parallelization)
-    my $test-groups = CLI-WAITING-BAR {
-        my @includes = gather for @repos -> $path {
-            take $path.IO.child('lib');
-            take $path.IO.child('blib');
-        }
-
-        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async, :$shuffle) }
-
-        if @t {
-            # verbose sends test output to stdout
-            procs2stdout(@t>>.pm>>.processes) if $v;
-            await Promise.allof: @t.map({ $_.start });
-        }
-
-        @t;
-    }, "Testing", :$boring;
-
-
-    my $test-result = verbose('Testing', $test-groups.list>>.pm>>.processes.map({ 
-        ok => all($_.ok), module => $_.id.IO.basename
-    }));
+    # force the tests so we can report them. *then* we will bail out
+    my $tested = &MAIN('test', @repos, :$v, :$boring, :$async, :$shuffle, :force);
 
 
     # Send a build/test report
     if ?$report {
-        my $r = CLI-WAITING-BAR {
-            $auth.report(
+        my $reported = CLI-WAITING-BAR {
+            Zef::Authority::P6C.new.report(
                 @metas,
-                test-results  => $test-groups, 
-                build-results => $b,
+                test-results  => $tested, 
+                build-results => $built,
             );
         }, "Reporting", :$boring;
 
-        verbose('Reporting', $r.list);
-        my @ok = $r.list.grep(*.<id>.so);
-        print "===> Report{'s' if $r.list.elems > 1} can be seen shortly at:\n" if @ok;
+        verbose('Reporting', $reported.list);
+        my @ok = $reported.list.grep(*.<id>.so);
+        print "===> Report{'s' if $reported.list.elems > 1} can be seen shortly at:\n" if @ok;
         print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
     }
 
 
-    print "Failed tests. Aborting.\n" and exit $test-result<nok> if $test-result<nok>;
+    my @failed = $tested>>.failures;
+    if @failed.elems {
+        $force
+            ?? do { print "Failed tests. Aborting.}\n" and exit @failed.elems }
+            !! do { print "Failed tests, but using \$force}\n"                };
+    }
 
 
     my $install = do {
@@ -188,7 +158,7 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR,
     } unless ?$dry;
 
 
-    exit $dry ?? $test-result<nok>.elems !! (@modules.elems - $install.list.grep({ !$_<ok> }).elems);
+    exit ?$dry ?? 0 !! (@modules.elems - $install.list.grep({ !$_<ok> }).elems);
 }
 
 
@@ -220,21 +190,45 @@ multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) {
 
 
 #| Get the freshness
-multi MAIN('get', *@modules, Bool :$v, :$save-to = $*TMPDIR, Bool :$skip-depends) is export {
-    my $auth = Zef::Authority::P6C.new;
-    my @g    = $auth.get: @modules, :$save-to, :$skip-depends;
-    verbose('Fetching', @g);
-    say $_.<path> for @g.grep({ $_.<ok>.so });
-    exit @g.grep({ not $_.<ok> }).elems;
+multi MAIN('get', *@modules, :@ignore, Bool :$v, :$save-to = $*TMPDIR,
+    Bool :$async, Bool :$boring, Bool :$skip-depends) is export {
+    
+    my $auth  = CLI-WAITING-BAR {
+        my $p6c = Zef::Authority::P6C.new;
+        $p6c.update-projects;
+        $p6c.projects = $p6c.projects\
+            .grep({ $_.<name>:exists })\
+            .grep({ $_.<name>    ~~ none(@ignore) })\
+            .grep({ $_.<depends> ~~ none(@ignore) });
+        $p6c;
+    }, "Querying Authority", :$boring;
+
+
+    # Download the requested modules from some authority
+    # todo: allow turning dependency auth-download off
+    my $fetched = CLI-WAITING-BAR { $auth.get(@modules, :$save-to) }, "Fetching", :$boring;
+    verbose('Fetching', $fetched.list);
+
+    unless $fetched.list {
+        say "!!!> No matches found.";
+        exit 1;
+    }
+
+    return $fetched;
 }
 
 
 #| Build modules in cwd
 multi MAIN('build', Bool :$v) is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directory
-multi MAIN('build', $path, Bool :$v, :$save-to) {
-    my $builder = Zef::Builder.new;
-    $builder.pre-compile($path, :$save-to);
+multi MAIN('build', *@repos, :@ignore, Bool :$v, :$save-to = $*TMPDIR,
+    Bool :$async, Bool :$boring, Bool :$skip-depends) is export {
+
+    # Precompile all modules and dependencies
+    my $built = CLI-WAITING-BAR { Zef::Builder.new.precomp(@repos) }, "Building", :$boring;
+    verbose('Build', $built.list);
+
+    return $built;
 }
 
 

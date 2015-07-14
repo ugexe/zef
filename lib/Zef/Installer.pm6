@@ -20,10 +20,10 @@ class Zef::Installer {
                 next;
             }
 
-            # this fakes a relative path for:
-            # https://github.com/rakudo/rakudo/blob/nom/src/core/CompUnitRepo/Local/Installation.pm#L115
-            # Note that depending on $*CWD the copy at the end of method install may fail. todo: fix
-            my @bins = $meta-path.IO.dirname.IO.child('bin').ls(:f).map({ "bin/{$_.IO.basename}" });
+            # todo: just do this ourselfs, as unfortunately the path check for bin/ files
+            # is just a regex against a relative path. This leaves no sane way to handle this 
+            # without just implementing our own CURLI
+            my @bins; # = $meta-path.IO.dirname.IO.child('bin').ls(:f).map({ "bin/{$_.IO.basename}" });
 
             my @provides = $dist.provides.values.map({ $_.IO.absolute($meta-path.IO.dirname) });
 

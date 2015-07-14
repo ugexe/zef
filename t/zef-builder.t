@@ -26,7 +26,7 @@ subtest {
     }
 
     my $builder = Zef::Builder.new;
-    my @results = $builder.pre-compile($CWD, :$save-to);
+    my @results = $builder.precomp($CWD, :$save-to);
 
     is @results.elems, 1, '1 repo';
 

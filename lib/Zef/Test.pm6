@@ -48,11 +48,11 @@ class Zef::Test {
     method nok { ?$.ok() ?? False !! True }
 
     method passes {
-        $!pm.processes.list.grep(*.ok.so)>>.path;
+        $!pm.processes.list.grep(*.ok.so)>>.id;
     }
 
     method failures {
-        $!pm.processes.list.grep(*.ok.not)>>.path;
+        $!pm.processes.list.grep(*.ok.not)>>.id;
     }
 }
 

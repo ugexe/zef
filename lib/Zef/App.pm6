@@ -21,7 +21,9 @@ use Zef::Utils::SystemInfo;
 # BioInfo - package naming does not allow proper META.info association
 # Text::CSV - random hangs on win32 or jvms
 # Flower - not maintained and fails. so just saving time.
-BEGIN our @smoke-blacklist = <DateTime::TimeZone BioInfo Text::CSV Flower>;
+# Audio:: - needs the todo: native call compatability
+# Inline::Perl5 - see above
+BEGIN our @smoke-blacklist = <DateTime::TimeZone BioInfo Text::CSV Flower Audio::Sndfile Audio::Libshout Inline::Perl5>;
 
 
 # todo: check if a terminal is even being used

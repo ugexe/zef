@@ -28,6 +28,9 @@ class Zef::ProcessManager {
     }
 
     method ok-all {
+        # here (and in Zef::Process) we need to better address how to handle/communicate 
+        # there are (for example) no tests to be run. 
+        return unless @!processes;
         ?all(@!processes>>.ok);
     }
 

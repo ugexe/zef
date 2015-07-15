@@ -34,7 +34,7 @@ class Zef::Installer {
                 .grep({ $_.ends-with(any(@provides-precomps)) })\
                 .map({ $_.IO.absolute($meta-path.IO.dirname) });
 
-            %result<ok> = 1 if $curli.install(:$dist, @provides, @precomp, @bins);
+            %result<ok> = 1 if try $curli.install(:$dist, @provides, @precomp, @bins);
 
             take { %result }
         }

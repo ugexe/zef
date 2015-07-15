@@ -31,7 +31,8 @@
         "Zef::Utils::Git"        : "lib/Zef/Utils/Git.pm6",
         "Zef::Utils::PathTools"  : "lib/Zef/Utils/PathTools.pm6",
         "Zef::Utils::SystemInfo" : "lib/Zef/Utils/SystemInfo.pm6",
-
+        "Zef::Utils::TestHelper" : "lib/Zef/Utils/TestHelper.pm6",
+        
         "Zef::Net::HTTP"            : "lib/Zef/Net/HTTP.pm6",
         "Zef::Net::HTTP::Actions"   : "lib/Zef/Net/HTTP/Actions.pm6",
         "Zef::Net::HTTP::Client"    : "lib/Zef/Net/HTTP/Client.pm6",

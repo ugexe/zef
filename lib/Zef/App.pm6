@@ -100,11 +100,11 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :$force,
+multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :$force, Bool :$depends = True,
     Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle) is export {
 
 
-    my $fetched = &MAIN('get', @modules, :@ignore, :$save-to, :$boring, :$async);
+    my $fetched = &MAIN('get', @modules, :@ignore, :$save-to, :$boring, :$async, :$depends);
 
 
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
@@ -141,10 +141,14 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :
 
 
     my @failed = $tested>>.failures;
-    if @failed.elems {
+    my @passed = $tested>>.passes;
+    if @failed {
         $force
             ?? do { print "Failed tests. Aborting.}\n" and exit @failed.elems }
-            !! do { print "Failed tests, but using \$force}\n"                };
+            !! do { print "Failed tests. Using \$force\n"                     };
+    }
+    elsif !@passed {
+        print "No tests.\n";
     }
 
 
@@ -169,9 +173,9 @@ multi MAIN('local-install', *@modules) is export {
 
 
 #! Download a single module and change into its directory
-multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) { 
+multi MAIN('look', $module, Bool :$depends, Bool :$v, :$save-to = $*CWD.IO.child(time)) { 
     my $auth = Zef::Authority::P6C.new;
-    my @g    = $auth.get: $module, :$save-to, :skip-depends;
+    my @g    = $auth.get: $module, :$save-to, :$depends;
     verbose('Fetching', @g);
 
 
@@ -190,8 +194,8 @@ multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) {
 
 
 #| Get the freshness
-multi MAIN('get', *@modules, :@ignore, Bool :$v, :$save-to = $*TMPDIR,
-    Bool :$async, Bool :$boring, Bool :$skip-depends) is export {
+multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = True,
+    Bool :$v, Bool :$async, Bool :$boring, Bool :$skip-depends) is export {
     
     my $auth  = CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
@@ -206,7 +210,7 @@ multi MAIN('get', *@modules, :@ignore, Bool :$v, :$save-to = $*TMPDIR,
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
-    my $fetched = CLI-WAITING-BAR { $auth.get(@modules, :$save-to) }, "Fetching", :$boring;
+    my $fetched = CLI-WAITING-BAR { $auth.get(@modules, :$save-to, :$depends) }, "Fetching", :$boring;
     verbose('Fetching', $fetched.list);
 
     unless $fetched.list {

@@ -64,6 +64,8 @@ class Zef::Process {
 
     method status { $!process.status }
     method ok     { 
+        return unless $!process.DEFINITE;
+
         if $!promise.^find_method('result').DEFINITE 
             && $!promise.result.^find_method('exitcode').DEFINITE {
             return $!promise.result.exitcode == 0 ?? True !! False 

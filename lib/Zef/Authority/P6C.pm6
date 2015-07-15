@@ -22,23 +22,24 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         Zef::Authority::P6C:D: 
         *@wants,
         :$save-to is copy,
-        Bool :$skip-depends,
-        Bool :$fetch = True,
+        Bool :$depends,
+        Bool :$fetch   = True,
     ) {
         self.update-projects if :$fetch && !@!projects.elems;
         my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) });
         return () unless @wants-dists;
 
         # Determine the distribution dependencies we want/need
-        my @levels = $skip-depends
-            ?? @wants-dists.map({ $_.hash.<name> })
-            !! Zef::Utils::Depends.new(:@!projects).topological-sort(@wants-dists);
+        my @levels = $depends
+            ?? Zef::Utils::Depends.new(:@!projects).topological-sort(@wants-dists)
+            !! @wants-dists.map({ $_.hash.<name> });
 
         # Try to fetch each distribution dependency
         my @results = eager gather for @levels -> $level {
             for $level.list -> $package-name {
                 # todo: filter projects by version/auth
                 my %dist = @!projects.first({ $_.<name> eq $package-name }).hash;
+                say "No source-url for $package-name (META info lost?)" and next unless ?%dist.<source-url>;
                 say "Getting: {%dist.<source-url>}";
 
                 # todo: implement the rest of however github.com transliterates paths
@@ -64,17 +65,18 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             my %meta      = %($meta-json);
             my $repo-path = $meta-path.IO.parent;
 
-            my $test-group  = @test-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
+            my $test  = @test-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
             my %build = @build-results.first({ $_.<path>.IO.ACCEPTS($repo-path.IO) }).hash;
 
             my $build-output = %build.<curlfs>.list\
                 .grep(*.build-output.so)\
                 .map({ $_.build-output })\
                 .join("\n");
-            my $test-output  = $test-group.pm.processes.list\
+            my $test-output  = $test\.pm.processes.list\
                 .grep(*.stdmerge.so)\
                 .map({ $_.stdmerge })\
                 .join("\n");
+
 
             # See Panda::Reporter
             %meta<report> = to-json {
@@ -83,9 +85,9 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 :dependencies(%meta<depends>),
                 :metainfo($meta-json),
                 :build-output($build-output // ''),
-                :build-passed(?%build<ok>),
-                :test-output($test-output // ''),
-                :test-passed(?all(?$test-group.ok)),
+                :test-output($test-output   // ''),
+                :build-passed(?%build<curlfs>    ?? %build<ok> !! ''),
+                :test-passed(?$test.pm.processes ?? ?$test.ok  !! ''),
                 :distro({
                     :name($*DISTRO.name),
                     :version($*DISTRO.version.Str),

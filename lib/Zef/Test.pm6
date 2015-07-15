@@ -1,5 +1,6 @@
 use Zef::ProcessManager;
 use Zef::Utils::PathTools;
+require Zef::Utils::TestHelper;
 
 class Zef::Test {
     has $.pm;
@@ -24,7 +25,14 @@ class Zef::Test {
         for @test-files -> $file {
             # Many tests are (incorrectly) written with the assumption the cwd is their projects base directory.
             my $file-rel = ?$file.IO.is-relative ?? $file.IO.relative !! $file.IO.relative($!path);
-            $!pm.create( $*EXECUTABLE, @includes-as-args, $file-rel, :cwd($!path), :id($file-rel) );
+            $!pm.create( 
+                $*EXECUTABLE, 
+                @includes-as-args, 
+                '-MZef::Utils::TestHelper', 
+                $file-rel, 
+                :cwd($!path), 
+                :id($file-rel) 
+            );
         }
     }
 

@@ -86,8 +86,8 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 :metainfo($meta-json),
                 :build-output($build-output // ''),
                 :test-output($test-output   // ''),
-                :build-passed(?%build<curlfs>    ?? %build<ok> !! ''),
-                :test-passed(?$test.pm.processes ?? ?$test.ok  !! ''),
+                :build-passed(?%build<curlfs>    ?? %build<ok> !! Nil),
+                :test-passed(?$test.pm.processes ?? ?$test.ok  !! Nil),
                 :distro({
                     :name($*DISTRO.name),
                     :version($*DISTRO.version.Str),

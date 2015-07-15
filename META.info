@@ -25,13 +25,13 @@
 
         "Zef::Test"          : "lib/Zef/Test.pm6",
         "Zef::Test::Grammar" : "lib/Zef/Test/Grammar.pm6",
+        "Zef::Test::Helper"  : "lib/Zef/Test/Helper.pm6",
 
         "Zef::Utils::Base64"     : "lib/Zef/Utils/Base64.pm6",
         "Zef::Utils::Depends"    : "lib/Zef/Utils/Depends.pm6",
         "Zef::Utils::Git"        : "lib/Zef/Utils/Git.pm6",
         "Zef::Utils::PathTools"  : "lib/Zef/Utils/PathTools.pm6",
         "Zef::Utils::SystemInfo" : "lib/Zef/Utils/SystemInfo.pm6",
-        "Zef::Utils::TestHelper" : "lib/Zef/Utils/TestHelper.pm6",
         
         "Zef::Net::HTTP"            : "lib/Zef/Net/HTTP.pm6",
         "Zef::Net::HTTP::Actions"   : "lib/Zef/Net/HTTP/Actions.pm6",

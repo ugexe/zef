@@ -12,9 +12,16 @@ use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
 
+# todo: start skipping nativecall/Build.pm modules until we implement a compatability layer
 
 
-BEGIN our @smoke-blacklist = <DateTime::TimeZone mandelbrot BioInfo Text::CSV BioPerl Flower>;
+# Modules that break smoke testing even though each test is launched in its own process
+# todo: bugfix / use timeouts to just abort
+# DateTime::TimeZone - run time. maybe auto ignore the redundant, script generated, tests and treat them as author tests instead?
+# BioInfo - package naming does not allow proper META.info association
+# Text::CSV - random hangs on win32 or jvms
+# Flower - not maintained and fails. so just saving time.
+BEGIN our @smoke-blacklist = <DateTime::TimeZone BioInfo Text::CSV Flower>;
 
 
 # todo: check if a terminal is even being used
@@ -59,7 +66,7 @@ multi MAIN('test', *@repos, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffl
 
 
     if $test-result<nok> && !$force {
-        print "Failed tests. Aborting.\n";
+        print "!!!> Failed tests. Aborting.\n";
         exit $test-result<nok>;
     }
 
@@ -144,8 +151,8 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :
     my @passed = $tested>>.passes;
     if @failed {
         $force
-            ?? do { print "Failed tests. Aborting.}\n" and exit @failed.elems }
-            !! do { print "Failed tests. Using \$force\n"                     };
+            ?? do { print "===> Failed tests. Aborting.\n" and exit @failed.elems }
+            !! do { print "===> Failed tests. Using \$force\n"                    };
     }
     elsif !@passed {
         print "No tests.\n";
@@ -229,6 +236,7 @@ multi MAIN('build', *@repos, :@ignore, Bool :$v, :$save-to = $*TMPDIR,
     Bool :$async, Bool :$boring, Bool :$skip-depends) is export {
 
     # Precompile all modules and dependencies
+    # todo: message about empty build stage
     my $built = CLI-WAITING-BAR { Zef::Builder.new.precomp(@repos) }, "Building", :$boring;
     verbose('Build', $built.list);
 
@@ -278,7 +286,7 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
 
 # will be replaced soon
 sub verbose($phase, @_) {
-    say "!!!> $phase stage is empty" and return unless @_;
+    say "???> $phase stage is empty" and return unless @_;
     my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
     print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
     print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;

@@ -152,8 +152,8 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :
     my @passed = $tested>>.passes;
     if @failed {
         $force
-            ?? do { print "===> Failed tests. Aborting.\n" and exit @failed.elems }
-            !! do { print "===> Failed tests. Using \$force\n"                    };
+            ?? do { print "!!!> Failed tests. Aborting.\n" and exit @failed.elems }
+            !! do { print "???> Failed tests. Using \$force\n"                    };
     }
     elsif !@passed {
         print "No tests.\n";

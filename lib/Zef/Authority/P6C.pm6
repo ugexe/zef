@@ -23,7 +23,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         *@wants,
         :$save-to is copy,
         Bool :$depends,
-        Bool :$fetch   = True,
+        Bool :$fetch = True,
     ) {
         self.update-projects if :$fetch && !@!projects.elems;
         my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) });

@@ -1,6 +1,5 @@
 use Zef::ProcessManager;
 use Zef::Utils::PathTools;
-require Zef::Test::Helper;
 
 class Zef::Test {
     has $.pm;
@@ -27,11 +26,12 @@ class Zef::Test {
             my $file-rel = ?$file.IO.is-relative ?? $file.IO.relative !! $file.IO.relative($!path);
 
             $!pm.create(
-                $*EXECUTABLE, 
-                @includes-as-args,
-                $file-rel, 
-                :cwd($!path), 
-                :id($file-rel) 
+                $*EXECUTABLE,
+                '--ll-exception',  # Cannot be optional yet, as its required for proper test exitcodes with Test.pm
+                @includes-as-args, # -Ilib, -I/some/other/path, ...
+                $file-rel,         # Use a relative path in conjuncture with
+                :cwd($!path),      #    the project's cwd to build our test command.
+                :id($file-rel)     # For STDMux to display which file its outputting. todo: extract from Proc's args and delete this
             );
         }
     }

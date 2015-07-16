@@ -25,7 +25,6 @@
 
         "Zef::Test"          : "lib/Zef/Test.pm6",
         "Zef::Test::Grammar" : "lib/Zef/Test/Grammar.pm6",
-        "Zef::Test::Helper"  : "lib/Zef/Test/Helper.pm6",
 
         "Zef::Utils::Base64"     : "lib/Zef/Utils/Base64.pm6",
         "Zef::Utils::Depends"    : "lib/Zef/Utils/Depends.pm6",

@@ -23,7 +23,7 @@ use Zef::Utils::SystemInfo;
 # Flower - not maintained and fails. so just saving time.
 # Audio:: - needs the todo: native call compatability
 # Inline::Perl5 - see above
-BEGIN our @smoke-blacklist = <DateTime::TimeZone BioInfo Text::CSV Flower Audio::Sndfile Audio::Libshout Inline::Perl5 Compress::Zlib::Raw Compress::Zlib Git::PurePerl>;
+BEGIN our @smoke-blacklist = <DateTime::TimeZone BioInfo Text::CSV Flower Audio::Sndfile Audio::Libshout Inline::Perl5 Compress::Zlib::Raw Compress::Zlib Git::PurePerl LibraryMake Inline::Python LibraryCheck>;
 
 # todo: check if a terminal is even being used
 # The reason for the strange signal handling code is due to JVM

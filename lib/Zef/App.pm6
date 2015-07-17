@@ -23,7 +23,7 @@ use Zef::Utils::SystemInfo;
 # Flower - not maintained and fails. so just saving time.
 # Audio:: - needs the todo: native call compatability
 # Inline::Perl5 - see above
-BEGIN our @smoke-blacklist = <DateTime::TimeZone BioInfo Text::CSV Flower Audio::Sndfile Audio::Libshout Inline::Perl5 Compress::Zlib::Raw Compress::Zlib Git::PurePerl LibraryMake Inline::Python LibraryCheck>;
+BEGIN our @smoke-blacklist = <NativeCall DateTime::TimeZone BioInfo Text::CSV Flower Audio::Sndfile Audio::Libshout Inline::Perl5 Compress::Zlib::Raw Compress::Zlib Git::PurePerl LibraryMake Inline::Python LibraryCheck>;
 
 # todo: check if a terminal is even being used
 # The reason for the strange signal handling code is due to JVM
@@ -84,8 +84,8 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
         $p6c.update-projects;
         $p6c.projects = $p6c.projects\
             .grep({ $_.<name>:exists })\
-            .grep({ $_.<name>    ~~ none(@ignore) })\
-            .grep({ $_.<depends> ~~ none(@ignore) })\
+            .grep({ $_.<name> ~~ none(@ignore) })\
+            .grep({ any($_.<depends>.list) ~~ none(@ignore) });
             .pick(*); # randomize order for smoke runs
         $p6c;
     }, "Getting ecosystem data", :$boring;
@@ -204,21 +204,24 @@ multi MAIN('look', $module, Bool :$depends, Bool :$v, :$save-to = $*CWD.IO.child
 #| Get the freshness
 multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = True,
     Bool :$v, Bool :$async, Bool :$boring, Bool :$skip-depends) is export {
-    
+
     my $auth  = CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
         $p6c.update-projects;
         $p6c.projects = $p6c.projects\
             .grep({ $_.<name>:exists })\
-            .grep({ $_.<name>    ~~ none(@ignore) })\
-            .grep({ $_.<depends> ~~ none(@ignore) });
+            .grep({ $_.<name> ~~ none(@ignore) })\
+            .grep({ any($_.<depends>.list) ~~ none(@ignore) });
         $p6c;
     }, "Querying Authority", :$boring;
 
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
-    my $fetched = CLI-WAITING-BAR { $auth.get(@modules, :$save-to, :$depends) }, "Fetching", :$boring;
+    my $fetched = CLI-WAITING-BAR { 
+        $auth.get(@modules, :@ignore, :$save-to, :$depends);
+    }, "Fetching", :$boring;
+    
     verbose('Fetching', $fetched.list);
 
     unless $fetched.list {

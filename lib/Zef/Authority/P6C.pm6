@@ -21,12 +21,15 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     method get(
         Zef::Authority::P6C:D: 
         *@wants,
+        :@ignore,
         :$save-to is copy,
         Bool :$depends,
         Bool :$fetch = True,
     ) {
         self.update-projects if :$fetch && !@!projects.elems;
-        my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) });
+        my @wants-dists = @!projects\
+            .grep({ $_.<name> ~~ any(@wants) })\
+            .grep({ any($_.<depends>.list) ~~ none(@ignore) });
         return () unless @wants-dists;
 
         # Determine the distribution dependencies we want/need

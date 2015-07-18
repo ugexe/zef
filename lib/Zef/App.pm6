@@ -292,19 +292,19 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
 
 
 # todo: use the auto-sizing table formatting
-multi MAIN('info', *@modules, Bool :$v) {
+multi MAIN('info', *@modules, Bool :$v, Bool :$boring) {
     my $auth = CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
         $p6c.update-projects;
         $p6c;
-    }, "Querying Server";
+    }, "Querying Server", :$boring;
 
 
     # Filter the projects.json file
     my $results = CLI-WAITING-BAR { 
         my @p6c = $auth.search(|@modules);
         @p6c;
-    }, "Filtering Results";
+    }, "Filtering Results", :$boring;
 
     say "===> Found " ~ $results.list.elems ~ " results";
 
@@ -328,17 +328,29 @@ multi MAIN('info', *@modules, Bool :$v) {
             if $v { print "#\t$_\n" for $meta.<provides>.keys }
         }
 
-        if $meta.<depends> {
-            print "# Depends: {$meta.<depends>.list.elems} items\n";
-            for $meta.<depends>.kv -> $k, $v { 
-                print "#\t$k\t$v\n";
-            }
-        }
-
         if $meta.<support> {
             print "# Support:\n";
             for $meta.<support>.kv -> $k, $v {
-                print "#\t$k\t$v\n";
+                print "#   $k:\t$v\n";
+            }
+        }
+
+        if $meta.<depends> {
+            print "# Depends: {$meta.<depends>.list.elems} items\n";
+            for $meta.<depends>.kv -> $k, $v { 
+                print "#   $k)\t$v\n";
+            }
+        }
+
+        if $meta.<depends> && $v {
+            my $deps = Zef::Utils::Depends.new(projects => $auth.projects)\
+                .topological-sort($meta);
+
+            for $deps.list.kv -> $i1, $level {
+                FIRST { print "# Depends-chain:\n" }
+                for $level.list.kv -> $i2, $dep {
+                    print "#   $i1\.$i2) $dep\n";
+                }
             }
         }
     }

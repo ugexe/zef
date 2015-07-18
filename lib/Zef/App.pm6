@@ -290,6 +290,62 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
 }
 
 
+
+# todo: use the auto-sizing table formatting
+multi MAIN('info', *@modules, Bool :$v) {
+    my $auth = CLI-WAITING-BAR {
+        my $p6c = Zef::Authority::P6C.new;
+        $p6c.update-projects;
+        $p6c;
+    }, "Querying Server";
+
+
+    # Filter the projects.json file
+    my $results = CLI-WAITING-BAR { 
+        my @p6c = $auth.search(|@modules);
+        @p6c;
+    }, "Filtering Results";
+
+    say "===> Found " ~ $results.list.elems ~ " results";
+
+    for $results.list -> $meta {
+        print "[{$meta.<name>}]\n";
+
+        print "# Version: {$meta.<version> // $meta.<vers> // '*'}\n";
+
+        print "# Auth:\t {$meta.<auth>}\n" if $meta.<auth>;
+        print "# Authority:\t {$meta.<auth>}\n" if $meta.<auth>;
+        print "# Author:\t {$meta.<author>}\n" if $meta.<author>;
+        print "# Authors:\t {$meta.<authors>.list.join(', ')}\n" if $meta.<authors>.list.elems;
+
+        print "# Description:\t {$meta.<description>}\n" if $meta.<description>;
+
+        print "# Source-url:\t {$meta.<source-url>}\n" if $meta.<source-url>;
+        print "# Source:\t {$meta.<source>}\n" if $meta.<source>;
+
+        if $meta.<provides> {
+            print "# Provides: {$meta.<provides>.list.elems} items\n";
+            if $v { print "#\t$_\n" for $meta.<provides>.keys }
+        }
+
+        if $meta.<depends> {
+            print "# Depends: {$meta.<depends>.list.elems} items\n";
+            for $meta.<depends>.kv -> $k, $v { 
+                print "#\t$k\t$v\n";
+            }
+        }
+
+        if $meta.<support> {
+            print "# Support:\n";
+            for $meta.<support>.kv -> $k, $v {
+                print "#\t$k\t$v\n";
+            }
+        }
+    }
+}
+
+
+
 # will be replaced soon
 sub verbose($phase, @_) {
     say "???> $phase stage is empty" and return unless @_;

@@ -101,6 +101,12 @@ Note: C<*> behaves slightly differently for C<--version>
     # sure
     zef -v --depends="HTTP::Server" --version="0.1+" search HTTP::Server::Threaded
     
+=head4 info
+
+Given C<*@modules> it will list a formatted version of each's `META.info` data.
+
+    perl6 -Ilib bin/zef -v info JSON::Tiny
+
 =head1 INCLUDED TOOLS
 
 =head2 Zef::Net::HTTP

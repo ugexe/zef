@@ -104,9 +104,14 @@ Note: C<*> behaves slightly differently for C<--version>
 =head4 info
 
 Given C<*@modules> it will list a formatted version of each's `META.info` data.
+    
+    # basics
+    zef info JSON::Tiny
 
-    # -v to also list `provides` section
-    zef -v info JSON::Tiny
+    # -v to also list:
+    #   * `provides` section
+    #   * Entire dependency chain, ordered and grouped into build levels
+    zef -v info Task::Star
 
 =head1 INCLUDED TOOLS
 

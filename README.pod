@@ -58,7 +58,7 @@ Fetch, build, test, optional report, and install.
     --ignore=Acme::Virus --ignore=Acme::TakesForever
 
     # livin that multi thread life
-    perl6 -Ilib bin/zef -v --report --async install HTTP::Server::Threaded
+    zef -v --report --async install HTTP::Server::Threaded
 
 =head4 smoke
 
@@ -105,7 +105,8 @@ Note: C<*> behaves slightly differently for C<--version>
 
 Given C<*@modules> it will list a formatted version of each's `META.info` data.
 
-    perl6 -Ilib bin/zef -v info JSON::Tiny
+    # -v to also list `provides` section
+    zef -v info JSON::Tiny
 
 =head1 INCLUDED TOOLS
 

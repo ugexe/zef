@@ -124,8 +124,10 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :
 
 
     # Precompile all modules and dependencies
-    my $built = &MAIN('build', @repos, :$v, :$save-to, :$boring, :$async);
-
+    my $built = &MAIN('build', @repos, :$v, :$save-to, :$boring, :$async, :$force);
+    unless $built.list.elems {
+        print "???> Nothing to build.\n";
+    }
 
     # force the tests so we can report them. *then* we will bail out
     my $tested = &MAIN('test', @repos, :$v, :$boring, :$async, :$shuffle, :force);
@@ -156,7 +158,7 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :
             !! do { print "???> Failed tests. Using \$force\n"                    };
     }
     elsif !@passed {
-        print "No tests.\n";
+        print "???> No tests.\n";
     }
 
 
@@ -221,7 +223,7 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
     my $fetched = CLI-WAITING-BAR { 
         $auth.get(@modules, :@ignore, :$save-to, :$depends);
     }, "Fetching", :$boring;
-    
+
     verbose('Fetching', $fetched.list);
 
     unless $fetched.list {
@@ -237,11 +239,11 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
 multi MAIN('build', Bool :$v) is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :@ignore, Bool :$v, :$save-to = $*TMPDIR,
-    Bool :$async, Bool :$boring, Bool :$skip-depends) is export {
+    Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force) is export {
 
     # Precompile all modules and dependencies
     # todo: message about empty build stage
-    my $built = CLI-WAITING-BAR { Zef::Builder.new.precomp(@repos) }, "Building", :$boring;
+    my $built = CLI-WAITING-BAR { Zef::Builder.new.precomp(@repos, :$force) }, "Building", :$boring;
     verbose('Build', $built.list);
 
     return $built;

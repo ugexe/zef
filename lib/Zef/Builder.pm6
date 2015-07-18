@@ -5,11 +5,11 @@ use Zef::Utils::PathTools;
 # Provide functionality for precompiling modules
 class Zef::Builder {
     # todo: lots of cleanup/refactoring
-    method precomp(*@repos is copy, :$save-to is copy) {
+    method precomp(*@repos is copy, :$save-to is copy, Bool :$force) {
         # my $manifest  = from-json( %*CUSTOM_LIB<site>.IO.child('MANIFEST').IO.slurp );
 
         my @results = eager gather for @repos -> $path {
-            my %meta  = %(from-json( $path.IO.child('META.info').IO.slurp) );
+            my %meta  = %(from-json( $path.IO.child('META.info').IO.slurp ));
 
 
             # NOTE: this may change
@@ -43,6 +43,7 @@ class Zef::Builder {
             my $INC  := @blibs, @libs, @*INC;
             my @files = %meta<provides>.list.map({ $_.value.IO.absolute($path).IO.path });
 
+            print "!!!> No files found. META.info `provides` section incorrect?" and next unless @files;
 
             # Build the @dep chain for the %META.<provides> by parsing the 
             # use/require/need from the module source.
@@ -106,7 +107,7 @@ class Zef::Builder {
 
                     # todo: .build-output should really be a Channel/Supply to let the client
                     # tap/receieve the output instead of just printing it (like Zef::Test)
-                    my $status = ?$cu.precomp($new-id-absolute, :$INC, :force);
+                    my $status = try ?$cu.precomp($new-id-absolute, :$INC, :$force);
                     $cu.build-output  = "[{$module-id}] {'.' x 42 - $module-id.chars} ";
                     my $output-rest   = $status ?? "ok: {$cu.precomp-path.IO.relative($save-to)}" !! "FAILED";
                     $cu.build-output ~= $output-rest;

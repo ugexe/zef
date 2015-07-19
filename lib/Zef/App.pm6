@@ -124,7 +124,8 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :
 
 
     # Precompile all modules and dependencies
-    my $built = &MAIN('build', @repos, :$v, :$save-to, :$boring, :$async, :$force);
+    # $save-to is already in the absolute paths of @repos
+    my $built = &MAIN('build', @repos, :!save-to, :$v, :$boring, :$async);
     unless $built.list.elems {
         print "???> Nothing to build.\n";
     }
@@ -238,12 +239,21 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
 #| Build modules in cwd
 multi MAIN('build', Bool :$v) is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directory
-multi MAIN('build', *@repos, :@ignore, Bool :$v, :$save-to = $*TMPDIR,
-    Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force) is export {
-
+multi MAIN('build', *@repos, :@ignore, :$save-to = $*TMPDIR, Bool :$v,
+    Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export {
     # Precompile all modules and dependencies
     # todo: message about empty build stage
-    my $built = CLI-WAITING-BAR { Zef::Builder.new.precomp(@repos, :$force) }, "Building", :$boring;
+    my $built = CLI-WAITING-BAR {
+        my @blibs;
+        my @b = eager gather for @repos -> $repo {
+            my $path    = $repo.IO.abspath.IO;
+            my $builder = Zef::Builder.new(:$path, includes => (@blibs,@repos));
+            my $result  = $builder.precomp(:$force);
+            @blibs.push: $result.<precomp-path>;
+            take $result;
+        }
+    }, "Building", :$boring;
+
     verbose('Build', $built.list);
 
     return $built;

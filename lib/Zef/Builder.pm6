@@ -19,15 +19,9 @@ class Zef::Builder {
         %!meta  = %(from-json( $!path.IO.child('META.info').IO.slurp ))\
             or die "No META file found";
         $!precomp-path = $!path.child('blib') unless $!precomp-path;
-        
-        my @libs;
-        for (@!libs || $!path.child('lib').IO) -> $lib {
-            my $slib = $lib.IO.is-absolute ?? $lib.IO.relative($!path).IO !! $lib.IO;
-            my $blib = $!precomp-path.child($slib).relative($!path).IO;
-            @libs.unshift($blib);
-            @libs.push($slib);
-        }
-        @!libs = @libs;
+
+        @!libs .= unshift: (@!libs || $!path.child('lib'))>>.IO>>.abspath>>.IO;
+        @!libs .= push: $!path.child('lib');
 
         $!pm = !$!pm.defined ?? Zef::ProcessManager.new(:$!async)
                              !! $!pm.DEFINITE
@@ -67,7 +61,7 @@ class Zef::Builder {
 
 
         my @targets-as-args  = @targets.map({   qqw/--target=$_/ });
-        my @libs-as-args     = @!libs.map({     qqw/-I$_/        });
+        my @libs-as-args     = ($!precomp-path, @!libs).map({ qqw/-I$_/ });
         my @includes-as-args = @!includes.map({ qqw/-I$_/        });
 
 
@@ -83,10 +77,10 @@ class Zef::Builder {
             for $level.list -> $module-id {
                 my $file = $module-id.IO.absolute($!path).IO;
                 # Many tests are (incorrectly) written with the assumption the cwd is their projects base directory.
-                my $file-rel = ?$file.IO.is-relative ?? $file.IO.relative !! $file.IO.relative($!path);
+                my $file-rel = ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($!path);
 
                 for @targets -> $target {
-                    my $out = "{$!precomp-path.child($file-rel)}.{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}".IO.relative($!path);
+                    my $out = $!precomp-path.parent.child("{$file-rel}.{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}");
 
                     @process-levels.push: $!pm.create(
                         $*EXECUTABLE,
@@ -108,7 +102,7 @@ class Zef::Builder {
 
         # todo: re-enable parallel building via :$async flag
         for @todo-processes -> $proc-level {
-            mkdirs($_) for $proc-level.list.map({ $!precomp-path.child($_.args[*-1].IO.parent) }).grep(!*.IO.e);
+            mkdirs($_) for $proc-level.list.map({ $!precomp-path.parent.child($_.args[*-1].IO.parent) }).grep(!*.IO.e);
             my @promises = eager gather for $proc-level.list -> $proc {
                 print "{$proc.file.IO.basename} {$proc.args.join(' ')}\n";
                 take $proc.start;
@@ -119,7 +113,7 @@ class Zef::Builder {
 
         return {
             ok           => ?$!pm.ok-all,
-            precomp-path => $!precomp-path, 
+            precomp-path => IO::Path.new-from-absolute-path($!precomp-path.abspath, CWD => $!path), 
             path         => $!path,
             curlfs       => @curlfs.grep(*.IO.e).grep(*.IO.f), 
             sources      => %!meta<provides>.list,

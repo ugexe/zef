@@ -13,7 +13,7 @@ sub procs2stdout(*@processes) is export {
             $stdio.tap: -> $out { 
                 for $out.lines.grep(*.so) -> $line {
                     state $to-print ~= sprintf(
-                        "%-{$longest-basename.chars}s# %s\n",
+                        "%-{$longest-basename.chars + 1}s# %s\n",
                         $proc.id.IO.basename, 
                         $line 
                     );

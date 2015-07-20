@@ -108,7 +108,7 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :$force, Bool :$depends = True,
+multi MAIN('install', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$force, Bool :$depends = True,
     Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle) is export {
 
 
@@ -125,7 +125,7 @@ multi MAIN('install', *@modules, :@ignore, IO::Path :$save-to = $*TMPDIR, Bool :
 
     # Precompile all modules and dependencies
     # $save-to is already in the absolute paths of @repos
-    my $built = &MAIN('build', @repos, :!save-to, :$v, :$boring, :$async);
+    my $built = &MAIN('build', @repos, :save-to('blib'), :$v, :$boring, :$async);
     unless $built.list.elems {
         print "???> Nothing to build.\n";
     }
@@ -239,17 +239,20 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
 #| Build modules in cwd
 multi MAIN('build', Bool :$v) is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directory
-multi MAIN('build', *@repos, :@ignore, :$save-to = $*TMPDIR, Bool :$v,
+multi MAIN('build', *@repos, :@ignore, :$save-to = 'blib', Bool :$v,
     Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export {
     # Precompile all modules and dependencies
     # todo: message about empty build stage
     my $built = CLI-WAITING-BAR {
-        my @blibs;
+        my @libs;
         my @b = eager gather for @repos -> $repo {
-            my $path    = $repo.IO.abspath.IO;
-            my $builder = Zef::Builder.new(:$path, includes => (@blibs,@repos));
+            my $path = IO::Path.new-from-absolute-path($repo.IO.abspath, CWD => $repo);
+            my $precomp-path = IO::Path.new($path.child($save-to).child('lib'), CWD => $path);
+            my $builder = Zef::Builder.new(:$path, :$precomp-path, :@libs);
             my $result  = $builder.precomp(:$force);
-            @blibs.push: $result.<precomp-path>;
+
+            @libs.push: $result.<precomp-path>.IO;
+            @libs = @libs.unique;
             take $result;
         }
     }, "Building", :$boring;

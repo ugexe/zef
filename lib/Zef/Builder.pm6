@@ -61,7 +61,7 @@ class Zef::Builder {
 
 
         my @targets-as-args  = @targets.map({   qqw/--target=$_/ });
-        my @libs-as-args     = ($!precomp-path, @!libs).map({ qqw/-I$_/ });
+        my @libs-as-args     = ($!precomp-path.child('lib'), @!libs).map({ qqw/-I$_/ });
         my @includes-as-args = @!includes.map({ qqw/-I$_/        });
 
 
@@ -80,7 +80,7 @@ class Zef::Builder {
                 my $file-rel = ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($!path);
 
                 for @targets -> $target {
-                    my $out = $!precomp-path.parent.child("{$file-rel}.{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}");
+                    my $out = $!precomp-path.child("{$file-rel}.{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}");
 
                     @process-levels.push: $!pm.create(
                         $*EXECUTABLE,
@@ -93,7 +93,7 @@ class Zef::Builder {
                         :id($file-rel)
                     );
 
-                    @curlfs.push($out.IO.absolute($!path));
+                    @curlfs.push($out.IO.is-absolute ?? $out !! $out.IO.absolute($!path));
                 }
             }
 
@@ -102,7 +102,7 @@ class Zef::Builder {
 
         # todo: re-enable parallel building via :$async flag
         for @todo-processes -> $proc-level {
-            mkdirs($_) for $proc-level.list.map({ $!precomp-path.parent.child($_.args[*-1].IO.parent) }).grep(!*.IO.e);
+            mkdirs($_) for $proc-level.list.map({ $!precomp-path.child($_.args[*-1].IO.parent) }).grep(!*.IO.e);
             my @promises = eager gather for $proc-level.list -> $proc {
                 print "{$proc.file.IO.basename} {$proc.args.join(' ')}\n";
                 take $proc.start;

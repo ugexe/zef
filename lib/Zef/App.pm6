@@ -247,7 +247,7 @@ multi MAIN('build', *@repos, :@ignore, :$save-to = 'blib', Bool :$v,
         my @libs;
         my @b = eager gather for @repos -> $repo {
             my $path = IO::Path.new-from-absolute-path($repo.IO.abspath, CWD => $repo);
-            my $precomp-path = IO::Path.new($path.child($save-to).child('lib'), CWD => $path);
+            my $precomp-path = IO::Path.new($path.child($save-to), CWD => $path);
             my $builder = Zef::Builder.new(:$path, :$precomp-path, :@libs);
             my $result  = $builder.precomp(:$force);
 

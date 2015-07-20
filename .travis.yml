@@ -24,6 +24,6 @@ after_success:
     # We don't have time to do thse on jvm, but they are mostly redundant anyway
     # (tests use the default blib so would otherwise break the test itself)
     - perl6 -Ilib bin/zef --save-to=precomp/ build ./
-    - 'if [[ $BACKEND == "moar" ]]; then prove -v -e "perl6 -Iprecomp/lib" t/; fi'
-    - perl6 -Iprecomp/lib bin/zef -v --report --boring install P6TCI
+    - 'if [[ $BACKEND == "moar" ]]; then prove -v -e "perl6 -Iprecomp/" t/; fi'
+    - perl6 -Iprecomp/ bin/zef -v --report --boring install P6TCI
     - perl6 -e 'use P6TCI;'

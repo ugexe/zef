@@ -12,7 +12,7 @@ subtest {
     my $save-to := $path.child("test-libs_{time}{100000.rand.Int}").IO;
 
     my $lib-base  = $path.child('lib').IO;
-    my $blib-base = $save-to.child('blib').IO;
+    my $blib-base = $save-to.IO;
     LEAVE {       # Cleanup
         sleep 1;  # bug-fix for CompUnit related pipe file race
         try rm($save-to, :d, :f, :r);

@@ -42,7 +42,7 @@ Fetch, build, test, optional report, and install.
     # send a test report
     # --report
 
-    # parallel testing # todo: parallel build/install
+    # parallel testing and precompilation
     # --async
 
     # no status bar or other CLI eye candy

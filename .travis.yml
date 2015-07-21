@@ -2,8 +2,9 @@ language: perl
 perl:
     - '5.20'
 env:
-    - BACKEND=moar
-    - BACKEND=jvm
+    - BACKEND=moar ASYNC=True  REPORT=False
+    - BACKEND=moar ASYNC=False REPORT=True
+    - BACKEND=jvm  ASYNC=False REPORT=True
 matrix:
     allow_failures:
         - env: BACKEND=jvm
@@ -19,12 +20,8 @@ install:
     # need at least 1 statement in 'install'
     - perl6 -v
 script:
-    - perl6 -Ilib bin/zef -v --boring test
+    - prove -j4 -v -e "perl6 -Ilib" t/
 after_success:
-    # We don't have time to do all of these on jvm, but they are mostly redundant anyway
-    # (tests use the default blib so would otherwise break the test itself)
     - perl6 -Ilib bin/zef --save-to=precomp/ build ./
-    - 'if [[ $BACKEND == "moar" ]]; then prove -j4 -v -e "perl6 -Iprecomp/lib" t/; fi'
-    - perl6 -Iprecomp/lib bin/zef -v --report --boring install P6TCI
-    - perl6 -e 'use P6TCI;'
-    - 'if [[ $BACKEND == "moar" ]]; then perl6 -Iprecomp/lib bin/zef -v --report --boring --async install Zef; fi'
+    - perl6 -Iprecomp/lib bin/zef -v --boring test
+    - perl6 -Iprecomp/lib bin/zef -v --boring --report=$REPORT --async=$ASYNC install Zef

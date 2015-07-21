@@ -2,9 +2,9 @@ language: perl
 perl:
     - '5.20'
 env:
-    - BACKEND=moar ASYNC=True  REPORT=False
-    - BACKEND=moar ASYNC=False REPORT=True
-    - BACKEND=jvm  ASYNC=False REPORT=True
+    - BACKEND=moar ASYNC="--async"  REPORT=""
+    - BACKEND=moar ASYNC="" REPORT="--report"
+    - BACKEND=jvm  ASYNC="" REPORT="--report"
 matrix:
     allow_failures:
         - env: BACKEND=jvm
@@ -24,4 +24,4 @@ script:
 after_success:
     - perl6 -Ilib bin/zef --save-to=precomp/ build ./
     - perl6 -Iprecomp/lib bin/zef -v --boring test
-    - perl6 -Iprecomp/lib bin/zef -v --boring --report=$REPORT --async=$ASYNC install Zef
+    - perl6 -Iprecomp/lib bin/zef -v --boring $REPORT $ASYNC install Zef

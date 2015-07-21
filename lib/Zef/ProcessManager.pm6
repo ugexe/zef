@@ -15,22 +15,26 @@ class Zef::ProcessManager {
         return $proc;
     }
 
-
+    # todo: use $*SCHEDULER to limit processes used, throttling, etc
     method start-all(:$p6flags) {
         $_.start for @!processes;
-        $!promise = @!processes
-            ?? Promise.allof( @!processes.map({ $_.promise }) )
+
+        my @promises = @!processes
+            ?? @!processes.map({ $_.promise })
             !! do { my $p = Promise.new; $p.keep($p) }; 
             # ^ todo: more appropriate action where `@!processes.elems == 0`
+
+        $!promise = Promise.allof(@promises);
+        @promises;
     }
 
     method tap-all(&code) {
         @!processes>>.tap(&code);
     }
 
-    method ok-all {
+    method ok-all { # delete?
         return unless @!processes;
-        ?all(?@!processes>>.ok);
+        ?all(@!processes>>.ok);
     }
 
     method kill-all { }

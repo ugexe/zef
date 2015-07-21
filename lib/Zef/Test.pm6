@@ -38,8 +38,7 @@ class Zef::Test {
 
     method start(:$p6flags) {
         if $!pm.processes {
-            $!pm.start-all;
-            $!promise = Promise.allof: $!pm.processes.map({ $_.promise });
+            $!promise = Promise.allof: $!pm.start-all;
         }
         else {
             $!promise = Promise.new;
@@ -51,7 +50,7 @@ class Zef::Test {
 
     method tap(&code) { $!pm.tap-all(&code) }
 
-    method ok { $!pm.ok-all }
+    method ok { $!pm>>.ok }
 
     method nok { ?$.ok() ?? False !! True }
 

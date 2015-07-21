@@ -6,6 +6,7 @@ use Zef::ProcessManager;
 class Zef::Builder {
     has $.pm;
     has $.async;
+    has $.promise;
 
     has %.meta;
 
@@ -15,33 +16,32 @@ class Zef::Builder {
     has @.libs;
     has @.includes is rw;
 
-    submethod BUILD(IO::Path :$!path, IO::Path :$!precomp-path, :$!pm, :@!libs is copy, :@!includes, Bool :$!async) {
-        %!meta  = %(from-json( $!path.IO.child('META.info').IO.slurp ))\
+    has @.targets;
+    has @.curlfs;
+
+    has @.sources; # temporary
+    has $.module;  # temporary
+    method hash {  # temporary
+        %(ok => $.passes(), nok => $.failures(), module => $!module);
+    }
+
+    submethod BUILD(IO::Path :$!path, IO::Path :$!precomp-path, :$!pm, 
+        :@!libs is copy, :@!includes, :@!targets, Bool :$!async) {
+        
+        %!meta = %(from-json( $!path.IO.child('META.info').IO.slurp ))\
             or die "No META file found";
+
+        @!sources := %!meta<provides>.list; # temporary
+        $!module  := %!meta<name>;          # temporary
+
+
+        @!targets = @!targets || $*VM.precomp-ext ~~ /moar/ ?? 'mbc' !! 'jar';
         $!precomp-path = $!path.child('blib') unless $!precomp-path;
 
         @!libs .= unshift: (@!libs || $!path.child('lib'))>>.IO>>.abspath>>.IO;
         @!libs .= push: $!path.child('lib');
 
-        $!pm = !$!pm.defined ?? Zef::ProcessManager.new(:$!async)
-                             !! $!pm.DEFINITE
-                                ?? $!pm
-                                !! ::($!pm).new;
-    }
-
-    # todo: lots of cleanup/refactoring
-    method precomp(Bool :$force, :@targets) {
-        @targets = @targets || $*VM.precomp-ext ~~ /moar/ ?? 'mbc' !! 'jar';
-
-        # my $manifest  = from-json( %*CUSTOM_LIB<site>.IO.child('MANIFEST').IO.slurp );
-        # NOTE: this may change
-        # Currently treats relative paths as relative to the current repo's path ($path).
-        # It may or may not be better to treat them as relative to the users CWD. We shall see.
-        print "!!!> No META.info `provides` section. Skipping.\n" and next unless %!meta<provides>.values;
-        print "===> Build directory: {$!precomp-path.abspath}\n";
         my @provides-abspaths = %!meta<provides>.values.map({ $_.IO.absolute($!path).IO });
-
-
         # Build the @dep chain for the %META.<provides> by parsing the 
         # use/require/need from the module source.
         my @deps = extract-deps( @provides-abspaths ).list;
@@ -60,9 +60,8 @@ class Zef::Builder {
         }
 
 
-        my @targets-as-args  = @targets.map({   qqw/--target=$_/ });
         my @libs-as-args     = ($!precomp-path.child('lib'), @!libs).map({ qqw/-I$_/ });
-        my @includes-as-args = @!includes.map({ qqw/-I$_/        });
+        my @includes-as-args = @!includes.map({ qqw/-I$_/ });
 
 
         # @provides-as-deps is a partial META.info hash, so pass the $meta.<provides>
@@ -70,19 +69,19 @@ class Zef::Builder {
         my @levels = Zef::Utils::Depends.new(projects => @provides-as-deps).topological-sort;
 
 
-        my @curlfs;
         # Create the build order for the `provides`
         my @todo-processes = eager gather for @levels -> $level {
-            my @process-levels;
+            my $pm-level = Zef::ProcessManager.new(:$!async);
+
             for $level.list -> $module-id {
                 my $file = $module-id.IO.absolute($!path).IO;
                 # Many tests are (incorrectly) written with the assumption the cwd is their projects base directory.
                 my $file-rel = ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($!path);
 
-                for @targets -> $target {
+                for @!targets -> $target {
                     my $out = $!precomp-path.child("{$file-rel}.{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}");
 
-                    @process-levels.push: $!pm.create(
+                    $pm-level.create(
                         $*EXECUTABLE,
                         @libs-as-args,
                         @includes-as-args,
@@ -93,31 +92,52 @@ class Zef::Builder {
                         :id($file-rel)
                     );
 
-                    @curlfs.push($out.IO.is-absolute ?? $out !! $out.IO.absolute($!path));
+                    @!curlfs.push($out.IO.is-absolute ?? $out !! $out.IO.absolute($!path));
                 }
             }
 
-            take [@process-levels];
+            $!pm.push: $pm-level;
         }
+    }
 
-        # todo: re-enable parallel building via :$async flag
-        for @todo-processes -> $proc-level {
-            mkdirs($_) for $proc-level.list.map({ $!precomp-path.child($_.args[*-1].IO.parent) }).grep(!*.IO.e);
-            my @promises = eager gather for $proc-level.list -> $proc {
-                print "{$proc.file.IO.basename} {$proc.args.join(' ')}\n";
-                take $proc.start;
+    method tap(&code) { $!pm>>.tap-all(&code) }
+
+    method ok { ?all($!pm>>.ok-all) }
+
+    method nok { ?$.ok() ?? False !! True }
+
+    method passes {
+        $!pm>>.processes.grep(*.ok.so)>>.id;
+    }
+
+    method failures {
+        say $!pm>>.processes.grep(*.ok.not)>>.id;
+        $!pm>>.processes.grep(*.ok.not)>>.id;
+    }
+
+
+    method start(:$p6flags) {
+        print "!!!> No META.info `provides` section. Skipping.\n" and next unless %!meta<provides>.values;
+        print "===> Build directory: {$!precomp-path.abspath}\n";
+
+        my $p = Promise.new;
+
+        if $!pm.list.elems {
+            $p.keep(1);
+            for $!pm.list -> $g {
+                $p = $p.then({
+                    $g.list>>.processes\
+                        .map({ $!precomp-path.child($_.args[*-1].IO.parent) })\
+                        .grep(!*.IO.d)\
+                        .map({ mkdirs($_) });
+                    await $g.start-all;
+                });
             }
-            await Promise.allof(@promises) if @promises;
+        }
+        else {
+            $p.keep(1);
         }
 
-
-        return {
-            ok           => ?$!pm.ok-all,
-            precomp-path => IO::Path.new-from-absolute-path($!precomp-path.abspath, CWD => $!path), 
-            path         => $!path,
-            curlfs       => @curlfs.grep(*.IO.e).grep(*.IO.f), 
-            sources      => %!meta<provides>.list,
-            module       => %!meta<name>,
-        }
+        $!promise = $p;
     }
 }

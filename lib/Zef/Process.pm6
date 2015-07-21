@@ -34,9 +34,12 @@ class Zef::Process {
 
         if $!async {
             $!process = Proc::Async.new($*EXECUTABLE, @!args);
-            
             $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }
             $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
+
+            my $cmd = "{$*EXECUTABLE} {@!args.join(' ')}";
+            my $show-cmd = "{$*EXECUTABLE.basename} {@!args.join(' ')}";
+            $!process.stdout.emit($show-cmd);
 
             $!started  := $!process.started;
             $!promise   = $!process.start(:$!cwd);
@@ -46,17 +49,18 @@ class Zef::Process {
         }
         else {
             my $cmd = "{$*EXECUTABLE} {@!args.join(' ')}";
+            my $show-cmd = "{$*EXECUTABLE.basename} {@!args.join(' ')}";
             $!process = shell("$cmd 2>&1", :out, :$!cwd, :!chomp);
 
-            #start({
-                $!promise = Promise.new;
-                $!stdout.act: { $!stdmerge ~= $_ }
-                $!started = True;
-                $!stdout.emit($_) for $!process.out.lines;
-                $!finished = ?$!promise.keep($!process.status);
-            #}).then({ 
-                $!stdout.close; $!stderr.close; $!process.out.close; 
-            #});
+            $!promise = Promise.new;
+            $!stdout.act: { $!stdmerge ~= $_ }
+            $!stdout.emit($show-cmd);
+
+            $!started = True;
+            $!stdout.emit($_) for $!process.out.lines;
+            $!finished = ?$!promise.keep($!process.status);
+
+            $!stdout.close; $!stderr.close; $!process.out.close; 
         }
 
         $!promise;
@@ -74,4 +78,5 @@ class Zef::Process {
             return $!process.exitcode == 0 ?? True !! False 
         }
     }
+    method nok { ?$.ok() ?? False !! True }
 }

@@ -241,27 +241,38 @@ multi MAIN('build', Bool :$v) is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :@ignore, :$save-to = 'blib', Bool :$v,
     Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export {
-    # Precompile all modules and dependencies
-    # todo: message about empty build stage
+
     my $built = CLI-WAITING-BAR {
         my @libs;
-        my @b = eager gather for @repos -> $repo {
+
+        my @b = @repos.map: -> $repo { 
             my $path = IO::Path.new-from-absolute-path($repo.IO.abspath, CWD => $repo);
             my $precomp-path = IO::Path.new($path.child($save-to), CWD => $path);
-            my $builder = Zef::Builder.new(:$path, :$precomp-path, :@libs);
-            my $result  = $builder.precomp(:$force);
+            Zef::Builder.new(:$path, :$precomp-path, :@libs, :$async);
+        }
 
-            @libs.push: $result.<precomp-path>.IO;
-            @libs = @libs.unique;
-            take $result;
+        # verbose sends build output to stdout
+        my @builders = eager gather for @b -> $builder {
+            procs2stdout($builder.pm>>.processes) if $v;
+            await $builder.start;
+            take $builder;
         }
     }, "Building", :$boring;
 
-    verbose('Build', $built.list);
+    #verbose('Build', $built.list);
+    my $build-result = verbose('Build', $built.list>>.pm>>.processes>>.map({ 
+        ok => $_.ok, module => $_.id
+    }));
+
+
+    if $build-result<nok> && !$force {
+        print "!!!> Precompilation failure. Aborting.\n";
+        exit $build-result<nok>;
+    }
+
 
     return $built;
 }
-
 
 # todo: non-exact matches on non-version fields
 multi MAIN('search', Bool :$v, *@names, *%fields) {
@@ -374,7 +385,7 @@ multi MAIN('info', *@modules, Bool :$v, Bool :$boring) {
 # will be replaced soon
 sub verbose($phase, @_) {
     say "???> $phase stage is empty" and return unless @_;
-    my %r = @_.classify({ $_.hash.<ok> ?? 'ok' !! 'nok' });
+    my %r = @_.classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' });
     print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
     print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
     return { ok => %r<ok>.elems, nok => %r<nok> }

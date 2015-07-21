@@ -22,7 +22,7 @@ class Zef::Builder {
     has @.sources; # temporary
     has $.module;  # temporary
     method hash {  # temporary
-        %(ok => $.passes(), nok => $.failures(), module => $!module);
+        %(ok => $.passes(), nok => $.failures(), module => $!module, curlfs => @!curlfs);
     }
 
     submethod BUILD(IO::Path :$!path, IO::Path :$!precomp-path, :$!pm, 
@@ -111,7 +111,6 @@ class Zef::Builder {
     }
 
     method failures {
-        say $!pm>>.processes.grep(*.ok.not)>>.id;
         $!pm>>.processes.grep(*.ok.not)>>.id;
     }
 

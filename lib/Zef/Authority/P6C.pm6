@@ -69,17 +69,16 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             my $repo-path = $meta-path.IO.parent;
 
             my $test  = @test-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
-            my %build = @build-results.first({ $_.<path>.IO.ACCEPTS($repo-path.IO) }).hash;
+            my $build = @build-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
 
-            my $build-output = %build.<curlfs>.list\
-                .grep(*.build-output.so)\
-                .map({ $_.build-output })\
+            my $build-output = $build.pm>>.processes>>.list\
+                .grep(*.stdmerge.so)\
+                .map({ $_.stdmerge })\
                 .join("\n");
             my $test-output  = $test\.pm.processes.list\
                 .grep(*.stdmerge.so)\
                 .map({ $_.stdmerge })\
                 .join("\n");
-
 
             # See Panda::Reporter
             %meta<report> = to-json {
@@ -89,8 +88,8 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 :metainfo($meta-json),
                 :build-output($build-output // ''),
                 :test-output($test-output   // ''),
-                :build-passed(?%build<curlfs>    ?? %build<ok> !! Nil),
-                :test-passed(?$test.pm.processes ?? ?$test.ok  !! Nil),
+                :build-passed(?$build.pm>>.processes ?? ?all($build.pm>>.processes>>.ok) !! Nil),
+                :test-passed(?$test.pm.processes ?? ?all($test.pm>>.processes>>.ok)  !! Nil),
                 :distro({
                     :name($*DISTRO.name),
                     :version($*DISTRO.version.Str),

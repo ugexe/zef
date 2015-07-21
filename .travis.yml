@@ -2,17 +2,16 @@ language: perl
 perl:
     - '5.20'
 env:
-    - BACKEND=moar ASYNC="--async"  REPORT=""
-    - BACKEND=moar ASYNC="" REPORT="--report"
-    - BACKEND=jvm  ASYNC="" REPORT="--report"
+    - BACKEND=moar ASYNC=""
+    - BACKEND=moar ASYNC="--async"
+    - BACKEND=jvm  ASYNC=""
 matrix:
     allow_failures:
-        - env: BACKEND=jvm
+        - env: BACKEND=jvm  ASYNC=""
+        - env: BACKEND=moar ASYNC="--async"
     fast_finish: true
 sudo: false
 before_install:
-    - git config --global user.name "TravisCI"
-    - git config --global user.email $HOSTNAME":not-for-mail@travis-ci.org"
     - git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew
     - export PATH=~/.rakudobrew/bin:$PATH
     - rakudobrew build $BACKEND
@@ -24,4 +23,4 @@ script:
 after_success:
     - perl6 -Ilib bin/zef -v --boring $ASYNC --save-to=precomp/ build ./
     - perl6 -Iprecomp/lib bin/zef -v --boring $ASYNC test
-    - perl6 -Iprecomp/lib bin/zef -v --boring $REPORT $ASYNC install Zef
+    - perl6 -Iprecomp/lib bin/zef -v --boring --report $ASYNC install Zef

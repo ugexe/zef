@@ -129,7 +129,7 @@ class Zef::Builder {
                         .map({ $!precomp-path.child($_.args[*-1].IO.parent) })\
                         .grep(!*.IO.d)\
                         .map({ mkdirs($_) });
-                    await $g.start-all;
+                    await Promise.allof( $g.start-all );
                 });
             }
         }

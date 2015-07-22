@@ -48,13 +48,13 @@ class Zef::Builder {
         my @provides-as-deps = eager gather for @deps -> $dep-meta is rw {
             $dep-meta.<depends> = [$dep-meta.<depends>.list.map(-> $name { 
                 %!meta.<provides>.list\
-                    .grep({ $_.key eq $name })\
+                    .first({ $_.key eq $name })\
                     .map({ $_.value.IO.absolute($!path) });
             } )];
 
             $dep-meta.<name> = %!meta.<provides>.list\
                 .map({ $_.value.IO.absolute($!path).IO })\
-                .first({ $_ eq $dep-meta.<path>.IO.absolute($!path) });
+                .first({ $_.IO.ACCEPTS($dep-meta.<path>.IO.absolute($!path)) });
 
             take $dep-meta;
         }

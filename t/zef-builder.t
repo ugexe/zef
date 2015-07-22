@@ -20,7 +20,7 @@ subtest {
 
     my @source-files = ls($lib-base, :f, :r, d => False);
     my @target-files = @source-files\
-        .grep({ $_.IO.basename ~~ / \.pm6? $/ })\
+        .grep({ $_.IO.extension.lc ~~ /^ pm6? $/ })\
         .map({ $precomp-path.child("{$_.IO.relative($path)}.{$*VM.precomp-ext}").IO });
 
     my $builder = Zef::Builder.new(:$path, :$precomp-path);

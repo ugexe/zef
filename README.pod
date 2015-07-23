@@ -12,23 +12,23 @@ Zef - Perl6 Module Management
 
 =head1 The CLI
 
-    zef -v install CSV::Parser
     # duh
+    zef -v install CSV::Parser
 
-    zef -v uninstall CSV::Parser
     # noooooo!
+    zef -v uninstall CSV::Parser
 
-    zef -v --report install CSV::Parser
     # fire off test reports this time *onomatopoeia of an uzi*
+    zef -v --report install CSV::Parser
 
-    zef -v search CSV::Parser
     # search for module names matching `CSV::Parser`
+    zef -v search CSV::Parser
 
-    zef -v build
     # build project in current directory
-    
+    zef -v build
+
+    # test project in current directory    
     zef -v test
-    # test project in current directory
 
 =head2 More CLI
 
@@ -161,7 +161,7 @@ B<Example>:
 
 =head4 B<info>
 
-Given C<*@modules> it will list a formatted version of each's `META.info` data.
+Given C<*@modules> it will list a formatted version of each's C<META.info> data.
     
     # basics
     zef info JSON::Tiny

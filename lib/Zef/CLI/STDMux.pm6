@@ -8,7 +8,7 @@ unit module Zef::CLI::STDMux;
 sub procs2stdout(*@processes) is export {
     return unless @processes;
     my @basenames = @processes>>.id>>.IO>>.basename;
-    my $longest-basename = @basenames.reduce({ $^a.chars > $^b.chars ?? $^a !! $^b });
+    my $longest-basename = @basenames.max(*.chars);
     for @processes -> $proc {
         for $proc.stdout, $proc.stderr -> $stdio {
             $stdio.tap: -> $out { 

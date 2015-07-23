@@ -32,18 +32,18 @@ Zef - Perl6 Module Management
 
 =head2 More CLI
 
-=head4 install
+=head4 B<install>
 
 Fetch, build, test, optional report, and install.
 
     # verbose output
-    # -v
+    -v
 
     # send a test report
-    # --report
+    --report
 
     # parallel testing and precompilation
-    # --async
+    --async
 
     # no status bar or other CLI eye candy
     --boring
@@ -59,8 +59,42 @@ Fetch, build, test, optional report, and install.
 
     # livin that multi thread life
     zef -v --report --async install HTTP::Server::Threaded
+    
+B<Example>: (note parallelized output format will be improved)
+    
+    $ perl6 -Ilib bin/zef -v install CSV::Parser P6TCI
+    ===> Querying Authority [done]
+    ===> Fetching [done]
+    ===> Fetching OK for: CSV::Parser P6TCI
+    ===> META.info availability OK for: CSV::Parser P6TCI
+    ===> Build directory: /tmp/CSV--Parser/blib
+    Parser.pm # perl6 -I/tmp/CSV--Parser/blib/lib -I/tmp/CSV--Parser/lib -I/tmp/CSV--Parser/lib --target=mbc --output=/tmp/CSV--Parser/blib/lib/CSV/Parser.pm.moarvm lib/CSV/Parser.pm
+    ===> Build directory: /tmp/P6TCI/blib
+    P6TCI.pm6 # perl6 -I/tmp/P6TCI/blib/lib -I/tmp/P6TCI/lib -I/tmp/P6TCI/lib --target=mbc --output=/tmp/P6TCI/blib/lib/P6TCI.pm6.moarvm lib/P6TCI.pm6
+    ===> Building [done]
+    ===> Build OK for: lib/CSV/Parser.pm lib/P6TCI.pm6
+    01_multiline_csv.t  # perl6 --ll-exception -I/tmp/CSV--Parser/blib -I/tmp/CSV--Parser/lib -I/tmp/P6TCI/blib -I/tmp/P6TCI/lib t/01_multiline_csv.t
+    01_multiline_csv.t  # 1..1
+    01_multiline_csv.t  # ok 1 -
+    02_escaped_csv.t    # perl6 --ll-exception -I/tmp/CSV--Parser/blib -I/tmp/CSV--Parser/lib -I/tmp/P6TCI/blib -I/tmp/P6TCI/lib t/02_escaped_csv.t
+    02_escaped_csv.t    # 1..1
+    02_escaped_csv.t    # ok 1 -
+    03_delimiters_csv.t # perl6 --ll-exception -I/tmp/CSV--Parser/blib -I/tmp/CSV--Parser/lib -I/tmp/P6TCI/blib -I/tmp/P6TCI/lib t/03_delimiters_csv.t
+    03_delimiters_csv.t # 1..1
+    03_delimiters_csv.t # ok 1 -
+    04_binary_csv.t     # perl6 --ll-exception -I/tmp/CSV--Parser/blib -I/tmp/CSV--Parser/lib -I/tmp/P6TCI/blib -I/tmp/P6TCI/lib t/04_binary_csv.t
+    04_binary_csv.t     # 1..1
+    04_binary_csv.t     # ok 1 -
+    00-load.t           # perl6 --ll-exception -I/tmp/CSV--Parser/blib -I/tmp/CSV--Parser/lib -I/tmp/P6TCI/blib -I/tmp/P6TCI/lib t/00-load.t
+    00-load.t           # ok 1 - Module loaded.
+    00-load.t           # 1..1
+    ===> Testing [done]
+    ===> Testing OK for: 01_multiline_csv.t 02_escaped_csv.t 03_delimiters_csv.t 04_binary_csv.t 00-load.t
+    ===> Installing [done]
+    ===> Install OK for: CSV::Parser P6TCI
 
-=head4 smoke
+
+=head4 B<smoke>
 
 Tests every module in the ecosystem, ignoring any modules with a name (or dependency name) matching argument C<*@ignores>
 
@@ -75,7 +109,7 @@ Tests every module in the ecosystem, ignoring any modules with a name (or depend
     --dry
     -v
 
-=head4 search
+=head4 B<search>
 
 Take C<*%args> filters. That is, any C<--[field]="term"> passed will search for "term" in it's META [field].
 
@@ -100,8 +134,32 @@ Note: C<*> behaves slightly differently for C<--version>
 
     # sure
     zef -v --depends="HTTP::Server" --version="0.1+" search HTTP::Server::Threaded
-    
-=head4 info
+
+B<Example>:
+
+    $ perl6 -Ilib bin/zef -v search HTTP*
+    ===> Querying Server [done]
+    ===> Filtering Results [done]
+    ===> Found 13 results
+    ---------------------------------------------------------------------------------------------------------------------------------
+    ID | Package                                      | Version | Description
+    ---------------------------------------------------------------------------------------------------------------------------------
+    1  | HTTP::Server::Simple                         | *       | Simple webserver module, with PSGI support
+    2  | HTTP::UserAgent                              | 1.1.3   | Web user agent
+    3  | HTTP::Easy                                   | *       | HTTP servers made easy, including PSGI
+    4  | HTTP::Status                                 | *       | Get the text message associated with an HTTP status code
+    5  | HTTP::Client                                 | *       | A flexible HTTP Client library
+    6  | HTTP::ParseParams                            | 1.0.0   | cookie/query/post data parsing
+    7  | HTTP::Server::Async                          | 0.1.0   | Asynchronous Base HTTP Server
+    8  | HTTP::Server::Async::Plugins::Router::Simple | 0.1.0   | Basic routing for http server
+    9  | HTTP::Server::Threaded                       | 0.1.0   | Threaded Base HTTP Server
+    10 | HTTP::Server::Router                         | 0.1.0   | Router for HTTP::Server based servers
+    11 | HTTP::Server                                 | 0.1     | role for HTTP::Server so we can have start building out some ser...
+    12 | HTTP::Server::Logger                         | 0.1     | A common log format logger for anything abiding by HTTP::Server
+    13 | HTTP::Headers                                | 0.1     | Tools for working with HTTP message headers
+    ---------------------------------------------------------------------------------------------------------------------------------
+
+=head4 B<info>
 
 Given C<*@modules> it will list a formatted version of each's `META.info` data.
     
@@ -112,6 +170,46 @@ Given C<*@modules> it will list a formatted version of each's `META.info` data.
     #   * `provides` section
     #   * Entire dependency chain, ordered and grouped into build levels
     zef -v info Task::Star
+
+B<Example>:
+
+    $ perl6 -Ilib bin/zef -v info HTTP::UserAgent
+    ===> Querying Server [done]
+    ===> Filtering Results [done]
+    ===> Found 1 results
+    [HTTP::UserAgent]
+    # Version: 1.1.3
+    # Author:        github:sergot
+    # Description:   Web user agent
+    # Source-url:    git://github.com/sergot/http-useragent.git
+    # Provides: 9 items
+    #       HTTP::Cookies
+    #       HTTP::Message
+    #       HTTP::UserAgent::Common
+    #       HTTP::Header::Field
+    #       HTTP::Request
+    #       HTTP::Header
+    #       HTTP::Cookie
+    #       HTTP::Response
+    #       HTTP::UserAgent
+    # Depends: 7 items
+    #   0)  HTTP::Status
+    #   1)  File::Temp
+    #   2)  DateTime::Parse
+    #   3)  IO::Capture::Simple
+    #   4)  Encode
+    #   5)  MIME::Base64
+    #   6)  URI
+    # Depends-chain:
+    #   0.0) DateTime::Parse
+    #   0.1) Encode
+    #   0.2) File::Directory::Tree
+    #   0.3) HTTP::Status
+    #   0.4) IO::Capture::Simple
+    #   0.5) MIME::Base64
+    #   0.6) URI
+    #   1.0) File::Temp
+    #   2.0) HTTP::UserAgent
 
 =head1 INCLUDED TOOLS
 
@@ -166,7 +264,7 @@ L<http://modules.perl6.org/>
  * HPACK/HTTP2 compatability
  * ✓ Parallelized testing
  * TAP Harness/Grammar
- * Parallelized building
+ * ✓ Parallelized building
  * ✓ Basic CLI overlay/hud
  * Pure Perl6 decompression/git-clone library
 

@@ -1,13 +1,15 @@
 unit class Zef::App;
 
+use Zef::Distribution;
+#use Zef::Roles::Installing;
+use Zef::Roles::Precompiling;
+use Zef::Roles::Processing;
+use Zef::Roles::Testing;
 use Zef::Authority::P6C;
-use Zef::Builder;
 use Zef::Config;
 use Zef::Installer;
 use Zef::CLI::StatusBar;
 use Zef::CLI::STDMux;
-use Zef::ProcessManager;
-use Zef::Test;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
@@ -40,39 +42,50 @@ $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 #| Test modules in the specified directories
 multi MAIN('test', *@repos, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$force) is export {
     @repos .= push($*CWD) unless @repos;
+    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
+
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
-    my $tested = CLI-WAITING-BAR {
+    my $tested-dists = CLI-WAITING-BAR {
         my @includes = gather for @repos -> $path {
             take $path.IO.child('blib');
             take $path.IO.child('lib');
         }
 
-        my @t = @repos.map: -> $path { Zef::Test.new(:$path, :@includes, :$async, :$shuffle) }
+        my @dists = gather for @repos -> $path {
+            my $dist = Zef::Distribution.new(path => $path.IO);
+            $dist does Zef::Roles::Processing[:$async];
+            $dist does Zef::Roles::Testing;
 
-        if @t {
-            # verbose sends test output to stdout
-            procs2stdout(@t>>.pm>>.processes) if $v;
-            await Promise.allof(@t.map({ $_.start }));
+            my @test-commands = [$dist.test-cmds];
+
+            for @test-commands -> $grouped {
+                my @args = $grouped.list;
+                $dist.queue-processes( [@args] );
+            }
+
+            procs2stdout( $dist.processes>>.map({ $_ }) ) if $v;
+            await $dist.start-processes;
+
+            take $dist;
         }
-
-        @t;
     }, "Testing", :$boring;
 
 
-    my $test-result = verbose('Testing', $tested.list>>.pm>>.processes.map({ 
-        ok => all($_.ok), module => $_.id.IO.basename
-    }));
+    my @test-results = gather for $tested-dists.list -> $tested-dist {
+        my $results = $tested-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
+        my $results-final = verbose('Testing', $results.list);
+        take $results-final;
+    }
 
-
-    if $test-result<nok> && !$force {
+    if @test-results>>.hash.<nok> && !$force {
         print "!!!> Failed tests. Aborting.\n";
-        exit $test-result<nok>;
+        exit 255;
     }
 
 
-    return $tested;
+    return $tested-dists;
 }
 
 
@@ -236,42 +249,42 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
 }
 
 
-#| Build modules in cwd
-multi MAIN('build', Bool :$v) is export { &MAIN('build', $*CWD) }
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :@ignore, :$save-to = 'blib', Bool :$v,
     Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export {
+    @repos .= push($*CWD) unless @repos;
+    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 
-    my $built = CLI-WAITING-BAR {
-        my @libs;
 
-        my @b = @repos.map: -> $repo { 
-            my $path = IO::Path.new-from-absolute-path($repo.IO.abspath, CWD => $repo);
-            my $precomp-path = IO::Path.new($path.child($save-to), CWD => $path);
-            Zef::Builder.new(:$path, :$precomp-path, :@libs, :$async);
+    # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
+    # (note: first crack at supplies/parallelization)
+    my $precompiled-dists = CLI-WAITING-BAR {
+        my @dists = gather for @repos -> $path {
+            my $dist = Zef::Distribution.new(path => $path.IO);
+            $dist does Zef::Roles::Processing;
+            $dist does Zef::Roles::Precompiling;
+
+            $dist.queue-processes($_) for $dist.precomp-cmds;
+            procs2stdout($dist.processes>>.map({ $_ })) if $v;
+            await $dist.start-processes;
+
+            take $dist;
         }
-
-        # verbose sends build output to stdout
-        my @builders = eager gather for @b -> $builder {
-            procs2stdout($builder.pm>>.processes) if $v;
-            await $builder.start;
-            take $builder;
-        }
-    }, "Building", :$boring;
-
-    #verbose('Build', $built.list);
-    my $build-result = verbose('Build', $built.list>>.pm>>.processes>>.map({ 
-        ok => $_.ok, module => $_.id
-    }));
+    }, "Precompiling", :$boring;
 
 
-    if $build-result<nok> && !$force {
-        print "!!!> Precompilation failure. Aborting.\n";
-        exit $build-result<nok>;
+    my @precompiled-results = gather for $precompiled-dists.list -> $precompiled-dist {
+        my $results = $precompiled-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
+        my $results-final = verbose('Precompiling', $results.list);
+        take $results-final;
     }
 
+    if @precompiled-results>>.hash.<nok> && !$force {
+        print "!!!> Precompilation failure. Aborting.\n";
+        exit 255;
+    }
 
-    return $built;
+    return $precompiled-dists;
 }
 
 # todo: non-exact matches on non-version fields

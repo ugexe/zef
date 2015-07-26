@@ -1,7 +1,7 @@
 # A wrapper around Proc and Proc::Async
 class Zef::Process {
     has $.id       is rw;
-    has $.file     is rw;
+    has $.command  is rw;
     has @.args     is rw;
     has $.cwd      is rw;
     has $.stdout;
@@ -17,13 +17,20 @@ class Zef::Process {
     has $.started;
     has $.finished;
 
-    submethod BUILD(:$!file, :@!args, :$!cwd, Bool :$!async, Str :$!id) {
+    submethod BUILD(:$!command, :@!args, :$!cwd, Bool :$!async, :$!id) {
         $!can-async = !::("Proc::Async").isa(Failure);
         $!stdout = Supply.new;
         $!stderr = Supply.new;
         $!type   = $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
+        $!id     = $!id 
+            ?? $!id 
+            !! @!args 
+                ?? @!args[*-1].item.IO.basename 
+                !! $!command 
+                    ?? $!command.IO.basename 
+                    !! ''; # shameful
 
-         die "Proc::Async not available, but option :\$!async explicitily requested it (JVM NYI)"
+        die "Proc::Async not available, but option :\$!async explicitily requested it (JVM NYI)"
             if $!async && !$!can-async;
     }
 
@@ -39,6 +46,7 @@ class Zef::Process {
 
             my $cmd = "{$*EXECUTABLE} {@!args.join(' ')}";
             my $show-cmd = "{$*EXECUTABLE.basename} {@!args.join(' ')}";
+
             $!process.stdout.emit($show-cmd);
 
             $!started  := $!process.started;
@@ -50,6 +58,7 @@ class Zef::Process {
         else {
             my $cmd = "{$*EXECUTABLE} {@!args.join(' ')}";
             my $show-cmd = "{$*EXECUTABLE.basename} {@!args.join(' ')}";
+
             $!process = shell("$cmd 2>&1", :out, :$!cwd, :!chomp);
 
             $!promise = Promise.new;

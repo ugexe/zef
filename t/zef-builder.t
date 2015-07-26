@@ -1,5 +1,7 @@
 use v6;
-use Zef::Builder;
+use Zef::Distribution;
+use Zef::Roles::Precompiling;
+use Zef::Roles::Processing;
 use Zef::Utils::PathTools;
 use Test;
 plan 1;
@@ -10,28 +12,30 @@ plan 1;
 subtest {
     my $path    := $?FILE.IO.dirname.IO.parent; # ehhh
     my $save-to := $path.child("test-libs_{time}{100000.rand.Int}").IO;
+    my $precomp-path = $save-to.IO.child('lib');
 
-    my $lib-base  = $path.child('lib').IO;
-    my $precomp-path = $save-to.IO;
     LEAVE {       # Cleanup
         sleep 1;  # bug-fix for CompUnit related pipe file race
         try rm($save-to, :d, :f, :r);
     }
 
-    my @source-files = ls($lib-base, :f, :r, d => False);
-    my @target-files = @source-files\
-        .grep({ $_.IO.extension.lc ~~ /^ pm6? $/ })\
-        .map({ $precomp-path.child("{$_.IO.relative($path)}.{$*VM.precomp-ext}").IO });
+    my $distribution = Zef::Distribution.new(:$path, :$precomp-path);
+    $distribution does Zef::Roles::Precompiling;
+    $distribution does Zef::Roles::Processing;
+    my @cmds = $distribution.precomp-cmds;
 
-    my $builder = Zef::Builder.new(:$path, :$precomp-path);
-    await $builder.start;
+    my @source-files = $distribution.provides(:absolute).values;
+    my @target-files = $distribution.provides(:absolute, :precomp).values;
 
-    ok $builder.ok;
-    ok $builder.curlfs.elems;
+    $distribution.queue-processes( [$_.list] ) for @cmds;
 
-    my @expected-abs-paths = $builder.curlfs.map({ $_.IO.is-absolute ?? $_.IO !! $path.child($_.IO).IO });
+    await $distribution.start-processes;
+
+    is $distribution.passes.elems, @source-files.elems, "Found expected precompiled files";
+    is $distribution.failures.elems, 0, "No apparent precompilation failures";
+
     for @target-files -> $file {
-        ok $file.IO.absolute ~~ any(@expected-abs-paths), "Found: {$file.IO.path}";
+        ok $file.IO.e, "Found: {$file.IO.relative($path)}";
     }
 }, 'Zef::Builder';
 

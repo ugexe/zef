@@ -8,11 +8,10 @@
         "Zef" : "lib/Zef.pm6",
 
         "Zef::App"            : "lib/Zef/App.pm6",
-        "Zef::Builder"        : "lib/Zef/Builder.pm6",
         "Zef::Config"         : "lib/Zef/Config.pm6",
+        "Zef::Distribution"   : "lib/Zef/Distribution.pm6",
         "Zef::Installer"      : "lib/Zef/Installer.pm6",
         "Zef::Process"        : "lib/Zef/Process.pm6",
-        "Zef::ProcessManager" : "lib/Zef/ProcessManager.pm6",
         "Zef::Uninstaller"    : "lib/Zef/Uninstaller.pm6",
 
         "Zef::Authority"      : "lib/Zef/Authority.pm6",
@@ -23,7 +22,6 @@
         "Zef::CLI::StatusBar" : "lib/Zef/CLI/StatusBar.pm6",
         "Zef::CLI::STDMux"    : "lib/Zef/CLI/STDMux.pm6",
 
-        "Zef::Test"          : "lib/Zef/Test.pm6",
         "Zef::Test::Grammar" : "lib/Zef/Test/Grammar.pm6",
 
         "Zef::Utils::Base64"     : "lib/Zef/Utils/Base64.pm6",
@@ -59,7 +57,12 @@
         "Zef::Net::URI"                   : "lib/Zef/Net/URI.pm6",
         "Zef::Net::URI::Grammar"          : "lib/Zef/Net/URI/Grammar.pm6",
         "Zef::Net::URI::Grammar::RFC3986" : "lib/Zef/Net/URI/Grammar/RFC3986.pm6",
-        "Zef::Net::URI::Grammar::RFC4234" : "lib/Zef/Net/URI/Grammar/RFC4234.pm6"
+        "Zef::Net::URI::Grammar::RFC4234" : "lib/Zef/Net/URI/Grammar/RFC4234.pm6",
+
+        "Zef::Roles::Installing"          : "lib/Zef/Roles/Installing.pm6",
+        "Zef::Roles::Precompiling"        : "lib/Zef/Roles/Precompiling.pm6",
+        "Zef::Roles::Processing"          : "lib/Zef/Roles/Processing.pm6",
+        "Zef::Roles::Testing"             : "lib/Zef/Roles/Testing.pm6"
     },
     "auth"    : "github:ugexe",
     "authors" : [

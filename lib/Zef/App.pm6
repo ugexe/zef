@@ -41,7 +41,7 @@ $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 #| Test modules in the specified directories
 multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v, 
-    Bool :$boring, Bool :$shuffle, Bool :$force) is export {
+    Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap) is export {
     
     @repos .= push($*CWD) unless @repos;
     @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
@@ -67,7 +67,8 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
                 $dist.queue-processes( [@args] );
             }
 
-            procs2stdout( $dist.processes>>.map({ $_ }) ) if $v;
+            my $max-width = ?$no-wrap ?? $MAX-TERM-COLS !! Nil;
+            procs2stdout( $dist.processes>>.map({ $_ }), :$max-width ) if $v;
             await $dist.start-processes;
 
             take $dist;
@@ -91,7 +92,9 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
 }
 
 
-multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle) {
+multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
+    Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle) {
+    
     say "===> Smoke testing started [{time}]";
 
     my $auth  = CLI-WAITING-BAR {
@@ -113,6 +116,7 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
         @args.push('-v')        if $v;
         @args.push('--report')  if $report;
         @args.push('--shuffle') if $shuffle;
+        @args.push('--no-wrap') if $no-wrap;
 
         my $proc = run($*EXECUTABLE, @args, 'install', $result.<name>, :out);
         say $_ for $proc.out.lines;
@@ -124,7 +128,7 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
 
 #| Install with business logic
 multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$force, Bool :$depends = True,
-    Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle) is export {
+    Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle, Bool :$no-wrap) is export {
 
     my $fetched = &MAIN('get', @modules, :@ignore, :$save-to, :$boring, :$async, :$depends);
 
@@ -139,13 +143,13 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$f
 
     # Precompile all modules and dependencies
     # $save-to is already in the absolute paths of @repos
-    my $built = &MAIN('build', @repos, :$lib, :save-to('blib'), :$v, :$boring, :$async);
+    my $built = &MAIN('build', @repos, :$lib, :save-to('blib'), :$v, :$boring, :$async, :$no-wrap);
     unless $built.list.elems {
         print "???> Nothing to build.\n";
     }
 
     # force the tests so we can report them. *then* we will bail out
-    my $tested = &MAIN('test', @repos, :$lib, :$v, :$boring, :$async, :$shuffle, :force);
+    my $tested = &MAIN('test', @repos, :$lib, :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap);
 
 
     # Send a build/test report
@@ -251,7 +255,7 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
 
 
 #| Build modules in the specified directory
-multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib', Bool :$v,
+multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
     Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export {
     @repos .= push($*CWD) unless @repos;
     @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
@@ -259,7 +263,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib', Bool :$v,
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
     my $precompiled-dists = CLI-WAITING-BAR {
-        my @dists = gather for @repos -> $path {
+        my @dists = eager gather for @repos -> $path {
             my $dist = Zef::Distribution.new(
                 path         => $path.IO, 
                 precomp-path => (?$save-to.IO.is-relative 
@@ -272,7 +276,10 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib', Bool :$v,
             $dist does Zef::Roles::Precompiling;
 
             $dist.queue-processes($_) for $dist.precomp-cmds;
-            procs2stdout($dist.processes>>.map({ $_ })) if $v;
+
+            my $max-width = $MAX-TERM-COLS if ?$no-wrap;
+            procs2stdout(:$max-width, $dist.processes) if $v;
+            
             await $dist.start-processes;
 
             take $dist;
@@ -414,24 +421,12 @@ sub verbose($phase, @_) {
 
 # returns formatted row
 sub _row2str (@widths, @cells, Int :$max-width) {
-    # sprintf format
     my $format   = join(" | ", @widths.map({"%-{$_}s"}) );
-    my $init-row = sprintf( $format, @cells.map({ $_ // '' }) ).substr(0, $max-width);
-    my $row      = $init-row.chars >= $max-width ?? _widther($init-row) !! $init-row;
-
-    return $row;
+    return _widther(sprintf( $format, @cells.map({ $_ // '' }) ), :$max-width);
 }
 
 
 # Iterate over ([1,2,3],[2,3,4,5],[33,4,3,2]) to find the longest string in each column
 sub _get_column_widths ( *@rows ) is export {
     return (0..@rows[0].elems-1).map( -> $col { reduce { max($^a, $^b)}, map { .chars }, @rows[*;$col]; } );
-}
-
-
-sub _widther($str is copy) {
-    return ($str.substr(0,*-3) ~ '...') if $str.substr(*-1,1) ~~ /\S/;
-    return ($str.substr(0,*-3) ~ '...') if $str.substr(*-2,1) ~~ /\S/;
-    return ($str.substr(0,*-3) ~ '...') if $str.substr(*-3,1) ~~ /\S/;
-    return $str;
 }

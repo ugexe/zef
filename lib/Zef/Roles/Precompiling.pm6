@@ -5,26 +5,22 @@ role Zef::Roles::Precompiling {
     my $DEFAULT-TARGET = $*VM.precomp-ext ~~ /moar/ ?? 'mbc' !! 'jar';
 
     method precomp-cmds(:@targets = [$DEFAULT-TARGET]) {
-        my @provides-abspaths = %.meta<provides>.values>>.IO>>.absolute($.path);
+        my %provides-abspaths = $.provides(:absolute).hash;
 
         # Build the @dep chain for the %meta<provides> by parsing the 
         # use/require/need from the module source. todo: speed up.
-        my @deps = extract-deps( @provides-abspaths ).list;
-        my @provides-as-deps = eager gather for @deps -> $dep-meta is rw {
-            $dep-meta.<depends> = [$dep-meta.<depends>.list.map(-> $name { 
-                %.meta.<provides>.list\
-                    .first({ $_.key eq $name })\
-                    .map({ $_.value.IO.absolute($.path) });
-            } )];
+        my @deps = extract-deps( %provides-abspaths.values ).list;
 
-            $dep-meta.<name> = %.meta.<provides>.list\
-                .map({ $_.value.IO.absolute($.path).IO })\
+        my @provides-as-deps = eager gather for @deps -> $dep-meta is rw {
+            $dep-meta.<depends> = [%provides-abspaths.{$dep-meta.<depends>.list}];
+            
+            $dep-meta.<name> = %provides-abspaths.values\
                 .first({ $_.IO.ACCEPTS($dep-meta.<path>.IO.absolute($.path)) });
 
             take $dep-meta;
         }
 
-        my @i-paths= ($.precomp-path, $.source-path, @.includes)\
+        my @i-paths = ($.precomp-path, $.source-path, @.includes)\
             .grep(*.so).unique\
             .map({ ?$_.IO.is-relative ?? $_.IO.relative !! $_.IO.relative($.path) })\
             .map({ qqw/-I$_/ });
@@ -66,8 +62,10 @@ role Zef::Roles::Precompiling {
             !! $precomp-rel;
     }
 
-    multi method provides(Bool :$absolute, :$target = $DEFAULT-TARGET, Bool :$precomp) {
-        nextwith(:$absolute) unless $precomp;
+    multi method provides(Bool :$absolute, :$target! is copy) {
+        $target = $DEFAULT-TARGET if $target === True;
+        nextwith(:$absolute) unless $target;
+
         $.provides.hash.kv.map({ $^a => $.to-precomp($^b.IO, :$absolute, :$target) }).hash;
     }
 

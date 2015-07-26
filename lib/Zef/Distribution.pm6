@@ -72,6 +72,8 @@ class Zef::Distribution {
         %!meta<version> := $!version;
     }
 
+
+    proto method provides(Bool :$absolute) {*}
     multi method provides(Bool :$absolute) {
         $absolute 
             ?? %.meta<provides>.kv.map({ $^a => $^b.IO.absolute($!path) })

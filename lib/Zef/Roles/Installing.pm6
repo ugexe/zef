@@ -47,7 +47,7 @@ role Zef::Roles::Installing {
 
         # Currently we need to send absolute paths to .install, but we use the relative path
         # still for discovering the correct file (hopefully)
-        my @provides-precomps = %.meta<provides>.values.map({ "{$_}.{$*VM.precomp-ext}"});
+        my @provides-precomps = $.provides(:absolute, :target).values;
         my @precomp = $.precomp-path.IO.ls(:r, :f)\
             .grep({ $_.ends-with(any(@provides-precomps)) })\
             .map({ $_.IO.absolute($.path) });

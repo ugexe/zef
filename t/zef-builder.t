@@ -25,7 +25,7 @@ subtest {
     my @cmds = $distribution.precomp-cmds;
 
     my @source-files = $distribution.provides(:absolute).values;
-    my @target-files = $distribution.provides(:absolute, :precomp).values;
+    my @target-files = $distribution.provides(:absolute, :target).values;
 
     $distribution.queue-processes( [$_.list] ) for @cmds;
 

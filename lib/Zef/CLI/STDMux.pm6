@@ -29,8 +29,8 @@ sub procs2stdout(Int :$max-width?, *@processes) is export {
     }
 }
 
-sub _widther(Str $str, Int :$max-width) is export {
-    return $str unless $max-width && $str.chars > $max-width;
+sub _widther($str, :$max-width) is export {
+    return $str unless ?$max-width && $str.chars > $max-width;
     my $cutoff = $str.substr(0, $max-width);
     return ($cutoff.substr(0,*-3) ~ '...') if $cutoff.substr(*-1,1) ~~ /\S/;
     return ($cutoff.substr(0,*-3) ~ '...') if $cutoff.substr(*-2,1) ~~ /\S/;

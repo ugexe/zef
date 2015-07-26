@@ -27,4 +27,11 @@ role Zef::Roles::Processing[Bool :$async] {
     method tap(&code) { @!processes>>.tap(&code)          }
     method passes     { @!processes>>.grep(*.ok.so)>>.id  }
     method failures   { @!processes>>.grep(*.ok.not)>>.id }
+
+    method i-paths {
+        return ($.precomp-path, $.source-path, @.includes)\
+            .grep(*.so).unique\
+            .map({ ?$_.IO.is-relative ?? $_.IO.relative !! $_.IO.relative($.path) })\
+            .map({ qqw/-I$_/ });
+    }
 }

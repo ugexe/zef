@@ -25,8 +25,8 @@ role Zef::Roles::Precompiling {
         }
 
         my @i-paths= ($.precomp-path, $.source-path, @.includes)\
-            .grep(*)\
-            .map({ $_.IO.is-relative ?? $_.IO.relative !! $_.IO.relative($.path) })\
+            .grep(*.so).unique\
+            .map({ ?$_.IO.is-relative ?? $_.IO.relative !! $_.IO.relative($.path) })\
             .map({ qqw/-I$_/ });
         # @provides-as-deps is a partial META.info hash, so pass the $meta.<provides>
         # Note topological-sort with no arguments will sort the class's @projects (provides in this case)
@@ -55,10 +55,13 @@ role Zef::Roles::Precompiling {
 
     method to-precomp(IO::Path $file, Bool :$absolute, :$target = $DEFAULT-TARGET) {
         my $file-rel = ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($.path);
-        my $precomp-rel = $.precomp-path.child($file-rel.IO.relative($.source-path)).IO.relative($.path)
-            ~ ".{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}";
+        my $precomp-rel = $.precomp-path.child(
+            $file-rel.IO.relative(
+                $.source-path.IO.relative($.path)
+            )
+        ).IO.relative($.path) ~ ".{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}";
 
-        return $absolute 
+        return $absolute
             ?? $precomp-rel.IO.absolute($.path)
             !! $precomp-rel;
     }

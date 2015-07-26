@@ -21,6 +21,6 @@ install:
 script:
     - prove -j4 -v -e "perl6 -Ilib" t/
 after_success:
-    - perl6 -Ilib bin/zef -v --boring $ASYNC --save-to=precomp/ build ./
-    - perl6 -Iprecomp bin/zef -v --boring $ASYNC test
+    - perl6 -Ilib bin/zef -v --boring $ASYNC --save-to=precomp/ build
+    - perl6 -Iprecomp bin/zef -v --boring --lib=precomp $ASYNC test
     - perl6 -Iprecomp bin/zef -v --boring --report $ASYNC install Zef

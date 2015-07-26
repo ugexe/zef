@@ -2,11 +2,10 @@ use Zef::Utils::PathTools;
 
 role Zef::Roles::Testing {
     method test-cmds(Bool :$shuffle) {
-        my @i-paths    = (
-            $.precomp-path.IO.relative($.path),
-            $.source-path.IO.relative($.path), 
-            @.includes
-        ).grep(*.so).map({ qqw/-I$_/ });
+        my @i-paths    = ($.precomp-path, $.source-path, @.includes)\
+            .grep(*.so).unique\
+            .map({ ?$_.IO.is-relative ?? $_.IO !! $_.IO.relative($.path) })\
+            .map({ qqw/-I$_/ });
         my $test-dir   = $.path.IO.child('t');
         my @test-files = $test-dir.ls(:r, :f)\
             .grep(*.extension eq 't')\

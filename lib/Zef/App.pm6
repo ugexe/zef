@@ -40,7 +40,9 @@ $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 
 #| Test modules in the specified directories
-multi MAIN('test', *@repos, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$force) is export {
+multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v, 
+    Bool :$boring, Bool :$shuffle, Bool :$force) is export {
+    
     @repos .= push($*CWD) unless @repos;
     @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 
@@ -54,7 +56,7 @@ multi MAIN('test', *@repos, Bool :$async, Bool :$v, Bool :$boring, Bool :$shuffl
         }
 
         my @dists = gather for @repos -> $path {
-            my $dist = Zef::Distribution.new(path => $path.IO);
+            my $dist = Zef::Distribution.new(path => $path.IO, includes => $lib.list.unique);
             $dist does Zef::Roles::Processing[:$async];
             $dist does Zef::Roles::Testing;
 
@@ -121,9 +123,8 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$report, Bool :$v, Bool :
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$force, Bool :$depends = True,
+multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$force, Bool :$depends = True,
     Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle) is export {
-
 
     my $fetched = &MAIN('get', @modules, :@ignore, :$save-to, :$boring, :$async, :$depends);
 
@@ -132,19 +133,19 @@ multi MAIN('install', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$force, B
     my @m = $fetched.list.grep({ $_.<ok>.so }).map({ $_.<ok> = ?$_.<path>.IO.child('META.info').IO.e; $_ });
     verbose('META.info availability', @m);
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
-    my @repos = @m.grep({ $_.<ok>.so }).map({ $_.<path> });
+    my @repos = @m.grep({ $_.<ok>.so }).map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath });
     my @metas = @repos.map({ $_.IO.child('META.info').IO.path }).grep(*.IO.e);
 
 
     # Precompile all modules and dependencies
     # $save-to is already in the absolute paths of @repos
-    my $built = &MAIN('build', @repos, :save-to('blib'), :$v, :$boring, :$async);
+    my $built = &MAIN('build', @repos, :$lib, :save-to('blib'), :$v, :$boring, :$async);
     unless $built.list.elems {
         print "???> Nothing to build.\n";
     }
 
     # force the tests so we can report them. *then* we will bail out
-    my $tested = &MAIN('test', @repos, :$v, :$boring, :$async, :$shuffle, :force);
+    my $tested = &MAIN('test', @repos, :$lib, :$v, :$boring, :$async, :$shuffle, :force);
 
 
     # Send a build/test report
@@ -250,11 +251,10 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
 
 
 #| Build modules in the specified directory
-multi MAIN('build', *@repos, :@ignore, :$save-to = 'blib', Bool :$v,
+multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib', Bool :$v,
     Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export {
     @repos .= push($*CWD) unless @repos;
     @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
-
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
@@ -262,9 +262,13 @@ multi MAIN('build', *@repos, :@ignore, :$save-to = 'blib', Bool :$v,
         my @dists = gather for @repos -> $path {
             my $dist = Zef::Distribution.new(
                 path         => $path.IO, 
-                precomp-path => $save-to.IO.relative($path).IO,
+                precomp-path => (?$save-to.IO.is-relative 
+                    ?? $save-to.IO.absolute($path).IO 
+                    !! $save-to.IO.abspath.IO
+                ),
+                includes     => $lib.list,
             );
-            $dist does Zef::Roles::Processing;
+            $dist does Zef::Roles::Processing[:$async];
             $dist does Zef::Roles::Precompiling;
 
             $dist.queue-processes($_) for $dist.precomp-cmds;

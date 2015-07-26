@@ -39,7 +39,9 @@ class Zef::Distribution {
         }
     }
 
-    submethod BUILD(IO::Path :$!path!, IO::Path :$!meta-path, IO::Path :$!source-path, IO::Path :$!precomp-path) {
+    submethod BUILD(IO::Path :$!path!, IO::Path :$!meta-path, 
+        IO::Path :$!source-path, IO::Path :$!precomp-path, :@!includes) {
+        
         $!meta-path = ($!path.child('META.info'), $!path.child('META6.json')).grep(*.IO.e).first(*.IO.f)
             unless $!meta-path;
         %!meta = %(from-json( $!path.IO.child('META.info').IO.slurp ))\
@@ -57,7 +59,9 @@ class Zef::Distribution {
         }
 
         unless $!precomp-path {
-            $!precomp-path = $!path.child('blib').child($!source-path.IO.relative($!path).IO.relative);
+            $!precomp-path := @!includes
+                ?? @!includes.first(*.IO.e)
+                !! $!path.child('blib').child($!source-path.IO.relative($!path).IO.relative);
         }
 
         $!name      = %!meta<name> or die 'META must provide a `name` field';

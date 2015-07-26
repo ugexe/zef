@@ -55,7 +55,6 @@ role Zef::Roles::Precompiling {
 
     method to-precomp(IO::Path $file, Bool :$absolute, :$target = $DEFAULT-TARGET) {
         my $file-rel = ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($.path);
-        say "FILE REL: {$file-rel.perl}";
         my $precomp-rel = $.precomp-path.child($file-rel.IO.relative($.source-path)).IO.relative($.path)
             ~ ".{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}";
 

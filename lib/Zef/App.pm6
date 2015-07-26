@@ -260,7 +260,10 @@ multi MAIN('build', *@repos, :@ignore, :$save-to = 'blib', Bool :$v,
     # (note: first crack at supplies/parallelization)
     my $precompiled-dists = CLI-WAITING-BAR {
         my @dists = gather for @repos -> $path {
-            my $dist = Zef::Distribution.new(path => $path.IO);
+            my $dist = Zef::Distribution.new(
+                path         => $path.IO, 
+                precomp-path => $save-to.IO.relative($path).IO,
+            );
             $dist does Zef::Roles::Processing;
             $dist does Zef::Roles::Precompiling;
 

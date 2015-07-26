@@ -11,7 +11,7 @@ sub procs2stdout(*@processes) is export {
     my $longest-basename = @basenames.max(*.chars);
     for @processes -> $proc {
         for $proc.stdout, $proc.stderr -> $stdio {
-            $stdio.tap: -> $out { 
+            $stdio.act: -> $out { 
                 for $out.lines.grep(*.so) -> $line {
                     state $to-print ~= sprintf(
                         "%-{$longest-basename.chars + 1}s# %s\n",

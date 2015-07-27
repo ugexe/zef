@@ -63,13 +63,13 @@ class Zef::Process {
 
             $!promise = Promise.new;
             $!stdout.act: { $!stdmerge ~= $_ }
+            $!stderr.act: { $!stdmerge ~= $_ }
+
             $!stdout.emit($show-cmd);
 
             $!started = True;
             $!stdout.emit($_) for $!process.out.lines;
             $!finished = ?$!promise.keep($!process.status);
-
-            $!stdout.close; $!stderr.close; $!process.out.close; 
         }
 
         $!promise;

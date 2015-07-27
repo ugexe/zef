@@ -121,7 +121,8 @@ class Zef::Utils::Depends {
         my $not-deps = any(<v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>);
 
         my @minimeta = eager gather for @pm-files -> $f is copy {
-            my @depends = gather for $f.IO.slurp.lines -> $line is copy {
+            my @depends;
+            for $f.IO.slurp.lines -> $line is copy {
                 state Int $pod-block;
                 my $code-only = do given $line {
                     # remove pod
@@ -146,7 +147,7 @@ class Zef::Utils::Depends {
                 my $dep-parser = Grammar::Dependency::Parser.parse($code-only);
                 for $dep-parser.<load-statement>.list -> $dep {
                     next if $dep.<short-name>.Str ~~ any($not-deps);
-                    take $dep.<short-name>.Str;
+                    @depends .= push: $dep.<short-name>.Str;
                 }
             }
   

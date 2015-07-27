@@ -50,12 +50,12 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
     my $tested-dists = CLI-WAITING-BAR {
-        my @includes = gather for @repos -> $path {
+        my @includes = eager gather for @repos -> $path {
             take $path.IO.child('blib');
             take $path.IO.child('lib');
         }
 
-        my @dists = gather for @repos -> $path {
+        my @dists = eager gather for @repos -> $path {
             my $dist = Zef::Distribution.new(path => $path.IO, includes => $lib.list.unique);
             $dist does Zef::Roles::Processing[:$async];
             $dist does Zef::Roles::Testing;
@@ -76,7 +76,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     }, "Testing", :$boring;
 
 
-    my @test-results = gather for $tested-dists.list -> $tested-dist {
+    my @test-results = eager gather for $tested-dists.list -> $tested-dist {
         my $results = $tested-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
         my $results-final = verbose('Testing', $results.list);
         take $results-final;
@@ -287,7 +287,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
     }, "Precompiling", :$boring;
 
 
-    my @precompiled-results = gather for $precompiled-dists.list -> $precompiled-dist {
+    my @precompiled-results = eager gather for $precompiled-dists.list -> $precompiled-dist {
         my $results = $precompiled-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
         my $results-final = verbose('Precompiling', $results.list);
         take $results-final;

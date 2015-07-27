@@ -90,8 +90,8 @@ subtest {
 
     ok $save-to.IO.d, "Folder available to delete";
 
-    my @ls      = $save-to.ls(:d, :f).eager;
-    my @deleted = $save-to.rm(:d, :f).eager;
+    my @ls      = $save-to.ls(:d, :f);
+    my @deleted = $save-to.rm(:d, :f);
 
     my $to-be-deleted = any($save-to-file);
     my $not-deleted   = any($save-to, $sub-folder, $sub-folder-file);

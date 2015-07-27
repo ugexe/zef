@@ -3,7 +3,7 @@ class Zef::Utils::Git {
     has @.flags = <--quiet>;
 
     method clone(:$save-to is copy = $*TMPDIR, *@urls) {
-        my @results = eager gather for @urls -> $url {
+        my @results = gather for @urls -> $url {
             my $cmd = "git clone " ~ @.flags.join(' ') ~ " $url {$save-to.IO.path} 2>&1";
             my $git_result = shell($cmd).exitcode;
             given $git_result {

@@ -11,11 +11,11 @@ role Zef::Roles::Precompiling {
         # use/require/need from the module source. todo: speed up.
         my @deps = extract-deps( %provides-abspaths.values ).list;
 
-        my @provides-as-deps = eager gather for @deps -> $dep-meta is rw {
+        my @provides-as-deps = gather for @deps -> $dep-meta is rw {
             $dep-meta.<depends> = [%provides-abspaths.{$dep-meta.<depends>.list}];
             
             $dep-meta.<name> = %provides-abspaths.values\
-                .first({ $_.IO.ACCEPTS($dep-meta.<path>.IO.absolute($.path)) });
+                .first: { $_.IO.ACCEPTS($dep-meta.<path>.IO.absolute($.path)) }
 
             take $dep-meta;
         }
@@ -30,7 +30,7 @@ role Zef::Roles::Precompiling {
 
         # Create the build order for the `provides`
         my @cmds = @levels.map: -> $level {
-            my $build-level = eager gather for $level.list -> $module-id {
+            my $build-level = gather for $level.list -> $module-id {
                 my $file = $module-id.IO.absolute($.path).IO;
                 # Many tests are written with the assumption the cwd is their projects base directory.
                 my $file-rel = ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($.path);
@@ -50,11 +50,9 @@ role Zef::Roles::Precompiling {
     }
 
     method to-precomp(IO::Path $file, Bool :$absolute, :$target = $DEFAULT-TARGET) {
-        my $file-rel = ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($.path);
+        my $file-rel    = ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($.path);
         my $precomp-rel = $.precomp-path.child(
-            $file-rel.IO.relative(
-                $.source-path.IO.relative($.path)
-            )
+            $file-rel.IO.relative( $.source-path.IO.relative($.path) )
         ).IO.relative($.path) ~ ".{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}";
 
         return $absolute

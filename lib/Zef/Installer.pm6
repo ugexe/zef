@@ -7,7 +7,7 @@ class Zef::Installer {
         mkdirs($save-to);
         my $curli := CompUnitRepo::Local::Installation.new($save-to);
 
-        my @results = eager gather for @metafiles -> $meta-path {
+        my @results = gather for @metafiles -> $meta-path {
             my Distribution $dist .= new( |from-json($meta-path.IO.slurp) ) does role { method metainfo {self.hash} };
             my %result = %(module => $dist.name, file => $meta-path, $dist.hash.flat); 
             %result<ok> = 0;

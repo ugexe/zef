@@ -38,7 +38,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             !! @wants-dists.map({ $_.hash.<name> });
 
         # Try to fetch each distribution dependency
-        my @results = eager gather for @levels -> $level {
+        my @results = gather for @levels -> $level {
             for $level.list -> $package-name {
                 # todo: filter projects by version/auth
                 my %dist = @!projects.first({ $_.<name> eq $package-name }).hash;
@@ -63,7 +63,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
 
     method report(*@metas, :@test-results, :@build-results) {
-        my @meta-reports = eager gather for @metas -> $meta-path {
+        my @meta-reports = gather for @metas -> $meta-path {
             my $meta-json = from-json($meta-path.IO.slurp);
             my %meta      = %($meta-json);
             my $repo-path = $meta-path.IO.parent;
@@ -133,7 +133,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
         }
 
-        my @submissions = eager gather for @meta-reports.grep({ $_.<report>.so }) -> $m {
+        my @submissions = gather for @meta-reports.grep({ $_.<report>.so }) -> $m {
             my $report-id = try {
                 CATCH { default { print "===> Error while POSTing: $_" }}
                 my $response  = $!ua.post("http://testers.perl6.org/report", body => $m<report>);

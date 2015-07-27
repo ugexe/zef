@@ -50,10 +50,10 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
     my $tested-dists = CLI-WAITING-BAR {
-        my @includes = eager gather for @repos -> $path {
-            take $path.IO.child('blib');
-            take $path.IO.child('lib');
-        }
+       # my @includes = eager gather for @repos -> $path {
+       #     take $path.IO.child('blib');
+       #     take $path.IO.child('lib');
+       # }
 
         my @dists = eager gather for @repos -> $path {
             my $dist = Zef::Distribution.new(path => $path.IO, includes => $lib.list.unique);
@@ -142,14 +142,13 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$f
 
 
     # Precompile all modules and dependencies
-    # $save-to is already in the absolute paths of @repos
-    my $built = &MAIN('build', @repos, :$lib, :save-to('blib'), :$v, :$boring, :$async, :$no-wrap);
+    my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap);
     unless $built.list.elems {
         print "???> Nothing to build.\n";
     }
 
     # force the tests so we can report them. *then* we will bail out
-    my $tested = &MAIN('test', @repos, :$lib, :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap);
+    my $tested = &MAIN('test', @repos, :lib('blib/lib'), :$lib, :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap);
 
 
     # Send a build/test report

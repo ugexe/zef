@@ -5,7 +5,7 @@ unit module Zef::CLI::STDMux;
 # and still make a little sense of it (and allow it to be sorted)
 
 # todo: handle line wrapping with seperator
-sub procs2stdout(Int :$max-width?, *@processes) is export {
+sub procs2stdout(*@processes, :$max-width) is export {
     return unless @processes;
     my @basenames = @processes.flatmap(*.flat).flat>>.id>>.IO>>.basename;
     my $longest-basename = @basenames.max(*.chars);

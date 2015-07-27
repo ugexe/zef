@@ -29,7 +29,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
     submethod BUILD(Str :$!header!, :$!body, :$!trailer) {
         my $actions = Zef::Net::HTTP::Actions.new;
         if Zef::Net::HTTP::Grammar.parse($!header, :rule("TOP-headers"), :$actions) -> $hg {
-            $!header-grammar = $hg.<HTTP-headers>;
+            $!header-grammar := $hg.<HTTP-headers>;
         }
 
         # todo: parse each header one at a time instead of all at once
@@ -48,7 +48,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
 
             # todo: contribute something similiar to HTTP::UserAgent (beyond how it currently checks this)
             if %!headers<Content-Type>.hash -> %ct {
-                my @text-subtypes = <text html xhtml xml atom json javascript rss soap>;
+                my @text-subtypes := <text html xhtml xml atom json javascript rss soap>;
                 if %ct.<type> eq 'text' || %ct.<subtype> ~~ any(@text-subtypes) {
                     $!encoding = %ct.<parameters>.<charset> // 'utf-8';
                 }
@@ -69,7 +69,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
         my $data = buf8.new;
         $data ~= buf8.new($_) for $stream.list;
 
-        my $content = $!chunked ?? ChunkedReader($data) !! $data;
+        my $content := $!chunked ?? ChunkedReader($data) !! $data;
         return $!encoding ?? $content>>.decode($!encoding).join !! $content;
     }
 }

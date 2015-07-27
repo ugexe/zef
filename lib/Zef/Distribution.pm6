@@ -42,9 +42,9 @@ class Zef::Distribution {
     submethod BUILD(IO::Path :$!path!, IO::Path :$!meta-path, 
         IO::Path :$!source-path, IO::Path :$!precomp-path, :@!includes) {
         
-        $!meta-path = ($!path.child('META.info'), $!path.child('META6.json')).grep(*.IO.e).first(*.IO.f)
+        $!meta-path := ($!path.child('META.info'), $!path.child('META6.json')).grep(*.IO.e).first(*.IO.f)
             unless $!meta-path;
-        %!meta = %(from-json( $!path.IO.child('META.info').IO.slurp ))\
+        %!meta := %(from-json( $!path.IO.child('META.info').IO.slurp ))\
             or die "Distributions require a META file, but one was not found.";
 
 
@@ -52,10 +52,10 @@ class Zef::Distribution {
         # looking at the META provides and finding the longest common 
         # directory. This could be improved to allow multiple paths.
         unless $!source-path {
-            my @p = %!meta<provides>.values.map({ [$!path.IO.SPEC.splitdir($_.IO.parent)] });
-            my $wanted-path-index = first { not all(@p[*; $_]:exists) && [eq] @p[*; $_] }, 0..*;
-            my $base = @p[0].[0..($wanted-path-index - 1)].reduce({ $^a.IO.child($^b)  });
-            $!source-path = $!path.child($base);
+            my @p := %!meta<provides>.values.map({ [$!path.IO.SPEC.splitdir($_.IO.parent)] });
+            my $wanted-path-index := first { not all(@p[*; $_]:exists) && [eq] @p[*; $_] }, 0..*;
+            my $base := @p[0].[0..($wanted-path-index - 1)].reduce({ $^a.IO.child($^b)  });
+            $!source-path := $!path.child($base);
         }
 
         unless $!precomp-path {
@@ -68,6 +68,7 @@ class Zef::Distribution {
         $!authority = %!meta<auth> || "{%!meta<authority> || ''}:{%!meta<author> || ''}";
         $!version   = Version.new(%!meta<ver> || %!meta<version> || '*').Str;
 
+        # bind these so they get updated in methods metainfo/hash
         %!meta<auth>    := $!authority;
         %!meta<version> := $!version;
     }

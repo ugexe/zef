@@ -47,7 +47,7 @@ sub ChunkedReader(buf8 $buf) is export(:DEFAULT) {
         my $size = :16($size-line.substr(0,*-2));
         last if $size == 0;
         @data.push: $buf.subbuf($i,$size);
-        $i += $size + 2;
+        $i += $size + 2; # 1) \r 2) \n
         last if $i == $buf.bytes;
     }
 

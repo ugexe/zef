@@ -19,10 +19,10 @@ class Zef::Process {
 
     submethod BUILD(:$!command, :@!args, :$!cwd, Bool :$!async, :$!id) {
         $!can-async = !::("Proc::Async").isa(Failure);
-        $!stdout = Supply.new;
-        $!stderr = Supply.new;
-        $!type   = $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
-        $!id     = $!id 
+        $!stdout := Supply.new;
+        $!stderr := Supply.new;
+        $!type   := $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
+        $!id      = $!id 
             ?? $!id 
             !! @!args 
                 ?? @!args[*-1].item.IO.basename 
@@ -40,12 +40,12 @@ class Zef::Process {
             if $!async && !$!can-async;
 
         if $!async {
-            $!process = Proc::Async.new($*EXECUTABLE, @!args);
+            $!process := Proc::Async.new($*EXECUTABLE, @!args);
             $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }
             $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
 
-            my $cmd = "{$*EXECUTABLE} {@!args.join(' ')}";
-            my $show-cmd = "{$*EXECUTABLE.basename} {@!args.join(' ')}";
+            my $cmd := "{$*EXECUTABLE} {@!args.join(' ')}";
+            my $show-cmd := "{$*EXECUTABLE.basename} {@!args.join(' ')}";
 
             $!process.stdout.emit($show-cmd);
 
@@ -59,7 +59,7 @@ class Zef::Process {
             my $cmd = "{$*EXECUTABLE} {@!args.join(' ')}";
             my $show-cmd = "{$*EXECUTABLE.basename} {@!args.join(' ')}";
 
-            $!process = shell("$cmd 2>&1", :out, :$!cwd, :!chomp);
+            $!process := shell("$cmd 2>&1", :out, :$!cwd, :!chomp);
 
             $!promise = Promise.new;
             $!stdout.act: { $!stdmerge ~= $_ }
@@ -69,7 +69,7 @@ class Zef::Process {
 
             $!started = True;
             $!stdout.emit($_) for $!process.out.lines;
-            $!finished = ?$!promise.keep($!process.status);
+            $!finished := ?$!promise.keep($!process.status);
 
             $!process.out.close; 
         }

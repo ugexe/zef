@@ -4,9 +4,9 @@ role Zef::Roles::Processing[Bool :$async] {
     has @.processes;
 
     method queue-processes(*@groups) {
-        my @procs = @groups>>.map: -> $execute {
-            my $command = $execute.list.[0];
-            my @args    = $execute.list.elems > 1 ?? $execute.list.[1..*] !! ();
+        my @procs := @groups>>.map: -> $execute {
+            my $command := $execute.list.[0];
+            my @args    := $execute.list.elems > 1 ?? $execute.list.[1..*] !! ();
             Zef::Process.new(:$command, :@args, :$async, cwd => $.path);
         }
         @!processes.push: [@procs];

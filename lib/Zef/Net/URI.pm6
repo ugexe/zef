@@ -16,23 +16,23 @@ class Zef::Net::URI does HTTP::URI {
 
     # todo: allow construction from a relative URI if a base URI is passed in
     submethod BUILD(:$!url) {
-        $!grammar = Zef::Net::URI::Grammar.parse($!url) if $!url;
+        $!grammar := Zef::Net::URI::Grammar.parse($!url) if $!url;
 
         if $!grammar.<URI-reference> -> $uri-ref {
             if $uri-ref.<URI> -> $g {
-                    $!scheme    = ~($g.<scheme>                           //  '').lc;
-                    $!host      = ~($g.<heir-part>.<authority>.<host>     //  '');
-                    $!port      =  ($g.<heir-part>.<authority>.<port>     // Int).Int;
-                    $!user-info = ~($g.<heir-part>.<authority>.<userinfo> //  '');
-                    $!path      = ~($g.<heir-part>.<path-abempty>         // '/');
-                    $!query     =  ~$g.<query> if ?$g.<query>;
+                    $!scheme    := ~($g.<scheme>                           //  '').lc;
+                    $!host      := ~($g.<heir-part>.<authority>.<host>     //  '');
+                    $!port      :=  ($g.<heir-part>.<authority>.<port>     // Int).Int;
+                    $!user-info := ~($g.<heir-part>.<authority>.<userinfo> //  '');
+                    $!path      := ~($g.<heir-part>.<path-abempty>         // '/');
+                    $!query     :=  ~$g.<query> if ?$g.<query>;
             }
             elsif $uri-ref.<relative-ref> -> $g {
                     $!is-relative = True;
 
-                    $!scheme    = ~($g.<scheme>        //  '').lc;
-                    $!path      = ~($g.<relative-part> || '/');
-                    $!query     =  ~$g.<query> if ?$g.<query>;
+                    $!scheme    := ~($g.<scheme>        //  '').lc;
+                    $!path      := ~($g.<relative-part> || '/');
+                    $!query     :=  ~$g.<query> if ?$g.<query>;
             }
         }
     }

@@ -70,6 +70,8 @@ class Zef::Process {
             $!started = True;
             $!stdout.emit($_) for $!process.out.lines;
             $!finished = ?$!promise.keep($!process.status);
+
+            $!process.out.close; 
         }
 
         $!promise;

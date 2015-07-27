@@ -287,8 +287,8 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
     }, "Precompiling", :$boring;
 
 
-    my @precompiled-results = eager gather for $precompiled-dists.list -> $precompiled-dist {
-        my $results = $precompiled-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
+    my @precompiled-results = eager gather for $precompiled-dists.list -> $precomp-dist {
+        my $results = $precomp-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
         my $results-final = verbose('Precompiling', $results.list);
         take $results-final;
     }

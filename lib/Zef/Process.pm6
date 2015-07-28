@@ -43,35 +43,25 @@ class Zef::Process {
             $!process := Proc::Async.new($*EXECUTABLE, @!args);
             $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }
             $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
-
-            my $cmd := "{$*EXECUTABLE} {@!args.join(' ')}";
-            my $show-cmd := "{$*EXECUTABLE.basename} {@!args.join(' ')}";
-
-            $!process.stdout.emit($show-cmd);
+            $!process.stdout.emit("{$*EXECUTABLE.basename} {@!args.join(' ')}");
 
             $!started  := $!process.started;
-            $!promise   = $!process.start(:$!cwd);
+            $!promise  := $!process.start(:$!cwd);
             $!finished := $!promise.Bool;
-
-            $!promise;
         }
         else {
-            my $cmd = "{$*EXECUTABLE} {@!args.join(' ')}";
-            my $show-cmd = "{$*EXECUTABLE.basename} {@!args.join(' ')}";
-
-            $!process := shell("$cmd 2>&1", :out, :$!cwd, :!chomp);
-
-            $!promise = Promise.new;
+            $!process := shell("{$*EXECUTABLE} {@!args.join(' ')} 2>&1", :out, :$!cwd, :!chomp);
+            $!promise := Promise.new;
             $!stdout.act: { $!stdmerge ~= $_ }
             $!stderr.act: { $!stdmerge ~= $_ }
 
-            $!stdout.emit($show-cmd);
+            $!stdout.emit("{$*EXECUTABLE.basename} {@!args.join(' ')}");
 
-            $!started = True;
-            $!stdout.emit($_) for $!process.out.lines;
+            $!started  := True;
+            $!stdout.emit($_) for $!process.out.lines(:!eager, :close);
+            $!stdout.done; $!stderr.done;
+            $!process.out.close; $!stderr.close;
             $!finished := ?$!promise.keep($!process.status);
-
-            $!process.out.close; 
         }
 
         $!promise;

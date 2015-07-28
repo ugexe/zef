@@ -34,8 +34,8 @@ BEGIN our @smoke-blacklist = <NativeCall DateTime::TimeZone BioInfo Text::CSV Fl
 # symbols into world ourselves.
 our $MAX-TERM-COLS = GET-TERM-COLUMNS();
 sub signal-jvm($) { Supply.new }
-my $signal-handler = &::("signal") ~~ Failure ?? &::("signal-jvm") !! &::("signal");
-my $sig-resize = ::("Signal::SIGWINCH");
+my $signal-handler := &::("signal") ~~ Failure ?? &::("signal-jvm") !! &::("signal");
+my $sig-resize     := ::("Signal::SIGWINCH");
 $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 
@@ -44,31 +44,26 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap) is export {
     
     @repos .= push($*CWD) unless @repos;
-    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
+    @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
-    my $tested-dists = CLI-WAITING-BAR {
+    my $tested-dists := CLI-WAITING-BAR {
        # my @includes = gather for @repos -> $path {
        #     take $path.IO.child('blib');
        #     take $path.IO.child('lib');
        # }
 
-        my @dists = gather for @repos -> $path {
-            my $dist = Zef::Distribution.new(path => $path.IO, includes => $lib.list.unique);
+        eager gather for @repos -> $path {
+            my $dist := Zef::Distribution.new(path => $path.IO, includes => $lib.list.unique);
             $dist does Zef::Roles::Processing[:$async];
             $dist does Zef::Roles::Testing;
 
-            my @test-commands = [$dist.test-cmds];
+            $dist.queue-processes( [$_.list] ) for [$dist.test-cmds];
 
-            for @test-commands -> $grouped {
-                my @args = $grouped.list;
-                $dist.queue-processes( [@args] );
-            }
-
-            my $max-width = ?$no-wrap ?? $MAX-TERM-COLS !! Nil;
-            procs2stdout( $dist.processes>>.map({ $_ }), :$max-width ) if $v;
+            my $max-width = $MAX-TERM-COLS if ?$no-wrap;
+            procs2stdout(:$max-width, $dist.processes) if $v;
             await $dist.start-processes;
 
             take $dist;
@@ -76,7 +71,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     }, "Testing", :$boring;
 
 
-    my @test-results = gather for $tested-dists.list -> $tested-dist {
+    my @test-results := gather for $tested-dists.list -> $tested-dist {
         my $results = $tested-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
         my $results-final = verbose('Testing', $results.list);
         take $results-final;
@@ -97,13 +92,13 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
     
     say "===> Smoke testing started [{time}]";
 
-    my $auth  = CLI-WAITING-BAR {
+    my $auth := CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
         $p6c.update-projects;
         $p6c.projects = $p6c.projects\
             .grep({ $_.<name>:exists })\
             .grep({ $_.<name> ~~ none(@ignore) })\
-            .grep({ any($_.<depends>.list) ~~ none(@ignore) });
+            .grep({ any($_.<depends>.list) !~~ any(@ignore) });
             .pick(*); # randomize order for smoke runs
         $p6c;
     }, "Getting ecosystem data", :$boring;
@@ -130,30 +125,30 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
 multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$force, Bool :$depends = True,
     Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle, Bool :$no-wrap) is export {
 
-    my $fetched = &MAIN('get', @modules, :@ignore, :$save-to, :$boring, :$async, :$depends);
+    my $fetched := &MAIN('get', @modules, :@ignore, :$save-to, :$boring, :$async, :$depends);
 
 
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m = $fetched.list.grep({ $_.<ok>.so }).map({ $_.<ok> = ?$_.<path>.IO.child('META.info').IO.e; $_ });
+    my @m := $fetched.list.grep({ $_.<ok>.so }).map({ $_.<ok> = ?$_.<path>.IO.child('META.info').IO.e; $_ });
     verbose('META.info availability', @m);
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
-    my @repos = @m.grep({ $_.<ok>.so }).map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath });
-    my @metas = @repos.map({ $_.IO.child('META.info').IO.path }).grep(*.IO.e);
+    my @repos := @m.grep({ $_.<ok>.so }).map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath });
+    my @metas := @repos.map({ $_.IO.child('META.info').IO.path }).grep(*.IO.e);
 
 
     # Precompile all modules and dependencies
-    my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap);
+    my $built := &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap);
     unless $built.list.elems {
         print "???> Nothing to build.\n";
     }
 
     # force the tests so we can report them. *then* we will bail out
-    my $tested = &MAIN('test', @repos, :lib('blib/lib'), :$lib, :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap);
+    my $tested := &MAIN('test', @repos, :lib('blib/lib'), :$lib, :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap);
 
 
     # Send a build/test report
     if ?$report {
-        my $reported = CLI-WAITING-BAR {
+        my $reported := CLI-WAITING-BAR {
             Zef::Authority::P6C.new.report(
                 @metas,
                 test-results  => $tested, 
@@ -162,7 +157,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$f
         }, "Reporting", :$boring;
 
         verbose('Reporting', $reported.list);
-        my @ok = $reported.list.grep(*.<id>.so);
+        my @ok := $reported.list.grep(*.<id>.so);
         print "===> Report{'s' if $reported.list.elems > 1} can be seen shortly at:\n" if @ok;
         print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
     }
@@ -181,9 +176,9 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$f
 
 
     my $install = do {
-        my $i = CLI-WAITING-BAR { Zef::Installer.new.install(@metas) }, "Installing", :$boring;
-        my @installed = $i.list.grep({ !$_.<skipped> });
-        my @skipped   = $i.list.grep({ ?$_.<skipped> });
+        my $i := CLI-WAITING-BAR { Zef::Installer.new.install(@metas) }, "Installing", :$boring;
+        my @installed := $i.list.grep({ !$_.<skipped> });
+        my @skipped   := $i.list.grep({ ?$_.<skipped> });
         verbose('Install', @installed)                 if @installed;
         verbose('Skip (already installed!)', @skipped) if @skipped;
         $i;
@@ -202,8 +197,8 @@ multi MAIN('local-install', *@modules) is export {
 
 #! Download a single module and change into its directory
 multi MAIN('look', $module, Bool :$depends, Bool :$v, :$save-to = $*CWD.IO.child(time)) { 
-    my $auth = Zef::Authority::P6C.new;
-    my @g    = $auth.get: $module, :$save-to, :$depends;
+    my $auth := Zef::Authority::P6C.new;
+    my @g := $auth.get: $module, :$save-to, :$depends;
     verbose('Fetching', @g);
 
 
@@ -225,20 +220,20 @@ multi MAIN('look', $module, Bool :$depends, Bool :$v, :$save-to = $*CWD.IO.child
 multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = True,
     Bool :$v, Bool :$async, Bool :$boring, Bool :$skip-depends) is export {
 
-    my $auth  = CLI-WAITING-BAR {
+    my $auth := CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
         $p6c.update-projects;
         $p6c.projects = $p6c.projects\
             .grep({ $_.<name>:exists })\
             .grep({ $_.<name> ~~ none(@ignore) })\
-            .grep({ any($_.<depends>.list) ~~ none(@ignore) });
+            .grep({ any($_.<depends>.list) !~~ any(@ignore) });
         $p6c;
     }, "Querying Authority", :$boring;
 
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
-    my $fetched = CLI-WAITING-BAR { 
+    my $fetched := CLI-WAITING-BAR { 
         $auth.get(@modules, :@ignore, :$save-to, :$depends);
     }, "Fetching", :$boring;
 
@@ -257,13 +252,13 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
 multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
     Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export {
     @repos .= push($*CWD) unless @repos;
-    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
+    @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
-    my $precompiled-dists = CLI-WAITING-BAR {
-        my @dists = gather for @repos -> $path {
-            my $dist = Zef::Distribution.new(
+    my $precompiled-dists := CLI-WAITING-BAR {
+        eager gather for @repos -> $path {
+            my $dist := Zef::Distribution.new(
                 path         => $path.IO, 
                 precomp-path => (?$save-to.IO.is-relative 
                     ?? $save-to.IO.absolute($path).IO 
@@ -286,7 +281,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
     }, "Precompiling", :$boring;
 
 
-    my @precompiled-results = gather for $precompiled-dists.list -> $precomp-dist {
+    my @precompiled-results := gather for $precompiled-dists.list -> $precomp-dist {
         my $results = $precomp-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
         my $results-final = verbose('Precompiling', $results.list);
         take $results-final;
@@ -303,7 +298,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
 # todo: non-exact matches on non-version fields
 multi MAIN('search', Bool :$v, *@names, *%fields) {
     # Get the projects.json file
-    my $auth = CLI-WAITING-BAR {
+    my $auth := CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
         $p6c.update-projects;
         $p6c;
@@ -311,9 +306,8 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
 
 
     # Filter the projects.json file
-    my $results = CLI-WAITING-BAR { 
-        my @p6c = $auth.search(|@names, |%fields);
-        @p6c;
+    my $results := CLI-WAITING-BAR { 
+        $auth.search(|@names, |%fields).list;
     }, "Filtering Results";
 
     say "===> Found " ~ $results.list.elems ~ " results";
@@ -325,10 +319,10 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
     ] });
     @rows.unshift([<ID Package Version Description>]);
 
-    my @widths     = _get_column_widths(@rows);
-    my @fixed-rows = @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
-    my $width      = [+] _get_column_widths(@fixed-rows);
-    my $sep        = '-' x $width;
+    my @widths     := _get_column_widths(@rows);
+    my @fixed-rows := @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
+    my $width      := [+] _get_column_widths(@fixed-rows);
+    my $sep        := '-' x $width;
 
     if @fixed-rows.end {
         say "{$sep}\n{@fixed-rows[0]}\n{$sep}";
@@ -343,7 +337,7 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
 
 # todo: use the auto-sizing table formatting
 multi MAIN('info', *@modules, Bool :$v, Bool :$boring) {
-    my $auth = CLI-WAITING-BAR {
+    my $auth := CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
         $p6c.update-projects;
         $p6c;
@@ -351,9 +345,8 @@ multi MAIN('info', *@modules, Bool :$v, Bool :$boring) {
 
 
     # Filter the projects.json file
-    my $results = CLI-WAITING-BAR { 
-        my @p6c = $auth.search(|@modules);
-        @p6c;
+    my $results := CLI-WAITING-BAR { 
+        $auth.search(|@modules).list;
     }, "Filtering Results", :$boring;
 
     say "===> Found " ~ $results.list.elems ~ " results";
@@ -393,7 +386,7 @@ multi MAIN('info', *@modules, Bool :$v, Bool :$boring) {
         }
 
         if $meta.<depends> && $v {
-            my $deps = Zef::Utils::Depends.new(projects => $auth.projects)\
+            my $deps := Zef::Utils::Depends.new(projects => $auth.projects)\
                 .topological-sort($meta);
 
             for $deps.list.kv -> $i1, $level {
@@ -411,7 +404,7 @@ multi MAIN('info', *@modules, Bool :$v, Bool :$boring) {
 # will be replaced soon
 sub verbose($phase, @_) {
     say "???> $phase stage is empty" and return unless @_;
-    my %r = @_.classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' });
+    my %r := @_.classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' });
     print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
     print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
     return { ok => %r<ok>.elems, nok => %r<nok> }
@@ -420,12 +413,14 @@ sub verbose($phase, @_) {
 
 # returns formatted row
 sub _row2str (@widths, @cells, Int :$max-width) {
-    my $format   = join(" | ", @widths.map({"%-{$_}s"}) );
+    my $format = join(" | ", @widths.map({"%-{$_}s"}) );
     return _widther(sprintf( $format, @cells.map({ $_ // '' }) ), :$max-width);
 }
 
 
 # Iterate over ([1,2,3],[2,3,4,5],[33,4,3,2]) to find the longest string in each column
 sub _get_column_widths ( *@rows ) is export {
-    return (0..@rows[0].elems-1).map( -> $col { reduce { max($^a, $^b)}, map { .chars }, @rows[*;$col]; } );
+    return (0..@rows[0].elems-1).map( -> $col { 
+        reduce { max($^a, $^b)}, map { .chars }, @rows[*;$col]; 
+    } );
 }

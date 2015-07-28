@@ -28,6 +28,7 @@ class Zef::Distribution {
     has $.precomp-path; # to make handling windows fixes easier
 
     has @.includes;
+    has @.perl6lib;
 
     method metainfo {self.hash}
     method hash {
@@ -43,7 +44,7 @@ class Zef::Distribution {
         }
     }
 
-    submethod BUILD(IO::Path :$!path!, IO::Path :$!meta-path, 
+    submethod BUILD(IO::Path :$!path!, IO::Path :$!meta-path, :@!perl6lib,
         IO::Path :$!source-path, IO::Path :$!precomp-path, :@!includes) {
         
         $!meta-path := ($!path.child('META.info'), $!path.child('META6.json')).grep(*.IO.e).first(*.IO.f)
@@ -58,7 +59,10 @@ class Zef::Distribution {
         unless $!source-path {
             my @p := %!meta<provides>.values.map({ [$!path.IO.SPEC.splitdir($_.IO.parent)] });
             my $wanted-path-index := first { not all(@p[*; $_]:exists) && [eq] @p[*; $_] }, 0..*;
-            my $base := @p[0].[0..($wanted-path-index - 1)].reduce({ $^a.IO.child($^b)  });
+            my $base := @p[0].[0..($wanted-path-index - 1)].first(*); 
+            # for first path that contains source use:     ^ .reduce({ $^a.IO.child($^b)  });
+            # which may be useful for detecting more complex lib paths
+
             $!source-path := $!path.child($base);
         }
 

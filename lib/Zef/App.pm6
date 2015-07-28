@@ -51,16 +51,17 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     # (note: first crack at supplies/parallelization)
     my $tested-dists := CLI-WAITING-BAR {
         eager gather for @repos -> $path {
-            state @libs = $lib.list;
+            state @perl6lib;
             my $dist := Zef::Distribution.new(
                 path     => $path.IO, 
-                includes => @libs.unique,
+                includes => $lib.list.unique,
+                perl6lib => @perl6lib.unique,
             );
             $dist does Zef::Roles::Processing[:$async];
             $dist does Zef::Roles::Testing;
 
             $dist.queue-processes( [$_.list] ) for [$dist.test-cmds];
-            @libs.push: $dist.precomp-path;
+            @perl6lib.push: $dist.precomp-path.absolute;
 
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist.processes) if $v;
@@ -258,20 +259,21 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
     # (note: first crack at supplies/parallelization)
     my $precompiled-dists := CLI-WAITING-BAR {
         eager gather for @repos -> $path {
-            state @libs = $lib.list; # store paths to be used in -I in subsequent `depends` processes
+            state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
             my $dist := Zef::Distribution.new(
                 path         => $path.IO, 
                 precomp-path => (?$save-to.IO.is-relative 
                     ?? $save-to.IO.absolute($path).IO 
                     !! $save-to.IO.abspath.IO
                 ),
-                includes     => @libs.unique,
+                includes     => $lib.list.unique,
+                perl6lib     => @perl6lib.unique,
             );
             $dist does Zef::Roles::Processing[:$async];
             $dist does Zef::Roles::Precompiling;
 
             $dist.queue-processes($_) for $dist.precomp-cmds;
-            @libs.push: $dist.precomp-path;
+            @perl6lib.push: $dist.precomp-path.absolute;
 
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist.processes) if $v;

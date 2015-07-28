@@ -4,10 +4,13 @@ role Zef::Roles::Processing[Bool :$async] {
     has @.processes;
 
     method queue-processes(*@groups) {
+        my %env = %*ENV.hash;
+        %env<PERL6LIB> = (%env<PERL6LIB> // (), @.perl6lib).join(',');
+
         my @procs := @groups>>.map: -> $execute {
             my $command := $execute.list.[0];
             my @args    := $execute.list.elems > 1 ?? $execute.list.[1..*] !! ();
-            Zef::Process.new(:$command, :@args, :$async, cwd => $.path);
+            Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
         }
         @!processes.push: [@procs];
         return @procs;

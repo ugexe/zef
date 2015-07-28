@@ -4,6 +4,7 @@ class Zef::Process {
     has $.command  is rw;
     has @.args     is rw;
     has $.cwd      is rw;
+    has %.env      is rw;
     has $.stdout;
     has $.stderr;
     has $.stdmerge;
@@ -17,7 +18,7 @@ class Zef::Process {
     has $.started;
     has $.finished;
 
-    submethod BUILD(:$!command, :@!args, :$!cwd, Bool :$!async, :$!id) {
+    submethod BUILD(:$!command, :@!args, :$!cwd, :%!env, Bool :$!async, :$!id) {
         $!can-async = !::("Proc::Async").isa(Failure);
         $!stdout := Supply.new;
         $!stderr := Supply.new;
@@ -46,11 +47,11 @@ class Zef::Process {
             $!process.stdout.emit("{$*EXECUTABLE.basename} {@!args.join(' ')}");
 
             $!started  := $!process.started;
-            $!promise  := $!process.start(:$!cwd);
+            $!promise  := $!process.start(:$!cwd, ENV => %!env);
             $!finished := $!promise.Bool;
         }
         else {
-            $!process := shell("{$*EXECUTABLE} {@!args.join(' ')} 2>&1", :out, :$!cwd, :!chomp);
+            $!process := shell("{$*EXECUTABLE} {@!args.join(' ')} 2>&1", :out, :$!cwd, :%!env, :!chomp);
             $!promise := Promise.new;
             $!stdout.act: { $!stdmerge ~= $_ }
             $!stderr.act: { $!stdmerge ~= $_ }

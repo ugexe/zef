@@ -10,7 +10,11 @@
 #       we would not attach the testing role and instead just the Build/Install roles.
 #       This will allow Hooks to not only hook into parts of the process, but also completely 
 #       replace the default Builder role all together.
-
+# 6) System 'logging' such that we can record the actions:
+#   * IO actions like mkdir, cd, etc
+#   * Proc actions (shell/run)
+#   such that we could theoretically generate a perl6 script that would mimick the function of 
+#   a makefile (like ufo), allowing simple sans-package-manager installs.
 class Zef::Distribution {
     has $.name;
     has $.authority;

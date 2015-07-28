@@ -217,7 +217,7 @@ B<Example>:
 
 The base project class containing path and META information.
 
-    my $dist = Zef::Distribution.new(:path($*CWD) :includes<blib/lib lib>);
+    my $dist = Zef::Distribution.new(:path($*CWD));
 
 =head2 Zef::Roles::Precompiling
 
@@ -225,7 +225,7 @@ Allows a C<Zef::Distribution> to generate the commands, in order, to precompile 
 
 Combine with C<Zef::Roles::Processing> to execute these commands.
 
-    my $dist = Zef::Distribution.new(:path($*CWD) :includes<blib/lib lib>);
+    my $dist = Zef::Distribution.new(:path($*CWD));
     $dist does Zef::Roles::Precompiling;    
 
 =head2 Zef::Roles::Testing
@@ -234,7 +234,7 @@ Allows a C<Zef::Distribution> to generate the commands, in order, to test all fi
 
 Combine with C<Zef::Roles::Processing> to execute these commands.
 
-    my $dist = Zef::Distribution.new(:path($*CWD) :includes<blib/lib lib>);
+    my $dist = Zef::Distribution.new(:path($*CWD));
     $dist does Zef::Roles::Testing;    
 
 =head2 Zef::Roles::Processing
@@ -244,11 +244,11 @@ Combine with C<Zef::Roles::Processing> to execute these commands.
         method queue-processes(*@groups) # add a process or group of processes to be executed together
         method start-processes           # execute each process (or group of processes) in order
         method passes                    # helper function to show name of processes where exitcode == 0
-        method failures                  # helper functin to show name of processes where exitcode > 0
+        method failures                  # helper function to show name of processes where exitcode > 0
 
 Allows executing commands, including grouped commands in parallel if C<:$async> is true (i.e. C<[[$proc1, $proc2],[$proc3]]> executes C<$proc1> and C<$proc2> at the same time, and then C<$proc3> after both previous processes finish)
 
-    my $dist = Zef::Distribution.new(:path($*CWD) :includes<blib/lib lib>);
+    my $dist = Zef::Distribution.new(:path($*CWD));
     $dist does Zef::Roles::Precompiling;
     $dist does Zef::Roles::Testing;
     $dist does Zef::Roles::Processing[:!async];

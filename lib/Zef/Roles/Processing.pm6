@@ -13,12 +13,15 @@ role Zef::Roles::Processing[Bool :$async] {
         return @procs;
     }
 
-    method start-processes(:$p6flags) {
+    method start-processes {
         my $p = Promise.new;
         $p.keep(1);
 
         for @!processes -> $level {
-            $p = $p.then({ await Promise.allof($level>>.start) });
+            $p = $p.then: {
+                my @promises := $level.list.map: { $_.start }
+                await Promise.allof(@promises);
+            }
         }
 
         $p;

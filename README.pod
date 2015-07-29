@@ -45,11 +45,19 @@ Fetch, build, test, optional report, and install.
     # parallel testing and precompilation
     --async
 
+    # cut off lines that reach (our guess at) the term width in columns
+    --no-wrap
+
     # no status bar or other CLI eye candy
     --boring
 
     # do everything except the actually install
     --dry
+
+    # include library paths to the spawned processes
+    # zef -v -lib=lib-old --lib=blib-old/lib build
+    #  -> perl6 -Ilib-old -Iblib-old/lib <compiler/test commands>
+    --lib
 
     # run the tests in a random order instead of sorted
     --shuffle

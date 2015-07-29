@@ -44,7 +44,7 @@ class Zef::Process {
             $!process := Proc::Async.new($*EXECUTABLE, @!args);
             $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }
             $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
-            $!process.stdout.emit("{$*EXECUTABLE.basename} {@!args.join(' ')}");
+            $!process.stdout.emit("{$*EXECUTABLE.basename} {@!args.join(' ')}\n");
 
             $!started  := $!process.started;
             $!promise  := $!process.start(:$!cwd, ENV => %!env);
@@ -56,7 +56,7 @@ class Zef::Process {
             $!stdout.act: { $!stdmerge ~= $_ }
             $!stderr.act: { $!stdmerge ~= $_ }
 
-            $!stdout.emit("{$*EXECUTABLE.basename} {@!args.join(' ')}");
+            $!stdout.emit("{$*EXECUTABLE.basename} {@!args.join(' ')}\n");
 
             $!started  := True;
             $!stdout.emit($_) for $!process.out.lines(:!eager, :close);

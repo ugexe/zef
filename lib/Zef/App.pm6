@@ -1,13 +1,12 @@
 unit class Zef::App;
 
 use Zef::Distribution;
-#use Zef::Roles::Installing;
+use Zef::Roles::Installing;
 use Zef::Roles::Precompiling;
 use Zef::Roles::Processing;
 use Zef::Roles::Testing;
 use Zef::Authority::P6C;
 use Zef::Config;
-use Zef::Installer;
 use Zef::CLI::StatusBar;
 use Zef::CLI::STDMux;
 use Zef::Uninstaller;
@@ -177,7 +176,18 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$f
 
 
     my $install = do {
-        my $i := CLI-WAITING-BAR { Zef::Installer.new.install(@metas) }, "Installing", :$boring;
+        my $i := CLI-WAITING-BAR { 
+            eager gather for $built.list -> $dist {
+                # todo: check against $tested to make sure tests were passed
+                # currently we call &MAIN for each phase, thus creating a new
+                # Zef::Distribution object for each phase. This means the roles
+                # do not carry over. The fix should work around is.
+
+                $dist does Zef::Roles::Installing;
+                take [$dist.install.list]
+            }
+        }, "Installing", :$boring;
+
         my @installed := $i.list.grep({ !$_.<skipped> });
         my @skipped   := $i.list.grep({ ?$_.<skipped> });
         verbose('Install', @installed)                 if @installed;

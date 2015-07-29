@@ -68,7 +68,7 @@ class Zef::Distribution {
 
         unless $!precomp-path {
             $!precomp-path := @!includes
-                ?? @!includes.first(*.IO.e)
+                ?? @!includes.first(*.IO.e).IO
                 !! $!path.child('blib').child($!source-path.IO.relative($!path).IO.relative);
         }
 
@@ -82,10 +82,17 @@ class Zef::Distribution {
     }
 
 
-    proto method provides(Bool :$absolute) {*}
-    multi method provides(Bool :$absolute) {
-        $absolute 
-            ?? %.meta<provides>.kv.map({ $^a => $^b.IO.absolute($!path) })
-            !! %.meta<provides>;
+    method provides(Bool :$absolute) {
+        my @p := gather for %.meta<provides>.pairs {
+            my $name    := $_.key;
+            my $pm-file := $_.value;
+            if $absolute {
+                take $name => ($pm-file.IO.is-relative ?? $pm-file.IO.absolute($!path) !! $pm-file.IO.abspath);
+            }
+            else {
+                take $name => ($pm-file.IO.is-relative ?? $pm-file.IO !! $pm-file.IO.relative($!path));
+            }
+        }
+        @p.hash;
     }
 }

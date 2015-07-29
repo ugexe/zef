@@ -60,10 +60,7 @@ role Zef::Roles::Precompiling {
             !! $precomp-rel;
     }
 
-    multi method provides(Bool :$absolute, :$target! is copy) {
-        $target = $DEFAULT-TARGET if $target === True;
-        nextwith(:$absolute) unless $target;
-
+    method provides-precomps(Bool :$absolute, :$target = $DEFAULT-TARGET) {
         $.provides.hash.kv.map({ $^a => $.to-precomp($^b.IO, :$absolute, :$target) }).hash;
     }
 

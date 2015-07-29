@@ -1,10 +1,13 @@
 unit class Zef::App;
 
 use Zef::Distribution;
+
 use Zef::Roles::Installing;
 use Zef::Roles::Precompiling;
 use Zef::Roles::Processing;
 use Zef::Roles::Testing;
+use Zef::Roles::Hooking;
+
 use Zef::Authority::P6C;
 use Zef::Config;
 use Zef::CLI::StatusBar;
@@ -45,7 +48,6 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     @repos .= push($*CWD) unless @repos;
     @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 
-
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
     my $tested-dists := CLI-WAITING-BAR {
@@ -58,13 +60,16 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
             );
             $dist does Zef::Roles::Processing[:$async];
             $dist does Zef::Roles::Testing;
+            $dist does Zef::Roles::Hooking;
 
             $dist.queue-processes( [$_.list] ) for [$dist.test-cmds];
             @perl6lib.push: $dist.precomp-path.absolute;
 
+            $dist.run-hooks(:before, 'test');
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist.processes) if $v;
             await $dist.start-processes;
+            $dist.run-hooks(:after, 'test');
 
             take $dist;
         }
@@ -184,7 +189,11 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$f
                 # do not carry over. The fix should work around is.
 
                 $dist does Zef::Roles::Installing;
+                $dist does Zef::Roles::Hooking;
+
+                $dist.run-hooks(:before, 'install');
                 take $dist.install;
+                $dist.run-hooks(:after, 'install');
             }
         }, "Installing", :$boring;
 
@@ -281,13 +290,16 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
             );
             $dist does Zef::Roles::Processing[:$async];
             $dist does Zef::Roles::Precompiling;
+            $dist does Zef::Roles::Hooking;
 
             $dist.queue-processes($_) for $dist.precomp-cmds;
             @perl6lib.push: $dist.precomp-path.absolute;
 
+            $dist.run-hooks(:before, 'build');
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist.processes) if $v;
             await $dist.start-processes;
+            $dist.run-hooks(:after, 'build');
 
             take $dist;
         }

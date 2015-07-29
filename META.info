@@ -58,10 +58,11 @@
         "Zef::Net::URI::Grammar::RFC3986" : "lib/Zef/Net/URI/Grammar/RFC3986.pm6",
         "Zef::Net::URI::Grammar::RFC4234" : "lib/Zef/Net/URI/Grammar/RFC4234.pm6",
 
-        "Zef::Roles::Installing"          : "lib/Zef/Roles/Installing.pm6",
-        "Zef::Roles::Precompiling"        : "lib/Zef/Roles/Precompiling.pm6",
-        "Zef::Roles::Processing"          : "lib/Zef/Roles/Processing.pm6",
-        "Zef::Roles::Testing"             : "lib/Zef/Roles/Testing.pm6"
+        "Zef::Roles::Installing"   : "lib/Zef/Roles/Installing.pm6",
+        "Zef::Roles::Precompiling" : "lib/Zef/Roles/Precompiling.pm6",
+        "Zef::Roles::Processing"   : "lib/Zef/Roles/Processing.pm6",
+        "Zef::Roles::Hooking"      : "lib/Zef/Roles/Hooking.pm6",
+        "Zef::Roles::Testing"      : "lib/Zef/Roles/Testing.pm6"
     },
     "auth"    : "github:ugexe",
     "authors" : [

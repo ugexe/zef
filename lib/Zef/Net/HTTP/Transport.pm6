@@ -43,21 +43,21 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
 
         my $socket := $!dialer.dial($req.?proxy ?? $req.proxy.uri !! $req.uri);
         $socket does ByteStream;;
-        $socket.send: $req.DUMP(:start-line);
-        $socket.send: $req.DUMP(:headers);
+        $socket.print: $req.DUMP(:start-line);
+        $socket.print: $req.DUMP(:headers);
 
         given $req.body {
             when *.not { #`<no body in request; skip this> }
 
             when Buf { $socket.write($_) }
-            when Str { $socket.send($_)  }
+            when Str { $socket.print($_)  }
 
             default {
                 die "{::?CLASS} doesn't know how to handle :\$body of this type: {$_.perl}";
             }
         }
 
-        $socket.send: $req.DUMP(:trailers);
+        $socket.print: $req.DUMP(:trailers);
 
         # ?: should we allow cancelation of the receiving socket (not including
         # timeout related canceling) before it has finished reading the header?

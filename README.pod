@@ -227,6 +227,30 @@ The base project class containing path and META information.
 
     my $dist = Zef::Distribution.new(:path($*CWD));
 
+=head2 Zef::Roles::Hooking
+
+Methods to execute the hooks located in C<hooks/>. Hooks are chosen based on matching the phase and modifier.
+
+    my $dist = Zef::Distribution.new(:path($*CWD));
+    $dist does Zef::Roles::Installing;
+    $dist.run-hooks(:before, 'install');
+    $dist.install;
+    $dist.run-hooks(:after, 'install');
+
+The following filenames are suggested:
+C<before-test.pl6> C<after-test.pl6> C<before-build.pl6> C<after-build.pl6> C<before-install.pl6> C<after-isntall.pl6>
+
+However, we only match the beginning and end of the filename, so you may have multiple files for any phase/modifier:
+i.e.: C<before-1-test.pl6> C<before-2-test.pl6>
+
+=head2 Zef::Roles::Installing
+
+Allows a C<Zef::Distribution> to install
+
+    my $dist = Zef::Distribution.new(:path($*CWD));
+    $dist does Zef::Roles::Installing;
+    $dist.install;
+
 =head2 Zef::Roles::Precompiling
 
 Allows a C<Zef::Distribution> to generate the commands, in order, to precompile a distribution's C<provides>
@@ -259,16 +283,12 @@ Allows executing commands, including grouped commands in parallel if C<:$async> 
     my $dist = Zef::Distribution.new(:path($*CWD));
     $dist does Zef::Roles::Precompiling;
     $dist does Zef::Roles::Testing;
+    $dist does Zef::Roles::Installing;
     $dist does Zef::Roles::Processing[:!async];
 
     $dist.queue-processes( [$_.list] ) for [$dist.precomp-cmds, $dist.test-cmds];
     await $dist.start-processes;
-
-=head2 Zef::Roles::Installing
-
-Allows a C<Zef::Distribution> to install
-
-    # todo
+    await $dist.install;
 
 =head1 INCLUDED TOOLS
 

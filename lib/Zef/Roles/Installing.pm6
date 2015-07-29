@@ -12,7 +12,7 @@ role curli-copy-fix[$path] {
 
 role Zef::Roles::Installing[$curlis = %*CUSTOM_LIB<site>] {
     multi method install(Bool :$force = True)  {
-        my @results = gather for $curlis.list -> $curli is copy {
+        eager gather for $curlis.list -> $curli is copy {
             mkdirs(PARSE-INCLUDE-SPEC($curli).[*-1]) unless $curli.IO.e;
 
             $curli = CompUnitRepo::Local::Installation.new($curli);
@@ -43,9 +43,6 @@ role Zef::Roles::Installing[$curlis = %*CUSTOM_LIB<site>] {
             %result<ok> = 1 if $curli.install(dist => self, @provides, @precomps, @bins);
             take { %result }
         }
-
-        # todo: check all $curli results
-        return @results;
     }
 
 

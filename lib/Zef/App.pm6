@@ -184,7 +184,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$f
                 # do not carry over. The fix should work around is.
 
                 $dist does Zef::Roles::Installing;
-                take [$dist.install.list]
+                take $dist.install;
             }
         }, "Installing", :$boring;
 

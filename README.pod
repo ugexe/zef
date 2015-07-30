@@ -24,11 +24,23 @@ Zef - Perl6 Module Management
     # search for module names matching `CSV::Parser`
     zef -v search CSV::Parser
 
+    # META information about `CSV::Parser`
+    zef -v info CSV::Parser
+
     # build project in current directory
     zef -v build
 
     # test project in current directory    
     zef -v test
+
+    # fetch a specific module only
+    zef -v get CSV::Parser
+
+    # fetch a specific module, and shell into the directory it is saved to
+    zef -v look CSV::Parser
+
+    # build/test/install all modules in the ecosystem
+    zef -v smoke
 
 =head2 More CLI
 

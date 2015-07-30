@@ -13,10 +13,8 @@ role Zef::Roles::Precompiling {
 
         my @provides-as-deps := gather for @deps -> $dep-meta is rw {
             $dep-meta.<depends> = [%provides-abspaths.{$dep-meta.<depends>.list}];
-            
-            $dep-meta.<name> = %provides-abspaths.values\
+            $dep-meta.<name>    = %provides-abspaths.values\
                 .first: { $_.IO.ACCEPTS($dep-meta.<path>.IO.absolute($.path)) }
-
             take $dep-meta;
         }
 
@@ -26,7 +24,8 @@ role Zef::Roles::Precompiling {
             .map({ qqw/-I$_/ });
         # @provides-as-deps is a partial META.info hash, so pass the $meta.<provides>
         # Note topological-sort with no arguments will sort the class's @projects (provides in this case)
-        my @levels := Zef::Utils::Depends.new(projects => @provides-as-deps).topological-sort;
+        my @levels = Zef::Utils::Depends.new(projects => @provides-as-deps).topological-sort;
+
 
         # Create the build order for the `provides`
         my @cmds := @levels.map: -> $level {
@@ -60,7 +59,7 @@ role Zef::Roles::Precompiling {
             !! $precomp-rel;
     }
 
-    method provides-precomps(Bool :$absolute, :$target = $DEFAULT-TARGET) {
+    method provides-precomp(Bool :$absolute, :$target = $DEFAULT-TARGET) {
         $.provides.hash.kv.map({ $^a => $.to-precomp($^b.IO, :$absolute, :$target) }).hash;
     }
 

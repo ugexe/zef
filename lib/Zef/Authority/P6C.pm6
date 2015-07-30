@@ -26,18 +26,26 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         :@ignore,
         :$save-to is copy,
         Bool :$depends,
+        Bool :$test-depends,
+        Bool :$build-depends,
         Bool :$fetch = True,
     ) {
-        self.update-projects if :$fetch && !@!projects.elems;
-        my @wants-dists := @!projects\
-            .grep({ $_.<name> ~~ any(@wants) })\
-            .grep({ any($_.<depends>.list) ~~ none(@ignore) });
-        return () unless @wants-dists;
+        self.update-projects if $fetch && !@!projects.elems;
+        my @wants-dists := @!projects.grep({ $_.<name> ~~ any(@wants) });
+
+        my @wants-dists-filtered = !@ignore ?? @wants-dists !! @wants-dists.grep({
+               (!$depends       || any($_.<depends>.list)       ~~ none(@ignore))
+            && (!$test-depends  || any($_.<build-depends>.list) ~~ none(@ignore))
+            && (!$build-depends || any($_.<test-depends>.list)  ~~ none(@ignore))
+        });
+
+        return () unless @wants-dists-filtered;
 
         # Determine the distribution dependencies we want/need
         my @levels := $depends
-            ?? Zef::Utils::Depends.new(:@!projects).topological-sort(@wants-dists)
-            !! @wants-dists.map({ $_.hash.<name> });
+            ?? Zef::Utils::Depends.new(:@!projects).topological-sort( @wants-dists-filtered, 
+                :$depends, :$build-depends, :$test-depends)
+            !! @wants-dists-filtered.map({ $_.hash.<name> });
 
         # Try to fetch each distribution dependency
         eager gather for @levels -> $level {

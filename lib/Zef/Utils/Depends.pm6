@@ -21,16 +21,18 @@ class Zef::Utils::Depends {
 
     # Modified from:
     # http://rosettacode.org/wiki/Topological_sort/Extracted_top_item#Perl_6
-    method topological-sort ( *@wanted ) {
-        my @top  = @wanted.flatmap({ $_.<name> });
-
+    method topological-sort ( *@wanted, *%fields) {
+        %fields<depends> = True unless %fields.keys;
+        my @top = @wanted.flatmap({ $_.<name> });
         my %deps;
 
         # Handle where provides has 2+ package names mapped to the same path
         # todo: don't do the unique call on every iteration
         for @!projects -> $meta {
-            %deps{$meta.<name>} .= push($_) for $meta.<depends>.list;
-            %deps{$meta.<name>} = [%deps{$meta.<name>}.list.grep(*.so).unique];
+            for %fields.kv -> $k, $v {
+                %deps{$meta.<name>} .= push($_) for $meta.{$k}.list;
+                %deps{$meta.<name>} = [%deps{$meta.<name>}.list.grep(*.so).unique];
+            }
         }
 
         my %ba;

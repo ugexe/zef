@@ -128,57 +128,78 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, 
-    Bool :$force, Bool :$depends = True, Bool :$async, Bool :$report, Bool :$v, 
-    Bool :$dry, Bool :$boring, Bool :$shuffle, Bool :$no-wrap) is export(:install) {
+multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$notest,
+    Bool :$force, Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, 
+    Bool :$skip-depends, Bool :$skip-build-depends, Bool :$skip-test-depends,
+    Bool :$shuffle, Bool :$no-wrap) is export(:install) {
 
-    my $fetched := &MAIN('get', @modules, :@ignore, :$save-to, :$boring, :$async, :$depends);
+    # FETCHING
+    my $fetched := &MAIN('get', @modules, 
+        :@ignore, :$save-to, :$boring, :$async,
+        :$skip-depends, :$skip-build-depends
+        :skip-test-depends(($notest || $skip-test-depends) ?? True !! False), 
+    );
 
 
+
+    # VALIDATION
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m := $fetched.list.grep({ $_.<ok>.so }).map({ $_.<ok> = ?$_.<path>.IO.child('META.info').IO.e; $_ });
+    my @m := $fetched.list.grep({ $_.<ok>.so })\
+        .map({ $_.<ok> = ?$_.<path>.IO.child('META.info').IO.e; $_ });
+
     verbose('META.info availability', @m);
+
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
-    my @repos := @m.grep({ $_.<ok>.so }).map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath });
+    my @repos := @m.grep({ $_.<ok>.so })\
+        .map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath });
+
     my @metas := @repos.map({ $_.IO.child('META.info').IO.path }).grep(*.IO.e);
 
 
-    # Precompile all modules and dependencies
+
+
+    # BUIDLING
     my $built := &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap);
     unless $built.list.elems {
         print "???> Nothing to build.\n";
     }
 
-    # force the tests so we can report them. *then* we will bail out
-    my $tested := &MAIN('test', @repos, :lib('blib/lib'), :$lib, :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap);
 
 
-    # Send a build/test report
-    if ?$report {
-        my $reported := CLI-WAITING-BAR {
-            Zef::Authority::P6C.new.report(
-                @metas,
-                test-results  => $tested, 
-                build-results => $built,
-            );
-        }, "Reporting", :$boring;
 
-        verbose('Reporting', $reported.list);
-        my @ok := $reported.list.grep(*.<id>.so);
-        print "===> Report{'s' if $reported.list.elems > 1} can be seen shortly at:\n" if @ok;
-        print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
-    }
+    # TESTING
+    unless $notest {
+        # force the tests so we can report them. *then* we will bail out
+        my $tested := &MAIN('test', @repos, :lib('blib/lib'), :$lib, :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap);
 
 
-    my @failed = $tested>>.failures;
-    my @passed = $tested>>.passes;
-    if @failed {
-        $force
-            ?? do { print "!!!> Failed tests. Aborting.\n" and exit @failed.elems }
-            !! do { print "???> Failed tests. Using \$force\n"                    };
-    }
-    elsif !@passed {
-        print "???> No tests.\n";
+        # Send a build/test report
+        if ?$report {
+            my $reported := CLI-WAITING-BAR {
+                Zef::Authority::P6C.new.report(
+                    @metas,
+                    test-results  => $tested, 
+                    build-results => $built,
+                );
+            }, "Reporting", :$boring;
+
+            verbose('Reporting', $reported.list);
+            my @ok := $reported.list.grep(*.<id>.so);
+            print "===> Report{'s' if $reported.list.elems > 1} can be seen shortly at:\n" if @ok;
+            print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
+        }
+
+
+        my @failed = $tested>>.failures;
+        my @passed = $tested>>.passes;
+        if @failed {
+            $force
+                ?? do { print "!!!> Failed tests. Aborting.\n" and exit @failed.elems }
+                !! do { print "???> Failed tests. Using \$force\n"                    };
+        }
+        elsif !@passed {
+            print "???> No tests.\n";
+        }
     }
 
 
@@ -226,9 +247,9 @@ multi MAIN('local-install', *@modules) is export {
 
 
 #! Download a single module and change into its directory
-multi MAIN('look', $module, Bool :$depends, Bool :$v, :$save-to = $*CWD.IO.child(time)) is export(:look) { 
+multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is export(:look) { 
     my $auth := Zef::Authority::P6C.new;
-    my @g := $auth.get: $module, :$save-to, :$depends;
+    my @g := $auth.get: $module, :$save-to;
     verbose('Fetching', @g);
 
 
@@ -247,8 +268,10 @@ multi MAIN('look', $module, Bool :$depends, Bool :$v, :$save-to = $*CWD.IO.child
 
 
 #| Get the freshness
-multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = True,
-    Bool :$v, Bool :$async, Bool :$boring, Bool :$skip-depends) is export(:get :install) {
+multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, 
+    Bool :$async, Bool :$v, Bool :$boring, Bool :$skip-depends, 
+    Bool :$skip-test-depends, Bool :$skip-build-depends
+    ) is export(:get :install) {
 
     my $auth := CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
@@ -264,7 +287,9 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
     my $fetched := CLI-WAITING-BAR { 
-        $auth.get(@modules, :@ignore, :$save-to, :$depends);
+        $auth.get(@modules, :@ignore, :$save-to, :depends(!$skip-depends), 
+            :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
+        );
     }, "Fetching", :$boring;
 
     verbose('Fetching', $fetched.list);
@@ -280,7 +305,7 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
 
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
-    Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export(:build :install) {
+    Bool :$async, Bool :$boring, Bool :$force = True) is export(:build :install) {
     @repos .= push($*CWD) unless @repos;
     @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 

@@ -239,16 +239,16 @@ Methods to execute the hooks located in C<hooks/>. Hooks are chosen based on mat
     $dist does Zef::Roles::Hooking;
 
     # build + hooks
-    $dist.queue-processes: [$dist.hook-cmds(BUILD, :before)] );
+    $dist.queue-processes: [$dist.hook-cmds(BUILD, :before)];
     $dist.queue-processes($_) for $dist.precomp-cmds;
-    $dist.queue-processes: [$dist.hook-cmds(BUILD, :after)]  );
+    $dist.queue-processes: [$dist.hook-cmds(BUILD, :after)];
     await $dist.start-processes;
 
     # install + hooks
-    $dist.queue-processes: $dist.hook-cmds(INSTALL, :before);
+    $dist.queue-processes: [$dist.hook-cmds(INSTALL, :before)];
     await $dist.start-processes;
     $dist.install;
-    $dist.queue-processes: $dist.hook-cmds(INSTALL, :after);
+    $dist.queue-processes: [$dist.hook-cmds(INSTALL, :after)];
     await $dist.start-processes;
 
 The following filenames are suggested:

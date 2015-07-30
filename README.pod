@@ -238,7 +238,7 @@ Methods to execute the hooks located in C<hooks/>. Hooks are chosen based on mat
     $dist.run-hooks(:after, 'install');
 
 The following filenames are suggested:
-C<before-test.pl6> C<after-test.pl6> C<before-build.pl6> C<after-build.pl6> C<before-install.pl6> C<after-isntall.pl6>
+C<before-test.pl6> C<after-test.pl6> C<before-build.pl6> C<after-build.pl6> C<before-install.pl6> C<after-install.pl6>
 
 However, we only match the beginning and end of the filename, so you may have multiple files for any phase/modifier:
 i.e.: C<before-1-test.pl6> C<before-2-test.pl6>

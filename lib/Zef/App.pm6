@@ -62,14 +62,15 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
             $dist does Zef::Roles::Testing;
             $dist does Zef::Roles::Hooking;
 
+            $dist.queue-processes: [$dist.hook-cmds(TEST, :before)];
             $dist.queue-processes( [$_.list] ) for [$dist.test-cmds];
+            $dist.queue-processes: [$dist.hook-cmds(TEST, :after)];
+
             @perl6lib.push: $dist.precomp-path.absolute;
 
-            $dist.run-hooks(:before, 'test');
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist.processes) if $v;
             await $dist.start-processes;
-            $dist.run-hooks(:after, 'test');
 
             take $dist;
         }
@@ -188,13 +189,21 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR,
                 # currently we call &MAIN for each phase, thus creating a new
                 # Zef::Distribution object for each phase. This means the roles
                 # do not carry over. The fix should work around is.
-
+                $dist does Zef::Roles::Processing;
                 $dist does Zef::Roles::Installing;
                 $dist does Zef::Roles::Hooking;
+ 
+                my $max-width = $MAX-TERM-COLS if ?$no-wrap;
 
-                $dist.run-hooks(:before, 'install');
+                my @before-procs = $dist.queue-processes: [$dist.hook-cmds(INSTALL, :before)];
+                procs2stdout(:$max-width, @before-procs) if $v;
+                await $dist.start-processes;
+                
                 take $dist.install;
-                $dist.run-hooks(:after, 'install');
+                
+                my @after-procs = $dist.queue-processes: [$dist.hook-cmds(INSTALL, :after)];
+                procs2stdout(:$max-width, @after-procs) if $v;
+                await $dist.start-processes;
             }
         }, "Installing", :$boring;
 
@@ -293,14 +302,15 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
             $dist does Zef::Roles::Precompiling;
             $dist does Zef::Roles::Hooking;
 
+            $dist.queue-processes: [$dist.hook-cmds(BUILD, :before)];
             $dist.queue-processes($_) for $dist.precomp-cmds;
+            $dist.queue-processes: [$dist.hook-cmds(BUILD, :after)];
+
             @perl6lib.push: $dist.precomp-path.absolute;
 
-            $dist.run-hooks(:before, 'build');
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist.processes) if $v;
             await $dist.start-processes;
-            $dist.run-hooks(:after, 'build');
 
             take $dist;
         }

@@ -13,24 +13,27 @@ role Zef::Roles::Processing[Bool :$async] {
             Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
         }
         @!processes.push: [@procs];
-        return @procs;
+        return [@procs];
     }
 
+    # pass in processes explicitly for running processes that should block (hooks)
+    # until we create a more specific method for this
     method start-processes {
         my $p = Promise.new;
         $p.keep(1);
 
         for @!processes -> $level {
+            my @not-started := $level.list.grep({ !$_.started });
             $p = $p.then: {
-                my @promises := $level.list.map: { $_.start }
-                await Promise.allof(@promises);
+                my @promises := @not-started.map: { $_.start }
+                await Promise.allof(@promises) if @promises;
             }
         }
 
         $p;
     }
 
-    method tap(&code) { @!processes>>.tap(&code)          }
+    #method tap(&code) { @!processes>>.tap(&code)          }
     method passes     { @!processes>>.grep(*.ok.so)>>.id  }
     method failures   { @!processes>>.grep(*.ok.not)>>.id }
 

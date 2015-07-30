@@ -58,7 +58,7 @@ class Zef::Process {
 
             $!stdout.emit("{$*EXECUTABLE.basename} {@!args.join(' ')}\n");
 
-            $!started  := True;
+            $!started   = True;
             $!stdout.emit($_) for $!process.out.lines(:!eager, :close);
             $!stdout.done; $!stderr.done;
             $!process.out.close; $!stderr.close;

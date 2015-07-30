@@ -22,10 +22,11 @@ subtest {
     my $distribution = Zef::Distribution.new(:$path, :$precomp-path);
     $distribution does Zef::Roles::Precompiling;
     $distribution does Zef::Roles::Processing;
+
     my @cmds = $distribution.precomp-cmds;
 
     my @source-files = $distribution.provides(:absolute).values;
-    my @target-files = $distribution.provides(:absolute, :target).values;
+    my @target-files = $distribution.provides-precomp(:absolute).values;
 
     $distribution.queue-processes( [$_.list] ) for @cmds;
 

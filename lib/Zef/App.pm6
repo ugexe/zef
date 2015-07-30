@@ -170,7 +170,9 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$n
     # TESTING
     unless $notest {
         # force the tests so we can report them. *then* we will bail out
-        my $tested := &MAIN('test', @repos, :lib('blib/lib'), :$lib, :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap);
+        my $tested := &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
+            :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap
+        );
 
 
         # Send a build/test report

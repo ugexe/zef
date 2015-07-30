@@ -332,7 +332,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
             $dist.queue-processes: [$dist.hook-cmds(BUILD, :before)];
             $dist.queue-processes($_) for $dist.precomp-cmds;
             $dist.queue-processes: [$dist.hook-cmds(BUILD, :after)];
-
+            
             @perl6lib.push: $dist.precomp-path.absolute;
 
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;

@@ -21,9 +21,9 @@ role Zef::Roles::Hooking {
         nextwith($phase, 'after');
     }
     multi method hook-cmds(Phase $phase, $when?) {
-        my @hooks = $.hook-files or return ();
-        @hooks .= grep(*.IO.basename.uc.ends-with("{$phase}.PL6"));
-        @hooks .= grep(*.IO.basename.uc.starts-with($when.uc)) if $when;
-        @hooks.sort.map: { [$*EXECUTABLE, $_.IO.relative($.path)] };
+        my @hooks := $.hook-files or return ();
+        @hooks = @hooks.grep(*.IO.basename.uc.ends-with("{$phase.uc}.PL6"));
+        @hooks = @hooks.grep(*.IO.basename.uc.starts-with($when.uc)) if $when;
+        @hooks.sort.map: { [$*EXECUTABLE, $_.IO.relative($.path)] }
     }
 }

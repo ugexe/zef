@@ -35,15 +35,15 @@ BEGIN our @smoke-blacklist = <NativeCall DateTime::TimeZone BioInfo Text::CSV Fl
 # (No symbols for 'signal' or 'Signal::*') So we have to get the 
 # symbols into world ourselves.
 our $MAX-TERM-COLS = GET-TERM-COLUMNS();
-sub signal-jvm($) { Supply.new }
-my $signal-handler := &::("signal") ~~ Failure ?? &::("signal-jvm") !! &::("signal");
-my $sig-resize     := ::("Signal::SIGWINCH");
+our sub signal-jvm($) { Supply.new }
+our $signal-handler := &::("signal") ~~ Failure ?? &::("signal-jvm") !! &::("signal");
+our $sig-resize     := ::("Signal::SIGWINCH");
 $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 
 #| Test modules in the specified directories
 multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v, 
-    Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap) is export {
+    Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap) is export(:test, :install) {
     
     @repos .= push($*CWD) unless @repos;
     @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
@@ -93,7 +93,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
 
 
 multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
-    Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle) {
+    Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle) is export(:smoke) {
     
     say "===> Smoke testing started [{time}]";
 
@@ -127,8 +127,9 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$force, Bool :$depends = True,
-    Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, Bool :$shuffle, Bool :$no-wrap) is export {
+multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, 
+    Bool :$force, Bool :$depends = True, Bool :$async, Bool :$report, Bool :$v, 
+    Bool :$dry, Bool :$boring, Bool :$shuffle, Bool :$no-wrap) is export(:install) {
 
     my $fetched := &MAIN('get', @modules, :@ignore, :$save-to, :$boring, :$async, :$depends);
 
@@ -216,7 +217,7 @@ multi MAIN('local-install', *@modules) is export {
 
 
 #! Download a single module and change into its directory
-multi MAIN('look', $module, Bool :$depends, Bool :$v, :$save-to = $*CWD.IO.child(time)) { 
+multi MAIN('look', $module, Bool :$depends, Bool :$v, :$save-to = $*CWD.IO.child(time)) is export(:look) { 
     my $auth := Zef::Authority::P6C.new;
     my @g := $auth.get: $module, :$save-to, :$depends;
     verbose('Fetching', @g);
@@ -238,7 +239,7 @@ multi MAIN('look', $module, Bool :$depends, Bool :$v, :$save-to = $*CWD.IO.child
 
 #| Get the freshness
 multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = True,
-    Bool :$v, Bool :$async, Bool :$boring, Bool :$skip-depends) is export {
+    Bool :$v, Bool :$async, Bool :$boring, Bool :$skip-depends) is export(:get :install) {
 
     my $auth := CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
@@ -270,7 +271,7 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, Bool :$depends = Tr
 
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
-    Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export {
+    Bool :$async, Bool :$boring, Bool :$skip-depends, Bool :$force = True) is export(:build :install) {
     @repos .= push($*CWD) unless @repos;
     @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 
@@ -321,7 +322,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
 }
 
 # todo: non-exact matches on non-version fields
-multi MAIN('search', Bool :$v, *@names, *%fields) {
+multi MAIN('search', Bool :$v, *@names, *%fields) is export(:search) {
     # Get the projects.json file
     my $auth := CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
@@ -361,7 +362,7 @@ multi MAIN('search', Bool :$v, *@names, *%fields) {
 
 
 # todo: use the auto-sizing table formatting
-multi MAIN('info', *@modules, Bool :$v, Bool :$boring) {
+multi MAIN('info', *@modules, Bool :$v, Bool :$boring) is export(:info) {
     my $auth := CLI-WAITING-BAR {
         my $p6c = Zef::Authority::P6C.new;
         $p6c.update-projects;

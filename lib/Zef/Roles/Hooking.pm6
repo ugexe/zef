@@ -7,10 +7,7 @@ role Zef::Roles::Hooking {
     # Better attempt at output displaying properly with StatusBar.pm6
 
     method hook-files {
-        my $hook-dir := $.path.child('hooks');
-        state @hooks = ($hook-dir.IO.e && $hook-dir.IO.d)
-            ?? $hook-dir.IO.ls(:f)
-            !! ();
+        $.path.child('hooks').IO.ls(:f);
     }
 
     proto method hook-cmds(Phase $phase) {*}
@@ -18,12 +15,13 @@ role Zef::Roles::Hooking {
         nextwith($phase, 'before');
     }
     multi method hook-cmds(Phase $phase, Bool :$after where *.so) {
+
         nextwith($phase, 'after');
     }
     multi method hook-cmds(Phase $phase, $when?) {
-        my @hooks := $.hook-files or return ();
-        @hooks = @hooks.grep(*.IO.basename.uc.ends-with("{$phase.uc}.PL6"));
-        @hooks = @hooks.grep(*.IO.basename.uc.starts-with($when.uc)) if $when;
-        @hooks.sort.map: { [$*EXECUTABLE, $_.IO.relative($.path)] }
+        $.hook-files.list\
+            .grep({ $_.IO.basename.uc.ends-with("{$phase.uc}.PL6")    })\
+            .grep({ !$when || $_.IO.basename.uc.starts-with($when.uc) })\
+            .map( { [$*EXECUTABLE, $_.IO.relative($.path)]            });
     }
 }

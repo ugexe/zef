@@ -52,8 +52,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             for $level.list -> $package-name {
                 # todo: filter projects by version/auth
                 my %dist := @!projects.first({ $_.<name> eq $package-name }).hash;
-                say "No source-url for $package-name (META info lost?)" and next unless ?%dist<source-url>;
-                say "Getting: {%dist.<source-url>}";
+                say "!!!> No source-url for $package-name (META info lost?)" and next unless ?%dist<source-url>;
 
                 # todo: implement the rest of however github.com transliterates paths
                 my $basename  := %dist<name>.trans(':' => '-');

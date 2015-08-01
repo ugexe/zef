@@ -18,10 +18,7 @@ role Zef::Roles::Precompiling {
             take $dep-meta;
         }
 
-        my @i-paths := ($.precomp-path, $.source-path, @.includes)\
-            .grep(*.so).unique\
-            .map({ ?$_.IO.is-relative ?? $_.IO.relative !! $_.IO.relative($.path) })\
-            .map({ qqw/-I$_/ });
+
         # @provides-as-deps is a partial META.info hash, so pass the $meta.<provides>
         # Note topological-sort with no arguments will sort the class's @projects (provides in this case)
         my @levels = Zef::Utils::Depends.new(projects => @provides-as-deps).topological-sort;
@@ -35,12 +32,12 @@ role Zef::Roles::Precompiling {
                 my $file-rel := ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($.path);
 
                 for @targets -> $target {
-                    my $out-rel := $.to-precomp($file, :!absolute, :$target);
-                    my $out-abs := $.to-precomp($file, :absolute,  :$target);
+                    my $out-rel = $.to-precomp($file, :!absolute, :$target);
+                    my $out-abs = $.to-precomp($file, :absolute,  :$target);
 
                     mkdirs($out-abs.IO.dirname) unless $out-abs.IO.dirname.IO.e;
 
-                    take [$*EXECUTABLE, @i-paths, "--target={$target}", "--output={$out-rel}", $file-rel]
+                    take [$*EXECUTABLE, $.i-paths, "--target={$target}", "--output={$out-rel}", $file-rel]
                 }
             }
         }

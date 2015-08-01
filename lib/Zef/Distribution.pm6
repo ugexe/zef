@@ -47,27 +47,35 @@ class Zef::Distribution {
     submethod BUILD(IO::Path :$!path!, IO::Path :$!meta-path, :@!perl6lib,
         IO::Path :$!source-path, IO::Path :$!precomp-path, :@!includes) {
         
-        $!meta-path := ($!path.child('META.info'), $!path.child('META6.json')).grep(*.IO.e).first(*.IO.f)
+        $!meta-path = ($!path.child('META.info'), $!path.child('META6.json')).grep(*.IO.e).first(*.IO.f)
             unless $!meta-path;
-        %!meta := %(from-json( $!path.IO.child('META.info').IO.slurp ))\
+        %!meta = %(from-json( $!path.IO.child('META.info').IO.slurp ))\
             or die "Distributions require a META file, but one was not found.";
 
+
+        # Clean the `provides` paths. If we find an absolute path, assume that it is 
+        # a mistake. Then turn it into a relative path now so further functionality
+        # can can really assume a relative path.
+        %!meta<provides>.hash.kv.grep({ $_.IO.is-absolute }).values\
+            .map: -> $location is rw { $location = $!path.child($location).relative($!path) }
 
         # Set defaults for the location of the source files if needed by 
         # looking at the META provides and finding the longest common 
         # directory. This could be improved to allow multiple paths.
+
         unless $!source-path {
-            my @p := %!meta<provides>.values.map({ [$!path.IO.SPEC.splitdir($_.IO.parent)] });
-            my $wanted-path-index := first { not all(@p[*; $_]:exists) && [eq] @p[*; $_] }, 0..*;
-            my $base := @p[0].[0..($wanted-path-index - 1)].first(*); 
+            my @p = %!meta<provides>.values\
+                .map: { [$!path.IO.SPEC.splitdir($_.IO.parent).grep(*.so)] }
+            my $wanted-path-index = first { not all(@p[*; $_]:exists) && [eq] @p[*; $_] }, 0..*;
+            my $base = @p[0].[0..($wanted-path-index - 1)].first(*); 
             # for first path that contains source use:     ^ .reduce({ $^a.IO.child($^b)  });
             # which may be useful for detecting more complex lib paths
 
-            $!source-path := $!path.child($base);
+            $!source-path = $!path.child($base);
         }
 
         unless $!precomp-path {
-            $!precomp-path := @!includes
+            $!precomp-path = @!includes
                 ?? @!includes.first(*.IO.e).IO
                 !! $!path.child('blib').child($!source-path.IO.relative($!path).IO.relative);
         }

@@ -7,9 +7,9 @@ role Zef::Roles::Processing[Bool :$async] {
         my %env = %*ENV.hash;
         %env<PERL6LIB> = (%env<PERL6LIB> // (), @.perl6lib).join(',');
 
-        my @procs := @groups>>.map: -> $execute {
-            my $command := $execute.list.[0];
-            my @args    := $execute.list.elems > 1 ?? $execute.list.[1..*] !! ();
+        my @procs = @groups>>.map: -> $execute {
+            my $command = $execute.list.[0];
+            my @args    = $execute.list.elems > 1 ?? $execute.list.[1..*].map(*.flat) !! ();
             Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
         }
         @!processes.push: [@procs];

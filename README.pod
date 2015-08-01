@@ -14,10 +14,11 @@ Zef - Perl6 Module Management
     cd zef
     perl6 -Ilib bin/zef -v install Zef
 
-Be sure your `PATH` includes the value shown below:
+Be sure your `PATH` includes the file path shown by the command below:
 
     $ perl6 -e "say %*CUSTOM_LIB<site>.IO.child('bin')"
-
+    # example: /home/perl6/install/share/perl6/site/bin
+    
 =head1 USAGE
 
 =head1 The CLI

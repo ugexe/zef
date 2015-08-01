@@ -28,7 +28,7 @@ role Zef::Roles::Precompiling {
 
 
         # Create the build order for the `provides`
-        my @cmds := @levels.map: -> $level {
+        my @cmds = @levels.map: -> $level {
             my $build-level = gather for $level.list -> $module-id {
                 my $file := $module-id.IO.absolute($.path).IO;
                 # Many tests are written with the assumption the cwd is their projects base directory.

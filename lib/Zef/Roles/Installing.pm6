@@ -22,7 +22,7 @@ role Zef::Roles::Installing[$curlis = %*CUSTOM_LIB<site>] {
             %result<ok> = 0;
 
             # we could let CURLI handle this, but .install only tells us true/false
-            my @installed-at = $.is-installed;
+            my @installed-at := $.is-installed;
             if @installed-at && !$force {
                 %result<skipped> = @installed-at;
                 %result<ok> = 1;

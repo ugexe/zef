@@ -94,13 +94,36 @@ class Zef::Distribution {
         my @p := gather for %.meta<provides>.pairs {
             my $name    := $_.key;
             my $pm-file := $_.value;
-            if $absolute {
-                take $name => ($pm-file.IO.is-relative ?? $pm-file.IO.absolute($!path) !! $pm-file.IO.abspath);
-            }
-            else {
-                take $name => ($pm-file.IO.is-relative ?? $pm-file.IO !! $pm-file.IO.relative($!path));
-            }
+            $absolute
+                ?? take $name => ($pm-file.IO.is-relative ?? $pm-file.IO.absolute($!path) !! $pm-file.IO.abspath)
+                !! take $name => ($pm-file.IO.is-relative ?? $pm-file.IO !! $pm-file.IO.relative($!path));
         }
         @p.hash;
+    }
+
+
+    method is-installed(*@curlis is copy) {
+        @curlis := @curlis ?? @curlis !! $.curlis;
+        my $want-n := self.name or fail "A distribution must have a name";
+        my $want-a := self.authority;
+        my $want-v := Version.new(self.version).Str;
+
+        gather for @curlis -> $curli {
+            for $curli.candidates($want-n).list -> $have {
+                my $have-n = $have<name> or next;
+                my $have-a = $have<auth> || "{$have<authority> || ''}:{$have<author> || ''}";
+                my $have-v = Version.new($have<ver> || $have<version> || '*').Str;
+                next unless $have-n.lc eq $want-n.lc
+                        ||  $have-a.lc eq $want-a.lc
+                        ||  ($have-v.lc eq $want-v.lc || $want-v eq '*');
+                take $curli;
+            }
+        }
+    }
+
+
+    method curlis {
+        @*INC.grep( { .starts-with("inst#") } )\
+            .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
     }
 }

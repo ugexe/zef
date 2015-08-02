@@ -133,6 +133,11 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$n
     Bool :$skip-depends, Bool :$skip-build-depends, Bool :$skip-test-depends,
     Bool :$shuffle, Bool :$no-wrap) is export(:install) {
 
+
+    # todo:
+    # check $dist.is-installed and $force before building/testing instead of waiting until
+    # the install process to abort the needless install.
+
     # FETCHING
     my $fetched := &MAIN('get', @modules, 
         :@ignore, :$save-to, :$boring, :$async,
@@ -232,6 +237,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$n
 
         my @installed := $i.list.grep({ !$_.<skipped> });
         my @skipped   := $i.list.grep({ ?$_.<skipped> });
+
         verbose('Install', @installed)                 if @installed;
         verbose('Skip (already installed!)', @skipped) if @skipped;
         $i;

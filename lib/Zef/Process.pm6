@@ -18,7 +18,7 @@ class Zef::Process {
     has $.started;
     has $.finished;
 
-    submethod BUILD(:$!command = $*EXECUTABLE, :@!args, :$!cwd, :%!env = %*ENV.hash, Bool :$!async, :$!id) {
+    submethod BUILD(:$!command = $*EXECUTABLE, :@!args, :$!cwd = $*CWD, :%!env = %*ENV.hash, Bool :$!async, :$!id) {
         $!can-async = !::("Proc::Async").isa(Failure);
         $!stdout := Supply.new;
         $!stderr := Supply.new;

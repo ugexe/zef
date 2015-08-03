@@ -20,8 +20,8 @@ class Zef::Process {
 
     submethod BUILD(:$!command = $*EXECUTABLE, :@!args, :$!cwd = $*CWD, :%!env = %*ENV.hash, Bool :$!async, :$!id) {
         $!can-async = !::("Proc::Async").isa(Failure);
-        $!stdout = Supply.new;
-        $!stderr = Supply.new;
+        $!stdout := Supply.new;
+        $!stderr := Supply.new;
         $!type   := $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
         $!id      = $!id 
             ?? $!id 

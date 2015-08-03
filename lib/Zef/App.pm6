@@ -55,7 +55,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     my @dists := gather for @repos -> $path {
         state @perl6lib;
         my $dist := Zef::Distribution.new(
-            path     => $path.IO,
+            path     => $path.IO, 
             includes => $lib.list.unique,
             perl6lib => @perl6lib.unique,
         );
@@ -83,16 +83,17 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     }, "Testing", :$boring;
 
 
-    my @test-results := gather for $tested-dists.list -> $tested-dist {
-        my $results = $tested-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
-        my $results-final = verbose('Testing', $results.list);
-        take $results-final;
+    for $tested-dists.list -> $tested-dist {
+        for $tested-dist.processes -> $proc {
+            my $results = $proc.map({ ok => all($_.ok), module => $_.id.IO.basename });
+            my $results-final = verbose('Testing', $results.list);
+            if $results-final.hash.<nok> && !$force {
+                print "!!!> Failed tests. Aborting.\n";
+                exit 255;
+            }
+        }
     }
 
-    if @test-results>>.hash.<nok> && !$force {
-        print "!!!> Precompilation failure. Aborting.\n";
-        exit 255;
-    }
 
     return $tested-dists;
 }
@@ -234,7 +235,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$n
                 procs2stdout(:$max-width, @before-procs) if $v;
                 await $dist.start-processes;
                 
-                take $dist.install;
+                take $dist.install(:$force);
                 
                 my @after-procs = $dist.queue-processes: [$dist.hook-cmds(INSTALL, :after)];
                 procs2stdout(:$max-width, @after-procs) if $v;
@@ -328,7 +329,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
     my @dists := gather for @repos -> $path {
         state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
         my $dist := Zef::Distribution.new(
-            path         => $path.IO,
+            path         => $path.IO, 
             precomp-path => (?$save-to.IO.is-relative
                 ?? $save-to.IO.absolute($path).IO
                 !! $save-to.IO.abspath.IO

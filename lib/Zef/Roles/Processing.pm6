@@ -12,12 +12,14 @@ role Zef::Roles::Processing[Bool :$async] {
             my @args    = $execute.list.elems > 1 ?? $execute.list.[1..*].map(*.flat) !! ();
             Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
         }
-        @!processes.push: [@procs];
+
+        @!processes.push([@procs]) if @procs;
         return [@procs];
     }
 
-    # pass in processes explicitly for running processes that should block (hooks)
-    # until we create a more specific method for this
+    # todo: find a way to close/flush the stdout/err before it proceeds to the next step.
+    # Currently, --async can result in the test result message (i.e. Testing OK ...)
+    # being printed to screen before the test's output has been completely written.
     method start-processes {
         my $p = Promise.new;
         $p.keep(1);

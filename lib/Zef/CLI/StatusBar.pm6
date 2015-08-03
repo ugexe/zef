@@ -79,6 +79,7 @@ sub show-await(str $message, *@promises) {
     $loading.close;
     $*ERR = $err;
     $*OUT = $out;
+
     print r-print("===> $message [done]\n", :$last-line-len);
     @promises;
 }

@@ -3,6 +3,7 @@ use Zef::Net::HTTP::Client;
 use Zef::Utils::Depends;
 use Zef::Utils::Git;
 
+our @skip = <Test MONKEY-TYPING MONKEY_TYPING nqp v6>;
 
 # perl6 community ecosystem + test reporting
 class Zef::Authority::P6C does Zef::Authority::Net {
@@ -50,6 +51,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         # Try to fetch each distribution dependency
         eager gather for @levels -> $level {
             for $level.list -> $package-name {
+                next if $package-name ~~ any(@skip);
                 # todo: filter projects by version/auth
                 my %dist := @!projects.first({ $_.<name> eq $package-name }).hash;
                 say "!!!> No source-url for $package-name (META info lost?)" and next unless ?%dist<source-url>;

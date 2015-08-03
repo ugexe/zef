@@ -20,8 +20,8 @@ class Zef::Process {
 
     submethod BUILD(:$!command = $*EXECUTABLE, :@!args, :$!cwd = $*CWD, :%!env = %*ENV.hash, Bool :$!async, :$!id) {
         $!can-async = !::("Proc::Async").isa(Failure);
-        $!stdout := Supply.new;
-        $!stderr := Supply.new;
+        $!stdout = Supply.new;
+        $!stderr = Supply.new;
         $!type   := $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
         $!id      = $!id 
             ?? $!id 
@@ -46,8 +46,8 @@ class Zef::Process {
             $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
             $!process.stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
 
-            $!started  := $!process.started;
             $!promise  := $!process.start(:$!cwd, ENV => %!env);
+            $!started  := $!process.started;
             $!finished := $!promise.Bool;
         }
         else {
@@ -70,7 +70,7 @@ class Zef::Process {
 
     method status { $!process.status }
     method ok     { 
-        return unless $!process.DEFINITE;
+        return False unless $!process.DEFINITE;
         return $.exitcode == 0 ?? True !! False 
     }
 

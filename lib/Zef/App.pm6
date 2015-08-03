@@ -45,34 +45,40 @@ $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v, 
     Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap) is export(:test, :install) {
     
+
     @repos .= push($*CWD) unless @repos;
     @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 
+
     # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
     # (note: first crack at supplies/parallelization)
-    my $tested-dists := CLI-WAITING-BAR {
-        eager gather for @repos -> $path {
-            state @perl6lib;
-            my $dist := Zef::Distribution.new(
-                path     => $path.IO, 
-                includes => $lib.list.unique,
-                perl6lib => @perl6lib.unique,
-            );
-            $dist does Zef::Roles::Processing[:$async];
-            $dist does Zef::Roles::Testing;
-            $dist does Zef::Roles::Hooking;
+    my @dists := gather for @repos -> $path {
+        state @perl6lib;
+        my $dist := Zef::Distribution.new(
+            path     => $path.IO,
+            includes => $lib.list.unique,
+            perl6lib => @perl6lib.unique,
+        );
+        $dist does Zef::Roles::Processing[:$async];
+        $dist does Zef::Roles::Testing;
+        $dist does Zef::Roles::Hooking;
 
-            $dist.queue-processes: [$dist.hook-cmds(TEST, :before)];
-            $dist.queue-processes( [$_.list] ) for [$dist.test-cmds];
-            $dist.queue-processes: [$dist.hook-cmds(TEST, :after)];
+        $dist.queue-processes: [$dist.hook-cmds(TEST, :before)];
+        $dist.queue-processes( [$_.list] ) for [$dist.test-cmds];
+        $dist.queue-processes: [$dist.hook-cmds(TEST, :after)];
 
-            @perl6lib.push: $dist.precomp-path.absolute;
+        @perl6lib.push: $dist.precomp-path.absolute;
 
+        take $dist;
+    }
+
+
+    my $tested-dists = CLI-WAITING-BAR {
+        eager gather for @dists -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
-            procs2stdout(:$max-width, $dist.processes) if $v;
-            await $dist.start-processes;
-
-            take $dist;
+            procs2stdout(:$max-width, $dist-todo.processes) if $v;
+            await $dist-todo.start-processes;
+            take $dist-todo;
         }
     }, "Testing", :$boring;
 
@@ -84,17 +90,16 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     }
 
     if @test-results>>.hash.<nok> && !$force {
-        print "!!!> Failed tests. Aborting.\n";
+        print "!!!> Precompilation failure. Aborting.\n";
         exit 255;
     }
-
 
     return $tested-dists;
 }
 
 
 multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
-    Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle) is export(:smoke) {
+    Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$async) is export(:smoke) {
     
     say "===> Smoke testing started [{time}]";
 
@@ -118,7 +123,9 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
         @args.push('--report')  if $report;
         @args.push('--shuffle') if $shuffle;
         @args.push('--no-wrap') if $no-wrap;
+        @args.push('--async')   if $async;
 
+        say "===> Smoking next: {$result.<name>}";
         my $proc = run($*EXECUTABLE, @args, 'install', $result.<name>, :out);
         say $_ for $proc.out.lines;
     }
@@ -317,38 +324,39 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
     @repos .= push($*CWD) unless @repos;
     @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 
-    # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
-    # (note: first crack at supplies/parallelization)
+
+    my @dists := gather for @repos -> $path {
+        state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
+        my $dist := Zef::Distribution.new(
+            path         => $path.IO,
+            precomp-path => (?$save-to.IO.is-relative
+                ?? $save-to.IO.absolute($path).IO
+                !! $save-to.IO.abspath.IO
+            ),
+            includes     => $lib.list.unique,
+            perl6lib     => @perl6lib.unique,
+        );
+        $dist does Zef::Roles::Processing[:$async];
+        $dist does Zef::Roles::Precompiling;
+        $dist does Zef::Roles::Hooking;
+
+        $dist.queue-processes: [$dist.hook-cmds(BUILD, :before)];
+        $dist.queue-processes($_) for $dist.precomp-cmds;
+        $dist.queue-processes: [$dist.hook-cmds(BUILD, :after)];
+
+        @perl6lib.push: $dist.precomp-path.absolute;
+
+        take $dist;
+    };
+
     my $precompiled-dists := CLI-WAITING-BAR {
-        eager gather for @repos -> $path {
-            state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
-            my $dist := Zef::Distribution.new(
-                path         => $path.IO, 
-                precomp-path => (?$save-to.IO.is-relative 
-                    ?? $save-to.IO.absolute($path).IO 
-                    !! $save-to.IO.abspath.IO
-                ),
-                includes     => $lib.list.unique,
-                perl6lib     => @perl6lib.unique,
-            );
-            $dist does Zef::Roles::Processing[:$async];
-            $dist does Zef::Roles::Precompiling;
-            $dist does Zef::Roles::Hooking;
-
-            $dist.queue-processes: [$dist.hook-cmds(BUILD, :before)];
-            $dist.queue-processes($_) for $dist.precomp-cmds;
-            $dist.queue-processes: [$dist.hook-cmds(BUILD, :after)];
-            
-            @perl6lib.push: $dist.precomp-path.absolute;
-
+        eager gather for @dists.list -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
-            procs2stdout(:$max-width, $dist.processes) if $v;
-            await $dist.start-processes;
-
-            take $dist;
+            procs2stdout(:$max-width, $dist-todo.processes) if $v;
+            await $dist-todo.start-processes;
+            take $dist-todo;
         }
     }, "Precompiling", :$boring;
-
 
     my @precompiled-results := gather for $precompiled-dists.list -> $precomp-dist {
         my $results = $precomp-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });

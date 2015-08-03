@@ -5,12 +5,7 @@
 # 4) Create interface for Hooks/ implementation; a generic implementation such that 
 #       installing a module without a package manager still works  (i.e. no 
 #       `does SomePackageManager::Builder`, as this requires SomePackageManager to be installed)
-# 5) Turn Zef::Builder/Tester/Installer/Uninstaller into roles that can be added to this
-#       Zef::Distribution object. For example: if we want to skip tests during a `install` 
-#       we would not attach the testing role and instead just the Build/Install roles.
-#       This will allow Hooks to not only hook into parts of the process, but also completely 
-#       replace the default Builder role all together.
-# 6) System 'logging' such that we can record the actions:
+# 5) System 'logging' such that we can record the actions:
 #   * IO actions like mkdir, cd, etc
 #   * Proc actions (shell/run)
 #   such that we could theoretically generate a perl6 script that would mimick the function of 
@@ -64,6 +59,7 @@ class Zef::Distribution {
         # directory. This could be improved to allow multiple paths.
 
         unless $!source-path {
+            die unless %!meta<provides>;
             my @p = %!meta<provides>.values\
                 .map: { [$!path.IO.SPEC.splitdir($_.IO.parent).grep(*.so)] }
             my $wanted-path-index = first { not all(@p[*; $_]:exists) && [eq] @p[*; $_] }, 0..*;

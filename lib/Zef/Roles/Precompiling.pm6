@@ -21,11 +21,11 @@ role Zef::Roles::Precompiling {
 
         # @provides-as-deps is a partial META.info hash, so pass the $meta.<provides>
         # Note topological-sort with no arguments will sort the class's @projects (provides in this case)
-        my @levels = Zef::Utils::Depends.new(projects => @provides-as-deps).topological-sort;
+        my @levels := Zef::Utils::Depends.new(projects => @provides-as-deps).topological-sort;
 
 
         # Create the build order for the `provides`
-        my @cmds = @levels.map: -> $level {
+        @levels.map: -> $level {
             my $build-level = gather for $level.list -> $module-id {
                 my $file := $module-id.IO.absolute($.path).IO;
                 # Many tests are written with the assumption the cwd is their projects base directory.
@@ -41,8 +41,6 @@ role Zef::Roles::Precompiling {
                 }
             }
         }
-
-        return @cmds;
     }
 
     method to-precomp(IO::Path $file, Bool :$absolute, :$target = $DEFAULT-TARGET) {

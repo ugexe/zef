@@ -77,8 +77,8 @@ class Zef::Process {
     method exitcode { 
         return unless $!process.DEFINITE;
 
-        if $!promise.^find_method('result').DEFINITE 
-            && $!promise.result.^find_method('exitcode').DEFINITE {
+        if $!promise.^can('result') 
+            && $!promise.result.^can('exitcode') {
             return $!promise.result.exitcode;
         }
         else {

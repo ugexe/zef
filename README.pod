@@ -88,6 +88,9 @@ Fetch, build, test, optional report, and install.
     # skip modules with matching names (or any modules depending on them)
     --ignore=Acme::Virus --ignore=Acme::TakesForever
 
+    # sets Zef::Authority.projects based on supplied file instead of downloading
+    --projects-file=projects.json
+
     # livin that multi thread life
     zef -v --report --async install HTTP::Server::Threaded
     

@@ -99,27 +99,38 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
 }
 
 
-multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
+multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap, :$projects-file,
     Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$async) is export(:smoke) {
     
-    say "===> Smoke testing started [{time}]";
+    my $start = time;
+    say "===> Smoke testing started: [{$start}]";
 
     my $auth := CLI-WAITING-BAR {
-        my $p6c = Zef::Authority::P6C.new;
-        $p6c.update-projects;
+        my $p6c = Zef::Authority::P6C.new(:$projects-file);
+        $p6c.update-projects unless $projects-file;
+        say "===> Module count: {$p6c.projects.list.elems}";
         $p6c.projects = $p6c.projects\
             .grep({ $_.<name>:exists })\
             .grep({ $_.<name> ~~ none(@ignore) })\
-            .grep({ any($_.<depends>.list) !~~ any(@ignore) });
-            .pick(*); # randomize order for smoke runs
+            .grep({ !$_.<depends>       || any($_.<depends>.list) ~~ none(@ignore) })\
+            .grep({ !$_.<test-depends>  || any($_.<depends>.list) ~~ none(@ignore) })\
+            .grep({ !$_.<build-depends> || any($_.<depends>.list) ~~ none(@ignore) })\
+            .pick(*);
         $p6c;
     }, "Getting ecosystem data", :$boring;
 
-    say "===> Module count: {$auth.projects.list.elems}";
+    say "===> Filtered module count: {$auth.projects.list.elems}";
+
+    my $smoke-projects-file := $*TMPDIR.child("projects.json.smoke.{$start}").IO;
+    CLI-WAITING-BAR {
+        say "===> Notice: The next step may take a few minutes";
+        $smoke-projects-file.spurt: to-json($auth.projects);
+    }, "Generating smoke test projects file: '{$smoke-projects-file.basename}'", :$boring;
 
     for $auth.projects.list -> $result {
         # todo: make this work with the CLI::StatusBar
-        my @args = '-Ilib', 'bin/zef', '--dry', '--boring', @ignore.map({ "--ignore={$_}" });
+        my @args = '-Ilib', 'bin/zef', '--dry', '--boring', 
+            "--projects-file={$smoke-projects-file}", @ignore.map({ "--ignore={$_}" });
         @args.push('-v')        if $v;
         @args.push('--report')  if $report;
         @args.push('--shuffle') if $shuffle;
@@ -136,10 +147,10 @@ multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap,
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$notest,
-    Bool :$force, Bool :$async, Bool :$report, Bool :$v, Bool :$dry, Bool :$boring, 
+multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projects-file, 
+    Bool :$notest, Bool :$force, Bool :$async, Bool :$report, Bool :$v, Bool :$dry, 
     Bool :$skip-depends, Bool :$skip-build-depends, Bool :$skip-test-depends,
-    Bool :$shuffle, Bool :$no-wrap) is export(:install) {
+    Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export(:install) {
 
 
     # todo:
@@ -147,10 +158,11 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, Bool :$n
     # the install process to abort the needless install.
 
     # FETCHING
-    my $fetched := &MAIN('get', @modules, 
-        :@ignore, :$save-to, :$boring, :$async,
+    my $fetched := &MAIN('get', @modules, :@ignore,
+        :$save-to, :$projects-file,
+        :$boring, :$async,
         :$skip-depends, :$skip-build-depends
-        :skip-test-depends(($notest || $skip-test-depends) ?? True !! False), 
+        :skip-test-depends(($notest || $skip-test-depends) ?? True !! False),
     );
 
 
@@ -284,25 +296,21 @@ multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is expor
 
 
 #| Get the freshness
-multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, 
+multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, :$projects-file, 
     Bool :$async, Bool :$v, Bool :$boring, Bool :$skip-depends, 
     Bool :$skip-test-depends, Bool :$skip-build-depends
     ) is export(:get :install) {
 
     my $auth := CLI-WAITING-BAR {
-        my $p6c = Zef::Authority::P6C.new;
-        $p6c.update-projects;
-        $p6c.projects = $p6c.projects\
-            .grep({ $_.<name>:exists })\
-            .grep({ $_.<name> ~~ none(@ignore) })\
-            .grep({ any($_.<depends>.list) !~~ any(@ignore) });
+        my $p6c = Zef::Authority::P6C.new(:$projects-file);
+        $p6c.update-projects unless $projects-file;
         $p6c;
     }, "Querying Authority", :$boring;
 
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
-    my $fetched := CLI-WAITING-BAR { 
+    my $fetched := CLI-WAITING-BAR {
         $auth.get(@modules, :@ignore, :$save-to, :depends(!$skip-depends), 
             :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
         );

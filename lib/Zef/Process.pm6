@@ -47,6 +47,7 @@ class Zef::Process {
             $!process.stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
 
             $!promise  := $!process.start(:$!cwd, ENV => %!env);
+
             $!started  := $!process.started;
             $!finished := $!promise.Bool;
         }
@@ -58,34 +59,18 @@ class Zef::Process {
 
             $!stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
 
-            $!started   = True;
+            $!started = True;
             $!stdout.emit($_) for $!process.out.lines(:!eager, :close);
             $!stdout.done; $!stderr.done;
             $!process.out.close; $!stderr.close;
-            $!finished := ?$!promise.keep($!process.status);
+            $!finished := ?$!promise.keep($!process);
         }
 
         $!promise;
     }
 
-    method status { $!process.status }
-    method ok     { 
-        return False unless $!process.DEFINITE;
-        return $.exitcode == 0 ?? True !! False 
-    }
-
-    method exitcode { 
-        return unless $!process.DEFINITE;
-
-        if $!promise.^can('result') 
-            && $!promise.result.^can('exitcode') {
-            return $!promise.result.exitcode;
-        }
-        else {
-            return $!process.exitcode;
-        }
-    }
-
-
-    method nok { ?$.ok() ?? False !! True }
+    method ok       { $!process.DEFINITE ?? $.exitcode == 0 ?? True !! False !! False }
+    method nok      { ?$.ok ?? False !! True    }
+    method status   { $!process.status          }
+    method exitcode { $!promise.result.exitcode }
 }

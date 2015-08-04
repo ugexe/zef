@@ -8,7 +8,7 @@ sub CLI-WAITING-BAR(&code, str $message, Bool :$boring) is export {
 
     my $retval = code();
 
-    $vow.keep(1);
+    $vow.keep(True);
     await $await;
 
     $retval;

@@ -77,7 +77,10 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
         eager gather for @dists -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
-            await $dist-todo.start-processes;
+            my $promise = $dist-todo.start-processes;
+            $promise.result; # osx bug
+            await $promise;
+
             take $dist-todo;
         }
     }, "Testing", :$boring;
@@ -169,8 +172,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
     # VALIDATION
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m := $fetched.list.grep({ $_.<ok>.so })\
-        .map({ $_.<ok> = ?$_.<path>.IO.child('META.info').IO.e; $_ });
+    my @m := $fetched.list.grep({ $_.<ok>.so });
 
     verbose('META.info availability', @m);
 
@@ -245,13 +247,18 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
                 my @before-procs = $dist.queue-processes: [$dist.hook-cmds(INSTALL, :before)];
                 procs2stdout(:$max-width, @before-procs) if $v;
-                await $dist.start-processes;
+                my $promise1 = $dist.start-processes;
+                $promise1.result; # osx bug
+                await $promise1;
                 
                 take $dist.install(:$force);
                 
                 my @after-procs = $dist.queue-processes: [$dist.hook-cmds(INSTALL, :after)];
                 procs2stdout(:$max-width, @after-procs) if $v;
-                await $dist.start-processes;
+                my $promise2 = $dist.start-processes;
+                $promise2.result; # osx bug
+                await $promise2;
+
             }
         }, "Installing", :$boring;
 
@@ -362,7 +369,9 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
         eager gather for @dists.list -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
-            await $dist-todo.start-processes;
+            my $promise = $dist-todo.start-processes;
+            $promise.result; # osx bug
+            await $promise;
             take $dist-todo;
         }
     }, "Precompiling", :$boring;

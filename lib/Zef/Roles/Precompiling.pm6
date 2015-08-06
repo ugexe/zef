@@ -1,6 +1,7 @@
 use Zef::Utils::PathTools;
 use Zef::Utils::Depends;
 
+
 role Zef::Roles::Precompiling {
     my $DEFAULT-TARGET = $*VM.precomp-ext ~~ /moar/ ?? 'mbc' !! 'jar';
 
@@ -57,5 +58,4 @@ role Zef::Roles::Precompiling {
     method provides-precomp(Bool :$absolute, :$target = $DEFAULT-TARGET) {
         $.provides.hash.kv.map({ $^a => $.to-precomp($^b.IO, :$absolute, :$target) }).hash;
     }
-
 }

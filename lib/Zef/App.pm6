@@ -180,8 +180,20 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     my @repos := @m.grep({ $_.<ok>.so })\
         .map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath });
 
-    my @metas := @repos.map({ $_.IO.child('META.info').IO.path }).grep(*.IO.e);
-
+    # META file check
+    my @metas = eager gather for @repos -> $repo-path {
+        if $repo-path.IO.child('META.info').IO.e {
+            take $repo-path.IO.child('META.info');
+        }
+        elsif $repo-path.IO.child('META6.json').IO.e {
+            take $repo-path.IO.child('META6.json');
+        }
+    }
+    my @failed-metas = @metas.grep({
+            !$_.IO.child('META.info').IO.e
+        &&  !$_.IO.child('META6.json').IO.e
+    }) unless @metas.elems == @repos.elems;
+    die "!!!> Aborting. Missing META info for: {@failed-metas}" if !$force && @failed-metas.elems;
 
 
 
@@ -190,8 +202,8 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     unless $built.list.elems {
         print "???> Nothing to build.\n";
     }
-
-
+    my @failed-builds = $built>>.processes>>.list>>.grep({ $_.nok }); # this should be done in &MAIN('build')
+    die "!!!> Aborting. Build failures for: {@failed-builds>>.id}" if !$force && @failed-builds.elems;
 
 
     # TESTING
@@ -200,6 +212,8 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
         my $tested := &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
             :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap
         );
+        my @failed-tests = $tested>>.processes>>.list>>.grep({ $_.nok }); # this should be done in &MAIN('test')
+        die "!!!> Aborting. Test failures for: {@failed-tests>>.id}" if !$force && @failed-tests.elems;
 
 
         # Send a build/test report

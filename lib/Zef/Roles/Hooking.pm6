@@ -33,6 +33,7 @@ role Zef::Roles::Hooking {
         return unless $.has-legacy-builder;
         my $legacy-code = $.path.child('Build.pm');
         my $hooks-dir   = $.path.child('hooks');
-        [$*EXECUTABLE, '-I.', '-MBuild', '-e', "'Build.new.build(q|{$.path}|);'", '# hooks/legacy-build-hook'];
+        # last item has no affect on program execution, but allows STDMux to show `Build.pm` as the file name
+        [$*EXECUTABLE, '-I.', '-MBuild', '-e', "'Build.new.build(q|{$.path}|);'", '# Build.pm'];
     }
 }

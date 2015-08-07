@@ -25,8 +25,10 @@ subtest {
 
     my @cmds = $distribution.precomp-cmds;
 
-    my @source-files = $distribution.provides(:absolute).values;
-    my @target-files = $distribution.provides-precomp(:absolute).values;
+    my @source-files = $distribution.provides(:absolute)\
+        .grep({ state %cache; !%cache{$_.key}++ }).hash.values.unique;
+    my @target-files = $distribution.provides-precomp(:absolute)\
+        .grep({ state %cache; !%cache{$_.key}++ }).hash.values.unique;
 
     $distribution.queue-processes( [$_.list] ) for @cmds;
 

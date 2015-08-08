@@ -59,7 +59,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
             includes => $lib.list.unique,
             perl6lib => @perl6lib.unique,
         );
-        $dist does Zef::Roles::Processing[:$async];
+        $dist does Zef::Roles::Processing[:$async, :$force];
         $dist does Zef::Roles::Testing;
         $dist does Zef::Roles::Hooking;
 
@@ -253,7 +253,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
                 # currently we call &MAIN for each phase, thus creating a new
                 # Zef::Distribution object for each phase. This means the roles
                 # do not carry over. The fix should work around is.
-                $dist does Zef::Roles::Processing;
+                $dist does Zef::Roles::Processing[:$async, :$force];
                 $dist does Zef::Roles::Installing;
                 $dist does Zef::Roles::Hooking;
  
@@ -366,7 +366,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
             includes     => $lib.list.unique,
             perl6lib     => @perl6lib.unique,
         );
-        $dist does Zef::Roles::Processing[:$async];
+        $dist does Zef::Roles::Processing[:$async, :$force];
         $dist does Zef::Roles::Precompiling;
         $dist does Zef::Roles::Hooking;
 

@@ -1,7 +1,8 @@
 use Zef::Process;
 
-role Zef::Roles::Processing[Bool :$async] {
+role Zef::Roles::Processing[Bool :$async, Bool :$force] {
     has @.processes;
+    has $.async = $async;
 
     method queue-processes(*@groups) {
         my %env = %*ENV.hash;

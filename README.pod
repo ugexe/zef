@@ -2,6 +2,10 @@
 
 =encoding utf8
 
+NOTE: Currently (2015-08-08) uninstallable per instructions on MoarVM based Rakudo due to a recent (and unknown) NQP/MoarVM bug (JVM still works)
+
+Please use --force or --notests on the `install Zef` command to intall on MoarVM for now, ignoring any test failures. Installing other modules still works without these workarounds. 
+
 =head2 Name
 
 Zef - Perl6 Module Management

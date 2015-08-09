@@ -25,10 +25,10 @@ Zef is a package manager for Perl6. It works with MoarVM and JVM on OSX, Windows
 
 =head3 Features
 
-    * Optonal parallelization of precompilation and testing phases for quicker installs and CI results.
-    * Complete HTTP grammar based on RFC7230-7235 (and others).
-    * Zef::Net::HTTP::Client - a HTTP client based on included HTTP grammars.
-    * CompUnitRepo based installs - uses rakudo's built in installer, letting the code focus on package management.
+* Optonal parallelization of precompilation and testing phases for quicker installs and CI results.
+* Complete HTTP grammar based on RFC7230-7235 (and others).
+* Zef::Net::HTTP::Client - a HTTP client based on included HTTP grammars.
+* CompUnitRepo based installs - uses rakudo's built in installer, letting the code focus on package management.
     * A `hooks` implementation as mentioned in L<S22|http://design.perl6.org/S22.html#hooks>, allowing module authors to even implement the entire build/test/install process without needing a package manager at all.
     * No external dependencies required. Can bootstrap itself from source using the same zef application used to install all other modules.
 

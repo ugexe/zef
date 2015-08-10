@@ -306,6 +306,12 @@ C<before-test.pl6> C<after-test.pl6> C<before-build.pl6> C<after-build.pl6> C<be
 However, we only match the beginning and end of the filename, so you may have multiple files for any phase/modifier:
 i.e.: C<before-1-test.pl6> C<before-2-test.pl6>
 
+B<Note>: I<Legacy hooks> (Build.pm)
+
+For modules written before S22 you may encounter I<Build.pm> files. These will be detected as legacy hooks and fired during `before-build`.
+
+A common problem is modules that use `Build.pm` usually do not declare the dependencies used in their `Build.pm`. The S22 hook implementation Zef uses is not tied to any specific package management implementation and thus has no inherit dependencies. This also means module authors can support the new hook implementation through `Build.pm` itself, allowing package managers that do not use hooks to still `just work` with the S22 spec.
+
 =head2 Zef::Roles::Installing
 
 Allows a C<Zef::Distribution> to install

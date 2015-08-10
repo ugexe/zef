@@ -3,7 +3,7 @@ use Zef::Utils::Depends;
 
 
 role Zef::Roles::Precompiling {
-    my $DEFAULT-TARGET = $*VM.precomp-ext ~~ /moar/ ?? 'mbc' !! 'jar';
+    my $DEFAULT-TARGET = $*VM.precomp-target;
 
     method precomp-cmds(:@targets = [$DEFAULT-TARGET]) {
         my %provides-abspaths := $.provides(:absolute).hash;

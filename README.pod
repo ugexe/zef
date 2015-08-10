@@ -21,7 +21,7 @@ Be sure your `PATH` includes the file path shown by the command below:
     
 =head1 DESCRIPTION
 
-Zef is a package manager for Perl6. It works with MoarVM and JVM on OSX, Windows, Linux, OSX, and other BSD derivatives.
+Zef is a package manager for Perl6. It works with MoarVM and JVM on Windows, Linux, OSX, and other BSD derivatives.
 
 =head3 Features
 
@@ -334,7 +334,7 @@ Combine with C<Zef::Roles::Processing> to execute these commands.
 
 =head2 Zef::Roles::Processing
 
-    role Zef::Roles::Processing[Bool :$async]
+    role Zef::Roles::Processing[Bool :$async, Bool :$force]
 
     method queue-processes(*@groups) # add a process or group of processes to be executed together
     method start-processes           # execute each process (or group of processes) in order
@@ -344,10 +344,10 @@ Combine with C<Zef::Roles::Processing> to execute these commands.
 Allows executing commands, including grouped commands in parallel if C<:$async> is true (i.e. C<[[$proc1, $proc2],[$proc3]]> executes C<$proc1> and C<$proc2> at the same time, and then C<$proc3> after both previous processes finish)
 
     my $dist = Zef::Distribution.new(:path($*CWD));
+    $dist does Zef::Roles::Processing[:!async, :!force];
     $dist does Zef::Roles::Precompiling;
     $dist does Zef::Roles::Testing;
     $dist does Zef::Roles::Installing;
-    $dist does Zef::Roles::Processing[:!async];
 
     $dist.queue-processes( [$_.list] ) for [$dist.precomp-cmds, $dist.test-cmds];
     await $dist.start-processes;
@@ -380,7 +380,7 @@ or build your own client by satisfying the interface requirements during object 
     use Different::Requestor;
     use You::Get::The::Idea;
 
-    Zef::Net::HTTP::Client.new(              # Zef::Net::HTTP interface type
+    Zef::Net::HTTP::Client.new(
         responder   => Different::Responder, # HTTP::Response
         requestor   => Different::Requestor, # HTTP::Request
         transporter => You::Get::The::Idea   # HTTP::Transport
@@ -393,21 +393,5 @@ or build your own client by satisfying the interface requirements during object 
 L<Zef.pm|https://zef.pm/>
 
 L<http://modules.perl6.org/>
-
-=head2 Full Flex
-
- * ✓ No external dependencies
- * ✓ CompUnitRepo::Local based
- * ✓ Test reporting to P6C servers
- * Test reporting to Zef servers
- * Rotating OS smoke testing server integration
- * ✓ Use perl6 github ecosystem as an additional authority
- * ✓ HTTP library
- * HPACK/HTTP2 compatability
- * ✓ Parallelized testing
- * TAP Harness/Grammar
- * ✓ Parallelized building
- * ✓ Basic CLI overlay/hud
- * Pure Perl6 decompression/git-clone library
 
 =cut

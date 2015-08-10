@@ -308,7 +308,7 @@ i.e.: C<before-1-test.pl6> C<before-2-test.pl6>
 
 B<Note>: I<Legacy hooks> (Build.pm)
 
-For modules written before S22 you may encounter I<Build.pm> files. These will be detected as legacy hooks and fired during `after-build`.
+For modules written before S22 you may encounter I<Build.pm> files. These will be detected as legacy hooks and fired during `before-build`.
 
 A common problem is modules that use `Build.pm` usually do not declare the dependencies used in their `Build.pm`. The S22 hook implementation Zef uses is not tied to any specific package management implementation and thus has no inherit dependencies. This also means module authors can support the new hook implementation through `Build.pm` itself, allowing package managers that do not use hooks to still `just work` with the S22 spec.
 

@@ -78,7 +78,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
-            $promise.result; # osx bug
+            $promise.result; # osx bug RT125758
             await $promise;
 
             take $dist-todo;
@@ -262,7 +262,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
                 my @before-procs = $dist.queue-processes: [$dist.hook-cmds(INSTALL, :before)];
                 procs2stdout(:$max-width, @before-procs) if $v;
                 my $promise1 = $dist.start-processes;
-                $promise1.result; # osx bug
+                $promise1.result; # osx bug RT125758
                 await $promise1;
                 
                 take $dist.install(:$force);
@@ -270,7 +270,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
                 my @after-procs = $dist.queue-processes: [$dist.hook-cmds(INSTALL, :after)];
                 procs2stdout(:$max-width, @after-procs) if $v;
                 my $promise2 = $dist.start-processes;
-                $promise2.result; # osx bug
+                $promise2.result; # osx bug RT125758
                 await $promise2;
 
             }
@@ -384,7 +384,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
-            $promise.result; # osx bug
+            $promise.result; # osx bug RT125758
             await $promise;
             take $dist-todo;
         }

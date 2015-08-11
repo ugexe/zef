@@ -72,5 +72,8 @@ class Zef::Process {
     method ok       { $!process.DEFINITE ?? $.exitcode == 0 ?? True !! False !! False }
     method nok      { ?$.ok ?? False !! True    }
     method status   { $!process.status          }
-    method exitcode { $!promise.result.exitcode }
+    method exitcode { 
+        $!promise.result; # osx bug RT125758
+        $!promise.result.exitcode;
+    }
 }

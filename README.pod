@@ -113,6 +113,10 @@ Fetch, build, test, optional report, and install.
     # sets Zef::Authority.projects based on supplied file instead of downloading
     --projects-file=projects.json
 
+    # install the requested modules regardless of currently installed versions
+    # (does not affect dependencies)
+    --force
+
     # livin that multi thread life
     zef -v --report --async install HTTP::Server::Threaded
     

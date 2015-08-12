@@ -16,18 +16,6 @@ use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
 
-# todo: start skipping nativecall/Build.pm modules until we implement a compatability layer
-
-
-# Modules that break smoke testing even though each test is launched in its own process
-# todo: bugfix / use timeouts to just abort
-# DateTime::TimeZone - run time. maybe auto ignore the redundant, script generated, tests and treat them as author tests instead?
-# BioInfo - package naming does not allow proper META.info association
-# Text::CSV - random hangs on win32 or jvms
-# Flower - not maintained and fails. so just saving time.
-# Audio:: - needs the todo: native call compatability
-# Inline::Perl5 - see above
-BEGIN our @smoke-blacklist = <NativeCall DateTime::TimeZone BioInfo Text::CSV Flower Audio::Sndfile Audio::Libshout Inline::Perl5 Compress::Zlib::Raw Compress::Zlib Git::PurePerl LibraryMake Inline::Python LibraryCheck>;
 
 # todo: check if a terminal is even being used
 # The reason for the strange signal handling code is due to JVM
@@ -102,7 +90,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
 }
 
 
-multi MAIN('smoke', :@ignore = @smoke-blacklist, Bool :$no-wrap, :$projects-file,
+multi MAIN('smoke', :@ignore, Bool :$no-wrap, :$projects-file,
     Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$async) is export(:smoke) {
     
     my $start = time;

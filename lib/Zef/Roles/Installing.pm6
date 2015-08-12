@@ -21,7 +21,7 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
             my %result = %(module => $.name, file => $.meta-path, $.metainfo.flat); 
             %result<ok> = 0;
 
-            if !$.wanted {
+            if !$force && !$.wanted {
                 %result<skipped> = $.name;
                 %result<ok> = 1;
                 take { %result }

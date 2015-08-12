@@ -188,7 +188,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     # Version '*' is always installed for now.
     # TEMPORARY - need to refactor as to not create Zef::Distribution for a path multiple times
     my @dists  = @repos.map({ Zef::Distribution.new(path => $_.IO) });
-    my @wanted = @dists.grep({ $_.wanted });
+    my @wanted = @dists.grep({ $_.wanted || ($force && $_.name ~~ any(@modules)) });
     if @wanted.elems != @dists.elems {
         my @skipped = @dists.grep({ $_.name !~~ any(@wanted>>.name) });
         print "===> The following modules are already up to date: {@skipped>>.name>>.join(', ')}\n";

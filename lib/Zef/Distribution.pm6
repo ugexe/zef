@@ -13,7 +13,7 @@
 class Zef::Distribution {
     has $.name;
     has $.authority;
-    has $.version is rw;
+    has $.version;
 
     has %.meta;
 

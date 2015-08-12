@@ -165,7 +165,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     verbose('META.info availability', @m);
 
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
-    my @repos := @m.grep({ $_.<ok>.so })\
+    my @repos = @m.grep({ $_.<ok>.so })\
         .map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath });
 
     # META file check
@@ -183,6 +183,19 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     }) unless @metas.elems == @repos.elems;
     die "!!!> Aborting. Missing META info for: {@failed-metas}" if !$force && @failed-metas.elems;
 
+
+    # Prevent processing modules that are already installed with the same or greater version.
+    # Version '*' is always installed for now.
+    # TEMPORARY - need to refactor as to not create Zef::Distribution for a path multiple times
+    my @dists  = @repos.map({ Zef::Distribution.new(path => $_.IO) });
+    my @wanted = @dists.grep({ $_.wanted });
+    if @wanted.elems != @dists.elems {
+        my @skipped = @dists.grep({ $_.name !~~ any(@wanted>>.name) });
+        print "===> The following modules are already up to date: {@skipped>>.name>>.join(', ')}\n";
+        @repos = @repos.grep: { none(@skipped>>.path>>.ACCEPTS($_.IO))         }
+        @metas = @metas.grep: { none(@skipped>>.path>>.ACCEPTS($_.dirname.IO)) }
+        print "===> Nothing to do.\n" and exit 0 unless @repos.elems && @metas.elems;
+    }
 
 
     # BUIDLING

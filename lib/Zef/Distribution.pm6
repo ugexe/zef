@@ -13,7 +13,7 @@
 class Zef::Distribution {
     has $.name;
     has $.authority;
-    has $.version;
+    has $.version is rw;
 
     has %.meta;
 
@@ -121,5 +121,54 @@ class Zef::Distribution {
     method curlis {
         @*INC.grep( { .starts-with("inst#") } )\
             .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
+    }
+
+    method candidates(::CLASS:D:) { $.curlis>>.candidates($.name, :auth($.authority), :ver($.version)).grep(*) }
+
+    method wanted(:$take-whatever = True) {
+        return True if  $.version eq '*' && $take-whatever;
+        return False if $.candidates.first({ $.VCOMPARE($_.<ver>.Str) ~~ any(Order::Same, Order::Less) });
+        return True;
+    }
+
+    method VCOMPARE($other) {
+        # TEMPORARY - $version.ACCEPTS() needs work
+        sub CLEAN-VER($version is copy) {
+            # v1.0 -> 1.0
+            $version.subst-mutate(/^[v || V] '.'?/, '', :x(1));
+
+            # 0.100.1 -> 0.10.0.1
+            if $version ~~ /(0 ** 2..*)/ {
+                $version.subst-mutate(/(0 ** 2..*)/, $/[0].Str.comb.join('.'), :g);
+            }
+
+            # 0.02 -> 0.0.2
+            if $version ~~ /(0\d+)/ {
+                $version.subst-mutate(/(0\d+)/, $/[0].Str.comb.join('.'), :g);
+            }
+
+            return $version;
+        }
+
+        my $want-ver = Version.new: CLEAN-VER($other);
+        my $ver      = Version.new: $.version.Str;
+
+        return Order::Same  if $ver eq $want-ver.Str;
+        return Order::Less if $ver eq '*';
+
+        # Version objects ACCEPTS do not seem to give a valid `cmp` result 
+        # so this chops up version string in such a way that it ACCEPTS 
+        # works as expected.
+        if $ver.Str.chars > ($want-ver.Str.chars - ($want-ver.plus ?? 1 !! 0)) {
+            my $leftovers = $ver.Str.substr($want-ver.Str.chars - 1).subst(/[\d || \w]/, '*', :g);
+            $want-ver = Version.new: CLEAN-VER($want-ver.Str.substr(0, ($want-ver.plus ?? ($want-ver.Str.chars - 1) !! $want-ver.Str.chars)) ~ $leftovers ~ ($want-ver.plus ?? '+' !! ''));
+            $want-ver = Version.new( CLEAN-VER($want-ver.Str.subst(/\.'*'/, '.0', :g)) ) unless $want-ver.plus;
+        }
+        elsif $ver.Str.chars < ($want-ver.Str.chars - ($want-ver.plus ?? 1 !! 0)) {
+            my $leftovers = $want-ver.Str.substr($ver.Str.chars - 1, *-1).subst(/[\d || \w]/, $want-ver.plus ?? '*' !! 0);
+            $ver = Version.new: CLEAN-VER($ver.Str ~ $leftovers);
+        }
+
+        return $ver cmp $want-ver;
     }
 }

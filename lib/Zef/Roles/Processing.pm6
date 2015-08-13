@@ -37,8 +37,9 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         #$p;
         my @promises;
         for @!processes -> $group {
-            @promises.push($_) for $group>>.start;
-            await Promise.allof(@promises) if @promises;
+            my @new-promises = $group.map({ $_.start });
+            @promises.push($_) for @new-promise;
+            await Promise.allof(@new-promises) if @new-promises;
         }
         Promise.allof(@promises);
     }

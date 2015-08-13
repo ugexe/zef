@@ -22,18 +22,25 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
     # Currently, --async can result in the test result message (i.e. Testing OK ...)
     # being printed to screen before the test's output has been completely written.
     method start-processes {
-        my $p = Promise.new;
-        $p.keep(1);
-
-        for @!processes -> $level {
-            my @not-started := $level.list.grep({ !$_.started });
-            $p = $p.then: {
-                my @promises := @not-started.map: { $_.start }
-                await Promise.allof(@promises) if @promises;
-            }
+        # osx bug RT125758
+        #my $p = Promise.new;
+        #$p.keep(1);
+        #
+        #for @!processes -> $level {
+        #    my @not-started := $level.list.grep({ !$_.started });
+        #    $p = $p.then: {
+        #        my @promises := @not-started.map: { $_.start }
+        #        await Promise.allof(@promises) if @promises;
+        #    }
+        #}
+        #
+        #$p;
+        my @promises;
+        for @!processes -> $group {
+            @promises.push($_) for $group>>.start;
+            await Promise.allof(@promises) if @promises;
         }
-
-        $p;
+        Promise.allof(@promises);
     }
 
     #method tap(&code) { @!processes>>.tap(&code)          }

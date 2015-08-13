@@ -2,10 +2,7 @@
 # 1) Allow creation of a Distribution with precompiled files only (no source).
 # 2) Allow passing in the META hash itself instead of requiring it as an existing file.
 # 3) ACCEPTS/cmp methods so we can easily compare Distribution objects.
-# 4) Create interface for Hooks/ implementation; a generic implementation such that 
-#       installing a module without a package manager still works  (i.e. no 
-#       `does SomePackageManager::Builder`, as this requires SomePackageManager to be installed)
-# 5) System 'logging' such that we can record the actions:
+# 4) System 'logging' such that we can record actions like:
 #   * IO actions like mkdir, cd, etc
 #   * Proc actions (shell/run)
 #   such that we could theoretically generate a perl6 script that would mimick the function of 

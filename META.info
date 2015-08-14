@@ -8,7 +8,6 @@
         "Zef" : "lib/Zef.pm6",
 
         "Zef::App"            : "lib/Zef/App.pm6",
-        "Zef::Config"         : "lib/Zef/Config.pm6",
         "Zef::Distribution"   : "lib/Zef/Distribution.pm6",
         "Zef::Process"        : "lib/Zef/Process.pm6",
         "Zef::Uninstaller"    : "lib/Zef/Uninstaller.pm6",

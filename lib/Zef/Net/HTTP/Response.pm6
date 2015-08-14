@@ -66,8 +66,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
         #await $promise;
 
         # Right now $stream is a list of multi-byte buf8s, so we may need to combine them
-        my $data = buf8.new;
-        $data ~= buf8.new($_) for $stream.list;
+        my $data = buf8.new andthen do while my $d = $stream.poll { $data ~= buf8.new($_) }
 
         my $content := $!chunked ?? ChunkedReader($data) !! $data;
         return $!encoding ?? $content>>.decode($!encoding).join !! $content;

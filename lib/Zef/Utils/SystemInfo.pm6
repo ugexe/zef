@@ -1,6 +1,14 @@
 unit module Zef::Utils::SystemInfo;
 
-# Ugly workarounds and other terrible things are located here
+our $MAX-TERM-COLS is export = GET-TERM-COLUMNS();
+my sub signal-faker($) { Supply.new }
+sub signal-handler(Signal $sig) {
+    state $signal-wrapper = &::("signal") ~~ Failure ?? &::("signal-faker") !! &::("signal");
+    state $signal-supply  = try { $signal-wrapper.($sig) } || signal-faker($sig);
+}
+&signal-handler(Signal::SIGINT).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS(); say $MAX-TERM-COLS; }
+
+
 
 # Get terminal width
 sub GET-TERM-COLUMNS is export {

@@ -9,24 +9,11 @@ use Zef::Roles::Testing;
 use Zef::Roles::Hooking;
 
 use Zef::Authority::P6C;
-use Zef::Config;
 use Zef::CLI::StatusBar;
 use Zef::CLI::STDMux;
 use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
-
-
-# todo: check if a terminal is even being used
-# The reason for the strange signal handling code is due to JVM
-# failing at the compile stage for checks we need to be at runtime.
-# (No symbols for 'signal' or 'Signal::*') So we have to get the 
-# symbols into world ourselves.
-our $MAX-TERM-COLS = GET-TERM-COLUMNS();
-our sub signal-jvm($) { Supply.new }
-our $signal-handler := &::("signal") ~~ Failure ?? &::("signal-jvm") !! &::("signal");
-our $sig-resize     := ::("Signal::SIGWINCH");
-$signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 
 #| Test modules in the specified directories
@@ -38,8 +25,6 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
 
 
-    # Test all modules (important to pass in the right `-Ilib`s, as deps aren't installed yet)
-    # (note: first crack at supplies/parallelization)
     my @dists := gather for @repos -> $path {
         state @perl6lib;
         my $dist := Zef::Distribution.new(

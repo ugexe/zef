@@ -8,9 +8,6 @@
 #   such that we could theoretically generate a perl6 script that would mimick the function of 
 #   a makefile (like ufo), allowing simple sans-package-manager installs.
 
-# XXX GLR hack
-try use lib '../json_fast/lib';
-try use JSON::Fast;
 
 class Zef::Distribution {
     has $.name;

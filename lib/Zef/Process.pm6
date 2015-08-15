@@ -23,6 +23,7 @@ class Zef::Process {
         $!stdout := Supply.new;
         $!stderr := Supply.new;
         $!type   := $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
+
         $!id      = $!id 
             ?? $!id 
             !! @!args

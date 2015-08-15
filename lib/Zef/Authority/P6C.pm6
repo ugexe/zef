@@ -3,9 +3,6 @@ use Zef::Net::HTTP::Client;
 use Zef::Utils::Depends;
 use Zef::Utils::Git;
 
-# XXX GLR hack
-try use lib '../json_fast/lib';
-try use JSON::Fast;
 
 our @skip = <Test MONKEY-TYPING MONKEY_TYPING nqp v6>;
 

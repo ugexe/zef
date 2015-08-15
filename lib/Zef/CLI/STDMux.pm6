@@ -13,15 +13,15 @@ sub procs2stdout(*@processes, :$max-width) is export {
         for $group.list -> $proc {
             for $proc.stdout, $proc.stderr -> $stdio {
                 $stdio.act: -> $out { 
-                    for $out.lines.grep(*.so) -> $line {
+                    for $out.lines.grep(*.so).list -> $line {
                         my $formatted = sprintf(
                             "%-{$longest-basename.chars + 1}s# %s",
                             $proc.id.IO.basename, 
                             $line 
                         );
 
-                        state $to-print ~= _widther($formatted, :$max-width) ~ "\n";
-                        LAST { print $to-print if $to-print }
+                        state $to-print ~= _widther($formatted, :$max-width);
+                        print "{$to-print}\n" if $to-print;
                     }
                 }
             }

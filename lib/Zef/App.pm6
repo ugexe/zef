@@ -36,7 +36,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
         $dist does Zef::Roles::Hooking;
 
         $dist.queue-processes: $[$dist.hook-cmds(TEST, :before)];
-        $dist.queue-processes($[$_]) for $dist.test-cmds.list;
+        $dist.queue-processes: $[$dist.test-cmds];
         $dist.queue-processes: $[$dist.hook-cmds(TEST, :after)];
 
         @perl6lib.push: $dist.precomp-path.absolute;

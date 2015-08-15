@@ -8,6 +8,6 @@ role Zef::Roles::Testing {
             .map({ ?$_.IO.is-relative ?? $_.IO.relative !! $_.IO.relative($.path).IO });
         @test-files = ?$shuffle ?? @test-files.pick(*) !! @test-files.sort;
 
-        @test-files.map: { [$*EXECUTABLE, '--ll-exception', $.i-paths, $_] }
+        [@test-files.map: { $[$*EXECUTABLE, '--ll-exception', $.i-paths.list, $_] }]
     }
 }

@@ -25,7 +25,7 @@ class Zef::Process {
         $!type   := $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
         $!id      = $!id 
             ?? $!id 
-            !! @!args 
+            !! @!args
                 ?? @!args[*-1].item.IO.basename 
                 !! $!command 
                     ?? $!command.IO.basename 

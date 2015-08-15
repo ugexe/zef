@@ -22,11 +22,10 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     
 
     @repos .= push($*CWD) unless @repos;
-    @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
+    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).list;
 
-
-    my @dists := gather for @repos -> $path {
-        state @perl6lib;
+    my $dists := gather for @repos -> $path {
+        state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
         my $dist := Zef::Distribution.new(
             path     => $path.IO, 
             includes => $lib.list.unique,
@@ -36,40 +35,36 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
         $dist does Zef::Roles::Testing;
         $dist does Zef::Roles::Hooking;
 
-        $dist.queue-processes: [$dist.hook-cmds(TEST, :before)];
-        $dist.queue-processes( [$_.list] ) for [$dist.test-cmds];
-        $dist.queue-processes: [$dist.hook-cmds(TEST, :after)];
+        $dist.queue-processes: $[$dist.hook-cmds(TEST, :before)];
+        $dist.queue-processes($[$_]) for $dist.test-cmds.list;
+        $dist.queue-processes: $[$dist.hook-cmds(TEST, :after)];
 
         @perl6lib.push: $dist.precomp-path.absolute;
 
         take $dist;
-    }
+    };
 
-
-    my $tested-dists = CLI-WAITING-BAR {
-        eager gather for @dists -> $dist-todo {
+    my $tested-dists := CLI-WAITING-BAR {
+        eager gather for $dists.list -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
-
             take $dist-todo;
         }
     }, "Testing", :$boring;
 
-
-    for $tested-dists.list -> $tested-dist {
-        for $tested-dist.processes -> $proc {
-            my $results = $proc.map({ ok => all($_.ok), module => $_.id.IO.basename });
-            my $results-final = verbose('Testing', $results.list);
-            if $results-final.hash.<nok> && !$force {
-                print "!!!> Failed tests. Aborting.\n";
-                exit 255;
-            }
-        }
+    my $tested-results := gather for $tested-dists.list -> $tested-dist {
+        my $results = $tested-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
+        my $results-final = verbose('Testing', $results.list);
+        take $results-final;
     }
 
+    if $tested-results>>.hash.<nok> && !$force {
+        print "!!!> Testing failure. Aborting.\n";
+        exit 255;
+    }
 
     return $tested-dists;
 }
@@ -145,13 +140,13 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
     # VALIDATION
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m := $fetched.list.grep({ $_.<ok>.so });
+    my @m := $fetched.list.grep({ $_.<ok>.so }).list;
 
     verbose('META.info availability', @m);
 
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
     my @repos = @m.grep({ $_.<ok>.so })\
-        .map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath });
+        .map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath }).list;
 
     # META file check
     my @metas = eager gather for @repos -> $repo-path {
@@ -172,8 +167,8 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     # Prevent processing modules that are already installed with the same or greater version.
     # Version '*' is always installed for now.
     # TEMPORARY - need to refactor as to not create Zef::Distribution for a path multiple times
-    my @dists  = @repos.map({ Zef::Distribution.new(path => $_.IO) });
-    my @wanted = @dists.grep({ $_.wanted || ($force && $_.name ~~ any(@modules)) });
+    my @dists  = @repos.map({ Zef::Distribution.new(path => $_.IO) }).list;
+    my @wanted = @dists.grep({ $_.wanted || ($force && $_.name ~~ any(@modules)) }).list;
     if @wanted.elems != @dists.elems {
         my @skipped = @dists.grep({ $_.name !~~ any(@wanted>>.name) });
         print "===> The following modules are already up to date: {@skipped>>.name>>.join(', ')}\n";
@@ -184,22 +179,26 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
 
     # BUIDLING
-    my $built := &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap);
-    unless $built.list.elems {
+    my @built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap).list;
+    unless @built.elems {
         print "???> Nothing to build.\n";
     }
-    my @failed-builds = $built>>.processes>>.list>>.grep({ $_.nok }); # this should be done in &MAIN('build')
-    die "!!!> Aborting. Build failures for: {@failed-builds>>.id}" if !$force && @failed-builds.elems;
 
+    my @failed-builds = eager gather for @built -> $b {
+        $b.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
+    }
+    die "!!!> Aborting. Build failures for: {@failed-builds>>.id}" if !$force && @failed-builds.elems;
 
     # TESTING
     unless $notest {
         # force the tests so we can report them. *then* we will bail out
-        my $tested := &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
+        my @tested = &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
             :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap
-        );
-        my @failed-tests = $tested>>.processes>>.list>>.grep({ $_.nok }); # this should be done in &MAIN('test')
-        die "!!!> Aborting. Test failures for: {@failed-tests>>.id}" if !$force && @failed-tests.elems;
+        ).list;
+        my @failed-tests = eager gather for @tested -> $t {
+            $t.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
+        }
+        die "!!!> Aborting. Build failures for: {@failed-tests>>.id}" if !$force && @failed-tests.elems;
 
 
         # Send a build/test report
@@ -207,20 +206,20 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
             my $reported := CLI-WAITING-BAR {
                 Zef::Authority::P6C.new.report(
                     @metas,
-                    test-results  => $tested, 
-                    build-results => $built,
+                    test-results  => @tested, 
+                    build-results => @built,
                 );
             }, "Reporting", :$boring;
 
             verbose('Reporting', $reported.list);
-            my @ok := $reported.list.grep(*.<id>.so);
+            my @ok := $reported.list.grep(*.<id>.so).list;
             print "===> Report{'s' if $reported.list.elems > 1} can be seen shortly at:\n" if @ok;
             print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
         }
 
 
-        my @failed = $tested>>.failures;
-        my @passed = $tested>>.passes;
+        my @failed = @tested>>.failures;
+        my @passed = @tested>>.passes;
         if @failed {
             $force
                 ?? do { print "!!!> Failed tests. Aborting.\n" and exit @failed.elems }
@@ -234,7 +233,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
     my $install = do {
         my $i := CLI-WAITING-BAR { 
-            eager gather for $built.list -> $dist {
+            eager gather for @built -> $dist {
                 # todo: check against $tested to make sure tests were passed
                 # currently we call &MAIN for each phase, thus creating a new
                 # Zef::Distribution object for each phase. This means the roles
@@ -262,8 +261,8 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
             }
         }, "Installing", :$boring;
 
-        my @installed := $i.list.grep({ !$_.<skipped> });
-        my @skipped   := $i.list.grep({ ?$_.<skipped> });
+        my @installed := $i.list.grep({ !$_.<skipped> }).list;
+        my @skipped   := $i.list.grep({ ?$_.<skipped> }).list;
 
         verbose('Install', @installed)                 if @installed;
         verbose('Skip (already installed!)', @skipped) if @skipped;
@@ -338,10 +337,10 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, :$projects-file,
 multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
     Bool :$async, Bool :$boring, Bool :$force = True) is export(:build :install) {
     @repos .= push($*CWD) unless @repos;
-    @repos := @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath });
+    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).list;
 
 
-    my @dists := gather for @repos -> $path {
+    my $dists := gather for @repos -> $path {
         state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
         my $dist := Zef::Distribution.new(
             path         => $path.IO, 
@@ -356,9 +355,9 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
         $dist does Zef::Roles::Precompiling;
         $dist does Zef::Roles::Hooking;
 
-        $dist.queue-processes: [$dist.hook-cmds(BUILD, :before)];
-        $dist.queue-processes($_) for $dist.precomp-cmds;
-        $dist.queue-processes: [$dist.hook-cmds(BUILD, :after)];
+        $dist.queue-processes: $[$dist.hook-cmds(BUILD, :before)];
+        $dist.queue-processes($[$_]) for $dist.precomp-cmds.list;
+        $dist.queue-processes: $[$dist.hook-cmds(BUILD, :after)];
 
         @perl6lib.push: $dist.precomp-path.absolute;
 
@@ -366,7 +365,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
     };
 
     my $precompiled-dists := CLI-WAITING-BAR {
-        eager gather for @dists.list -> $dist-todo {
+        eager gather for $dists.list -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
@@ -376,13 +375,13 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
         }
     }, "Precompiling", :$boring;
 
-    my @precompiled-results := gather for $precompiled-dists.list -> $precomp-dist {
+    my $precompiled-results := gather for $precompiled-dists.list -> $precomp-dist {
         my $results = $precomp-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
         my $results-final = verbose('Precompiling', $results.list);
         take $results-final;
     }
 
-    if @precompiled-results>>.hash.<nok> && !$force {
+    if $precompiled-results>>.hash.<nok> && !$force {
         print "!!!> Precompilation failure. Aborting.\n";
         exit 255;
     }

@@ -21,8 +21,8 @@ class Zef::Utils::Depends {
 
     # Modified from:
     # http://rosettacode.org/wiki/Topological_sort/Extracted_top_item#Perl_6
-    method topological-sort ( *@wanted, *%fields) {
-        %fields<depends> = True unless %fields.keys;
+    method topological-sort (*@wanted, *%fields) {
+        %fields<depends> = True unless %fields.elems;
         my @top = @wanted.flatmap({ $_.<name> });
         my %deps;
 
@@ -65,17 +65,22 @@ class Zef::Utils::Depends {
             }
          
 
-            for %ba.kv -> $before, $after {
-               %ba{$before}:delete unless %care{$before};
+            for %ba.keys {
+               %ba{$_}:delete unless %care{$_}:exists;
             }
         }
      
         my @levels;
-
-        while %ba.grep( not *.value )».key -> @befores {
-            push @levels, [@befores.sort];
-            %ba{@befores}:delete;
-            for %ba.values { .{@befores}:delete }
+        # XXX redo after GLR
+        loop {
+            my $befores = %ba.grep( not *.value ).map({ $_.key });
+            last unless $befores.elems;
+            my @b = $befores.list;
+            push @levels, $[@b];
+            for @b -> $k {
+                %ba{$k}:delete;
+                for %ba.values { .{$k}:delete }
+            }
         }
 
         return @levels;

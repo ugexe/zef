@@ -8,10 +8,14 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         my %env = %*ENV.hash;
         %env<PERL6LIB> = (%env<PERL6LIB> // (), @.perl6lib).join(',');
 
-        my @procs = @groups>>.map: -> $execute {
-            my $command = $execute.list.[0];
-            my @args    = $execute.list.elems > 1 ?? $execute.list.[1..*].map(*.flat) !! ();
-            Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
+        my @procs = @groups.map: -> $group {
+            my $cmds = $group.list.map(-> $execute {
+                my $command = $execute.list.[0];
+                my @args    = $execute.list.elems > 1 ?? $execute.list.[1..*].list !! ();
+
+                Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
+            });
+            $cmds;
         }
 
         @!processes.push([@procs]) if @procs;
@@ -37,7 +41,7 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         #$p;
         my @promises;
         for @!processes -> $group {
-            my @new-promises = $group.map({ $_.start });
+            my @new-promises = $group.list.map({ $_.start }).list;
             @promises.push($_) for @new-promises;
             await Promise.allof(@new-promises) if @new-promises;
         }

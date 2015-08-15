@@ -4,7 +4,7 @@ our $MAX-TERM-COLS is export = GET-TERM-COLUMNS();
 our sub signal-ignore($) { Supply.new }
 our $signal-handler := &::("signal") ~~ Failure ?? &::("signal-ignore") !! &::("signal");
 our $sig-resize     := ::("Signal::SIGWINCH");
-$signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
+try $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 
 

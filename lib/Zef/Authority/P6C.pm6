@@ -13,7 +13,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
     method update-projects {
         my $response := $!ua.get: ~@!mirrors.pick(1);
-        my $content  := $response.content or fail "!!!> Failed to update projects file";
+        my $content  := $response.content(:bin).decode('utf-8');
         my $json     := from-json($content);
         @!projects    = try { $json.list }\
             or fail "!!!> Missing or invalid projects json";

@@ -9,16 +9,16 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         %env<PERL6LIB> = (%env<PERL6LIB> // (), @.perl6lib).join(',');
 
         my @procs = @groups.map: -> $group {
-            my $cmds = $group.list.map(-> $execute {
-                my $command = $execute.list.[0];
-                my @args    = $execute.list.elems > 1 ?? $execute.list.[1..*].list !! ();
+            my $cmds = $group.map(-> $execute {
+                my $command = $execute.[0];
+                my @args    = $execute.elems > 1 ?? $execute.[1..*] !! ();
 
                 Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
             });
             $cmds;
         }
 
-        @!processes.push([@procs]) if @procs;
+        @!processes.push($[@procs]) if @procs;
         return [@procs];
     }
 
@@ -41,7 +41,9 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         #$p;
         my @promises;
         for @!processes -> $group {
-            my @new-promises = $group.list.map({ $_.start }).list;
+            my @new-promises = gather for $group.list -> $item {
+                for $item.list { take $_.start };
+            }
             @promises.push($_) for @new-promises;
             await Promise.allof(@new-promises) if @new-promises;
         }
@@ -49,8 +51,20 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
     }
 
     #method tap(&code) { @!processes>>.tap(&code)          }
-    method passes     { @!processes>>.grep(*.ok.so)>>.id  }
-    method failures   { @!processes>>.grep(*.ok.not)>>.id }
+    method passes     {
+        gather for @!processes -> $group {
+            for $group.list -> $item {
+                for $item.list { take $_.id if $_.ok.so }
+            }
+        }
+    }
+    method failures   {
+        gather for @!processes -> $group {
+            for $group.list -> $item {
+                for $item.list { take $_.id if $_.ok.not }
+            }
+        }
+    }
 
     method i-paths {
         return ($.precomp-path, $.source-path, @.includes)\

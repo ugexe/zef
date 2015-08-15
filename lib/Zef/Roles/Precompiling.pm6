@@ -26,7 +26,7 @@ role Zef::Roles::Precompiling {
 
         # Create the build order for the `provides`
         @levels.map: -> $level {
-            my $bb = gather for $level.list -> $module-id {
+            my $bb = gather for $level -> $module-id {
                 my $file := $module-id.IO.absolute($.path).IO;
                 # Many tests are written with the assumption the cwd is their projects base directory.
                 my $file-rel := ?$file.IO.is-relative ?? $file.IO !! $file.IO.relative($.path);

@@ -23,12 +23,10 @@ subtest {
     $distribution does Zef::Roles::Precompiling;
     $distribution does Zef::Roles::Processing;
 
-    my @cmds = $distribution.precomp-cmds;
-
     my @source-files = $distribution.provides(:absolute).values.unique;
     my @target-files = $distribution.provides-precomp(:absolute).values.unique;
 
-    $distribution.queue-processes( [$_.list] ) for @cmds;
+    $distribution.queue-processes($[$_]) for $distribution.precomp-cmds.list;
 
     await $distribution.start-processes;
 

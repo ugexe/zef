@@ -11,14 +11,16 @@ role curli-copy-fix[$path] {
 }
 
 role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
-    my @curlis    = CompUnitRepo::Local::Installation.new($_) for $curli-paths.list;
+    my @curlis = CompUnitRepo::Local::Installation.new($_) for $curli-paths.list;
 
     method install(Bool :$force)  {
         eager gather for @curlis -> $curli is copy {
             mkdirs(PARSE-INCLUDE-SPEC($curli.Str).[*-1]) unless $curli.IO.e;
             $curli does curli-copy-fix[$.path];
 
-            my %result = %(module => $.name, file => $.meta-path, $.metainfo.flat); 
+            my %result      = $.metainfo.hash;
+            %result<module> = $.name;
+            %result<file>   = $.meta-path; 
             %result<ok> = 0;
 
             if !$force && !$.wanted {

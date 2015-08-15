@@ -19,7 +19,7 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         }
 
         @!processes.push($[@procs]) if @procs;
-        return [@procs];
+        return $[@procs];
     }
 
     # todo: find a way to close/flush the stdout/err before it proceeds to the next step.

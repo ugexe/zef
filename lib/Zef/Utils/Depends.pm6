@@ -69,17 +69,18 @@ class Zef::Utils::Depends {
                %ba{$_}:delete unless %care{$_}:exists;
             }
         }
-     
-        my @levels;
+
+
         # XXX redo after GLR
-        loop {
-            my $befores = %ba.grep( not *.value ).map({ $_.key });
-            last unless $befores.elems;
-            my @b = $befores.list;
-            push @levels, $[@b];
-            for @b -> $k {
-                %ba{$k}:delete;
-                for %ba.values { .{$k}:delete }
+        my @levels = gather {
+            loop {
+                my @befores = %ba.grep( not *.value ).map({ $_.key });
+                last unless @befores.elems;
+                take [@befores];
+                for @befores -> $k {
+                    %ba{$k}:delete;
+                    for %ba.values { .{$k}:delete }
+                }
             }
         }
 

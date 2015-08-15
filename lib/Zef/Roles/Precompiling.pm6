@@ -37,7 +37,7 @@ role Zef::Roles::Precompiling {
 
                     mkdirs($out-abs.IO.dirname) unless $out-abs.IO.dirname.IO.e;
 
-                    take $[$*EXECUTABLE, $.i-paths.list, "--target={$target}", "--output={$out-rel}", $file-rel]
+                    take @($*EXECUTABLE, $.i-paths.list, "--target={$target}", "--output={$out-rel}", $file-rel)
                 }
             }
             $bb;

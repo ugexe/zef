@@ -1,12 +1,10 @@
 unit module Zef::Utils::SystemInfo;
 
 our $MAX-TERM-COLS is export = GET-TERM-COLUMNS();
-my sub signal-faker($) { Supply.new }
-sub signal-handler(Signal $sig) {
-    state $signal-wrapper = &::("signal") ~~ Failure ?? &::("signal-faker") !! &::("signal");
-    state $signal-supply  = try { $signal-wrapper.($sig) } || signal-faker($sig);
-}
-&signal-handler(Signal::SIGINT).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS(); say $MAX-TERM-COLS; }
+our sub signal-ignore($) { Supply.new }
+our $signal-handler := &::("signal") ~~ Failure ?? &::("signal-ignore") !! &::("signal");
+our $sig-resize     := ::("Signal::SIGWINCH");
+$signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
 
 

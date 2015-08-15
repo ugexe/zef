@@ -7,21 +7,27 @@ unit module Zef::CLI::STDMux;
 # todo: handle line wrapping with seperator
 sub procs2stdout(*@processes, :$max-width) is export {
     return unless @processes;
-    my @basenames = @processes.values.map: { @($^a)>>.id>>.IO>>.basename }
+    my @basenames = gather for @processes -> $group {
+        for $group.list -> $item {
+            for $item.list { take $_.id.IO.basename }
+        }
+    }
     my $longest-basename = @basenames.max(*.chars);
     for @processes -> $group {
-        for $group.list -> $proc {
-            for $proc.stdout, $proc.stderr -> $stdio {
-                $stdio.act: -> $out { 
-                    for $out.lines.grep(*.so).list -> $line {
-                        my $formatted = sprintf(
-                            "%-{$longest-basename.chars + 1}s# %s",
-                            $proc.id.IO.basename, 
-                            $line 
-                        );
+        for $group.list -> $item {
+            for $item.list -> $proc {
+                for $proc.stdout, $proc.stderr -> $stdio {
+                    $stdio.act: -> $out {
+                        for $out.lines.grep(*.so).list -> $line {
+                            my $formatted = sprintf(
+                                "%-{$longest-basename.chars + 1}s# %s",
+                                $proc.id.IO.basename,
+                                $line
+                            );
 
-                        state $to-print ~= _widther($formatted, :$max-width);
-                        print "{$to-print}\n" if $to-print;
+                            state $to-print ~= _widther($formatted, :$max-width);
+                            print "{$to-print}\n" if $to-print;
+                        }
                     }
                 }
             }

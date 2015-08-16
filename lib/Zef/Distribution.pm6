@@ -59,8 +59,13 @@ class Zef::Distribution {
             die unless %!meta<provides>;
             my @p = %!meta<provides>.values\
                 .map: { [$!path.IO.SPEC.splitdir($_.IO.parent).grep(*.so)] }
-            my $wanted-path-index = first { not all(@p[*; $_]:exists) && [eq] @p[*; $_] }, 0..*;
-            my $base = @p[0].[0..($wanted-path-index - 1)].first(*); 
+            my @keep-parts = eager gather for 0..@p.list.map({ $_.list.end }).min -> $i {
+                my @check = @p.list.map({ $_.[$i]; }).list;
+                my $elems = @check.unique.elems;
+                last if @check.unique.elems !== 1;
+                take @check[0];
+            }
+            my $base = @keep-parts.join($*DISTRO.path-sep);
             # for first path that contains source use:     ^ .reduce({ $^a.IO.child($^b)  });
             # which may be useful for detecting more complex lib paths
 
@@ -84,14 +89,14 @@ class Zef::Distribution {
 
 
     method provides(Bool :$absolute) {
-        my @p := gather for %.meta<provides>.pairs {
+        my $p := gather for %.meta<provides>.pairs {
             my $name    := $_.key;
             my $pm-file := $_.value;
             $absolute
                 ?? take $name => ($pm-file.IO.is-relative ?? $pm-file.IO.absolute($!path) !! $pm-file.IO.abspath)
                 !! take $name => ($pm-file.IO.is-relative ?? $pm-file.IO !! $pm-file.IO.relative($!path));
         }
-        @p.hash;
+        $p.hash;
     }
 
 

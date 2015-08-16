@@ -8,7 +8,6 @@
 #   such that we could theoretically generate a perl6 script that would mimick the function of 
 #   a makefile (like ufo), allowing simple sans-package-manager installs.
 
-
 class Zef::Distribution {
     has $.name;
     has $.authority;
@@ -68,9 +67,7 @@ class Zef::Distribution {
                 last if @check.unique.elems !== 1;
                 take @check[0];
             }
-            my $base = @keep-parts.join($*DISTRO.path-sep);
-            # for first path that contains source use:     ^ .reduce({ $^a.IO.child($^b)  });
-            # which may be useful for detecting more complex lib paths
+            my $base = $*SPEC.catdir(@keep-parts);
 
             $!source-path = $!path.child($base);
         }

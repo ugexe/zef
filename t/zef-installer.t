@@ -15,14 +15,14 @@ subtest {
 
     my $distribution = Zef::Distribution.new(:$path, :precomp-path($install-to));
     $distribution does Zef::Roles::Installing[$install-to];
-    my @source-files = $distribution.provides(:absolute).values;
 
-    my $results = $distribution.install(:force);
+    my @source-files = $distribution.provides(:absolute).values;
+    my $results      = $distribution.install(:force);
 
     ok $results.list.elems,                        "Got non-zero number of results"; 
     is $results.list.grep({ $_<ok>.so }).elems, 1, "All modules installed OK";
     is $results.list.[0].hash.<name>,       'Zef', "name:Zef matches in pass results";
-    ok $install-to.IO.child('MANIFEST').IO.e,    "MANIFEST exists";
+    ok $install-to.IO.child('MANIFEST').IO.e,      "MANIFEST exists";
 }, 'Zef can install zef';
 
 

@@ -51,11 +51,12 @@ role Zef::Roles::Precompiling {
         ).IO.relative($.path) ~ ".{$target ~~ /mbc/ ?? 'moarvm' !! 'jar'}";
 
         return $absolute
-            ?? $precomp-rel.IO.absolute($.path)
-            !! $precomp-rel;
+            ?? $precomp-rel.IO.absolute($.path).IO
+            !! $precomp-rel.IO;
     }
 
     method provides-precomp(Bool :$absolute, :$target = $DEFAULT-TARGET) {
+        # todo: $.path.child($^b)?
         $.provides.hash.kv.map({ $^a => $.to-precomp($^b.IO, :$absolute, :$target) }).hash;
     }
 }

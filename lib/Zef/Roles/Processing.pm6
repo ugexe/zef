@@ -42,12 +42,12 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         my @promises;
         for @!processes -> $group {
             my @new-promises = gather for $group.list -> $item {
-                for $item.list { take $_.start };
+                for $item.list { take $_.start unless $_.started };
             }
             @promises.push($_) for @new-promises;
             await Promise.allof(@new-promises) if @new-promises;
         }
-        Promise.allof(@promises);
+        @promises.elems ?? Promise.allof(@promises) !! do { my $p = Promise.new; $p.keep; $p };
     }
 
     #method tap(&code) { @!processes>>.tap(&code)          }

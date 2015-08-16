@@ -179,12 +179,12 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
 
     # BUIDLING
-    my @built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap).list;
-    unless @built.elems {
+    my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap);
+    unless $built.elems {
         print "???> Nothing to build.\n";
     }
 
-    my @failed-builds = eager gather for @built -> $b {
+    my @failed-builds = eager gather for $built.list -> $b {
         $b.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
     }
     die "!!!> Aborting. Build failures for: {@failed-builds>>.id}" if !$force && @failed-builds.elems;
@@ -207,7 +207,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
                 Zef::Authority::P6C.new.report(
                     @metas,
                     test-results  => @tested, 
-                    build-results => @built,
+                    build-results => $built.list,
                 );
             }, "Reporting", :$boring;
 
@@ -232,40 +232,46 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
 
     my $install = do {
-        my $i := CLI-WAITING-BAR { 
-            eager gather for @built -> $dist {
+        my $i = CLI-WAITING-BAR { 
+            eager gather for $built.list -> $dist {
                 # todo: check against $tested to make sure tests were passed
                 # currently we call &MAIN for each phase, thus creating a new
                 # Zef::Distribution object for each phase. This means the roles
                 # do not carry over. The fix should work around is.
-                $dist does Zef::Roles::Processing[:$async, :$force];
+
+                # todo: refactor
+                # some of these roles may already be applied. in such situations 
+                # we don't want to duplicate the functionality.
+                $dist does Zef::Roles::Processing[:$async, :$force] 
+                    unless $dist.does(Zef::Roles::Processing);
+                $dist does Zef::Roles::Hooking  
+                    unless $dist.does(Zef::Roles::Hooking);
                 $dist does Zef::Roles::Installing;
-                $dist does Zef::Roles::Hooking;
- 
+
                 my $max-width = $MAX-TERM-COLS if ?$no-wrap;
 
-                my @before-procs = $dist.queue-processes: [$dist.hook-cmds(INSTALL, :before)];
-                procs2stdout(:$max-width, @before-procs) if $v;
+                my $before-procs := $dist.queue-processes: $[$dist.hook-cmds(INSTALL, :before)];
+                procs2stdout(:$max-width, $before-procs) if $v;
                 my $promise1 = $dist.start-processes;
                 $promise1.result; # osx bug RT125758
                 await $promise1;
-                
+
                 take $dist.install(:$force);
                 
-                my @after-procs = $dist.queue-processes: [$dist.hook-cmds(INSTALL, :after)];
-                procs2stdout(:$max-width, @after-procs) if $v;
+                my $after-procs  := $dist.queue-processes: $[$dist.hook-cmds(INSTALL, :after)];
+                procs2stdout(:$max-width, $after-procs) if $v;
                 my $promise2 = $dist.start-processes;
                 $promise2.result; # osx bug RT125758
                 await $promise2;
 
             }
         }, "Installing", :$boring;
+        my @all = $i.list;
+        my @installed = @all.grep({ !$_.<skipped> }).list;
+        my @skipped   = @all.grep({ ?$_.<skipped> }).list;
 
-        my @installed := $i.list.grep({ !$_.<skipped> }).list;
-        my @skipped   := $i.list.grep({ ?$_.<skipped> }).list;
-
-        verbose('Install', @installed)                 if @installed;
-        verbose('Skip (already installed!)', @skipped) if @skipped;
+        verbose('Install', |@installed.list)                 ;#if @installed.elems;
+        verbose('Skip (already installed!)', |@skipped.list) if @skipped.elems;
         $i;
     } unless ?$dry;
 
@@ -496,9 +502,9 @@ multi MAIN('info', *@modules, Bool :$v, Bool :$boring) is export(:info) {
 
 
 # will be replaced soon
-sub verbose($phase, @_) {
+sub verbose($phase, *@_) {
     say "???> $phase stage is empty" and return unless @_;
-    my %r := @_.classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' });
+    my %r = @_.list.classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
     print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
     print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
     return { ok => %r<ok>.elems, nok => %r<nok> }

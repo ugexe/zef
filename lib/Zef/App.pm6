@@ -25,7 +25,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).list;
 
     my $dists := gather for @repos -> $path {
-        state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
+        state @perl6lib; # store paths to be used in PERL6LIB in subsequent `depends` processes
         my $dist := Zef::Distribution.new(
             path     => $path.IO, 
             includes => $lib.list.unique,
@@ -44,7 +44,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
         take $dist;
     };
 
-    my $tested-dists := CLI-WAITING-BAR {
+    my $tested-dists = CLI-WAITING-BAR {
         eager gather for $dists.list -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
@@ -55,25 +55,23 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
         }
     }, "Testing", :$boring;
 
-
-    my $results := gather for $tested-dists.list -> $tested-dist {
+    for $tested-dists.list -> $tested-dist {
         my @r;
         for $tested-dist.processes -> $group {
             for $group.list -> $proc {
                 for $proc.list -> $item {
                     my $result = { ok => all($item.ok), module => $item.id.IO.basename };
+
+                    if !$force && !$result<ok> {
+                        print "!!!> Testing failure. Aborting.\n";
+                        exit 255;
+                    }
+
                     @r.push($result);
                 }
             }
         }
-        my $results-final = verbose('Testing', @r);
-        take $results-final;
-    }
-
-
-    if $results>>.hash.<nok> && !$force {
-        print "!!!> Testing failure. Aborting.\n";
-        exit 255;
+        verbose('Testing', @r);
     }
 
     return $tested-dists;
@@ -390,23 +388,23 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
         }
     }, "Precompiling", :$boring;
 
-    my $results := gather for $precompiled-dists.list -> $precomp-dist {
+    for $precompiled-dists.list -> $precomp-dist {
         my @r;
         for $precomp-dist.processes -> $group {
             for $group.list -> $proc {
                 for $proc.list -> $item {
-                    my %result = :ok(all($item.ok)), :module($item.id.IO.basename);
-                    @r.push({ %result });
+                    my $result = { ok => all($item.ok), module => $item.id.IO.basename };
+
+                    if !$force && !$result<ok> {
+                        print "!!!> Precompilation failure. Aborting.\n";
+                        exit 254;
+                    }
+
+                    @r.push($result);
                 }
             }
         }
-        my $results-final = verbose('Precompiling', @r);
-        take $results-final;
-    }
-
-    if $results>>.hash.<nok> && !$force {
-        print "!!!> Precompilation failure. Aborting.\n";
-        exit 255;
+        verbose('Precompiling', @r);
     }
 
     return $precompiled-dists;
@@ -519,9 +517,16 @@ multi MAIN('info', *@modules, Bool :$v, Bool :$boring) is export(:info) {
 
 
 # will be replaced soon
-sub verbose($phase, @_) {
-    say "???> $phase stage is empty" and return unless @_;
-    my %r = @_.list.classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
+sub verbose($phase, $work) {
+    my $glr;
+    try {
+        # XXX nom compatability inside here
+        fail unless $work.list.[0].isa(Pair);
+        $glr = @($work,());
+    }
+    $glr //= $work;
+    my %r = $glr.list.grep(*.so).classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
+
     print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
     print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
     return { ok => %r<ok>.elems, nok => %r<nok> }

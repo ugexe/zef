@@ -67,8 +67,8 @@ class Zef::Distribution {
                 last if @check.unique.elems !== 1;
                 take @check[0];
             }
-            my $base = $*SPEC.catdir(@keep-parts);
-
+            my $base = @keep-parts[0]; # $*SPEC.catdir(@keep-parts);
+            $base = '.' if $base.IO.f && !$base.IO.d;
             $!source-path = $!path.child($base);
         }
 

@@ -18,7 +18,7 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
             mkdirs(PARSE-INCLUDE-SPEC($curli.Str).[*-1]) unless $curli.IO.e;
             $curli does curli-copy-fix[$.path];
 
-            my %result      = $.metainfo;
+            my %result      = %($.metainfo);
             %result<module> = $.name;
             %result<file>   = $.meta-path;
             %result<ok>     = 0;
@@ -32,7 +32,7 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
 
             my @bins      = $.path.child('bin').ls(:f, :r).grep(!*.starts-with('.'))>>.IO>>.relative($.path);
             my @provides  = $.provides.values.list;
-            my @precomps  = self.provides-precomp.values.list;
+            my @precomps  = self.?provides-precomp.values.list;
             my @files     = (@bins, @provides, @precomps).grep(*.so).list;
 
             %result<ok> = 1 if $curli.install(:dist(self), @files);

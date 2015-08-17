@@ -3,7 +3,7 @@ use Zef::Process;
 class Zef::Utils::Git {
     has @.flags is rw = <--quiet>;
 
-    method clone(:$branch = 'glr', :$save-to is copy = $*TMPDIR, *@urls) {
+    method clone(:$branch, :$save-to is copy = $*TMPDIR, *@urls) {
         gather for @urls -> $url {
             my $proc = Zef::Process.new(
                 :id("git $save-to"),

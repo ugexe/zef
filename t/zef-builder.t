@@ -26,7 +26,10 @@ subtest {
     my @source-files = $distribution.provides(:absolute).values.unique;
     my @target-files = $distribution.provides-precomp(:absolute).values.unique;
 
-    $distribution.queue-processes($[$_]) for $distribution.precomp-cmds.list;
+    my @cmds = $distribution.precomp-cmds.list;
+    ok @cmds.elems > 1, "Created precomp commands";    
+
+    $distribution.queue-processes($_) for @cmds;
 
     await $distribution.start-processes;
 

@@ -26,8 +26,8 @@ class Zef::Process {
 
         $!id      = $!id 
             ?? $!id 
-            !! @!args
-                ?? @!args[*-1].item.IO.basename 
+            !! @!args.elems
+                ?? @!args[*-1].IO.basename 
                 !! $!command 
                     ?? $!command.IO.basename 
                     !! ''; # shameful

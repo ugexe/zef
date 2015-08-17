@@ -8,18 +8,17 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         my %env = %*ENV.hash;
         %env<PERL6LIB> = (%env<PERL6LIB> // (), @.perl6lib).join(',');
 
-        my @procs = @groups.map: -> $group {
-            my $cmds = $group.map(-> $execute {
+        my @procs = @groups.grep(*.so).map: -> $group {
+            my $p = $group.map(-> $execute {
                 my $command = $execute.[0];
-                my @args    = $execute.elems > 1 ?? $execute.[1..*] !! ();
-
+                my @args    = $execute.elems > 1 ?? $execute.[1..*].grep(*.so) !! ();
                 Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
             });
-            $cmds;
+            $p;
         }
 
-        @!processes.push($[@procs]) if @procs;
-        return $[@procs];
+        @!processes.push($(@procs)) if @procs.elems;
+        return $(@procs);
     }
 
     # todo: find a way to close/flush the stdout/err before it proceeds to the next step.

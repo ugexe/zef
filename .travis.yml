@@ -5,10 +5,12 @@ env:
     - BACKEND=moar ASYNC=""
     - BACKEND=moar ASYNC="--async"
     - BACKEND=jvm  ASYNC=""
+    - BACKEND="moar glr" ASYNC=""
 matrix:
     allow_failures:
         - env: BACKEND=jvm  ASYNC=""
         - env: BACKEND=moar ASYNC="--async"
+        - env: BACKEND="moar glr" ASYNC=""
     fast_finish: true
 sudo: false
 before_install:

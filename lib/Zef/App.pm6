@@ -31,13 +31,13 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
             includes => $lib.list.unique,
             perl6lib => @perl6lib.unique,
         );
-        $dist does Zef::Roles::Processing[:$async, :$force];
+        $dist does Zef::Roles::Processing[:$async, :$force] unless $dist.does(Zef::Roles::Processing);
+        $dist does Zef::Roles::Hooking unless $dist.does(Zef::Roles::Hooking);
         $dist does Zef::Roles::Testing;
-        $dist does Zef::Roles::Hooking;
 
-        $dist.queue-processes: $[$dist.hook-cmds(TEST, :before)];
-        $dist.queue-processes: $[$dist.test-cmds];
-        $dist.queue-processes: $[$dist.hook-cmds(TEST, :after)];
+        $dist.queue-processes: $($dist.hook-cmds(TEST, :before));
+        $dist.queue-processes($($dist.test-cmds.list));
+        $dist.queue-processes: $($dist.hook-cmds(TEST, :after));
 
         @perl6lib.push: $dist.precomp-path.absolute;
 
@@ -55,13 +55,23 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
         }
     }, "Testing", :$boring;
 
-    my $tested-results := gather for $tested-dists.list -> $tested-dist {
-        my $results = $tested-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
-        my $results-final = verbose('Testing', $results.list);
+
+    my $results := gather for $tested-dists.list -> $tested-dist {
+        my @r;
+        for $tested-dist.processes -> $group {
+            for $group.list -> $proc {
+                for $proc.list -> $item {
+                    my $result = { ok => all($item.ok), module => $item.id.IO.basename };
+                    @r.push($result);
+                }
+            }
+        }
+        my $results-final = verbose('Testing', @r);
         take $results-final;
     }
 
-    if $tested-results>>.hash.<nok> && !$force {
+
+    if $results>>.hash.<nok> && !$force {
         print "!!!> Testing failure. Aborting.\n";
         exit 255;
     }
@@ -192,10 +202,10 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     # TESTING
     unless $notest {
         # force the tests so we can report them. *then* we will bail out
-        my @tested = &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
+        my $tested = &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
             :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap
-        ).list;
-        my @failed-tests = eager gather for @tested -> $t {
+        );
+        my @failed-tests = eager gather for $tested.list -> $t {
             $t.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
         }
         die "!!!> Aborting. Build failures for: {@failed-tests>>.id}" if !$force && @failed-tests.elems;
@@ -206,7 +216,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
             my $reported := CLI-WAITING-BAR {
                 Zef::Authority::P6C.new.report(
                     @metas,
-                    test-results  => @tested, 
+                    test-results  => $tested.list, 
                     build-results => $built.list,
                 );
             }, "Reporting", :$boring;
@@ -217,15 +227,16 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
             print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
         }
 
+        my @all = $tested.list;
+        my @failed = flat @all.map({ $_.failures });
+        my @passed = flat @all.map({ $_.passes   });
 
-        my @failed = @tested>>.failures;
-        my @passed = @tested>>.passes;
-        if @failed {
+        if @failed.elems {
             $force
-                ?? do { print "!!!> Failed tests. Aborting.\n" and exit @failed.elems }
+                ?? do { print "!!!> Failed {@failed.elems} tests. Aborting.\n" and exit @failed.elems }
                 !! do { print "???> Failed tests. Using \$force\n"                    };
         }
-        elsif !@passed {
+        elsif !@passed.elems {
             print "???> No tests.\n";
         }
     }
@@ -242,15 +253,13 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
                 # todo: refactor
                 # some of these roles may already be applied. in such situations 
                 # we don't want to duplicate the functionality.
-                $dist does Zef::Roles::Processing[:$async, :$force] 
-                    unless $dist.does(Zef::Roles::Processing);
-                $dist does Zef::Roles::Hooking  
-                    unless $dist.does(Zef::Roles::Hooking);
+                $dist does Zef::Roles::Processing[:$async, :$force] unless $dist.does(Zef::Roles::Processing);
+                $dist does Zef::Roles::Hooking unless $dist.does(Zef::Roles::Hooking);
                 $dist does Zef::Roles::Installing;
 
                 my $max-width = $MAX-TERM-COLS if ?$no-wrap;
 
-                my $before-procs := $dist.queue-processes: $[$dist.hook-cmds(INSTALL, :before)];
+                my $before-procs := $dist.queue-processes: $($dist.hook-cmds(INSTALL, :before));
                 procs2stdout(:$max-width, $before-procs) if $v;
                 my $promise1 = $dist.start-processes;
                 $promise1.result; # osx bug RT125758
@@ -258,7 +267,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
                 take $dist.install(:$force);
                 
-                my $after-procs  := $dist.queue-processes: $[$dist.hook-cmds(INSTALL, :after)];
+                my $after-procs  := $dist.queue-processes: $($dist.hook-cmds(INSTALL, :after));
                 procs2stdout(:$max-width, $after-procs) if $v;
                 my $promise2 = $dist.start-processes;
                 $promise2.result; # osx bug RT125758
@@ -267,11 +276,11 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
             }
         }, "Installing", :$boring;
         my @all = $i.list;
-        my @installed = @all.grep({ !$_.<skipped> }).list;
-        my @skipped   = @all.grep({ ?$_.<skipped> }).list;
+        my $installed = @all.grep({ !$_.<skipped> });
+        my $skipped   = @all.grep({ ?$_.<skipped> });
 
-        verbose('Install', |@installed.list)                 ;#if @installed.elems;
-        verbose('Skip (already installed!)', |@skipped.list) if @skipped.elems;
+        verbose('Install', $installed)                 if $installed.elems;
+        verbose('Skip (already installed!)', $skipped) if $skipped.elems;
         $i;
     } unless ?$dry;
 
@@ -361,9 +370,9 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
         $dist does Zef::Roles::Precompiling;
         $dist does Zef::Roles::Hooking;
 
-        $dist.queue-processes: $[$dist.hook-cmds(BUILD, :before)];
-        $dist.queue-processes($[$_]) for $dist.precomp-cmds.list;
-        $dist.queue-processes: $[$dist.hook-cmds(BUILD, :after)];
+        $dist.queue-processes: $($dist.hook-cmds(BUILD, :before));
+        $dist.queue-processes($($_)) for $dist.precomp-cmds.list;
+        $dist.queue-processes: $($dist.hook-cmds(BUILD, :after));
 
         @perl6lib.push: $dist.precomp-path.absolute;
 
@@ -381,13 +390,21 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
         }
     }, "Precompiling", :$boring;
 
-    my $precompiled-results := gather for $precompiled-dists.list -> $precomp-dist {
-        my $results = $precomp-dist.processes>>.map({ ok => all($_.ok), module => $_.id.IO.basename });
-        my $results-final = verbose('Precompiling', $results.list);
+    my $results := gather for $precompiled-dists.list -> $precomp-dist {
+        my @r;
+        for $precomp-dist.processes -> $group {
+            for $group.list -> $proc {
+                for $proc.list -> $item {
+                    my %result = :ok(all($item.ok)), :module($item.id.IO.basename);
+                    @r.push({ %result });
+                }
+            }
+        }
+        my $results-final = verbose('Precompiling', @r);
         take $results-final;
     }
 
-    if $precompiled-results>>.hash.<nok> && !$force {
+    if $results>>.hash.<nok> && !$force {
         print "!!!> Precompilation failure. Aborting.\n";
         exit 255;
     }
@@ -502,7 +519,7 @@ multi MAIN('info', *@modules, Bool :$v, Bool :$boring) is export(:info) {
 
 
 # will be replaced soon
-sub verbose($phase, *@_) {
+sub verbose($phase, @_) {
     say "???> $phase stage is empty" and return unless @_;
     my %r = @_.list.classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
     print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;

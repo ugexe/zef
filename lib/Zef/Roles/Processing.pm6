@@ -6,7 +6,7 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
 
     method queue-processes(*@groups) {
         my %env = %*ENV.hash;
-        %env<PERL6LIB> = (%env<PERL6LIB> // (), @.perl6lib).join(',');
+        %env<PERL6LIB> = (%env<PERL6LIB>.list // (), @.perl6lib.list).flat.join(',');
 
         my @procs = @groups.grep(*.so).map: -> $group {
             my $p = $group.map(-> $execute {
@@ -66,7 +66,7 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
     }
 
     method i-paths {
-        return ($.precomp-path, $.source-path, @.includes)\
+        return flat ($.precomp-path, $.source-path, @.includes)\
             .grep(*.so).unique\
             .map({ ?$_.IO.is-relative ?? $_.IO.relative !! $_.IO.relative($.path) })\
             .map({ qqw/-I$_/ });

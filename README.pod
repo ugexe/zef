@@ -4,7 +4,7 @@
 
 =head2 Name
 
-Zef - Perl6 Module Management
+Zef - Perl6 Module Management (GLR compatible)
 
 =for HTML <a href="https://travis-ci.org/ugexe/zef"><img src="https://travis-ci.org/ugexe/zef.svg?branch=master"></a>
 

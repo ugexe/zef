@@ -1,8 +1,11 @@
 use v6;
-use Zef::Utils::PathTools;
-use Zef::Utils::Depends;
 use Test;
 plan 1;
+skip-rest; # not used for now
+return 0;
+
+use Zef::Utils::PathTools;
+use Zef::Utils::Depends;
 
 
 # Test parsing out POD from modules

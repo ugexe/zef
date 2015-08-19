@@ -146,7 +146,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             my $report-id = try {
                 CATCH { default { print "===> Error while POSTing: $_" }}
                 my $response := $!ua.post("http://testers.perl6.org/report", body => $report);
-                my $body     := $response.content;
+                my $body     := $response.content(:bin).decode('utf-8');
                 ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;
             }
 

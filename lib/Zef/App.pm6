@@ -44,15 +44,18 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
         take $dist;
     };
 
+
     my $tested-dists = CLI-WAITING-BAR {
-        eager gather for $dists.list -> $dist-todo {
+        my @finished;
+        for $dists.list -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
-            take $dist-todo;
+            @finished.push: $dist-todo;
         }
+        @finished;
     }, "Testing", :$boring;
 
     for $tested-dists.list -> $tested-dist {
@@ -211,16 +214,16 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
         # Send a build/test report
         if ?$report {
-            my $reported := CLI-WAITING-BAR {
+            my $reported = CLI-WAITING-BAR {
                 Zef::Authority::P6C.new.report(
                     @metas,
-                    test-results  => $tested.list, 
-                    build-results => $built.list,
+                    test-results  => $tested,
+                    build-results => $built,
                 );
             }, "Reporting", :$boring;
 
             verbose('Reporting', $reported.list);
-            my @ok := $reported.list.grep(*.<id>.so).list;
+            my @ok = $reported.list.grep(*.<id>.so).list;
             print "===> Report{'s' if $reported.list.elems > 1} can be seen shortly at:\n" if @ok;
             print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
         }
@@ -230,7 +233,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
         my @passed = flat @all.map({ $_.passes   });
 
         if @failed.elems {
-            $force
+            !$force
                 ?? do { print "!!!> Failed {@failed.elems} tests. Aborting.\n" and exit @failed.elems }
                 !! do { print "???> Failed tests. Using \$force\n"                    };
         }
@@ -377,14 +380,15 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
         take $dist;
     };
 
-    my $precompiled-dists := CLI-WAITING-BAR {
-        eager gather for $dists.list -> $dist-todo {
+    my $precompiled-dists = CLI-WAITING-BAR {
+        my @finished;
+        for $dists.list -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
-            take $dist-todo;
+            @finished.push: $dist-todo;
         }
     }, "Precompiling", :$boring;
 

@@ -30,7 +30,7 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
                 next;
             }
 
-            my @bins      = $.path.child('bin').ls(:f, :r).grep(!*.starts-with('.'))>>.IO>>.relative($.path);
+            my @bins      = $!path.child("bin").ls(:f, :r).grep(!*.starts-with("."))>>.IO>>.relative($!path);
             my @provides  = $.provides.values.list;
             my @precomps  = self.?provides-precomp.values.list;
             my @files     = (@bins, @provides, @precomps).grep(*.so).flat.list;

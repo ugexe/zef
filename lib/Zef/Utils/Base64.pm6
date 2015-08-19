@@ -27,7 +27,7 @@ class Zef::Utils::Base64 {
         }
         my $padding = @r[*-1] eq '=' ?? @r[*-2] eq '=' ?? 2 !! 1 !! 0;
 
-        return $.encoded = @r[0..(@r.elems - $padding*2 - 1),(@r.elems - $padding)..@r.end].join;
+        return $.encoded = @r[0..(@r.elems - $padding*2 - 1),(@r.elems - $padding)..@r.end].flat.join;
     }
 
     method b64decode(Str $decode-me = $.encoded) {

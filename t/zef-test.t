@@ -17,7 +17,3 @@ subtest {
 
     ok @cmds.elems > 1, "Created test commands";
 }, 'Default tester';
-
-
-
-done();

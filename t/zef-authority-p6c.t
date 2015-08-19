@@ -12,6 +12,3 @@ subtest {
     #ok @results.elems, "Got modules (search: zef)";
     #is @no-results.elems, 0, "Got 0 modules (search: #)";
 }, 'P6C';
-
-
-done();

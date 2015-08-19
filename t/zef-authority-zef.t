@@ -27,4 +27,3 @@ subtest {
     #ok $authority.login(username => 'zef', password => 'zef'), "Login worked";
 }, 'SSL required';
 
-done();

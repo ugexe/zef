@@ -24,6 +24,3 @@ subtest {
     is $results.list.[0].hash.<name>,       'Zef', "name:Zef matches in pass results";
     ok $install-to.IO.child('MANIFEST').IO.e,      "MANIFEST exists";
 }, 'Zef can install zef';
-
-
-done();

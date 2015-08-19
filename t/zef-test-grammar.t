@@ -75,5 +75,3 @@ is $tap.<line>.[9].Str,                          "not ok - missing dependency\n"
 is $tap.<line>.[9].<test>.Str,                   'not ok - missing dependency';
 is $tap.<line>.[9].<test>.<grade>.Str,           'not ok';
 is $tap.<line>.[9].<test>.<why>.Str,             '- missing dependency';
-
-done();

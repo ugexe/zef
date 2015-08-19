@@ -126,7 +126,3 @@ subtest {
     is $content-length, 5, 'Content-Length correct value';
     is $http.<HTTP-message>.<message-body>, 48092, "Report Number parsed from body";
 }, 'HTTP-message: P6C mock test report response';
-
-
-
-done();

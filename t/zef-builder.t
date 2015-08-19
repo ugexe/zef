@@ -40,7 +40,3 @@ subtest {
         ok $file.IO.e, "Found: {$file.IO.relative($path)}";
     }
 }, 'Zef::Builder';
-
-
-
-done();

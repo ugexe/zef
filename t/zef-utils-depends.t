@@ -19,5 +19,3 @@ subtest {
     ok not @depends.[0].<depends>.grep('Peter::Allen'), 'Peter::Allen not depended - in pod';
     ok not @depends.[0].<depends>.grep('Dill::Pickle'), 'Dill::Pickle not depended - in pod';
 }, 'Basic - Single level, ignore pod';
-
-done;

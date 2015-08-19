@@ -201,4 +201,3 @@ subtest {
     # deletion doesn't always happen immediately
     #is $save-to.IO.e, False, "Folder deleted"; 
 }, ".ls and .rm :f :r";
-

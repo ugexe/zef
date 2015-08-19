@@ -3,5 +3,3 @@ use Test;
 plan 1;
 
 lives-ok { require Zef };
-
-done();

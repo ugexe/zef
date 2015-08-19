@@ -9,6 +9,7 @@ sub CLI-WAITING-BAR(&code, str $message, Bool :$boring) is export {
     my $retval = code();
 
     $vow.keep(True);
+    $await.result; # osx bug RT125758
     await $await;
 
     $retval;
@@ -17,7 +18,7 @@ sub CLI-WAITING-BAR(&code, str $message, Bool :$boring) is export {
 # This works *much* better when using "\r" instead of some number of "\b"
 # Unfortunately MoarVM on Windows has a bug where it prints "\r" as if it were "\n"
 # (JVM is OK on windows, JVM/Moar are ok on linux)
-sub show-await(str $message, *@promises) {
+sub show-await(str $message, $promise) {
     my $loading = Supply.interval(1);
     my $out = $*OUT;
     my $err = $*ERR;
@@ -73,15 +74,15 @@ sub show-await(str $message, *@promises) {
         method flush {}
     }
 
-
-    await Promise.allof: @promises;
+    $promise.result; # osx bug RT125758
+    await $promise;
     $loading.done;
     $loading.close;
     $*ERR = $err;
     $*OUT = $out;
 
     print r-print("===> $message [done]\n", :$last-line-len);
-    @promises;
+    $promise;
 }
 
 sub fake-carriage(int $len) { my str $str = ("\b" x $len) || ''; ~$str }

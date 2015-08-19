@@ -190,10 +190,8 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
 
     # BUIDLING
-    my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap);
-    unless $built.elems {
-        print "???> Nothing to build.\n";
-    }
+    my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap)\
+        or print "???> Nothing to build.\n";
 
     my @failed-builds = eager gather for $built.list -> $b {
         $b.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
@@ -245,7 +243,8 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
     my $install = do {
         my $i = CLI-WAITING-BAR { 
-            eager gather for $built.list -> $dist {
+            my @finished;
+            for $built.list -> $dist {
                 # todo: check against $tested to make sure tests were passed
                 # currently we call &MAIN for each phase, thus creating a new
                 # Zef::Distribution object for each phase. This means the roles
@@ -260,23 +259,24 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
 
                 my $max-width = $MAX-TERM-COLS if ?$no-wrap;
 
-                my $before-procs := $dist.queue-processes: $($dist.hook-cmds(INSTALL, :before));
+                my $before-procs = $dist.queue-processes: $($dist.hook-cmds(INSTALL, :before));
                 procs2stdout(:$max-width, $before-procs) if $v;
                 my $promise1 = $dist.start-processes;
                 $promise1.result; # osx bug RT125758
                 await $promise1;
 
-                take $dist.install(:$force);
+                @finished.push: $dist.install(:$force);
                 
-                my $after-procs  := $dist.queue-processes: $($dist.hook-cmds(INSTALL, :after));
+                my $after-procs  = $dist.queue-processes: $($dist.hook-cmds(INSTALL, :after));
                 procs2stdout(:$max-width, $after-procs) if $v;
                 my $promise2 = $dist.start-processes;
                 $promise2.result; # osx bug RT125758
                 await $promise2;
-
             }
+            @finished;
         }, "Installing", :$boring;
-        my @all = $i.list;
+
+        my @all       = $i.list;
         my $installed = @all.grep({ !$_.<skipped> });
         my $skipped   = @all.grep({ ?$_.<skipped> });
 
@@ -390,6 +390,7 @@ multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, 
             await $promise;
             @finished.push: $dist-todo;
         }
+        @finished;
     }, "Precompiling", :$boring;
 
     for $precompiled-dists.list -> $precomp-dist {

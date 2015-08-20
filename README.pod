@@ -37,8 +37,6 @@ Zef is a package manager for Perl6. It works with MoarVM and JVM on Windows, Lin
 
 =item * A `hooks` implementation as mentioned in L<S22|http://design.perl6.org/S22.html#hooks>, allowing module authors to even implement the entire build/test/install process without needing a package manager at all.
 
-=item * No external dependencies required. Can bootstrap itself from source using the same zef application used to install all other modules.
-
 =back
 
 =head1 USAGE
@@ -270,6 +268,15 @@ B<Example>:
     #   0.6) URI
     #   1.0) File::Temp
     #   2.0) HTTP::UserAgent
+    
+=head1 FAQ
+
+=head3 Why does it test with --ll-exception??
+
+Due to a bug in L<Test.pm|https://github.com/rakudo/rakudo/blob/nom/lib/Test.pm> related to automatically setting the plan count and the END cleanup phaser the only way to get a proper exit code at the moment requires using the I<--ll-exception> flag.
+
+    perl6 -e "use Test; use aeflkaje;" && echo "OK"
+    perl6 --ll-exception -e "use Test; use aeflkaje;" && echo "OK"
 
 =head1 DEVELOPMENT
 

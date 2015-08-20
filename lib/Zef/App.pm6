@@ -112,7 +112,7 @@ multi MAIN('smoke', :@ignore, Bool :$no-wrap, :$projects-file,
     for $auth.projects.list -> $result {
         # todo: make this work with the CLI::StatusBar
         my @args = '-Ilib', 'bin/zef', '--dry', '--boring', 
-            "--projects-file={$smoke-projects-file}", @ignore.map({ "--ignore={$_}" });
+            "--projects-file={$smoke-projects-file}", @ignore.map({ "--ignore={$_}" }).list;
         @args.push('-v')        if $v;
         @args.push('--report')  if $report;
         @args.push('--shuffle') if $shuffle;
@@ -120,7 +120,7 @@ multi MAIN('smoke', :@ignore, Bool :$no-wrap, :$projects-file,
         @args.push('--async')   if $async;
 
         say "===> Smoking next: {$result.<name>}";
-        my $proc = run($*EXECUTABLE, @args, 'install', $result.<name>, :out);
+        my $proc = run($*EXECUTABLE, @args.grep(*.so).list, 'install', $result.<name>, :out);
         say $_ for $proc.out.lines;
     }
 

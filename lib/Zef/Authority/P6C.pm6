@@ -81,17 +81,31 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             my %meta      := %($meta-json);
             my $repo-path := $meta-path.IO.parent;
 
-            my $test  := @test-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
-            my $build := @build-results.first({ $_.path.IO.ACCEPTS($repo-path.IO) });
+            my $test  = @test-results.first: { $_.path.IO.ACCEPTS($repo-path.IO) }
+            my $build = @build-results.first: { $_.path.IO.ACCEPTS($repo-path.IO) }
 
-            my $build-output = $build.processes>>.list\
-                >>.grep(*.stdmerge.so)\
-                >>.map({ $_.stdmerge })\
-                >>.join("\n");
-            my $test-output  = $test.processes.list\
-                >>.grep(*.stdmerge.so)\
-                >>.map({ $_.stdmerge })\
-                >>.join("\n");
+            # the GLR transitions is making this this string concating
+            # look more complicated than it needs to be
+            my $build-output;
+            for $build.processes.list -> $group {
+                for $group.list -> $item {
+                    for $item.list -> $proc {
+                        with $proc.stdmerge -> $out {
+                            $build-output ~= "{$out}\n";
+                        }
+                    }
+                }
+            }
+            my $test-output;
+            for $test.processes.list -> $group {
+                for $group.list -> $item {
+                    for $item.list -> $proc {
+                        with $proc.stdmerge -> $out {
+                            $test-output ~= "{$out}\n";
+                        }
+                    }
+                }
+            }
 
             # See Panda::Reporter
             my $report := to-json {
@@ -101,8 +115,8 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 :metainfo($meta-json),
                 :build-output($build-output // ''),
                 :test-output($test-output   // ''),
-                :build-passed(?$build.processes.elems ?? ?all($build.processes>>.map({ $_.ok })) !! Nil),
-                :test-passed(?$test.processes.elems ?? ?all($test.processes>>.map({ $_.ok }))  !! Nil),
+                :build-passed(?$build.processes.elems ?? (?$build.passes.elems && !$build.failures.elems) !! Nil),
+                :test-passed(?$test.processes.elems   ?? (?$test.passes.elems  && !$test.failures.elems ) !! Nil),
                 :distro({
                     :name($*DISTRO.name),
                     :version($*DISTRO.version.Str),

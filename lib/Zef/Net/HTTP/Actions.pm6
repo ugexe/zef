@@ -194,7 +194,7 @@ class Zef::Net::HTTP::Actions {
 
     method header-field($/) {
         if $/<value>.made {
-            make $/<name>.Str => [$/<value>>>.made];
+            make $/<name>.Str => [$/<value>.map(*.made)];
         }
         else {
             make $/<name>.Str => $/<value>.Str;

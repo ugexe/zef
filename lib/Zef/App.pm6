@@ -109,8 +109,9 @@ multi MAIN('smoke', :@ignore, Bool :$no-wrap, :$projects-file,
         $smoke-projects-file.spurt: to-json($auth.projects);
     }, "Generating smoke test projects file: '{$smoke-projects-file.basename}'", :$boring;
 
+    # todo: save to a custom CURLI so the install command can automatically ignore modules
+    # that have already been tested to satisfy earlier dependencies.
     for $auth.projects.list -> $result {
-        # todo: make this work with the CLI::StatusBar
         my @args = '-Ilib', 'bin/zef', '--dry', '--boring', 
             "--projects-file={$smoke-projects-file}", @ignore.map({ "--ignore={$_}" }).list;
         @args.push('-v')        if $v;
@@ -182,9 +183,9 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     my @wanted = @dists.grep({ $_.wanted || ($force && $_.name ~~ any(@modules)) }).list;
     if @wanted.elems != @dists.elems {
         my @skipped = @dists.grep({ $_.name !~~ any(@wanted>>.name) });
-        print "===> The following modules are already up to date: {@skipped>>.name>>.join(', ')}\n";
-        @repos = @repos.grep: { none(@skipped>>.path>>.ACCEPTS($_.IO))         }
-        @metas = @metas.grep: { none(@skipped>>.path>>.ACCEPTS($_.dirname.IO)) }
+        print "===> The following modules are already up to date: {@skipped.map(*.name).join(', ')}\n";
+        @repos = @repos.grep: { none(@skipped.map(*.path).grep(*.ACCEPTS($_.IO)))         }
+        @metas = @metas.grep: { none(@skipped.map(*.path).grep(*.ACCEPTS($_.dirname.IO))) }
         print "===> Nothing to do.\n" and exit 0 unless @repos.elems && @metas.elems;
     }
 
@@ -196,7 +197,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     my @failed-builds = eager gather for $built.list -> $b {
         $b.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
     }
-    die "!!!> Aborting. Build failures for: {@failed-builds>>.id}" if !$force && @failed-builds.elems;
+    die "!!!> Aborting. Build failures for: {@failed-builds.map(*.id)}" if !$report && !$force && @failed-builds.elems;
 
     # TESTING
     unless $notest {
@@ -207,8 +208,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
         my @failed-tests = eager gather for $tested.list -> $t {
             $t.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
         }
-        die "!!!> Aborting. Build failures for: {@failed-tests>>.id}" if !$force && @failed-tests.elems;
-
+        die "!!!> Aborting. Test failures for: {@failed-tests.map(*.id)}" if !$report && !$force && @failed-tests.elems;
 
         # Send a build/test report
         if ?$report {

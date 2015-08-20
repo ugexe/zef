@@ -125,7 +125,7 @@ class Zef::Distribution {
             .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
     }
 
-    method candidates(::CLASS:D:) { $.curlis>>.candidates($.name, :auth($.authority), :ver($.version)).grep(*) }
+    method candidates(::CLASS:D:) { flat $.curlis.map: {.candidates($.name, :auth($.authority), :ver($.version)).grep(*)} }
 
     method wanted(:$take-whatever = True) {
         return True if  $.version eq '*' && $take-whatever;

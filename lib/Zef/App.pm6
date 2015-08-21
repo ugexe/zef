@@ -81,9 +81,8 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
 }
 
 
-multi MAIN('smoke', :@ignore, Bool :$no-wrap, :$projects-file,
+multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file,
     Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$async) is export(:smoke) {
-    
     my $start = time;
     say "===> Smoke testing started: [{$start}]";
 
@@ -93,10 +92,10 @@ multi MAIN('smoke', :@ignore, Bool :$no-wrap, :$projects-file,
         say "===> Module count: {$p6c.projects.list.elems}";
         $p6c.projects = $p6c.projects\
             .grep({ $_.<name>:exists })\
-            .grep({ $_.<name> ~~ none(@ignore) })\
-            .grep({ !$_.<depends>       || any($_.<depends>.list) ~~ none(@ignore) })\
-            .grep({ !$_.<test-depends>  || any($_.<depends>.list) ~~ none(@ignore) })\
-            .grep({ !$_.<build-depends> || any($_.<depends>.list) ~~ none(@ignore) })\
+            .grep({ $_.<name> ~~ none($ignore.list) })\
+            .grep({ any($_.<depends>.flat)       ~~ none($ignore.list) })\
+            .grep({ any($_.<test-depends>.flat)  ~~ none($ignore.list) })\
+            .grep({ any($_.<build-depends>.flat) ~~ none($ignore.list) })\
             .pick(*);
         $p6c;
     }, "Getting ecosystem data", :$boring;
@@ -113,7 +112,7 @@ multi MAIN('smoke', :@ignore, Bool :$no-wrap, :$projects-file,
     # that have already been tested to satisfy earlier dependencies.
     for $auth.projects.list -> $result {
         my @args = '-Ilib', 'bin/zef', '--dry', '--boring', 
-            "--projects-file={$smoke-projects-file}", @ignore.map({ "--ignore={$_}" }).list;
+            "--projects-file={$smoke-projects-file}", $ignore.map({ "--ignore={$_}" }).list;
         @args.push('-v')        if $v;
         @args.push('--report')  if $report;
         @args.push('--shuffle') if $shuffle;
@@ -121,6 +120,7 @@ multi MAIN('smoke', :@ignore, Bool :$no-wrap, :$projects-file,
         @args.push('--async')   if $async;
 
         say "===> Smoking next: {$result.<name>}";
+
         my $proc = run($*EXECUTABLE, @args.grep(*.so).list, 'install', $result.<name>, :out);
         say $_ for $proc.out.lines;
     }
@@ -130,7 +130,7 @@ multi MAIN('smoke', :@ignore, Bool :$no-wrap, :$projects-file,
 
 
 #| Install with business logic
-multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projects-file, 
+multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file, 
     Bool :$notest, Bool :$force, Bool :$async, Bool :$report, Bool :$v, Bool :$dry, 
     Bool :$skip-depends, Bool :$skip-build-depends, Bool :$skip-test-depends,
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export(:install) {
@@ -141,7 +141,7 @@ multi MAIN('install', *@modules, :$lib, :@ignore, :$save-to = $*TMPDIR, :$projec
     # the install process to abort the needless install.
 
     # FETCHING
-    my $fetched := &MAIN('get', @modules, :@ignore,
+    my $fetched := &MAIN('get', @modules, :$ignore.list,
         :$save-to, :$projects-file,
         :$boring, :$async,
         :$skip-depends, :$skip-build-depends
@@ -318,7 +318,7 @@ multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is expor
 
 
 #| Get the freshness
-multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, :$projects-file, 
+multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file, 
     Bool :$async, Bool :$v, Bool :$boring, Bool :$skip-depends, 
     Bool :$skip-test-depends, Bool :$skip-build-depends
     ) is export(:get :install) {
@@ -333,7 +333,7 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, :$projects-file,
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
     my $fetched := CLI-WAITING-BAR {
-        $auth.get(@modules, :@ignore, :$save-to, :depends(!$skip-depends), 
+        $auth.get(@modules, :$ignore.list, :$save-to, :depends(!$skip-depends), 
             :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
         );
     }, "Fetching", :$boring;
@@ -350,7 +350,7 @@ multi MAIN('get', *@modules, :@ignore, :$save-to = $*TMPDIR, :$projects-file,
 
 
 #| Build modules in the specified directory
-multi MAIN('build', *@repos, :$lib, :@ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
+multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
     Bool :$async, Bool :$boring, Bool :$force = True) is export(:build :install) {
     @repos .= push($*CWD) unless @repos;
     @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).list;

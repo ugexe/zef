@@ -30,9 +30,9 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
                 next;
             }
 
-            my @provides  = $.provides.values.list;
-            my @precomps  = self.?provides-precomp.values.list;
-            my @bins      = $.path.child('bin').ls(:f, :r)\
+            my @provides = $.provides.values.list;
+            my @precomps = self.?provides-precomp.values.list;
+            my @bins     = $.path.child('bin').ls(:f, :r)\
                 .grep(!*.starts-with('.'))\
                 .map: {.IO.relative($.path)}
 

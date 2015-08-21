@@ -99,7 +99,7 @@ class Zef::Distribution {
         $p.hash;
     }
 
-
+    # todo: something similar that checks cver to know when to rebuild
     method is-installed(*@curlis is copy) {
         @curlis := @curlis ?? @curlis !! $.curlis;
         my $want-n := self.name or fail "A distribution must have a name";
@@ -128,7 +128,7 @@ class Zef::Distribution {
     method candidates(::CLASS:D:) { flat $.curlis.map: {.candidates($.name, :auth($.authority), :ver($.version)).grep(*)} }
 
     method wanted(:$take-whatever = True) {
-        return True if  $.version eq '*' && $take-whatever;
+        return True  if  $.version eq '*' && $take-whatever;
         return False if $.candidates.first({ $.VCOMPARE($_.<ver>.Str) ~~ any(Order::Same, Order::Less) });
         return True;
     }

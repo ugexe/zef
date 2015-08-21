@@ -1,6 +1,7 @@
 unit class Zef::App;
 
 use Zef::Distribution;
+use Zef::Manifest;
 
 use Zef::Roles::Installing;
 use Zef::Roles::Precompiling;
@@ -11,7 +12,6 @@ use Zef::Roles::Hooking;
 use Zef::Authority::P6C;
 use Zef::CLI::StatusBar;
 use Zef::CLI::STDMux;
-use Zef::Uninstaller;
 use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
 
@@ -129,6 +129,33 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file,
 }
 
 
+multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Bool :$v) {
+    my $ok;
+    my $nok;
+
+    for $from.list -> $cur {
+        with CompUnitRepo::Local::Installation.new($cur) -> $curli {
+            my $mani = Zef::Manifest.new(:cur($curli), :create);
+            for @names.list -> $name {
+                for $curli.candidates($name, :$auth, :$ver) -> $candi {
+                    my $dist = Distribution.new(:name($candi<name>), :auth($candi<auth>), :ver($candi<ver>));
+
+                    if $mani.uninstall($dist) {
+                        say "===> Uninstalled {$dist.name} successfully.";
+                        $ok++;
+                    }
+                    else {
+                        say "!!!> Uninstall for {$dist.name} failed.";
+                        $nok++;
+                    }
+                }
+            }
+        }
+    }
+
+    exit $nok.so ?? $nok !! 0;
+}
+
 #| Install with business logic
 multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file, 
     Bool :$notest, Bool :$force, Bool :$async, Bool :$report, Bool :$v, Bool :$dry, 
@@ -141,7 +168,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # the install process to abort the needless install.
 
     # FETCHING
-    my $fetched := &MAIN('get', @modules, :$ignore.list,
+    my $fetched := &MAIN('get', @modules, :ignore($ignore.list),
         :$save-to, :$projects-file,
         :$boring, :$async,
         :$skip-depends, :$skip-build-depends
@@ -333,7 +360,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file,
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
     my $fetched := CLI-WAITING-BAR {
-        $auth.get(@modules, :$ignore.list, :$save-to, :depends(!$skip-depends), 
+        $auth.get(@modules, :ignore($ignore.list), :$save-to, :depends(!$skip-depends),
             :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
         );
     }, "Fetching", :$boring;

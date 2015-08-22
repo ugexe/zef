@@ -103,7 +103,10 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file,
     say "===> Filtered module count: {$auth.projects.list.elems}";
 
     my $smoke-projects-file := $*TMPDIR.child("projects.json.smoke.{$start}").IO;
+
     CLI-WAITING-BAR {
+        # very fast to-json when output readability/strictness? aren't important
+        use Zef::Utils::JSON;
         say "===> Notice: The next step may take a few minutes";
         $smoke-projects-file.spurt: to-json($auth.projects);
     }, "Generating smoke test projects file: '{$smoke-projects-file.basename}'", :$boring;

@@ -1,4 +1,4 @@
-unit module Zef::Utils:JSON;
+unit module Zef::Utils::JSON;
 
 sub to-json($obj) is export {
   CATCH { default { .say; } }

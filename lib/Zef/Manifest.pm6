@@ -34,14 +34,13 @@ class Zef::Manifest {
         my $repo;
         $repo<dists>       = @source;
         $repo<dist-count>  = @source.elems;
+        # todo: call .file-count on @source
         $repo<file-count>  = $.file-count(:bin, :provides);
         $repo;
     }
 
-    method path  { $!cur.IO.child($!basename) }
-
-    method dist-count { %!hash<dists>.flat.elems }
-
+    method path       { $!cur.IO.child($!basename)          }
+    method dist-count { %!hash<dists>.flat.elems            }
     method file-count { $.files(:bin, :provides).flat.elems }
 
     method files(Bool :$bin = True, Bool :$provides) {

@@ -11,7 +11,6 @@
         "Zef::Distribution"   : "lib/Zef/Distribution.pm6",
         "Zef::Manifest"       : "lib/Zef/Manifest.pm6",
         "Zef::Process"        : "lib/Zef/Process.pm6",
-        "Zef::Uninstaller"    : "lib/Zef/Uninstaller.pm6",
 
         "Zef::Authority"      : "lib/Zef/Authority.pm6",
         "Zef::Authority::Net" : "lib/Zef/Authority/Net.pm6",
@@ -26,6 +25,7 @@
         "Zef::Utils::Base64"     : "lib/Zef/Utils/Base64.pm6",
         "Zef::Utils::Depends"    : "lib/Zef/Utils/Depends.pm6",
         "Zef::Utils::Git"        : "lib/Zef/Utils/Git.pm6",
+        "Zef::Utils::JSON"       : "lib/Zef/Utils/JSON.pm6",
         "Zef::Utils::PathTools"  : "lib/Zef/Utils/PathTools.pm6",
         "Zef::Utils::SystemInfo" : "lib/Zef/Utils/SystemInfo.pm6",
         

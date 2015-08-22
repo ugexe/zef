@@ -9,8 +9,8 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         %env<PERL6LIB> = (%env<PERL6LIB>.list // (), @.perl6lib.list).flat.join(',');
 
         my @procs;
-        for @groups -> $group {
-            for $group.list -> $execute {
+        for @groups.flat -> $group {
+            for $group.flat.list -> $execute {
                 my @args    = $execute.flat.list;
                 my $command = @args.shift;
                 @procs.push: Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
@@ -39,14 +39,14 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         #
         #$p;
         my @promises;
-        for @!processes -> $group {
+        for @!processes.flat -> $group {
             my @group-promises;
-            for $group.list -> $process {
+            for $group.flat.list -> $process {
                 unless $process.started {
                     @group-promises.push: $process.start;
                 }
             }
-            with @group-promises {
+            if @group-promises.elems {
                 @promises.push($_) for @group-promises;
                 await Promise.allof(@group-promises);
             }

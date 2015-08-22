@@ -288,6 +288,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
                 my $before-procs = $dist.queue-processes: $($dist.hook-cmds(INSTALL, :before));
                 procs2stdout(:$max-width, $before-procs) if $v;
+
                 my $promise1 = $dist.start-processes;
                 $promise1.result; # osx bug RT125758
                 await $promise1;
@@ -304,11 +305,11 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
         }, "Installing", :$boring;
 
         my @all       = $i.list;
-        my $installed = @all.grep({ !$_.<skipped> });
-        my $skipped   = @all.grep({ ?$_.<skipped> });
+        my @installed = @all.grep({ !$_.<skipped> }).flat.list;
+        my @skipped   = @all.grep({ ?$_.<skipped> }).flat.list;
 
-        verbose('Install', $installed)                 if $installed.elems;
-        verbose('Skip (already installed!)', $skipped) if $skipped.elems;
+        verbose('Install', @installed)                 if @installed.elems;
+        verbose('Skip (already installed!)', @skipped) if @skipped.elems;
         $i;
     } unless ?$dry;
 

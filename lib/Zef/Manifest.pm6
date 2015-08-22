@@ -1,5 +1,5 @@
 class Zef::Manifest {
-    has $.basename;
+    has $.basename; # use different name? $curli.Str ~ / $.basename = full path of MANIFEST
     has $.cur;
     has $.create;
     has %.hash;
@@ -14,12 +14,50 @@ class Zef::Manifest {
             if !$mani-path.IO.e || !$mani-path.IO.f {
                 die "No MANIFEST available for: {~$mani-path}, pass `:create` if you'd like it generated as needed."\
                     unless $!create;
-                %!hash  = self.GEN-MANIFEST();
+                %!hash  = self.read();
             }
             else {
                 %!hash  = from-json( $mani-path.IO.slurp ).hash;
             }
         }
+    }
+
+    method write(*@dists) {
+        $!lock.protect({
+        my $repo = self.read(|@dists);
+        $.path.IO.spurt: to-json( $repo )
+        });
+    }
+
+    method read(*@dists is copy) {
+        my @source = @dists.elems ?? @dists !! %!hash<dists>.flat;
+        my $repo;
+        $repo<dists>       = @source;
+        $repo<dist-count>  = @source.elems;
+        $repo<file-count>  = $.file-count(:bin, :provides);
+        $repo;
+    }
+
+    method path  { $!cur.IO.child($!basename) }
+
+    method dist-count { %!hash<dists>.flat.elems }
+
+    method file-count { $.files(:bin, :provides).flat.elems }
+
+    method files(Bool :$bin = True, Bool :$provides) {
+        my @files;
+        for %!hash<dists>.flat -> $dist {
+            if ?$bin {
+                @files.push($_) for $dist<files>.values.flat.list;
+            }
+            if ?$provides {
+                @files.push($_) for $dist<provides>.values>>.values.flat.map({ $_.<file> }).list;
+            }
+            #if ?$wrappers {
+            #
+            #}
+        }
+        @files.grep(*.so).list;
     }
 
     # this can be put somewhere more appropriate later
@@ -44,50 +82,8 @@ class Zef::Manifest {
         }
 
         with $delete-idx -> $index { $repo<dists>.splice($index, 1) }
-        my $dists = $repo.hash.<dists>;
-        $.WRITE-MANIFEST($dists);
+        my @dists = $repo<dists>.flat;
+        self.write(@dists);
         } );
-    }
-
-    method write { self.WRITE-MANIFEST(%!hash<dists>.flat) }
-
-    method path  { $!cur.IO.child($!basename) }
-
-
-
-    method dist-count { %!hash<dists>.flat.elems }
-
-    method file-count { $.files(:bin, :provides).flat.elems }
-
-    method files(Bool :$bin = True, Bool :$provides) {
-        my @files;
-        for %!hash<dists>.flat -> $dist {
-            if ?$bin {
-                @files.push($_) for $dist<files>.values.flat.list;
-            }
-            if ?$provides {
-                @files.push($_) for $dist<provides>.values>>.values.flat.map({ $_.<file> }).list;
-            }
-            #if ?$wrappers {
-            #
-            #}
-        }
-        @files.grep(*.so).list;
-    }
-
-    method GEN-MANIFEST(*@dists) {
-        my $repo;
-        $repo<dists>      := @dists.flat.list;
-        $repo<dist-count> := @dists.flat.elems;
-        $repo<file-count> := $.file-count(:bin, :provides);
-        $repo;
-    }
-
-    method WRITE-MANIFEST(*@dists) {
-        $!lock.protect({
-        my $repo = self.GEN-MANIFEST(@dists.flat);
-        %!hash   = $repo.hash;
-        $.path.IO.spurt: to-json( $repo )
-        });
     }
 }

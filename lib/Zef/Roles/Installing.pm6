@@ -14,7 +14,8 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
     my $curlis = $curli-paths.list.map: -> $dir { CompUnitRepo::Local::Installation.new($dir) }
 
     method install(Bool :$force)  {
-        my $i = eager gather for $curlis.list -> $curli is copy {
+        my @installed;
+        for $curlis.list -> $curli is copy {
             mkdirs(PARSE-INCLUDE-SPEC($curli.Str).[*-1]) unless $curli.IO.e;
             $curli does curli-copy-fix[$.path];
 
@@ -26,7 +27,7 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
             if !$force && !$.wanted {
                 %result<skipped> = $.name;
                 %result<ok> = 1;
-                take %result;
+                @installed.push: %result;
                 next;
             }
 
@@ -38,9 +39,9 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
 
             my @files     = (@bins, @provides, @precomps).grep(*.so).flat.list;
 
-            %result<ok> = 1 if $curli.install(:dist(self), @files);
-            take %result;
+            %result<ok> = 1 if $curli.install(:dist(self), |@files);
+            @installed.push: %result;
         }
-        $i.list;
+        @installed;
     }
 }

@@ -25,3 +25,5 @@ script:
 after_success:
     - 'if [[ $BACKEND == "moar" ]]; then perl6 -Ilib bin/zef -v --boring $ASYNC --save-to=precomp/ build; fi'
     - 'if [[ $BACKEND == "moar" ]]; then perl6 -Iprecomp bin/zef -v --boring --lib=precomp $ASYNC install Zef; fi'
+    - 'if [[ $BACKEND == "moar glr" ]]; then perl6 -Ilib bin/zef -v --boring $ASYNC --save-to=precomp/ build; fi'
+    - 'if [[ $BACKEND == "moar glr" ]]; then perl6 -Iprecomp bin/zef -v --boring --lib=precomp $ASYNC install Zef; fi'

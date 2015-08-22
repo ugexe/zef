@@ -6,11 +6,12 @@ env:
     - BACKEND=moar ASYNC="--async"
     - BACKEND=jvm  ASYNC=""
     - BACKEND="moar glr" ASYNC=""
+    - BACKEND="moar glr" ASYNC="--async"
 matrix:
     allow_failures:
         - env: BACKEND=jvm  ASYNC=""
         - env: BACKEND=moar ASYNC="--async"
-        - env: BACKEND="moar glr" ASYNC=""
+        - env: BACKEND="moar glr" ASYNC="--async"
     fast_finish: true
 sudo: false
 before_install:
@@ -25,5 +26,6 @@ script:
 after_success:
     - 'if [[ $BACKEND == "moar" ]]; then perl6 -Ilib bin/zef -v --boring $ASYNC --save-to=precomp/ build; fi'
     - 'if [[ $BACKEND == "moar" ]]; then perl6 -Iprecomp bin/zef -v --boring --lib=precomp $ASYNC install Zef; fi'
+
     - 'if [[ $BACKEND == "moar glr" ]]; then perl6 -Ilib bin/zef -v --boring $ASYNC --save-to=precomp/ build; fi'
     - 'if [[ $BACKEND == "moar glr" ]]; then perl6 -Iprecomp bin/zef -v --boring --lib=precomp $ASYNC install Zef; fi'

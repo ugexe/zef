@@ -447,6 +447,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
 }
 
 # todo: non-exact matches on non-version fields
+# todo: restrict fields to those found in a todo: Zef::META type module
 multi MAIN('search', Bool :$v, *@names, *%fields) is export(:search) {
     # Get the projects.json file
     my $auth := CLI-WAITING-BAR {
@@ -457,23 +458,20 @@ multi MAIN('search', Bool :$v, *@names, *%fields) is export(:search) {
 
 
     # Filter the projects.json file
-    my $results := CLI-WAITING-BAR { 
+    my $results = CLI-WAITING-BAR { 
         $auth.search(|@names, |%fields).list;
-    }, "Filtering Results";
+    }, "Filtering Results with: name = {@names.join('|')}{~%fields}";
 
     say "===> Found " ~ $results.list.elems ~ " results";
-    my @rows = $results.list.grep(*).map({ [
-        "{state $id += 1}",
-         $_.<name>, 
-        ($_.<ver> // $_.<version> // '*'), 
-        ($_.<description> // '')
-    ] });
-    @rows.unshift([<ID Package Version Description>]);
+    my @rows = eager gather for $results.list {
+        once { take [<ID Package Version Description>] }
+        take ["{state $id += 1}", $_.<name>,  ($_.<ver> // $_.<version> // '*'), ($_.<description> // '')]
+    }
 
-    my @widths     := _get_column_widths(@rows);
-    my @fixed-rows := @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
-    my $width      := [+] _get_column_widths(@fixed-rows);
-    my $sep        := '-' x $width;
+    my @widths     = _get_column_widths(@rows);
+    my @fixed-rows = @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
+    my $width      = [+] _get_column_widths(@fixed-rows);
+    my $sep        = '-' x $width;
 
     if @fixed-rows.end {
         say "{$sep}\n{@fixed-rows[0]}\n{$sep}";
@@ -578,7 +576,5 @@ sub _row2str (@widths, @cells, Int :$max-width) {
 
 # Iterate over ([1,2,3],[2,3,4,5],[33,4,3,2]) to find the longest string in each column
 sub _get_column_widths ( *@rows ) is export {
-    return (0..@rows[0].elems-1).map( -> $col { 
-        reduce { max($^a, $^b)}, map { .chars }, @rows[*;$col]; 
-    } );
+    return @rows[0].keys.map: { @rows>>[$_]>>.chars.max }
 }

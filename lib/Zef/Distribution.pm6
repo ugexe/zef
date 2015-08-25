@@ -87,6 +87,21 @@ class Zef::Distribution {
         %!meta<version> := $!version;
     }
 
+    method content(*@keys) {
+        my $resource = @keys[*-1];
+        my $wanted   = @keys[0..*-2].reduce(-> $n1 is rw, $n2 {
+            once $n1 = %!meta{$n1};
+            $n1{$n2}
+        });
+        die "Can't find requested meta file key {@keys[*-1]}" unless $wanted eq $resource;
+
+        my $abspath = $resource.IO.is-absolute ?? ~$resource.IO !! ~$resource.IO.absolute($.path).IO;
+        my $io = IO::Path.new-from-absolute-path($abspath);
+
+        die "Can't find resource with path: {$io}" unless $io.IO.e && $io.IO.f;
+
+        $io.slurp;
+    }
 
     method provides(Bool :$absolute) {
         my $p := gather for %.meta<provides>.pairs {

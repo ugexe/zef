@@ -37,7 +37,7 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
                 .grep(!*.starts-with('.'))\
                 .map: {.IO.relative($.path)}
 
-            my @files     = (@bins, @provides, @precomps).grep(*.so).flat.list;
+            my @files     = (@provides, @precomps, @bins).grep(*.so).flat.list;
 
             %result<ok> = 1 if $curli.install(:dist(self), |@files);
             @installed.push: %result;

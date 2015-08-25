@@ -14,7 +14,7 @@ for @curlis -> $cur {
             unless ?%manifest<file-count> {
                 %manifest<file-count> = 1;
                 try { mkdir(~$cur) unless $cur.IO.e }
-                try $manifester.path.spurt(to-json(%manifest));
+                try $manifester.write(|%manifest<dists>, :file-count(1));
             }
         }
     }

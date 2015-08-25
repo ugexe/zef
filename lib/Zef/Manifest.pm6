@@ -22,15 +22,21 @@ class Zef::Manifest {
         }
     }
 
-    method write(*@dists) {
+
+    method write(*@dists, Int :$dist-count, Int :$file-count) {
         $!lock.protect({
         try { mkdir(~$!cur) unless $!cur.IO.e }
+
         my $repo = self.read(|@dists);
+
+        with $dist-count -> $count { $repo<dist-count> = $dist-count }
+        with $file-count -> $count { $repo<file-count> = $file-count }
+
         $.path.IO.spurt: to-json( $repo )
         });
     }
 
-    method read(*@dists is copy) {
+    method read(*@dists) {
         my @source = @dists.elems ?? @dists !! %!hash<dists>.flat;
         my $repo;
         $repo<dists>       = @source;

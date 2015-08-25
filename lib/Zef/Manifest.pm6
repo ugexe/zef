@@ -24,6 +24,7 @@ class Zef::Manifest {
 
     method write(*@dists) {
         $!lock.protect({
+        try { mkdir(~$!cur) unless $!cur.IO.e }
         my $repo = self.read(|@dists);
         $.path.IO.spurt: to-json( $repo )
         });
@@ -39,7 +40,7 @@ class Zef::Manifest {
         $repo;
     }
 
-    method path       { $!cur.IO.child($!basename)          }
+    method path       { $!cur.IO.child($!basename).IO       }
     method dist-count { %!hash<dists>.flat.elems            }
     method file-count { $.files(:bin, :provides).flat.elems }
 

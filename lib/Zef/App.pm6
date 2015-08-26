@@ -81,41 +81,20 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
 }
 
 
-multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file,
+multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy,
     Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$async) is export(:smoke) {
-    my $start = time;
-    say "===> Smoke testing started: [{$start}]";
+    say "===> Smoke testing started: [{time}]";
 
-    my $auth := CLI-WAITING-BAR {
-        my $p6c = Zef::Authority::P6C.new(:$projects-file);
-        $p6c.update-projects unless $projects-file;
-        say "===> Module count: {$p6c.projects.list.elems}";
-        $p6c.projects = $p6c.projects\
-            .grep({ $_.<name>:exists })\
-            .grep({ $_.<name> ~~ none($ignore.list) })\
-            .grep({ any($_.<depends>.flat)       ~~ none($ignore.list) })\
-            .grep({ any($_.<test-depends>.flat)  ~~ none($ignore.list) })\
-            .grep({ any($_.<build-depends>.flat) ~~ none($ignore.list) })\
-            .pick(*);
-        $p6c;
-    }, "Getting ecosystem data", :$boring;
+    temp $projects-file = packages(:$ignore, :packages-file($projects-file));
+    my @packages = from-json($projects-file.IO.slurp).list;
 
-    say "===> Filtered module count: {$auth.projects.list.elems}";
-
-    my $smoke-projects-file := $*TMPDIR.child("projects.json.smoke.{$start}").IO;
-
-    CLI-WAITING-BAR {
-        # very fast to-json when output readability/strictness? aren't important
-        use Zef::Utils::JSON;
-        say "===> Notice: The next step may take a few minutes";
-        $smoke-projects-file.spurt: to-json($auth.projects);
-    }, "Generating smoke test projects file: '{$smoke-projects-file.basename}'", :$boring;
+    say "===> Filtered module count: {@packages.elems}";
 
     # todo: save to a custom CURLI so the install command can automatically ignore modules
     # that have already been tested to satisfy earlier dependencies.
-    for $auth.projects.list -> $result {
+    for @packages -> $result {
         my @args = '-Ilib', 'bin/zef', '--dry', '--boring', 
-            "--projects-file={$smoke-projects-file}", $ignore.map({ "--ignore={$_}" }).list;
+            "--projects-file={$projects-file}", $ignore.map({ "--ignore={$_}" }).list;
         @args.push('-v')        if $v;
         @args.push('--report')  if $report;
         @args.push('--shuffle') if $shuffle;
@@ -160,11 +139,10 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
 }
 
 #| Install with business logic
-multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file, 
+multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
     Bool :$notest, Bool :$force, Bool :$async, Bool :$report, Bool :$v, Bool :$dry, 
     Bool :$skip-depends, Bool :$skip-build-depends, Bool :$skip-test-depends,
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export(:install) {
-
 
     # todo:
     # check $dist.is-installed and $force before building/testing instead of waiting until
@@ -349,22 +327,17 @@ multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is expor
 
 
 #| Get the freshness
-multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file, 
+multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
     Bool :$async, Bool :$v, Bool :$boring, Bool :$skip-depends, 
-    Bool :$skip-test-depends, Bool :$skip-build-depends
-    ) is export(:get :install) {
-
-    my $auth := CLI-WAITING-BAR {
-        my $p6c = Zef::Authority::P6C.new(:$projects-file);
-        $p6c.update-projects unless $projects-file;
-        $p6c;
-    }, "Querying Authority", :$boring;
+    Bool :$skip-test-depends, Bool :$skip-build-depends) is export(:get :install) {
 
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
-    my $fetched := CLI-WAITING-BAR {
-        $auth.get(@modules, :ignore($ignore.list), :$save-to, :depends(!$skip-depends),
+    my $fetched = CLI-WAITING-BAR {
+        temp $projects-file = packages(:$ignore, :packages-file($projects-file));
+        Zef::Authority::P6C.new(:$projects-file).get(
+            @modules, :ignore($ignore.list), :$save-to, :depends(!$skip-depends),
             :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
         );
     }, "Fetching", :$boring;
@@ -372,7 +345,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file,
     verbose('Fetching', $fetched.list);
 
     unless $fetched.list {
-        say "!!!> No matches found.";
+        say "!!!> No matching candidates found.";
         exit 1;
     }
 
@@ -448,19 +421,12 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
 
 # todo: non-exact matches on non-version fields
 # todo: restrict fields to those found in a todo: Zef::META type module
-multi MAIN('search', Bool :$v, *@names, *%fields) is export(:search) {
-    # Get the projects.json file
-    my $auth := CLI-WAITING-BAR {
-        my $p6c = Zef::Authority::P6C.new;
-        $p6c.update-projects;
-        $p6c;
-    }, "Querying Server";
-
-
+multi MAIN('search', :$projects-file is copy, :$ignore, Bool :$v, *@names, *%fields) is export(:search) {
     # Filter the projects.json file
     my $results = CLI-WAITING-BAR { 
-        $auth.search(|@names, |%fields).list;
-    }, "Filtering Results with: name = {@names.join('|')}{~%fields}";
+        temp $projects-file = packages(:force, :$ignore, :packages-file($projects-file));
+        Zef::Authority::P6C.new(:$projects-file).search(|@names, |%fields).list;
+    }, "Querying for: name = {@names.join('|')}{~%fields}";
 
     say "===> Found " ~ $results.list.elems ~ " results";
     my @rows = eager gather for $results.list {
@@ -485,18 +451,15 @@ multi MAIN('search', Bool :$v, *@names, *%fields) is export(:search) {
 
 
 # todo: use the auto-sizing table formatting
-multi MAIN('info', *@modules, Bool :$v, Bool :$boring) is export(:info) {
-    my $auth := CLI-WAITING-BAR {
-        my $p6c = Zef::Authority::P6C.new;
-        $p6c.update-projects;
-        $p6c;
-    }, "Querying Server", :$boring;
-
-
-    # Filter the projects.json file
-    my $results := CLI-WAITING-BAR { 
+multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool :$boring) is export(:info) {
+    my @packages;
+    my $results = CLI-WAITING-BAR { 
+        temp $projects-file = packages(:force, :$ignore, :packages-file($projects-file));
+        my $auth = Zef::Authority::P6C.new(:$projects-file);
+        @packages = $auth.projects.list;
         $auth.search(|@modules).list;
-    }, "Filtering Results", :$boring;
+    }, "Querying for: name = {@modules.join('|')}";
+
 
     say "===> Found " ~ $results.list.elems ~ " results";
 
@@ -535,7 +498,7 @@ multi MAIN('info', *@modules, Bool :$v, Bool :$boring) is export(:info) {
         }
 
         if $meta.<depends> && $v {
-            my $deps := Zef::Utils::Depends.new(projects => $auth.projects)\
+            my $deps := Zef::Utils::Depends.new(projects => @packages.list)\
                 .topological-sort($meta);
 
             for $deps.list.kv -> $i1, $level {
@@ -548,7 +511,36 @@ multi MAIN('info', *@modules, Bool :$v, Bool :$boring) is export(:info) {
     }
 }
 
+# this should go into Zef::Authority
+sub packages(Bool :$force, :$ignore, :$boring, :$packages-file is copy) {
+    use Zef::Utils::JSON;
+    my $file = $packages-file // $*TMPDIR.child("p6c-packages.{~time}.{(1..10000).pick(1)}.json");
+    state $p6c = Zef::Authority::P6C.new(:projects-files($file));
+    once { $p6c.update-projects unless $p6c.projects.elems }
 
+    my @packages = $p6c.projects.list;
+    print "===> Module count: {@packages.elems}\n";
+    @packages = @packages\
+        .grep({ $_.<name>:exists })\
+        .grep({ $_.<name> ~~ none($ignore.list) })\
+        .grep({ any($_.<depends>.flat)       ~~ none($ignore.list) })\
+        .grep({ any($_.<test-depends>.flat)  ~~ none($ignore.list) })\
+        .grep({ any($_.<build-depends>.flat) ~~ none($ignore.list) })\
+        .pick(*);
+
+    unless ?$force {
+        my @curlis = @*INC.grep( { .starts-with("inst#") } )\
+            .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
+        @packages = @packages.grep(-> $package {not @curlis.flat.map({
+            $_.candidates($package<name>, :ver($package<ver> // $package<version> // '*'))
+        }).flat.elems });
+    }
+
+    print "===> Filtered module count: {@packages.elems}\n";
+    my $json = to-json(@packages.list);
+    $file.IO.spurt($json);
+    return ~$file;
+}
 
 # will be replaced soon
 sub verbose($phase, $work) {

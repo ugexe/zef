@@ -1,8 +1,17 @@
 unit module Zef::Utils::JSON;
 
+sub str-escape(str $text) {
+  return $text.subst(/'\\'/, '\\\\', :g)\
+              .subst(/"\n"/, '\\n',  :g)\
+              .subst(/"\r"/, '\\r',  :g)\
+              .subst(/"\t"/, '\\t',  :g)\
+              .subst(/'"'/,  '\\"',  :g);
+}
+
 sub to-json($obj, Bool :$pretty = True, Int :$level = 0, Int :$spacing = 2) is export {
     return "{$obj}" if $obj ~~ Int|Rat;
-    return "\"{$obj.subst(/'"'/, '\\"', :g)}\"" if $obj ~~ Str;
+    return "{$obj ?? 'true' !! 'false'}" if $obj ~~ Bool;
+    return "\"{str-escape($obj)}\"" if $obj ~~ Str;
 
     my int  $lvl  = $level;
     my Bool $arr  = $obj ~~ Array;
@@ -21,7 +30,7 @@ sub to-json($obj, Bool :$pretty = True, Int :$level = 0, Int :$spacing = 2) is e
     }
     else {
         for $obj.keys -> $key {
-            $out ~= "\"{$key.subst(/'"'/, '\\"', :g)}\": " ~ to-json($obj{$key}, :level($level+1), :$spacing, :$pretty) ~ ',';
+            $out ~= "\"{$key ~~ Str ?? str-escape($key) !! $key}\": " ~ to-json($obj{$key}, :level($level+1), :$spacing, :$pretty) ~ ',';
             $spacer();
         }
     }

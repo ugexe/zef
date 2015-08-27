@@ -8,7 +8,8 @@ role Zef::Authority {
 
     submethod BUILD(:$projects-file) {
         if ?$projects-file {
-            if ?$projects-file.IO.e {
+            my $file = ~$projects-file;
+            if $projects-file.IO.e {
                 my $json     := from-json($projects-file.IO.slurp);
                 @!projects    = try { $json.list }\
                     or fail "!!!> Invalid projects file.";

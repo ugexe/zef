@@ -70,6 +70,6 @@ class Zef::Net::HTTP::Response does HTTP::Response {
         return $data if ?$bin;
 
         my $content := $!chunked ?? ChunkedReader($data) !! $data;
-        return $!encoding ?? $content>>.decode($!encoding).join !! $content;
+        return $!encoding ?? $content.decode($!encoding) !! $content;
     }
 }

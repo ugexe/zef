@@ -4,7 +4,7 @@
 
 role Zef::Net::HTTP::Actions::Header::Allow {
     method Allow($/) {
-        make $/<allow-value>>>.made;
+        make $/<allow-value>.map(*.made).list;
     }
 
     method allow-value($/) {
@@ -18,7 +18,7 @@ role Zef::Net::HTTP::Actions::Header::Allow {
 
 role Zef::Net::HTTP::Actions::Header::Accept-Language {
     method Accept-Language($/) {
-        make $/<accept-language-value>>>.made;
+        make $/<accept-language-value>.map(*.made).list;
     }
 
     method accept-language-value($/) {
@@ -45,7 +45,7 @@ role Zef::Net::HTTP::Actions::Header::Accept-Language {
 
 role Zef::Net::HTTP::Actions::Header::Accept-Encoding { 
     method Accept-Encoding($/) {
-        make $/<accept-encoding-value>>>.made;
+        make $/<accept-encoding-value>.map(*.made).list;
     }
 
     method accept-encoding-value($/) {
@@ -68,12 +68,12 @@ role Zef::Net::HTTP::Actions::Header::Accept-Encoding {
 
 role Zef::Net::HTTP::Actions::Header::Accept { 
     method Accept($/) {
-        make $/<accept-value>>>.made;
+        make $/<accept-value>.map(*.made).list;
     }
 
     method accept-value($/) {
         if $/<accept-params> {
-            make [range => $/<media-range>.made, $/<accept-params>.made.flat];
+            make [range => $/<media-range>.made, $/<accept-params>.made];
         }
         else {
             make [range => $/<media-range>.made];
@@ -82,7 +82,7 @@ role Zef::Net::HTTP::Actions::Header::Accept {
 
     method media-range($/) {
         if $/<parameter> {
-            make [type => $/<type>.Str, subtype => $/<subtype>.Str, parameters => [$/<parameter>>>.made]];
+            make [type => $/<type>.Str, subtype => $/<subtype>.Str, parameters => $/<parameter>.map(*.made).list];
         }
         else {
             make [type => $/<type>.Str, subtype => $/<subtype>.Str];            
@@ -95,7 +95,7 @@ role Zef::Net::HTTP::Actions::Header::Accept {
 
     method accept-params($/) { 
         if $/<accept-ext> {
-            make [weight => $/<weight>.made, parameters => [$/<accept-ext>>>.made]];
+            make [weight => $/<weight>.made, parameters => $/<accept-ext>.map(*.made).list];
         }
         else {
             make [weight => $/<weight>.made];
@@ -128,12 +128,12 @@ role Zef::Net::HTTP::Actions::Header::Connection {
 
 role Zef::Net::HTTP::Actions::Header::Content-Type {
     method Content-Type($/) {
-        make $<media-type>.made.flat;
+        make $<media-type>.made;
     }
 
     method media-type($/) {
         if $/<parameter> {
-            make [type => $/<type>.Str, subtype => $/<subtype>.Str, parameters => [$/<parameter>>>.made.flat]];
+            make [type => $/<type>.Str, subtype => $/<subtype>.Str, parameters => [$/<parameter>.map(*.made).list.flat]];
         }
         else {
             make [type => $/<type>.Str, subtype => $/<subtype>.Str];            
@@ -143,7 +143,7 @@ role Zef::Net::HTTP::Actions::Header::Content-Type {
 
 role Zef::Net::HTTP::Actions::Header::Transfer-Encoding {
     method Transfer-Encoding($/) {
-        make $<transfer-encoding-value>>>.made;
+        make $<transfer-encoding-value>.map(*.made).list;
     }
 
     method transfer-encoding-value($/) {
@@ -194,7 +194,7 @@ class Zef::Net::HTTP::Actions {
 
     method header-field($/) {
         if $/<value>.made {
-            make $/<name>.Str => [$/<value>.map(*.made)];
+            make $/<name>.Str => $/<value>.ast;
         }
         else {
             make $/<name>.Str => $/<value>.Str;

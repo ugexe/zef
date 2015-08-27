@@ -16,7 +16,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         my $response := $!ua.get: ~@!mirrors.pick(1);
         # XXX GLR hack
         # my $content  := $response.content or fail "!!!> Failed to update projects file";
-        my $content    := $response.content(:bin).decode('utf-8');
+        my $content    := $response.content;
 
         my $json     := from-json($content);
         @!projects    = try { $json.list }\

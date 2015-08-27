@@ -1,8 +1,6 @@
 use v6;
 use Test;
 plan 3;
-skip-rest; # not used for now
-return 0;
 
 use Zef::Net::HTTP::Grammar;
 use Zef::Net::HTTP::Actions;

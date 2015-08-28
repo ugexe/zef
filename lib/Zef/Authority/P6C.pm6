@@ -39,9 +39,9 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         my @wants-dists := @!projects.grep({ $_.<name> ~~ any(@wants) }).list;
 
         my @wants-dists-filtered = !@ignore ?? @wants-dists !! @wants-dists.grep({
-               (!$depends       || any($_.<depends>.list)       ~~ none(@ignore))
-            && (!$test-depends  || any($_.<build-depends>.list) ~~ none(@ignore))
-            && (!$build-depends || any($_.<test-depends>.list)  ~~ none(@ignore))
+               (!$depends       || any($_.<depends>.list.grep(*.so))       ~~ none(@ignore.grep(*.so)))
+            && (!$test-depends  || any($_.<build-depends>.list.grep(*.so)) ~~ none(@ignore.grep(*.so)))
+            && (!$build-depends || any($_.<test-depends>.list.grep(*.so))  ~~ none(@ignore.grep(*.so)))
         });
 
         return () unless @wants-dists-filtered;

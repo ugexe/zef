@@ -24,8 +24,6 @@ role Zef::Distribution {
         }
     }
 
-    method candidates(::CLASS:D:) { flat $.curlis.map: {.candidates($.name, :auth($.authority), :ver($.version)).grep(*)} }
-
     method wanted(:$take-whatever = True) {
         return True  if  $.version eq '*' && $take-whatever;
         return False if $.candidates.first({ $.VCOMPARE($_.<ver>.Str) ~~ any(Order::Same, Order::Less) });

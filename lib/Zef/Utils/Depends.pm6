@@ -127,10 +127,11 @@ class Zef::Utils::Depends {
     method extract-deps(*@paths) {
         my @pm-files = @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
         my $slash    = / [ \/ | '\\' ]  /;
-        my $not-deps = any(<v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>);
+        my @skip     = <v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>;
 
         my @minimeta = gather for @pm-files -> $f is copy {
-            my @depends = $f.IO.slurp.lines.map(-> $line {
+            my @depends;
+            for $f.IO.slurp.lines -> $line {
                 state Int $pod-block;
                 my $code-only = do given $line {
                     # remove pod
@@ -150,11 +151,14 @@ class Zef::Utils::Depends {
 
                 # Only bother parsing if the line has enough chars for a `use *`
                 next unless $code-only.chars > 5;
+
                 my $dep-parser = Grammar::Dependency::Parser.parse($code-only);
-                $dep-parser.<load-statement>.list\
-                    .grep({ $_.<short-name>.Str ~~ none($not-deps) })\
+                my @deps = $dep-parser.<load-statement>.list.grep(*.so)\
+                    .grep({ $_.<short-name>.Str ~~ none(@skip) })\
                     .map({ $_.<short-name>.Str });
-            });
+
+                @depends.push($(@deps));
+            }
 
             my $file-path = $f.IO.path;
 

@@ -111,4 +111,10 @@ class Zef::Distribution::Local does Zef::Distribution {
         }
         $p.hash;
     }
+
+    method candidates(::CLASS:D:) { flat $.curlis.map: {.candidates($.name, :auth($.authority), :ver($.version)).grep(*)} }
+    method curlis {
+        @*INC.grep( { .starts-with("inst#") } )\
+            .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
+    }
 }

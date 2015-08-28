@@ -523,10 +523,10 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
     print "===> Module count: {@packages.elems}\n";
     @packages = @packages\
         .grep({ $_.<name>:exists })\
-        .grep({ $_.<name> ~~ none($ignore.list) })\
-        .grep({ any($_.<depends>.flat)       ~~ none($ignore.list) })\
-        .grep({ any($_.<test-depends>.flat)  ~~ none($ignore.list) })\
-        .grep({ any($_.<build-depends>.flat) ~~ none($ignore.list) })\
+        .grep({ $_.<name> ~~ none($ignore.list.grep(*.so)) })\
+        .grep({ any($_.<depends>.flat.grep(*.so))       ~~ none($ignore.list.grep(*.so)) })\
+        .grep({ any($_.<test-depends>.flat.grep(*.so))  ~~ none($ignore.list.grep(*.so)) })\
+        .grep({ any($_.<build-depends>.flat.grep(*.so)) ~~ none($ignore.list.grep(*.so)) })\
         .pick(*);
 
     unless ?$force {

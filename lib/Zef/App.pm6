@@ -1,6 +1,6 @@
 unit class Zef::App;
 
-use Zef::Distribution;
+use Zef::Distribution::Local;
 use Zef::Manifest;
 
 use Zef::Roles::Installing;
@@ -26,7 +26,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
 
     my $dists := gather for @repos -> $path {
         state @perl6lib; # store paths to be used in PERL6LIB in subsequent `depends` processes
-        my $dist := Zef::Distribution.new(
+        my $dist := Zef::Distribution::Local.new(
             path     => $path.IO, 
             includes => $lib.list.unique,
             perl6lib => @perl6lib.unique,
@@ -187,8 +187,8 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
     # Prevent processing modules that are already installed with the same or greater version.
     # Version '*' is always installed for now.
-    # TEMPORARY - need to refactor as to not create Zef::Distribution for a path multiple times
-    my @dists  = @repos.map({ Zef::Distribution.new(path => $_.IO) }).list;
+    # TEMPORARY - need to refactor as to not create Zef::Distribution::Local for a path multiple times
+    my @dists  = @repos.map({ Zef::Distribution::Local.new(path => $_.IO) }).list;
     my @wanted = @dists.grep({ $_.wanted || ($force && $_.name ~~ any(@modules)) }).list;
     if @wanted.elems != @dists.elems {
         my @skipped = @dists.grep({ $_.name !~~ any(@wanted>>.name) });
@@ -256,7 +256,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
             for $built.list -> $dist {
                 # todo: check against $tested to make sure tests were passed
                 # currently we call &MAIN for each phase, thus creating a new
-                # Zef::Distribution object for each phase. This means the roles
+                # Zef::Distribution::Local object for each phase. This means the roles
                 # do not carry over. The fix should work around is.
 
                 # todo: refactor
@@ -363,7 +363,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
 
     my $dists := gather for @repos -> $path {
         state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
-        my $dist := Zef::Distribution.new(
+        my $dist := Zef::Distribution::Local.new(
             path         => $path.IO, 
             precomp-path => (?$save-to.IO.is-relative
                 ?? $save-to.IO.absolute($path).IO

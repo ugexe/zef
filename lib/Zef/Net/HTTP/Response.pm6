@@ -39,7 +39,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
 
             %!headers = $!header-grammar.<header-field>>>.made;
 
-            for %!headers<Transfer-Encoding>.list -> $te {
+            for %!headers<Transfer-Encoding>.grep(*.so).list -> $te {
                 given $te {
                     when /^chunked/ { $!chunked = 1                           }
                     default         { fail "'{$te}' Transfer-Encoding is NYI" }

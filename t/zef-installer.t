@@ -1,5 +1,5 @@
 use v6;
-use Zef::Distribution;
+use Zef::Distribution::Local;
 use Zef::Roles::Installing;
 use Zef::Utils::PathTools;
 use Test;
@@ -13,7 +13,7 @@ subtest {
     try mkdirs($install-to);
     LEAVE { sleep 1; try rm($install-to, :d, :f, :r) }
 
-    my $distribution = Zef::Distribution.new(:$path, :precomp-path($install-to));
+    my $distribution = Zef::Distribution::Local.new(:$path, :precomp-path($install-to));
     $distribution does Zef::Roles::Installing[$install-to];
 
     my @source-files = $distribution.provides(:absolute).values;

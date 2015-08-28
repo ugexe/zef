@@ -1,118 +1,8 @@
-# todo: 
-# 1) Allow creation of a Distribution with precompiled files only (no source).
-# 2) Allow passing in the META hash itself instead of requiring it as an existing file.
-# 3) ACCEPTS/cmp methods so we can easily compare Distribution objects.
-# 4) System 'logging' such that we can record actions like:
-#   * IO actions like mkdir, cd, etc
-#   * Proc actions (shell/run)
-#   such that we could theoretically generate a perl6 script that would mimick the function of 
-#   a makefile (like ufo), allowing simple sans-package-manager installs.
-
-class Zef::Distribution {
+role Zef::Distribution {
     has $.name;
     has $.authority;
     has $.version;
 
-    has %.meta;
-
-    has $.path;         # Where root path of the Distribution where a META is located
-    has $.meta-path;    # Path to META file (META.info, META6.json)
-    has $.source-path;  # These will help centralize the area we handle file paths
-    has $.precomp-path; # to make handling windows fixes easier
-
-    has @.includes;
-    has @.perl6lib;
-
-    method metainfo {self.hash}
-    method hash {
-        {
-            :$!name,
-            :auth($!authority),
-            :ver($!version                   // '*'),
-            :description(%!meta<description> //  ''),
-            :depends(%!meta<depends>.list    //  []),
-            :provides(%!meta<provides>.hash  //  {}),
-            :files(%!meta<files>.list        //  []),
-            :source-url(%!meta<source-url>   //  ''),
-        }
-    }
-
-    submethod BUILD(IO::Path :$!path!, IO::Path :$!meta-path, :@!perl6lib,
-        IO::Path :$!source-path, IO::Path :$!precomp-path, :@!includes) {
-        
-        $!meta-path = ($!path.child('META.info'), $!path.child('META6.json'))\
-            .grep(*.IO.e).list.first(*.IO.f) unless $!meta-path;
-        %!meta = %(from-json( $!meta-path.IO.slurp.list ))\
-            or die "Distributions require a META file, but one was not found.";
-
-
-        # Clean the `provides` paths. If we find an absolute path, assume that it is 
-        # a mistake. Then turn it into a relative path now so further functionality
-        # can can really assume a relative path.
-        %!meta<provides>.hash.kv.grep({ $_.IO.is-absolute }).values\
-            .map: -> $location is rw { $location = $!path.child($location).relative($!path) }
-
-        # Set defaults for the location of the source files if needed by 
-        # looking at the META provides and finding the longest common 
-        # directory. This could be improved to allow multiple paths.
-
-        unless $!source-path {
-            die "No provides section." unless %!meta<provides>; # ??
-            my @p = %!meta<provides>.values\
-                .map: { [$!path.IO.SPEC.splitdir($_.IO.parent).grep(*.so)] }
-
-            my @keep-parts = eager gather for 0..@p.list.map({ $_.list.end }).min -> $i {
-                my @check = @p.list.map({ $_.[$i]; }).list;
-                my $elems = @check.unique.elems;
-                last if @check.unique.elems !== 1;
-                take @check[0];
-            }
-            my $base = @keep-parts[0]; # $*SPEC.catdir(@keep-parts);
-            $base = '.' if $base.IO.f && !$base.IO.d;
-            $!source-path = $!path.child($base);
-        }
-
-        unless $!precomp-path {
-            $!precomp-path = @!includes
-                ?? @!includes.first(*.IO.e).IO
-                !! $!path.child('blib').child($!source-path.IO.relative($!path).IO.relative);
-        }
-
-        $!name      = %!meta<name> or die 'META must provide a `name` field';
-        $!authority = %!meta<auth> || "{%!meta<authority> || ''}:{%!meta<author> || ''}";
-        $!version   = Version.new(%!meta<ver> || %!meta<version> || '*').Str;
-
-        # bind these so they get updated in methods metainfo/hash
-        %!meta<auth>    := $!authority;
-        %!meta<version> := $!version;
-    }
-
-    method content(*@keys) {
-        my $resource = @keys[*-1];
-        my $wanted   = @keys[0..*-2].reduce(-> $n1 is rw, $n2 {
-            once $n1 = %!meta{$n1};
-            $n1{$n2}
-        });
-        die "Can't find requested meta file key {@keys[*-1]}" unless $wanted eq $resource;
-
-        my $abspath = $resource.IO.is-absolute ?? ~$resource.IO !! ~$resource.IO.absolute($.path).IO;
-        my $io = IO::Path.new-from-absolute-path($abspath);
-
-        die "Can't find resource with path: {$io}" unless $io.IO.e && $io.IO.f;
-
-        $io.slurp;
-    }
-
-    method provides(Bool :$absolute) {
-        my $p := gather for %.meta<provides>.pairs {
-            my $name    := $_.key;
-            my $pm-file := $_.value;
-            $absolute
-                ?? take $name => ($pm-file.IO.is-relative ?? $pm-file.IO.absolute($!path) !! $pm-file.IO.abspath)
-                !! take $name => ($pm-file.IO.is-relative ?? $pm-file.IO !! $pm-file.IO.relative($!path));
-        }
-        $p.hash;
-    }
 
     # todo: something similar that checks cver to know when to rebuild
     method is-installed(*@curlis is copy) {
@@ -134,12 +24,6 @@ class Zef::Distribution {
         }
     }
 
-
-    method curlis {
-        @*INC.grep( { .starts-with("inst#") } )\
-            .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
-    }
-
     method candidates(::CLASS:D:) { flat $.curlis.map: {.candidates($.name, :auth($.authority), :ver($.version)).grep(*)} }
 
     method wanted(:$take-whatever = True) {
@@ -148,7 +32,11 @@ class Zef::Distribution {
         return True;
     }
 
+    method metainfo         { $.meta }
     method VCOMPARE($other) { VCOMPARE($.version, $other) }
+
+    method content {...}
+    method meta    {...}
 }
 
 sub VCOMPARE($v1, $v2) is export {

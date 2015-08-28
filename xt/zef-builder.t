@@ -1,5 +1,5 @@
 use v6;
-use Zef::Distribution;
+use Zef::Distribution::Local;
 use Zef::Roles::Precompiling;
 use Zef::Roles::Processing;
 use Zef::Utils::PathTools;
@@ -19,7 +19,7 @@ subtest {
         try rm($save-to, :d, :f, :r);
     }
 
-    my $distribution = Zef::Distribution.new(:$path, :$precomp-path);
+    my $distribution = Zef::Distribution::Local.new(:$path, :$precomp-path);
     $distribution does Zef::Roles::Precompiling;
     $distribution does Zef::Roles::Processing;
 

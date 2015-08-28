@@ -6,7 +6,8 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
 
     method queue-processes(*@groups) {
         my %env = %*ENV.hash;
-        %env<PERL6LIB> = (%env<PERL6LIB>.list // (), @.perl6lib.list).flat.join(',');
+        my $p6lib = (%env<PERL6LIB>.list, @.perl6lib.list).flat.grep(*.so).join(',');
+        %env<PERL6LIB> = $p6lib if $p6lib.so;
 
         my @procs;
         for @groups.flat -> $group {

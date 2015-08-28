@@ -1,5 +1,5 @@
 use v6;
-use Zef::Distribution;
+use Zef::Distribution::Local;
 use Zef::Roles::Testing;
 use Zef::Roles::Processing;
 use Test;
@@ -10,7 +10,7 @@ plan 1;
 subtest {
     my $path := $?FILE.IO.dirname.IO.parent;
 
-    my $distribution = Zef::Distribution.new(:$path);
+    my $distribution = Zef::Distribution::Local.new(:$path);
     $distribution does Zef::Roles::Testing;
     $distribution does Zef::Roles::Processing;
     my @cmds = $distribution.test-cmds;

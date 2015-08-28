@@ -81,7 +81,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
 }
 
 
-multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy,
+multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dry,
     Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$async) is export(:smoke) {
     say "===> Smoke testing started: [{time}]";
 
@@ -93,10 +93,11 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy,
     # todo: save to a custom CURLI so the install command can automatically ignore modules
     # that have already been tested to satisfy earlier dependencies.
     for @packages -> $result {
-        my @args = '-Ilib', 'bin/zef', '--dry', '--boring', 
-            "--projects-file={$projects-file}", $ignore.map({ "--ignore={$_}" }).list;
+        my @args = flat '-Ilib', 'bin/zef', '--boring',
+            "--projects-file={$projects-file}", $ignore.flat.map({ "--ignore={$_}" }).list;
         @args.push('-v')        if $v;
         @args.push('--report')  if $report;
+        @args.push('--dry')     if $dry;
         @args.push('--shuffle') if $shuffle;
         @args.push('--no-wrap') if $no-wrap;
         @args.push('--async')   if $async;
@@ -512,7 +513,7 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
 }
 
 # this should go into Zef::Authority
-sub packages(Bool :$force, :$ignore, :$boring, :$packages-file is copy) {
+sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
     use Zef::Utils::JSON;
     my $file = $packages-file // $*TMPDIR.child("p6c-packages.{~time}.{(1..10000).pick(1)}.json");
     state $p6c = Zef::Authority::P6C.new(:projects-files($file));

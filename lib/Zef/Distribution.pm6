@@ -57,7 +57,7 @@ class Zef::Distribution {
         # directory. This could be improved to allow multiple paths.
 
         unless $!source-path {
-            die unless %!meta<provides>;
+            die "No provides section." unless %!meta<provides>; # ??
             my @p = %!meta<provides>.values\
                 .map: { [$!path.IO.SPEC.splitdir($_.IO.parent).grep(*.so)] }
 

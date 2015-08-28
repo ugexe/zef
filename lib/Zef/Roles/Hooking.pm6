@@ -35,6 +35,6 @@ role Zef::Roles::Hooking {
         my $hooks-dir   = $.path.child('hooks');
         my $cmd         = "Build.new.build('{$.path}');";
         # last item has no affect on program execution, but allows STDMux to show `Build.pm` as the file name
-        $[$*EXECUTABLE, '-I.', '-MBuild', '-e', $.async ?? $cmd !! '"'~$cmd~'"', 'Build.pm'];
+        $($*EXECUTABLE, '-I.', '-MBuild', '-e', $.async ?? $cmd !! '"'~$cmd~'"', 'Build.pm');
     }
 }

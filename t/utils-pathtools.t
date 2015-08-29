@@ -11,9 +11,9 @@ subtest {
     }
 
 
-    my $sub-save-to = $save-to.IO.child('sub1');
+    my $sub-save-to     = $save-to.IO.child('sub1');
     my $sub-sub-save-to = $sub-save-to.IO.child('sub2');
-    my $dir = try mkdirs($sub-sub-save-to);
+    my $dir             = try mkdirs($sub-sub-save-to);
 
     ok $sub-sub-save-to.IO.e, "Created {$sub-sub-save-to}";
     is $dir.IO.path, $sub-sub-save-to.IO.path, 'Proper directory path';

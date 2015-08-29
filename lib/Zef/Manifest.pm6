@@ -70,7 +70,7 @@ class Zef::Manifest {
     method uninstall($dist) {
         $!lock.protect( {
         my $repo         = %!hash;
-        my @candi        = $!cur.candidates($dist.name, :auth($dist.auth), :ver($dist.ver)) or return False;
+        my @candi        = $!cur.candidates($dist.name, :auth($dist.authority), :ver($dist.version)) or return False;
         my $delete-idx   = $repo<dists>.first-index({ $_<id> eq @candi[0]<id> });
 
         my @provides  = $repo<dists>[$delete-idx]<provides>.values>>.values.flat.map({ $_.<file> }).list;

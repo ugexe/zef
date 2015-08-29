@@ -4,6 +4,8 @@ sub str-escape(str $text) {
   return $text.subst(/'\\'/, '\\\\', :g)\
               .subst(/"\n"/, '\\n',  :g)\
               .subst(/"\r"/, '\\r',  :g)\
+              .subst(/"\f"/, '\\f',  :g)\
+              .subst(/"\b"/, '\\b',  :g)\
               .subst(/"\t"/, '\\t',  :g)\
               .subst(/'"'/,  '\\"',  :g);
 }

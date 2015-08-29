@@ -1,5 +1,8 @@
 unit module Zef;
 
+require Zef::Distribution::Local;
+require Zef::Manifest;
+
 require Zef::Net::HTTP;
 require Zef::Net::HTTP::Client;
 require Zef::Net::URI;

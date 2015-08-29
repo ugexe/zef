@@ -87,42 +87,6 @@ class Zef::Utils::Depends {
         return @levels;
     }
 
-
-    # Creates a build order from a list of meta files
-    method build-dep-tree(@xmetas = @!projects, :$target) {
-        my @depends = $target // @xmetas // @!projects;
-        my @tree = gather while @depends.shift -> %meta {
-            state %marked;
-            unless %marked.{%meta.<name>} {
-                my @required = @xmetas.grep({ $_.<name> ~~ any(%meta<depends>.list) });
-                my @needed   = @required.grep(-> %d { not %marked.{%d.<name>} });
-                @needed.map(-> %d { @depends.unshift({ %d }) });
-                @depends.push({ %meta });
-                next if @needed;
-            }
-            take { %meta } unless %marked.{%meta.<name>}++;
-        }
-        return @tree;
-    }
-
-    method compress(@tree is copy) {
-        my @ctree;
-        my ($i, $level) = 0, 0;
-        for @tree -> $n {
-            for $i == 0 ?? () !! @tree[0..$i-1] -> $l {
-                $level++ if $n<dependencies>.grep($l<name>);
-            }
-            while $level > @ctree.elems {
-                @ctree.push([]);
-            }
-            @ctree[$level].push($n);
-            $i++;
-            $level = 0;
-        }
-
-        return @ctree.grep({ $_.elems > 0 });
-    }
-
     # Determine build order for a CompUnitRepo's provides by parsing the source
     method extract-deps(*@paths) {
         my @pm-files = @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });

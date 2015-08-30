@@ -23,7 +23,7 @@ class Zef::Utils::Depends {
     # http://rosettacode.org/wiki/Topological_sort/Extracted_top_item#Perl_6
     method topological-sort (*@wanted, *%fields) {
         %fields<depends> = True unless %fields.elems;
-        my @top = @wanted.flatmap({ $_.<name> });
+        my @top = @wanted.flat.list.map({ $_.<name> });
         my %deps;
 
         # Handle where provides has 2+ package names mapped to the same path

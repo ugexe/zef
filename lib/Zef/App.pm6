@@ -162,7 +162,6 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # VALIDATION
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
     my @m := $fetched.list.grep({ $_.<ok>.so }).list;
-
     verbose('META.info availability', @m);
 
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
@@ -188,16 +187,20 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # Prevent processing modules that are already installed with the same or greater version.
     # Version '*' is always installed for now.
     # TEMPORARY - need to refactor as to not create Zef::Distribution::Local for a path multiple times
-    my @dists  = @repos.map({ Zef::Distribution::Local.new(path => $_.IO) }).list;
-    my @wanted = @dists.grep({ $_.wanted || ($force && $_.name ~~ any(@modules)) }).list;
+    my @dists     = @repos.map(   { Zef::Distribution::Local.new(path => $_.IO)            } ).list;
+    my @wanted    = @dists.grep(  { $_.wanted || ($force && $_.name ~~ any(@modules.list)) } ).list;
+    my @installed = @dists.grep(  { $_.name !~~ any(@wanted>>.name)                        } ).list;
+    @wanted       = @wanted.grep( { $_.name ~~ none(@installed)                            } ).list if @installed.elems;
+
     if @wanted.elems != @dists.elems {
-        my @skipped = @dists.grep({ $_.name !~~ any(@wanted>>.name) });
-        print "===> The following modules are already up to date: {@skipped.map(*.name).join(', ')}\n";
-        @repos = @repos.grep: { none(@skipped.map(*.path).grep(*.ACCEPTS($_.IO)))         }
-        @metas = @metas.grep: { none(@skipped.map(*.path).grep(*.ACCEPTS($_.dirname.IO))) }
+        print "===> The following modules are already up to date: {@installed.map(*.name).join(', ')}\n";
+        if !$force {
+            @repos = @repos.grep: { none(@installed.map(*.path).grep(*.ACCEPTS($_.IO)))         }
+            @metas = @metas.grep: { none(@installed.map(*.path).grep(*.ACCEPTS($_.dirname.IO))) }
+        }
+        print "===> ...but using --force\n" if ?$force;
         print "===> Nothing to do.\n" and exit 0 unless @repos.elems && @metas.elems;
     }
-
 
     # BUIDLING
     my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap)\
@@ -521,25 +524,20 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
 
     my @packages = $p6c.projects.list;
     print "===> Module count: {@packages.elems}\n";
-    @packages = @packages\
-        .grep({ $_.<name>:exists })\
-        .grep({ $_.<name> ~~ none($ignore.list.grep(*.so)) })\
-        .grep({ any($_.<depends>.flat.grep(*.so))       ~~ none($ignore.list.grep(*.so)) })\
-        .grep({ any($_.<test-depends>.flat.grep(*.so))  ~~ none($ignore.list.grep(*.so)) })\
-        .grep({ any($_.<build-depends>.flat.grep(*.so)) ~~ none($ignore.list.grep(*.so)) })\
-        .pick(*);
-
-    unless ?$force {
-        my @curlis = @*INC.grep( { .starts-with("inst#") } )\
-            .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
-        @packages = @packages.grep(-> $package {not @curlis.flat.map({
-            $_.candidates($package<name>, :ver($package<ver> // $package<version> // '*'))
-        }).flat.elems });
+    if $ignore.list.elems {
+        @packages = @packages\
+            .grep({ $_.<name>:exists })\
+            .grep({ $_.<name> ~~ none($ignore.list.grep(*.so)) })\
+            .grep({ any($_.<depends>.list.grep(*.so))       ~~ none($ignore.list.grep(*.so)) })\
+            .grep({ any($_.<test-depends>.list.grep(*.so))  ~~ none($ignore.list.grep(*.so)) })\
+            .grep({ any($_.<build-depends>.list.grep(*.so)) ~~ none($ignore.list.grep(*.so)) })\
+            .pick(*);
     }
 
     print "===> Filtered module count: {@packages.elems}\n";
     my $json = to-json(@packages.list);
     $file.IO.spurt($json);
+    print "===> Package file: $file\n";
     return ~$file;
 }
 

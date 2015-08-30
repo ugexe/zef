@@ -64,7 +64,11 @@ class Zef::Distribution::Local does Zef::Distribution {
         }
 
         $!name      = %!hash<name> or die 'META must provide a `name` field';
-        $!authority = %!hash<auth> || "{%!hash<authority> || ''}:{%!hash<author> || ''}";
+        $!authority = %!hash<auth>:exists && %!hash<auth>.chars > 1
+            ?? %!hash<auth>
+            !! ("{%!hash<authority> // ''}:{%!hash<author> // ''}".chars > 3)
+                ?? "{%!hash<authority>}:{%!hash<author>}"
+                !! Nil;
         $!version   = Version.new(%!hash<ver> || %!hash<version> || '*').Str;
 
         # bind these so they get updated in methods metainfo/hash
@@ -112,7 +116,11 @@ class Zef::Distribution::Local does Zef::Distribution {
         $p.hash;
     }
 
-    method candidates(::CLASS:D:) { flat $.curlis.map: {.candidates($.name, :auth($.authority), :ver($.version)).grep(*)} }
+    method candidates(::CLASS:D:) {
+        my %opts;
+        %opts<authority> = $.authority if $.authority;
+        flat $.curlis.map: {.candidates($.name, :auth($.authority)).grep(*)}
+    }
     method curlis {
         @*INC.grep( { .starts-with("inst#") } )\
             .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };

@@ -13,13 +13,10 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     has @!mirrors = <http://ecosystem-api.p6c.org/projects.json>;
 
     method update-projects {
-        my $response := $!ua.get: ~@!mirrors.pick(1);
-        # XXX GLR hack
-        # my $content  := $response.content or fail "!!!> Failed to update projects file";
-        my $content    := $response.content;
-
-        my $json     := from-json($content);
-        @!projects    = try { $json.list }\
+        my $response = $!ua.get: ~@!mirrors.pick(1);
+        my $content  = $response.content or fail "!!!> Failed to update projects file";
+        my $json     = from-json($content);
+        @!projects   = try { $json.list }\
             or fail "!!!> Missing or invalid projects json";
     }
 
@@ -36,7 +33,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         Bool :$fetch = True,
     ) {
         self.update-projects if $fetch && !@!projects.elems;
-        my @wants-dists := @!projects.grep({ $_.<name> ~~ any(@wants) }).list;
+        my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) }).list;
 
         my @wants-dists-filtered = !@ignore ?? @wants-dists !! @wants-dists.grep({
                (!$depends       || any($_.<depends>.list.grep(*.so))       ~~ none(@ignore.grep(*.so)))
@@ -55,10 +52,10 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         # Try to fetch each distribution dependency
         eager gather for $levels -> $level {
             for $level.list -> $package-name {
-                next if $package-name ~~ any(@skip);
+                next if $package-name.lc ~~ any(@skip>>.lc);
                 # todo: filter projects by version/auth
-                my %dist := @!projects.first({ $_.<name> eq $package-name }).hash;
-                say "!!!> No source-url for $package-name (META info lost?)" and next unless ?%dist<source-url>;
+                my %dist = @!projects.list.first({ $_.<name>.lc eq $package-name.lc }).hash;
+                die "!!!> No source-url for $package-name (META info lost?)" and next unless ?%dist<source-url>;
 
                 # todo: implement the rest of however github.com transliterates paths
                 my $basename  := %dist<name>.trans(':' => '-');

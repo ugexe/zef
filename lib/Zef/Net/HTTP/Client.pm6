@@ -9,16 +9,17 @@ use Zef::Net::HTTP::Transport;
 class Zef::Net::HTTP::Client {
     has $.auto-check is rw;
     has @.history;
-
+    has %.headers    is rw;
     has HTTP::RoundTrip $.transporter;
     has HTTP::Response  $.responder;
     has HTTP::Request   $.requestor;
 
     submethod BUILD(
-        HTTP::RoundTrip :$!transporter, 
+        HTTP::RoundTrip :$!transporter,
         HTTP::Request   :$!requestor,
         HTTP::Response  :$!responder,
         Bool :$!auto-check,
+        :%!headers,
     ) {
         $!responder   := Zef::Net::HTTP::Response                    unless $!responder;
         $!requestor   := Zef::Net::HTTP::Request                     unless $!requestor;
@@ -26,7 +27,7 @@ class Zef::Net::HTTP::Client {
     }
 
     method method($method, $url, :$body) {
-        my $request  := $!requestor.new(:$method, :$url, :$body);
+        my $request  := $!requestor.new(:$method, :$url, :$body, :%!headers);
         my $response := $!transporter.round-trip($request);
 
         @!history.push: $response;

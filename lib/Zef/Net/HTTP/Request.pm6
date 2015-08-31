@@ -34,7 +34,8 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         :$!method = 'GET',
         :$!url!,
         :$!body,
-        :$!proxy where Bool|Str|Nil
+        :$!proxy where Bool|Str|Nil,
+        :%!headers,
     ) {
         $!uri := Zef::Net::URI.new(:$!url) or die "Couldn't create a URI from `$!url`";
 

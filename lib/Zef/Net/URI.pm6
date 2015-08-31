@@ -37,14 +37,15 @@ class Zef::Net::URI does HTTP::URI {
         }
     }
 
-    method Str {
-        return $!grammar.Str;
+    method Str { $!grammar.Str }
+
+    method relative(HTTP::URI:D: $base-url) {
+        self.is-relative
+            ?? self
+            !! Zef::Net::URI.new: :url((self.path.starts-with('/') ?? '' !! '/') ~ self.path);
     }
 
-    method rel2abs(HTTP::URI:D: $base-url) {
-        return unless self.is-relative;
-
-        my $abs-url = $base-url ~ (self.path.starts-with('/') ?? '' !! '/') ~ self.path;
-        return Zef::Net::URI.new(url => $abs-url);
+    method child(HTTP::URI:D: $child) {
+        Zef::Net::URI.new(:url(~self.Str ~ (self.Str.ends-with('/') ?? '' !! '/') ~ $child));
     }
 }

@@ -93,18 +93,18 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dr
     # todo: save to a custom CURLI so the install command can automatically ignore modules
     # that have already been tested to satisfy earlier dependencies.
     for @packages -> $result {
-        my @args = flat '-Ilib', 'bin/zef', '--boring',
-            "--projects-file={$projects-file}", $ignore.flat.map({ "--ignore={$_}" }).list;
+        my @args = 'zef', '--boring', "--projects-file={$projects-file}";
         @args.push('-v')        if $v;
         @args.push('--report')  if $report;
         @args.push('--dry')     if $dry;
         @args.push('--shuffle') if $shuffle;
         @args.push('--no-wrap') if $no-wrap;
         @args.push('--async')   if $async;
+        @args.push("--ignore=$_") for $ignore.grep(*.so).list;
 
         say "===> Smoking next: {$result.<name>}";
 
-        my $proc = run($*EXECUTABLE, @args.grep(*.so).list, 'install', $result.<name>, :out);
+        my $proc = run(@args.grep(*.so).list, 'install', $result.<name>, :out);
         say $_ for $proc.out.lines;
     }
 

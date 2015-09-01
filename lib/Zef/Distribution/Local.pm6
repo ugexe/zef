@@ -64,11 +64,7 @@ class Zef::Distribution::Local does Zef::Distribution {
         }
 
         $!name      = %!hash<name> or die 'META must provide a `name` field';
-        $!authority = %!hash<auth>:exists && %!hash<auth>.chars > 1
-            ?? %!hash<auth>
-            !! ("{%!hash<authority> // ''}:{%!hash<author> // ''}".chars > 3)
-                ?? "{%!hash<authority>}:{%!hash<author>}"
-                !! Nil;
+        $!authority = AUTHS2CS(|%!hash);
         $!version   = Version.new(%!hash<ver> || %!hash<version> || '*').Str;
 
         # bind these so they get updated in methods metainfo/hash
@@ -125,4 +121,37 @@ class Zef::Distribution::Local does Zef::Distribution {
         @*INC.grep( { .starts-with("inst#") } )\
             .map: { CompUnitRepo::Local::Installation.new(PARSE-INCLUDE-SPEC($_).[*-1]) };
     }
+}
+
+sub AUTHS2CS(*%fields) {
+    return unless %fields && %fields.keys;
+
+    if %fields<auth> -> $cs {
+        # return value if <auth> is valid. otherwise we will move on and guess
+        return $cs if %fields<auth> ~~ /.+ ':' .+/;
+
+        # $cs exists, but wasn't valid. if $author is ok, assume it is authority (git:, cpan:)
+        if %fields<author> -> $author {
+            return "{$cs}:{$author}" if $cs ne $author;
+        }
+
+        # Same as above, but switching author and authority
+        if %fields<authority> -> $authority {
+            return "{$authority}:{$cs}" if $cs ne $authority;
+        }
+
+        # if we reach here that means `auth` has an invalid value
+        # and we could not guess what its meant to be. maybe abort here?
+    }
+
+    # if author or authority contain a ':', assume the author is mistaken and meant it as auth
+    if %fields<authority> -> $authority {
+        return $authority if $authority ~~ /.+ ':' .+/;
+    }
+
+    if %fields<author> -> $author {
+        return $author    if $author ~~ /.+ ':' .+/;
+    }
+
+    return %fields<authority author>.join(':') if %fields<authority author>.all;
 }

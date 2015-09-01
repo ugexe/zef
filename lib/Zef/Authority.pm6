@@ -7,15 +7,16 @@ role Zef::Authority {
     has @.projects is rw;
 
     submethod BUILD(:$projects-file) {
-        if ?$projects-file {
-            my $file = ~$projects-file;
-            if $file.IO.e {
-                my $json     := from-json($file.IO.slurp);
-                @!projects    = try { $json.list }\
-                    or fail "!!!> Invalid projects file.";
-            }
-            else {
-                fail "!!!> Project file does not exist: {$projects-file}";
+        if $projects-file -> Str(Cool) $file {
+            if $file.chars {
+                if $file.IO.e {
+                    my $json     := from-json($file.IO.slurp);
+                    @!projects    = try { $json.list }\
+                        or fail "!!!> Invalid projects file.";
+                }
+                else {
+                    fail "!!!> Project file does not exist: {$projects-file}";
+                }
             }
         }
     }

@@ -146,8 +146,10 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export(:install) {
 
     # todo:
-    # check $dist.is-installed and $force before building/testing instead of waiting until
-    # the install process to abort the needless install.
+    # Change workflow so we can check the packages file and remove already installed modules 
+    # if needed, so that we don't attempt a possibly pointless `git pull`.
+    # Cannot just use :ignore, as this removes modules that depend on anything ignored.
+    # Add :skip to act like ignore, but not follow depends?
 
     # FETCHING
     my $fetched := &MAIN('get', @modules, :ignore($ignore.list),

@@ -103,8 +103,8 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dr
         @args.push("--ignore=$_") for $ignore.grep(*.so).list;
 
         say "===> Smoking next: {$result.<name>}";
-
         my $proc = run(@args.grep(*.so).list, 'install', $result.<name>, :out);
+
         say $_ for $proc.out.lines;
     }
 

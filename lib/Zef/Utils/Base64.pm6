@@ -32,8 +32,8 @@ class Zef::Utils::Base64 {
 
     method b64decode(Str $decode-me = $.encoded) {
         return Buf.new unless $decode-me;
-        my $padding = $decode-me.comb(/'='?'='$/).elems;
-        my @s   = $decode-me.substr(0,*-$padding).comb;
+        my $padding = $decode-me.ends-with('==') ?? 2 !! $decode-me.ends-with('=') ?? 1 !! 0;
+        my @s = $decode-me.substr(0,*-$padding).comb;
         my @r = gather for @s.rotor(4, :partial) -> $chunk {
             my $n = [+] $chunk.map({ (@.b64chars.first-index($_) // 0) +< ((state $m = 24) -= 6) });
             my @res = (16, 8, 0).map({ (($n +> $_) +& 255) }).grep(* > 0);

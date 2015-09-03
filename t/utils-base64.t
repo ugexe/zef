@@ -27,6 +27,7 @@ subtest {
     is $decoder.b64decode('QWJjZA==').decode, "Abcd", 'decoding "Abcd"';
     is $decoder.b64decode('UGVybA==').decode, "Perl", 'decoding "Perl"';
     is $decoder.b64decode('UGVybDY=').decode, "Perl6", 'decoding "Perl6"';
+    is $decoder.b64decode("UGVy\nbDY=").decode, "Perl6", 'decoding "Perl6 with invalid b64 character"';
     is $decoder.b64decode('QW5vdGhlciB0ZXN0IQ==').decode, "Another test!", 'decoding "Another test!"';
     is $decoder.b64decode('dXNlcm5hbWU6dGhpc2lzbm90bXlwYXNzd29yZA==').decode, "username:thisisnotmypassword", 'decoding "username:thisisnotmypassword"';
     is-deeply $decoder.b64decode('AA=='), Buf.new(0), 'decode Test on NULL/0 byte';

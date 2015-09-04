@@ -11,8 +11,8 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
 
         my @procs;
         for @groups.flat -> $group {
-            for $group.flat.list -> $execute {
-                my @args    = $execute.flat.list;
+            for $group.flat -> @execute {
+                my @args    = flat @execute;
                 my $command = @args.shift;
                 @procs.push: Zef::Process.new(:$command, :@args, :$async, cwd => $.path, :%env);
             }
@@ -40,9 +40,9 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
         #
         #$p;
         my @promises;
-        for @!processes.flat -> $group {
+        for @!processes.flat -> @group {
             my @group-promises;
-            for $group.flat.list -> $process {
+            for @group.flat -> $process {
                 unless $process.started {
                     @group-promises.push: $process.start;
                 }
@@ -57,17 +57,13 @@ role Zef::Roles::Processing[Bool :$async, Bool :$force] {
 
     #method tap(&code) { @!processes>>.tap(&code)          }
     method passes     {
-        gather for @!processes -> $group {
-            for $group.list -> $item {
-                for $item.list { take $_.id if $_.ok.so }
-            }
+        gather for @!processes -> @group {
+            take $_.id for @group.grep(*.ok.so);
         }
     }
     method failures   {
-        gather for @!processes -> $group {
-            for $group.list -> $item {
-                for $item.list { take $_.id if $_.ok.not }
-            }
+        gather for @!processes -> @group {
+            take $_.id for @group.grep(*.ok.not);
         }
     }
 

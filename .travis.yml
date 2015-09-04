@@ -2,26 +2,23 @@ language: perl
 perl:
     - '5.20'
 env:
-    - BACKEND=moar BRANCH=nom ASYNC=""
-    - BACKEND=moar BRANCH=nom ASYNC="--async"
-    - BACKEND=moar BRANCH=glr ASYNC=""
-    - BACKEND=moar BRANCH=glr ASYNC="--async"
+    - BACKEND=moar ASYNC=""
+    - BACKEND=moar ASYNC="--async"
+    - BACKEND=jvm  ASYNC=""
 matrix:
     allow_failures:
-        - env: BACKEND=moar BRANCH=nom ASYNC="--async"
-        - env: BACKEND=moar BRANCH=glr ASYNC="--async"
+        - env: BACKEND=jvm  ASYNC=""
     fast_finish: true
 sudo: false
 before_install:
     - git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew
     - export PATH=~/.rakudobrew/bin:$PATH
-    - rakudobrew build $BACKEND $BRANCH
+    - rakudobrew build $BACKEND
 install:
     # need at least 1 statement in 'install'
     - perl6 -v
 script:
     - prove -j4 -v -e "perl6 -Ilib" t/ xt/
 after_success:
-    # now run tests with precompiled code
-    perl6 -Ilib bin/zef -v --boring $ASYNC --save-to=precomp/ build; fi'
-    perl6 -Iprecomp bin/zef -v --boring --lib=precomp $ASYNC install Zef; fi'
+    - 'if [[ $BACKEND == "moar" ]]; then perl6 -Ilib bin/zef -v --boring $ASYNC --save-to=precomp/ build; fi'
+    - 'if [[ $BACKEND == "moar" ]]; then perl6 -Iprecomp bin/zef -v --boring --lib=precomp $ASYNC install Zef; fi'

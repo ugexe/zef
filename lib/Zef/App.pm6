@@ -22,7 +22,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
     
 
     @repos .= push($*CWD) unless @repos;
-    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).list;
+    @repos  = @repos.map: { $_.IO.is-absolute ?? $_ !! $_.IO.abspath }
 
     my $dists := gather for @repos -> $path {
         state @perl6lib; # store paths to be used in PERL6LIB in subsequent `depends` processes
@@ -93,6 +93,8 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dr
     # todo: save to a custom CURLI so the install command can automatically ignore modules
     # that have already been tested to satisfy earlier dependencies.
     for @packages -> $result {
+        # todo: fix first argument so it invokes the bin wrapper directly if it can find it,
+        # else try to invoke $*PROGRAM?
         my @args = 'zef', '--boring', "--projects-file={$projects-file}";
         @args.push('-v')        if $v;
         @args.push('--report')  if $report;
@@ -152,7 +154,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # Add :skip to act like ignore, but not follow depends?
 
     # FETCHING
-    my $fetched := &MAIN('get', @modules, :ignore($ignore.list),
+    my $fetched = &MAIN('get', @modules, :ignore($ignore.list),
         :$save-to, :$projects-file,
         :$boring, :$async,
         :$skip-depends, :$skip-build-depends
@@ -163,12 +165,11 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
     # VALIDATION
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m := $fetched.list.grep({ $_.<ok>.so }).list;
+    my @m = $fetched.list.grep(*.<ok>.so);
     verbose('META.info availability', @m);
 
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
-    my @repos = @m.grep({ $_.<ok>.so })\
-        .map({ $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath }).list;
+    my @repos = @m.grep(*.<ok>.so).map: { $_.<path>.IO.is-absolute ?? $_.<path> !! $_.<path>.IO.abspath }
 
     # META file check
     my @metas = eager gather for @repos -> $repo-path {
@@ -179,20 +180,18 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
             take $repo-path.IO.child('META6.json');
         }
     }
-    my @failed-metas = @metas.grep({
-            !$_.IO.child('META.info').IO.e
-        &&  !$_.IO.child('META6.json').IO.e
-    }) unless @metas.elems == @repos.elems;
+    my @failed-metas = @metas.grep: {!$_.IO.child('META.info').IO.e &&  !$_.IO.child('META6.json').IO.e }\
+        unless @metas.elems == @repos.elems;
     die "!!!> Aborting. Missing META info for: {@failed-metas}" if !$force && @failed-metas.elems;
 
 
     # Prevent processing modules that are already installed with the same or greater version.
     # Version '*' is always installed for now.
     # TEMPORARY - need to refactor as to not create Zef::Distribution::Local for a path multiple times
-    my @dists     = @repos.map(   { Zef::Distribution::Local.new(path => $_.IO)            } ).list;
-    my @wanted    = @dists.grep(  { $_.wanted || ($force && $_.name ~~ any(@modules.list)) } ).list;
-    my @installed = @dists.grep(  { $_.name !~~ any(@wanted>>.name)                        } ).list;
-    @wanted       = @wanted.grep( { $_.name ~~ none(@installed)                            } ).list if @installed.elems;
+    my @dists     = @repos.map:   { Zef::Distribution::Local.new(path => $_.IO)            }
+    my @wanted    = @dists.grep:  { $_.wanted || ($force && $_.name ~~ any(@modules.list)) }
+    my @installed = @dists.grep:  { $_.name !~~ any(@wanted>>.name)                        }
+    @wanted       = @wanted.grep: { $_.name ~~ none(@installed)                            } if @installed.elems;
 
     if @wanted.elems != @dists.elems {
         print "===> The following modules are already up to date: {@installed.map(*.name).join(', ')}\n";
@@ -240,9 +239,8 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
             print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
         }
 
-        my @all = $tested.list;
-        my @failed = flat @all.map({ $_.failures });
-        my @passed = flat @all.map({ $_.passes   });
+        my @failed <== grep *.so <== $tested>>.failures;
+        my @passed <== grep *.so <== $tested>>.passes;
 
         if @failed.elems {
             !$force
@@ -256,7 +254,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
 
     my $install = do {
-        my $i = CLI-WAITING-BAR { 
+        my $results = CLI-WAITING-BAR {
             my @finished;
             for $built.list -> $dist {
                 # todo: check against $tested to make sure tests were passed
@@ -291,13 +289,12 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
             @finished;
         }, "Installing", :$boring;
 
-        my @all       = $i.list;
-        my @installed = @all.grep({ !$_.<skipped> }).flat.list;
-        my @skipped   = @all.grep({ ?$_.<skipped> }).flat.list;
+        my @tried   = $results.grep({ !$_.<skipped> }).flat;
+        my @skipped = $results.grep({ ?$_.<skipped> }).flat;
 
-        verbose('Install', @installed)                 if @installed.elems;
+        verbose('Install', @tried)                     if @tried.elems;
         verbose('Skip (already installed!)', @skipped) if @skipped.elems;
-        $i;
+        $results;
     } unless ?$dry;
 
 
@@ -348,7 +345,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
         );
     }, "Fetching", :$boring;
 
-    verbose('Fetching', $fetched.list);
+    verbose('Fetching', $fetched);
 
     unless $fetched.list {
         say "!!!> No matching candidates found.";
@@ -529,15 +526,15 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
     if $ignore.list.elems {
         @packages = @packages\
             .grep({ $_.<name>:exists })\
-            .grep({ $_.<name> ~~ none($ignore.list.grep(*.so)) })\
-            .grep({ any($_.<depends>.list.grep(*.so))       ~~ none($ignore.list.grep(*.so)) })\
-            .grep({ any($_.<test-depends>.list.grep(*.so))  ~~ none($ignore.list.grep(*.so)) })\
-            .grep({ any($_.<build-depends>.list.grep(*.so)) ~~ none($ignore.list.grep(*.so)) })\
+            .grep({ $_.<name> ~~ none($ignore.grep(*.so)) })\
+            .grep({ any($_.<depends>.grep(*.so))       ~~ none($ignore.grep(*.so)) })\
+            .grep({ any($_.<test-depends>.grep(*.so))  ~~ none($ignore.grep(*.so)) })\
+            .grep({ any($_.<build-depends>.grep(*.so)) ~~ none($ignore.grep(*.so)) })\
             .pick(*);
     }
 
     print "===> Filtered module count: {@packages.elems}\n";
-    my $json = to-json(@packages.list);
+    my $json = to-json(@packages);
     $file.IO.spurt($json);
     print "===> Package file: $file\n";
     return ~$file;
@@ -545,24 +542,16 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
 
 # will be replaced soon
 sub verbose($phase, $work) {
-    my $glr;
-    try {
-        # XXX nom compatability inside here
-        fail unless $work.list.[0].isa(Pair);
-        $glr = @($work,());
-    }
-    $glr //= $work;
-    my %r = $glr.list.grep(*.so).classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
-
-    print "!!!> $phase failed for: {%r<nok>.list.map({ $_.hash.<module> })}\n" if %r<nok>;
-    print "===> $phase OK for: {%r<ok>.list.map({ $_.hash.<module> })}\n"      if %r<ok>;
-    return { ok => %r<ok>.elems, nok => %r<nok> }
+    my %r = $work.list.grep(*.so).classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
+    if %r<nok> -> @nok { print "!!!> $phase failed for: {@nok>><module>}\n" }
+    if %r<ok>  -> @ok  { print "===> $phase OK for: {@ok>><module>}\n"      }
+    return { :ok(%r<ok>.elems), :nok(%r<nok>.elems) }
 }
 
 
 # returns formatted row
 sub _row2str (@widths, @cells, Int :$max-width) {
-    my $format = join(" | ", @widths.map({"%-{$_}s"}) );
+    my $format = @widths.map({"%-{$_}s"}).join('|');
     return _widther(sprintf( $format, @cells.map({ $_ // '' }) ), :$max-width);
 }
 

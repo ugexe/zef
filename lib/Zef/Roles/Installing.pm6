@@ -26,20 +26,20 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
 
             if !$force && !$.wanted {
                 %result<skipped> = $.name;
-                %result<ok> = 1;
-                @installed.push: %result;
+                %result<ok>      = 1;
+                @installed.push: $%result;
                 next;
             }
 
-            my @provides = $.provides.values.list;
-            my @precomps = self.?provides-precomp.values.list;
+            my @provides = $.provides.values;
+            my @precomps = self.?provides-precomp.values;
             my @bins     = $.path.child('bin').ls(:f, :r)\
                 .grep(!*.starts-with('.'))\
                 .map: {.IO.relative($.path)}
-            my @files    = (@provides, @precomps, @bins).grep(*.so).flat.list;
+            my @files    = flat (@provides, @precomps, @bins).grep(*.so);
 
             %result<ok> = 1 if $curli.install(:dist(self), |@files);
-            @installed.push: %result;
+            @installed.push: $%result;
         }
         @installed;
     }

@@ -5,6 +5,8 @@ unit module Zef::CLI::STDMux;
 # and still make a little sense of it (and allow it to be sorted)
 
 # todo: handle line wrapping with seperator
+
+# note: this still needs to be redone post-glr for --async to work properly, but i'm unsure why yet
 sub procs2stdout(*@processes, :$max-width) is export {
     return unless @processes;
     my @basenames = gather for @processes -> $group {
@@ -13,21 +15,18 @@ sub procs2stdout(*@processes, :$max-width) is export {
         }
     }
     my $longest-basename = @basenames.max(*.chars);
-    for @processes -> $group {
-        for $group.list -> $item {
-            for $item.list -> $proc {
-                for $proc.stdout, $proc.stderr -> $stdio {
-                    $stdio.act: -> $out {
-                        for $out.lines.grep(*.so).list -> $line {
-                            my $formatted = sprintf(
-                                "%-{$longest-basename.chars + 1}s# %s",
-                                $proc.id.IO.basename,
-                                $line
-                            );
+    for @processes -> @group {
+        for @group -> $proc {
+            for $proc.stdout, $proc.stderr -> $stdio {
+                $stdio.act: -> $out {
+                    for $out.lines.list.grep(*.chars) -> $line {
+                        my $formatted = sprintf(
+                            "%-{$longest-basename.chars + 1}s# %s",
+                            $proc.id.IO.basename,
+                            $line
+                        );
 
-                            state $to-print ~= _widther($formatted, :$max-width);
-                            print "{$to-print}\n" if $to-print;
-                        }
+                        print "{_widther($formatted, :$max-width)}\n";
                     }
                 }
             }

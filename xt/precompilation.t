@@ -10,14 +10,11 @@ plan 1;
 
 # Basic tests on default builder method
 subtest {
-    my $path    := $?FILE.IO.dirname.IO.parent; # ehhh
-    my $save-to := $path.child("test-libs_{time}{100000.rand.Int}").IO;
+    my $path    = $?FILE.IO.dirname.IO.parent; # ehhh
+    my $save-to = $path.child("test-libs_{time}{100000.rand.Int}").IO;
     my $precomp-path = $save-to.IO.child('lib');
 
-    LEAVE {       # Cleanup
-        sleep 1;  # bug-fix for CompUnit related pipe file race
-        try rm($save-to, :d, :f, :r);
-    }
+    LEAVE { try rm($save-to, :d, :f, :r) }
 
     my $distribution = Zef::Distribution::Local.new(:$path, :$precomp-path);
     $distribution does Zef::Roles::Precompiling;

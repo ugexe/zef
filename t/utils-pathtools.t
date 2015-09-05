@@ -5,10 +5,7 @@ plan 5;
 
 subtest {
     my $save-to = $*TMPDIR.child("{time}{100000.rand.Int}").IO;
-    LEAVE { # Cleanup
-        sleep 1;
-        try rm($save-to, :d, :f, :r);
-    }
+    LEAVE { try rm($save-to, :d, :f, :r) }
 
 
     my $sub-save-to     = $save-to.IO.child('sub1');
@@ -73,10 +70,7 @@ subtest {
 
     my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
     try mkdirs($save-to);
-    LEAVE { # Cleanup
-        sleep 1;
-        try rm($save-to, :d, :f, :r);
-    }
+    LEAVE { try rm($save-to, :d, :f, :r) }
 
 
     my $sub-folder = $save-to.IO.child('deleteme-subfolder');
@@ -97,7 +91,7 @@ subtest {
     my $not-deleted   = any($save-to, $sub-folder, $sub-folder-file);
 
     for @delete-us -> $path-to-delete {
-        is $path-to-delete, any(@ls), 'file was found in .ls';
+        is $path-to-delete, any(@ls),       "File was found in .ls";
         is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete.IO.path}";
         isnt $path-to-delete, $not-deleted, 'Did not delete sub-file or delete non-empty directory';
     }
@@ -120,10 +114,7 @@ subtest {
 
     my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
     try mkdirs($save-to);
-    LEAVE { # Cleanup
-        sleep 1;
-        try rm($save-to, :d, :f, :r);
-    }
+    LEAVE { try rm($save-to, :d, :f, :r) }
 
 
     my $sub-folder = $save-to.IO.child('deleteme-subfolder');
@@ -145,7 +136,7 @@ subtest {
     my $to-be-deleted = any($sub-folder-empty);
     my $not-deleted   = any($save-to, $save-to-file, $sub-folder, $sub-folder-file);
     for @delete-us -> $path-to-delete {
-        is $path-to-delete, any(@ls), 'file was found in .ls';
+        is $path-to-delete, any(@ls),       "File was found in .ls";
         is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete.IO.path}";
         isnt $path-to-delete, $not-deleted, 'Did not delete sub-file or delete non-empty directory';
     }
@@ -168,10 +159,7 @@ subtest {
 
     my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
     try mkdirs($save-to.IO.path);
-    LEAVE { # Cleanup
-        sleep 1;
-        try rm($save-to, :d, :f, :r);
-    }
+    LEAVE { try rm($save-to, :d, :f, :r) }
 
     my $sub-folder = $save-to.IO.child('deleteme-subfolder').IO;
     try mkdirs($sub-folder);
@@ -184,7 +172,6 @@ subtest {
     @delete-us.push($save-to-file) if try open($save-to-file.IO.path, :w);
     @delete-us.push($sub-folder-file) if try open($sub-folder-file.IO.path, :w);
 
-    my $fs;
     ok $save-to.IO.d, "Folder available to delete";
 
     my @ls      = ls($save-to, :f, :r);
@@ -193,7 +180,7 @@ subtest {
     my $to-be-deleted = any($save-to-file, $sub-folder-file);
     my $not-deleted   = any($save-to, $sub-folder, $sub-folder-empty);
     for @delete-us -> $path-to-delete {
-        is $path-to-delete, any(@ls), 'file was found in .ls';
+        is $path-to-delete, any(@ls),       "File was found in .ls";
         is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete.IO.path}";
         isnt $path-to-delete, $not-deleted, 'Did not delete sub-file or delete non-empty directory';
     }

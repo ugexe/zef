@@ -69,7 +69,7 @@
     "auth"    : "github:ugexe",
     "authors" : [
         "Nick Logan",
-        "Tony O'Dell"       
+        "Tony O'Dell"
     ],
     "support" : {
         "bugtracker" : "https://github.com/ugexe/zef/issues"

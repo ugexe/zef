@@ -14,23 +14,22 @@ class Zef::Manifest {
             if !$mani-path.IO.e || !$mani-path.IO.f {
                 die "No MANIFEST available for: {~$mani-path}, pass `:create` if you'd like it generated as needed."\
                     unless $!create;
-                %!hash  = self.read();
+                %!hash = self.read();
             }
             else {
-                %!hash  = from-json( $mani-path.IO.slurp ).hash;
+                %!hash = from-json( $mani-path.IO.slurp ).hash;
             }
         }
     }
 
 
-    method write(*@dists, Int :$dist-count, Int :$file-count) {
+    method write(@dists, Int :$dist-count, Int :$file-count) {
         $!lock.protect({
         try { mkdir(~$!cur) unless $!cur.IO.e }
-
         my $repo = self.read(|@dists);
 
         with $dist-count -> $count { $repo<dist-count> = $dist-count }
-        with $file-count -> $count { $repo<file-count> = $file-count }
+        # with $file-count -> $count { $repo<file-count> = $file-count }
 
         $.path.IO.spurt: to-json( $repo )
         });
@@ -39,57 +38,56 @@ class Zef::Manifest {
     method read(*@dists) {
         my @source = @dists.elems ?? @dists !! %!hash<dists>.flat;
         my $repo;
-        $repo<dists>       = @source;
-        $repo<dist-count>  = @source.elems;
-        # todo: call .file-count on @source
-        $repo<file-count>  = $.file-count(:bin, :provides);
+        $repo<dists>       = @source       // [ ];
+        $repo<dist-count>  = @source.elems // 0;
+        $repo<file-count>  = $.file-count  // 0;
         $repo;
     }
 
     method path       { $!cur.IO.child($!basename).IO       }
     method dist-count { %!hash<dists>.flat.elems            }
-    method file-count { $.files(:bin, :provides).flat.elems }
+    method file-count {
+        # CURLI appears to have named this confusingly as it is really a max value of all file ids
+        # and not an actual count of anything.
+        my $fc = [max] $.files(:bin, :provides).list;
+        $fc > 0 ?? $fc !! 0; # max on empty array = -Inf
+    }
 
     method files(Bool :$bin = True, Bool :$provides) {
         my @files;
-        for %!hash<dists>.flat -> $dist {
-            if ?$bin {
-                @files.push($_) for $dist<files>.values.flat.list;
-            }
-            if ?$provides {
-                @files.push($_) for $dist<provides>.values>>.values.flat.map({ $_.<file> }).list;
-            }
-            #if ?$wrappers {
-            #
-            #}
-        }
+        my @dists = %!hash<dists>.list;
+        @files <== map {.<files>.values} <== @dists if ?$bin;
+        @files <== map {.<file>} <== map {.<provides>.values>>.values} <== @dists if ?$provides;
+
         @files.grep(*.so).list;
     }
 
     # this can be put somewhere more appropriate later
     method uninstall($dist) {
         $!lock.protect( {
+        my @deleted;
         my $repo         = %!hash;
         my @candi        = $!cur.candidates($dist.name, :auth($dist.authority), :ver($dist.version)) or return False;
         my $delete-idx   = $repo<dists>.first-index({ $_<id> eq @candi[0]<id> });
 
-        my @provides  = $repo<dists>[$delete-idx]<provides>.values>>.values.flat.map({ $_.<file> }).list;
-        my @bins      = $repo<dists>[$delete-idx]<files>.flat>>.values.flat;
-        my @wrappers  = $repo<dists>[$delete-idx]<files>.flat>>.keys.flat.map({"{$_}", "{$_}-m", "{$_}-j"}).flat;
+        my @provides  <== map { .<file> } <== $repo<dists>[$delete-idx]<provides>.values>>.values;
+        my @wrappers  <== map { "{$_}", "{$_}-m", "{$_}-j" } <== $repo<dists>[$delete-idx]<files>>>.keys;
+        my @bins      <== $repo<dists>[$delete-idx]<files>>>.values;
+
         # .candidates doesn't let us search for @wrappers, so in the future we need to *not* delete wrappers
         # if there is another version of the same module installed.
-        my @all-files = (@provides, @bins, @wrappers).flat;
-
-        for @all-files -> $file is copy {
+        my  @to-delete  = flat (@provides, @bins, @wrappers);
+        for @to-delete -> $file is copy {
             try {
-                $file = $file.Str.IO.is-absolute ?? $file.Str.IO !! $file.Str.IO.absolute($!cur);
+                $file = $file.IO.is-absolute ?? ~$file !! ~$file.IO.absolute($!cur);
                 unlink($file);
+                @deleted.push($file);
             }
         }
-
-        with $delete-idx -> $index { $repo<dists>.splice($index, 1) }
-        my @dists = $repo<dists>.flat;
+        with $delete-idx -> $index { $repo<dists>[$index]:delete }
+        my @dists = $repo<dists>.grep(*.so);
         self.write(@dists);
+        @deleted;
         } );
     }
 }

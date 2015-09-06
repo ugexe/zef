@@ -6,7 +6,7 @@ use Zef::Test::Grammar;
 
 my $output = q{1..8}
     ~ "\n" ~ q{ok 1 - approved operating system}
-    ~ "\n" ~ q{# $^0 is ~solaris}
+    ~ "\n" ~ q{# $^0 is solaris}
     ~ "\n" ~ q{ok 2 - # SKIP no /sys directory}
     ~ "\n" ~ q{ok 3 - # TODO add}
     ~ "\n" ~ q{ok 4}
@@ -31,8 +31,8 @@ is ~$tap.<line>.[1].<test>.<grade>,           'ok';
 is ~$tap.<line>.[1].<test>.<test-number>,     '1';
 is ~$tap.<line>.[1].<test>.<why>,             '- approved operating system';
 
-is ~$tap.<line>.[2],                          '# $^0 is ~solaris' ~ "\n";
-is ~$tap.<line>.[2].<diagnostics>,            '# $^0 is ~solaris';
+is ~$tap.<line>.[2],                          '# $^0 is solaris' ~ "\n";
+is ~$tap.<line>.[2].<diagnostics>,            '# $^0 is solaris';
 
 is ~$tap.<line>.[3],                          "ok 2 - # SKIP no /sys directory\n";
 is ~$tap.<line>.[3].<test>,                   'ok 2 - ';

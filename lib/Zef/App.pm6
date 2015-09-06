@@ -125,12 +125,13 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
                 for $curli.candidates($name, :$auth, :$ver) -> $candi {
                     my $dist = Distribution.new(:name($candi<name>), :auth($candi<auth>), :ver($candi<ver>));
 
-                    if $mani.uninstall($dist) {
-                        say "===> Uninstalled {$dist.name} successfully.";
+                    if $mani.uninstall($dist) -> @deleted {
+                        say "===> [{$dist.name}] Deleted files: " ~ @deleted>>.IO>>.basename.join(',') if $v;
+                        say "===> Uninstalled {$dist.name} successfully";
                         $ok++;
                     }
                     else {
-                        say "!!!> Uninstall for {$dist.name} failed.";
+                        say "!!!> Uninstall for {$dist.name} failed";
                         $nok++;
                     }
                 }
@@ -138,6 +139,7 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
         }
     }
 
+    say "!!!> Nothing to do." unless $ok || $nok;
     exit $nok.so ?? $nok !! 0;
 }
 

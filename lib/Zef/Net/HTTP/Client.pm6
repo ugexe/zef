@@ -27,13 +27,13 @@ class Zef::Net::HTTP::Client {
     }
 
     method method($method, $url, :$body) {
-        my $request  := $!requestor.new(:$method, :$url, :$body, :%!headers);
-        my $response := $!transporter.round-trip($request);
+        my $request  = $!requestor.new(:$method, :$url, :$body, :%!headers);
+        my $response = $!transporter.round-trip($request);
 
         @!history.push: $response;
 
-        if $!auto-check {
-            fail "Response not understood" unless $response && $response.status-code;
+        if ?$!auto-check {
+            die "Response not understood" unless $response && $response.status-code;
 
             given $response.status-code {
                 when /^2\d\d$/ { }

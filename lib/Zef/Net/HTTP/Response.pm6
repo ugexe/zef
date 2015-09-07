@@ -62,14 +62,14 @@ class Zef::Net::HTTP::Response does HTTP::Response {
 
     # Apply transfer codings, content encoding, etc to the body data
     method content(Bool :$bin) {
-        my $stream := $!body;
-        #await $promise;
+        my @buf;
+        $!body.tap: {@buf.push($_) for $_.list}
+        await $!body.done;
+        my $data = buf8.new(@buf);
 
-        # Right now $stream is a list of multi-byte buf8s, so we may need to combine them
-        my $data = buf8.new andthen do while my \d = $stream.poll { $data ~= buf8.new(d) }
-        return $data if ?$bin;
+        return buf8.new($data) if ?$bin;
 
-        my $content := $!chunked ?? ChunkedReader($data) !! $data;
-        return $!encoding ?? $content.decode($!encoding) !! $content;
+        my $content = ?$!chunked ?? ChunkedReader($data) !! $data;
+        return ?$!encoding ?? $content.decode($!encoding) !! $content;
     }
 }

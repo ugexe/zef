@@ -29,7 +29,7 @@ class Zef::Manifest {
         my $repo = self.read(|@dists);
 
         with $dist-count -> $count { $repo<dist-count> = $dist-count }
-        # with $file-count -> $count { $repo<file-count> = $file-count }
+        with $file-count -> $count { $repo<file-count> = $file-count }
 
         $.path.IO.spurt: to-json( $repo )
         });

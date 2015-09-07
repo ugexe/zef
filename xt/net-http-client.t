@@ -28,12 +28,12 @@ subtest {
         is $ua.get($url ~ '/basic-auth/un/pw').status-code, 200, "Basic auth";
     }
 
-    # Basic auth FAIL    
+    # Basic auth FAIL
     {
         dies-ok { $ua.get($url ~ '/basic-auth/un/pw') }, "Fail basic auth and die. auto-check => True";
 
         temp $ua.auto-check = False;
-        nok $ua.get($url ~ '/basic-auth/unx/pwx').status-code, "Fail basic auth and live. auto-check => True";
+        nok $ua.get($url ~ '/basic-auth/unx/pwx').status-code, "Fail basic auth and live. auto-check => False";
     }
 }, "HTTP";
 

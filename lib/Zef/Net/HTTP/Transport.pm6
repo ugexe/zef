@@ -1,25 +1,28 @@
 use Zef::Net::HTTP;
 use Zef::Net::HTTP::Dialer;
 
-# Mimick Async with IO::Socket::INET/IO::Socket::SSL
-role ByteStream {
-    my $buffer;
-
-    method async-recv(|c, Bool :$bin) {
-        $buffer = Channel.new;
-
-        my $promise = Promise.new;
-        my $vow = $promise.vow;
-#            start {
-        while $.recv(|c, :$bin) -> $b {
-            $buffer.send($b);
+role HTTP::BufReader {
+    method header-supply {
+        supply {
+            state @crlf;
+            while $.recv(1, :bin) -> \data {
+                my $d = buf8.new(data).decode('latin-1');
+                @crlf.push($d) andthen emit($_);
+                @crlf.shift if @crlf.elems > 4;
+                last if @crlf ~~ ["\r", "\n", "\r", "\n"];
+                LAST { done() }
+            }
         }
-#            }.then({ 
-        $buffer.close;
-        $.close;
-        $vow.keep($buffer);
-#            });
     }
+    method body-supply {
+        supply {
+            while $.recv(:bin) -> \data {
+                my $d = buf8.new(data) andthen emit($_);
+                LAST { done() }
+            }
+        }
+    }
+    method trailer-supply { }
 }
 
 # Manage connections (caching, proxies)
@@ -31,9 +34,6 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
         $!dialer := Zef::Net::HTTP::Dialer.new unless $!dialer;
     }
 
-    # A HTTP::RoundTrip that returns an HTTP::Response once the header 
-    # has been received, and a Promise that will be kept once it fills 
-    # Channels ($.body/$.trailer-chunk) with the optional body and/or trailer data
     method round-trip(HTTP::Request $req --> HTTP::Response) {
         fail "HTTP Scheme not supported: {$req.uri.scheme}" 
             unless $req.uri.scheme ~~ any(<http https>);
@@ -42,7 +42,8 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
         $t   ~= $req.DUMP(:headers);
 
         my $socket := $!dialer.dial($req.?proxy ?? $req.proxy.uri !! $req.uri);
-        $socket does ByteStream;;
+
+        $socket does HTTP::BufReader;
         $socket.print: $req.DUMP(:start-line);
         $socket.print: $req.DUMP(:headers);
 
@@ -59,22 +60,14 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
 
         $socket.print: $req.DUMP(:trailers);
 
-        # ?: should we allow cancelation of the receiving socket (not including
-        # timeout related canceling) before it has finished reading the header?
-        my $header;
-        while my $h := $socket.recv(1, :bin) {
-            $header ~= $h.decode('ascii');
-            last if $header.substr(*-4) eq "\r\n\r\n";
-        }
+        # attempt to provide separate supply for header and body
+        my $header-supply := $socket.header-supply;
+        my $body-supply   := $socket.body-supply;
 
-        # $body is a Channel that will receive the data as it arrives in a 
-        # non-blocking fashion. This means we can return the HTTP::Request 
-        # back to the user to process the headers and possibly close the connection
-        # before all of $body has been received.
-        my $body := $socket.async-recv(:bin);
 
-        # my $trailer = $socket.async-recv(:bin);
-
-        return $!responder.new(:$header, :$body); #, :$trailer);
+        # For now we return header as a string so that $body will not be tapped before the header.
+        # However will be changed so the header is returned as a supply as well, and body will set
+        # the $header supply appropriately.
+        return $!responder.new(:header($header-supply.join), :body($body-supply)); #, :$trailer);
     }
 }

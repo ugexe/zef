@@ -61,8 +61,8 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
         $socket.print: $req.DUMP(:trailers);
 
         # attempt to provide separate supply for header and body
-        my $header-supply := $socket.header-supply;
-        my $body-supply   := $socket.body-supply;
+        my $header-supply = $socket.header-supply;
+        my $body-supply   = $socket.body-supply;
 
 
         # For now we return header as a string so that $body will not be tapped before the header.

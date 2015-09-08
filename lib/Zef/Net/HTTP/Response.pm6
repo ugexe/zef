@@ -67,9 +67,8 @@ class Zef::Net::HTTP::Response does HTTP::Response {
         await $!body.done;
         my $data = buf8.new(@buf);
 
-        return buf8.new($data) if ?$bin;
-
         my $content = ?$!chunked ?? ChunkedReader($data) !! $data;
+        return buf8.new($data) if ?$bin;
         return ?$!encoding ?? $content.decode($!encoding) !! $content;
     }
 }

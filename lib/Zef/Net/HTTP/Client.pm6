@@ -29,7 +29,6 @@ class Zef::Net::HTTP::Client {
     method method($method, $url, :$body) {
         my $request  = $!requestor.new(:$method, :$url, :$body, :%!headers);
         my $response = $!transporter.round-trip($request);
-
         @!history.push: $response;
 
         if ?$!auto-check {
@@ -38,14 +37,14 @@ class Zef::Net::HTTP::Client {
             given $response.status-code {
                 when /^2\d\d$/ { }
                 when /^3\d\d$/ {
-                    my $location   := Zef::Net::URI.new(url => ~$response.headers.<Location>);
-                    my $forward-to := $location.is-relative 
-                        ?? $location.rel2abs("{$request.uri.scheme}://{$request.uri.host}")
-                        !! $location;
+                    my $location = Zef::Net::URI.new( :url(~$response.headers.<Location>) );
+                    my $forward-to = $location.absolute("{$request.uri.scheme}://{$request.uri.host}");
 
                     # We put the original response in the history already. We set $response now 
                     # so after all forwarding is done we can return the final response.
-                    &?ROUTINE( $request.method, $forward-to.url, :body($request.body) );
+                    $response = self.method( $request.method, $forward-to.url, :$body );
+                    # &?ROUTINE with args is broken
+                    # $reponse = &?ROUTINE( $request.method, $forward-to.url, :body($request.body) );
                 }
                 default {
                     die "[NYI] http-code: '$_'";

@@ -41,11 +41,11 @@ class Zef::Net::URI does HTTP::URI {
 
     method absolute(HTTP::URI:D: $base = '') {
         self.is-relative
-            ?? Zef::Net::URI.new( :uri($base ~ (self.path.starts-with('/') ?? '' !! '/') ~ self.path) )
+            ?? Zef::Net::URI.new( :url($base ~ (self.path.starts-with('/') ?? '' !! '/') ~ self.path) )
             !! self;
     }
 
     method child(HTTP::URI:D: $child) {
-        Zef::Net::URI.new(:url(~self.Str ~ (self.Str.ends-with('/') ?? '' !! '/') ~ $child));
+        Zef::Net::URI.new( :url(~self.Str ~ (self.Str.ends-with('/') ?? '' !! '/') ~ $child) );
     }
 }

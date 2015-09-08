@@ -4,7 +4,7 @@ use Zef::Utils::Depends;
 use Zef::Utils::Git;
 
 
-our @skip = <Test MONKEY-TYPING MONKEY_TYPING nqp v6>;
+our @skip = <Test MONKEY-TYPING MONKEY_TYPING nqp v6 NativeCall>;
 
 # perl6 community ecosystem + test reporting
 class Zef::Authority::P6C does Zef::Authority::Net {

@@ -19,7 +19,7 @@ class Zef::Process {
     has $.finished;
 
     submethod BUILD(:$!command = $*EXECUTABLE, :@!args, :$!cwd = $*CWD, :%!env = %*ENV.hash, Bool :$!async, :$!id) {
-        $!can-async = $*DISTRO.name eq 'macosx' ?? False !! !::("Proc::Async").isa(Failure);
+        $!can-async = $*DISTRO.name eq 'macosx' ?? False !! !::("Proc::Async") ~~ Failure;
         $!stdout := Supply.new;
         $!stderr := Supply.new;
         $!type   := $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");

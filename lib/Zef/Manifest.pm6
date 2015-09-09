@@ -8,7 +8,7 @@ class Zef::Manifest {
     submethod BUILD(:$!cur, :$!basename = 'MANIFEST', Bool :$!create) {
         $!lock := Lock.new;
         $!cur   = CompUnitRepo::Local::Installation.new($!cur)\
-            unless $!cur.isa(CompUnitRepo::Local::Installation);
+            unless $!cur ~~ CompUnitRepo::Local::Installation;
 
         with $!cur.IO.child($!basename) -> $mani-path {
             if !$mani-path.IO.e || !$mani-path.IO.f {

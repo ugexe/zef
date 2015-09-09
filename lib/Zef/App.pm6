@@ -17,7 +17,7 @@ use Zef::Utils::SystemInfo;
 
 
 #| Test modules in the specified directories
-multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v, 
+multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v, 
     Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap) is export(:test, :install) {
     
 
@@ -31,7 +31,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
             includes => $lib.list.unique,
             perl6lib => @perl6lib.unique,
         );
-        $dist does Zef::Roles::Processing[:$async, :$force] unless $dist.does(Zef::Roles::Processing);
+        $dist does Zef::Roles::Processing[:$jobs, :$force] unless $dist.does(Zef::Roles::Processing);
         $dist does Zef::Roles::Hooking unless $dist.does(Zef::Roles::Hooking);
         $dist does Zef::Roles::Testing;
 
@@ -82,7 +82,7 @@ multi MAIN('test', *@repos, :$lib, Bool :$async, Bool :$v,
 
 
 multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dry,
-    Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Bool :$async) is export(:smoke) {
+    Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Int :$jobs) is export(:smoke) {
     say "===> Smoke testing started: [{time}]";
 
     temp $projects-file = packages(:$ignore, :packages-file($projects-file));
@@ -96,13 +96,13 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dr
         # todo: fix first argument so it invokes the bin wrapper directly if it can find it,
         # else try to invoke $*PROGRAM?
         my @args = 'zef', '--boring', "--projects-file={$projects-file}";
-        @args.push('-v')        if $v;
-        @args.push('--report')  if $report;
-        @args.push('--dry')     if $dry;
-        @args.push('--shuffle') if $shuffle;
-        @args.push('--no-wrap') if $no-wrap;
-        @args.push('--async')   if $async;
-        @args.push("--ignore=$_") for $ignore.grep(*.so).list;
+        @args.push('-v')           if $v;
+        @args.push('--report')     if $report;
+        @args.push('--dry')        if $dry;
+        @args.push('--shuffle')    if $shuffle;
+        @args.push('--no-wrap')    if $no-wrap;
+        @args.push("--jobs=$jobs") if $jobs;
+        @args.push("--ignore=$_")  for $ignore.grep(*.so).list;
 
         say "===> Smoking next: {$result.<name>}";
         my $proc = run(@args.grep(*.so).list, 'install', $result.<name>, :out);
@@ -145,7 +145,7 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
 
 #| Install with business logic
 multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
-    Bool :$notest, Bool :$force, Bool :$async, Bool :$report, Bool :$v, Bool :$dry, 
+    Bool :$notest, Bool :$force, Int :$jobs, Bool :$report, Bool :$v, Bool :$dry, 
     Bool :$skip-depends, Bool :$skip-build-depends, Bool :$skip-test-depends,
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export(:install) {
 
@@ -158,7 +158,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # FETCHING
     my $fetched = &MAIN('get', @modules, :ignore($ignore.list),
         :$save-to, :$projects-file,
-        :$boring, :$async,
+        :$boring, :$jobs,
         :$skip-depends, :$skip-build-depends
         :skip-test-depends(($notest || $skip-test-depends) ?? True !! False),
     );
@@ -206,7 +206,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     }
 
     # BUIDLING
-    my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$async, :$no-wrap)\
+    my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap)\
         or print "???> Nothing to build.\n";
 
     my @failed-builds = eager gather for $built.list -> $b {
@@ -218,7 +218,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     unless $notest {
         # force the tests so we can report them. *then* we will bail out
         my $tested = &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
-            :$v, :$boring, :$async, :$shuffle, :force, :$no-wrap
+            :$v, :$boring, :$jobs, :$shuffle, :force, :$no-wrap
         );
         my @failed-tests = eager gather for $tested.list -> $t {
             $t.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
@@ -267,7 +267,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
                 # todo: refactor
                 # some of these roles may already be applied. in such situations 
                 # we don't want to duplicate the functionality.
-                $dist does Zef::Roles::Processing[:$async, :$force] unless $dist.does(Zef::Roles::Processing);
+                $dist does Zef::Roles::Processing[:$jobs, :$force] unless $dist.does(Zef::Roles::Processing);
                 $dist does Zef::Roles::Hooking unless $dist.does(Zef::Roles::Hooking);
                 $dist does Zef::Roles::Installing;
 
@@ -333,7 +333,7 @@ multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is expor
 
 #| Get the freshness
 multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
-    Bool :$async, Bool :$v, Bool :$boring, Bool :$skip-depends, 
+    Int :$jobs, Bool :$v, Bool :$boring, Bool :$skip-depends, 
     Bool :$skip-test-depends, Bool :$skip-build-depends) is export(:get :install) {
 
 
@@ -360,7 +360,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
 
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
-    Bool :$async, Bool :$boring, Bool :$force = True) is export(:build :install) {
+    Int :$jobs, Bool :$boring, Bool :$force = True) is export(:build :install) {
     @repos .= push($*CWD) unless @repos;
     @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).list;
 
@@ -376,7 +376,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
             includes     => $lib.list.unique,
             perl6lib     => @perl6lib.unique,
         );
-        $dist does Zef::Roles::Processing[:$async, :$force];
+        $dist does Zef::Roles::Processing[:$jobs, :$force];
         $dist does Zef::Roles::Precompiling;
         $dist does Zef::Roles::Hooking;
 

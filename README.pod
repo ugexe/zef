@@ -49,7 +49,7 @@ Be sure your `PATH` includes the file path shown by the command below:
     zef -v look CSV::Parser
 
     # build/test/install all modules in the ecosystem
-    zef -v smoke
+    zef -v --report smoke
 
 =head2 More CLI
 
@@ -64,7 +64,7 @@ Fetch, build, test, optional report, and install.
     --report
 
     # parallel testing and precompilation
-    --async
+    --jobs=2
 
     # cut off lines that reach (our guess at) the term width in columns
     --no-wrap
@@ -94,7 +94,7 @@ Fetch, build, test, optional report, and install.
     --force
 
     # livin that multi thread life
-    zef -v --report --async install HTTP::Server::Threaded
+    zef -v --report --jobs=4 install HTTP::Server::Threaded
     
 B<Example>: (note parallelized output format will be improved)
     

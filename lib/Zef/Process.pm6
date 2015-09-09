@@ -31,13 +31,13 @@ class Zef::Process {
                     ?? $!command.IO.basename 
                     !! ''; # shameful
 
-        die "Proc::Async not available, but option :\$!async explicitily requested it (JVM and OSX NYI)"
+        die "Proc::Async not available, but option --jobs explicitily requested it (JVM and OSX NYI)"
             if $!async && !$!can-async;
     }
 
     method start {
         # error check is duplicated here because, dun dun dunnn, JVM won't die otherwise
-        die "Proc::Async not available, but option :\$!async explicitily requested it (JVM and OSX NYI)"
+        die "Proc::Async not available, but option --jobs explicitily requested it (JVM and OSX NYI)"
             if $!async && !$!can-async;
 
         if $!async {

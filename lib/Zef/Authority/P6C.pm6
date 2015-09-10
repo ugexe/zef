@@ -59,14 +59,10 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
                 # todo: implement the rest of however github.com transliterates paths
                 my $basename  := %dist<name>.trans(':' => '-');
-                temp $save-to  = $save-to.IO.child($basename);
+                temp $save-to  = ~$save-to.IO.child($basename);
                 my @git       := $!git.clone(:$save-to, %dist<source-url>).list;
 
-                take {
-                    module => %dist.<name>, 
-                    path   => @git.[0].<path>, 
-                    ok     => ?$save-to.IO.e
-                }
+                take { :unit-id(%dist.<name>), :path(@git.[0].<path>), :ok(?$save-to.IO.e) }
             }
         }
     }

@@ -145,7 +145,7 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
 
 #| Install with business logic
 multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
-    Bool :$notest, Bool :$force, Int :$jobs, Bool :$report, Bool :$v, Bool :$dry, 
+    Bool :$no-test, Bool :$force, Int :$jobs, Bool :$report, Bool :$v, Bool :$dry,
     Bool :$skip-depends, Bool :$skip-build-depends, Bool :$skip-test-depends,
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export(:install) {
 
@@ -160,7 +160,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
         :$save-to, :$projects-file,
         :$boring, :$jobs,
         :$skip-depends, :$skip-build-depends
-        :skip-test-depends(($notest || $skip-test-depends) ?? True !! False),
+        :skip-test-depends(($no-test || $skip-test-depends) ?? True !! False),
     );
 
 
@@ -215,7 +215,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     die "!!!> Aborting. Build failures for: {@failed-builds.map(*.id)}" if !$report && !$force && @failed-builds.elems;
 
     # TESTING
-    unless $notest {
+    unless $no-test {
         # force the tests so we can report them. *then* we will bail out
         my $tested = &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
             :$v, :$boring, :$jobs, :$shuffle, :force, :$no-wrap

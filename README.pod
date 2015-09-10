@@ -63,7 +63,7 @@ Fetch, build, test, optional report, and install.
     # send a test report
     --report
 
-    # parallel testing and precompilation
+    # parallel testing and precompilation (max processes/threads)
     --jobs=2
 
     # cut off lines that reach (our guess at) the term width in columns

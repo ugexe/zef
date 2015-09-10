@@ -49,7 +49,7 @@ class Zef::Manifest {
     method file-count {
         # CURLI appears to have named this confusingly as it is really a max value of all file ids
         # and not an actual count of anything.
-        my $fc = [max] $.files(:bin, :provides).list;
+        my $fc = [max] $.files(:bin, :provides).flat.list;
         $fc > 0 ?? $fc !! 0; # max on empty array = -Inf
     }
 

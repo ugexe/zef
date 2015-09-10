@@ -8,7 +8,7 @@ class Zef::Manifest {
     submethod BUILD(:$!cur, :$!basename = 'MANIFEST', Bool :$!create) {
         $!lock := Lock.new;
         $!cur   = CompUnitRepo::Local::Installation.new($!cur)\
-            unless $!cur.isa(CompUnitRepo::Local::Installation);
+            unless $!cur ~~ CompUnitRepo::Local::Installation;
 
         with $!cur.IO.child($!basename) -> $mani-path {
             if !$mani-path.IO.e || !$mani-path.IO.f {
@@ -49,7 +49,7 @@ class Zef::Manifest {
     method file-count {
         # CURLI appears to have named this confusingly as it is really a max value of all file ids
         # and not an actual count of anything.
-        my $fc = [max] $.files(:bin, :provides).list;
+        my $fc = [max] $.files(:bin, :provides).flat.list;
         $fc > 0 ?? $fc !! 0; # max on empty array = -Inf
     }
 

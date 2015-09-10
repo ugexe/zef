@@ -12,13 +12,15 @@ class Zef::Utils::Git {
                 :cwd($save-to.IO.dirname),
                 :!async,
             );
-            await $proc.start;
+            my $clone-promise = $proc.start;
+            $clone-promise.result; # osx bug RT125758
+            await $clone-promise;
             my $git_result = $proc.exitcode;
 
             given $git_result {
                 when 128 { # directory already exists and is not empty
                     if $branch {
-                        print "===> Attempting checkout `git checkout $branch {@!flags}`\n";
+                        print "===> Attempting to checkout via `git checkout $branch {@!flags}`\n";
                         $proc = Zef::Process.new(
                             :id("git checkout"),
                             :command('git'),
@@ -26,10 +28,12 @@ class Zef::Utils::Git {
                             :cwd($save-to.IO),
                             :!async,
                         );
-                        await $proc.start;
+                        my $checkout-promise = $proc.start;
+                        $checkout-promise.result; # osx bug RT125758
+                        await $checkout-promise;
                     }
 
-                    print "===> Attempting updating via `git pull`\n";
+                    print "===> Attempting to update via `git pull`\n";
                     $proc = Zef::Process.new(
                         :id("git pull"),
                         :command('git'), 
@@ -37,7 +41,9 @@ class Zef::Utils::Git {
                         :cwd($save-to.IO),
                         :!async,
                     );
-                    await $proc.start;
+                    my $pull-promise = $proc.start;
+                    $pull-promise.result; # osx bug RT125758
+                    await $pull-promise;
                     $git_result = $proc.exitcode;
                 }
             }

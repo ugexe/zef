@@ -48,7 +48,7 @@ role Zef::Authority {
 
                 for $filters.list -> $f {
                     next unless $f.so;
-                    next FILTERS unless $f.isa(Str) || $f.isa(Int) || $f.isa(Num) || $f.isa(Rat);
+                    next FILTERS unless $f ~~ Str|Int|Num|Rat;
                     temp $ver;
 
                     if $field ~~ /^ver[sion]?/ {

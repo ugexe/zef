@@ -40,25 +40,25 @@ class Zef::Net::HTTP::Request does HTTP::Request {
         $!uri := Zef::Net::URI.new(:$!url) or die "Couldn't create a URI from `$!url`";
 
         if ?$!proxy {
-            if ?$!proxy ~~ Str {
-                $!proxy := Zef::Net::URI.new(url => $!proxy);
+            if $!proxy ~~ Str {
+                $!proxy = Zef::Net::URI.new(:url($!proxy));
             }
             else {
                 if my $p = %*ENV.{$!uri.scheme ~ '_proxy'} {
-                    $!proxy = Zef::Net::URI.new(url => $p)
+                    $!proxy = Zef::Net::URI.new(:url($p));
                 }
                 else {
                     fail ":\$proxy set to true, but \%*ENV<{$!uri.scheme}_proxy> not found";
                 }
             }
 
-            if ?$!proxy.uri.user-info {
-                %!headers<Proxy-Authorization> = "Basic " ~ b64encode($!proxy.uri.user-info);
+            with $!proxy.uri.?user-info -> $user-info {
+                %!headers<Proxy-Authorization> = "Basic " ~ b64encode($user-info);
             }
         }
 
-        if $!uri.?user-info {
-            %!headers<Authorization> = "Basic " ~ b64encode($!uri.user-info);
+        with $!uri.?user-info -> $user-info {
+            %!headers<Authorization> = "Basic " ~ b64encode($user-info);
         }
 
         %!headers<Connection> = 'Close';

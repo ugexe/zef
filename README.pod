@@ -98,7 +98,7 @@ Fetch, build, test, optional report, and install.
     
 B<Example>: (note parallelized output format will be improved)
 
-    $ zef -v --jobs=4 install CSV::Parser
+    $ zef -v --jobs=2 install CSV::Parser
     Initializing
     ===> Module count: 364
     ===> Filtered module count: 364
@@ -112,12 +112,12 @@ B<Example>: (note parallelized output format will be improved)
     ===> Precompiling OK for: Parser.pm
     01_multiline_csv.t  # perl6 --ll-exception -Iblib/lib -Ilib t/01_multiline_csv.t
     02_escaped_csv.t    # perl6 --ll-exception -Iblib/lib -Ilib t/02_escaped_csv.t
-    03_delimiters_csv.t # perl6 --ll-exception -Iblib/lib -Ilib t/03_delimiters_csv.t
-    04_binary_csv.t     # perl6 --ll-exception -Iblib/lib -Ilib t/04_binary_csv.t
     01_multiline_csv.t  # 1..1
     01_multiline_csv.t  # ok 1 -
+    03_delimiters_csv.t # perl6 --ll-exception -Iblib/lib -Ilib t/03_delimiters_csv.t
     02_escaped_csv.t    # 1..1
     02_escaped_csv.t    # ok 1 -
+    04_binary_csv.t     # perl6 --ll-exception -Iblib/lib -Ilib t/04_binary_csv.t
     03_delimiters_csv.t # 1..1
     03_delimiters_csv.t # ok 1 -
     04_binary_csv.t     # 1..1

@@ -97,38 +97,35 @@ Fetch, build, test, optional report, and install.
     zef -v --report --jobs=4 install HTTP::Server::Threaded
     
 B<Example>: (note parallelized output format will be improved)
-    
-    $ zef -v install CSV::Parser P6TCI
-    ===> Querying Authority [done]
+
+    $ zef -v --jobs=4 install CSV::Parser
+    Initializing
+    ===> Module count: 364
+    ===> Filtered module count: 364
+    ===> Package file: /tmp/p6c-packages.1441864140.72.json
+    ===> Attempting to update via `git pull`
     ===> Fetching [done]
-    ===> Fetching OK for: CSV::Parser P6TCI
-    ===> META.info availability OK for: CSV::Parser P6TCI
-    ===> Build directory: /tmp/CSV--Parser/blib
-    Parser.pm # perl6 -I/tmp/CSV--Parser/blib/lib -I/tmp/CSV--Parser/lib -I/tmp/CSV--Parser/lib --target=mbc --output=/tmp/CSV--Parser/blib/lib/CSV/Parser.pm.moarvm lib/CSV/Parser.pm
-    ===> Build directory: /tmp/P6TCI/blib
-    P6TCI.pm6 # perl6 -I/tmp/P6TCI/blib/lib -I/tmp/P6TCI/lib -I/tmp/P6TCI/lib --target=mbc --output=/tmp/P6TCI/blib/lib/P6TCI.pm6.moarvm lib/P6TCI.pm6
-    ===> Building [done]
-    ===> Build OK for: lib/CSV/Parser.pm lib/P6TCI.pm6
+    ===> Fetching OK for: CSV::Parser
+    ===> META.info availability OK for: CSV::Parser
+    Parser.pm # perl6 -Iblib/lib -Ilib --target=mbc --output=blib/lib/CSV/Parser.pm.moarvm lib/CSV/Parser.pm
+    ===> Precompiling [done]
+    ===> Precompiling OK for: Parser.pm
     01_multiline_csv.t  # perl6 --ll-exception -Iblib/lib -Ilib t/01_multiline_csv.t
+    02_escaped_csv.t    # perl6 --ll-exception -Iblib/lib -Ilib t/02_escaped_csv.t
+    03_delimiters_csv.t # perl6 --ll-exception -Iblib/lib -Ilib t/03_delimiters_csv.t
+    04_binary_csv.t     # perl6 --ll-exception -Iblib/lib -Ilib t/04_binary_csv.t
     01_multiline_csv.t  # 1..1
     01_multiline_csv.t  # ok 1 -
-    02_escaped_csv.t    # perl6 --ll-exception -Iblib/lib  -Ilib t/02_escaped_csv.t
     02_escaped_csv.t    # 1..1
     02_escaped_csv.t    # ok 1 -
-    03_delimiters_csv.t # perl6 --ll-exception -Iblib/lib -Ilib t/03_delimiters_csv.t
     03_delimiters_csv.t # 1..1
     03_delimiters_csv.t # ok 1 -
-    04_binary_csv.t     # perl6 --ll-exception -Iblib/lib -Ilib t/04_binary_csv.t
     04_binary_csv.t     # 1..1
     04_binary_csv.t     # ok 1 -
-    00-load.t           # perl6 --ll-exception -Iblib/lib -Ilib t/00-load.t
-    00-load.t           # ok 1 - Module loaded.
-    00-load.t           # 1..1
     ===> Testing [done]
-    ===> Testing OK for: 01_multiline_csv.t 02_escaped_csv.t 03_delimiters_csv.t 04_binary_csv.t 00-load.t
+    ===> Testing OK for: 01_multiline_csv.t 02_escaped_csv.t 03_delimiters_csv.t 04_binary_csv.t
     ===> Installing [done]
-    ===> Install OK for: CSV::Parser P6TCI
-
+    ===> Install OK for: CSV::Parser
 
 =head4 B<smoke>
 

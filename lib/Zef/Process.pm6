@@ -1,6 +1,7 @@
 # A wrapper around Proc and Proc::Async
 class Zef::Process {
     has $.id       is rw;
+    has $.unit-id  is rw;
     has $.command  is rw;
     has @.args     is rw;
     has $.cwd      is rw;

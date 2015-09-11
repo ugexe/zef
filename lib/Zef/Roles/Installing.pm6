@@ -19,10 +19,10 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
             mkdirs(PARSE-INCLUDE-SPEC($curli.Str).[*-1]) unless $curli.IO.e;
             $curli does curli-copy-fix[$.path];
 
-            my %result      = %($.metainfo);
-            %result<module> = $.name;
-            %result<file>   = $.meta-path;
-            %result<ok>     = 0;
+            my %result       = %($.metainfo);
+            %result<unit-id> = $.name;
+            %result<file>    = $.meta-path;
+            %result<ok>      = 0;
 
             if !$force && !$.wanted {
                 %result<skipped> = $.name;

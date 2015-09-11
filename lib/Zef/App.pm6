@@ -59,26 +59,27 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
     }, "Testing", :$boring;
 
 
-    for $tested-dists.list -> $tested-dist {
-        my @r;
-        for $tested-dist.processes -> $group {
-            my @results;
+    my @r;
+    for $tested-dists.list -> $test-dist {
+        my @results;
+        for $test-dist.processes -> $group {
             for $group.list -> $proc {
                 for $proc.list -> $item {
-                    my $result = { :ok($item.ok), :id($item.id.IO.basename) };
-                    @results.push($result);
+                    my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
+                    @results.push($sub-result);
 
-                    if !$force && !$result<ok> {
-                        print "!!!> Testing failure. Aborting.\n";
-                        exit 255;
+                    if !$force && !$sub-result<ok> {
+                        print "!!!> Test failure. Aborting.\n";
+                        exit 254;
                     }
                 }
             }
-            my $result = { :ok(all(@results>><ok>)), :unit-id($tested-dist.name) :results(@results) };
-            @r.push($result);
         }
-        verbose('Testing', @r);
+        my $result = { :ok(all(@results>><ok>)), :unit-id($test-dist.name) :results(@results) }
+        @r.push($result);
     }
+    verbose('Testing', @r);
+
 
     return $tested-dists;
 }
@@ -249,8 +250,8 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
         if @failed.elems {
             !$force
-                ?? do { print "!!!> Failed {@failed.elems} tests. Aborting.\n" and exit @failed.elems }
-                !! do { print "???> Failed tests. Using \$force\n"                    };
+                ?? do { print "!!!> {@failed.elems} packages failed testing. Aborting.\n" and exit @failed.elems }
+                !! do { print "!==> {@failed.elems} packages failed testing. [but using --force to continue]\n"  };
         }
         elsif !@passed.elems {
             print "???> No tests.\n";
@@ -405,27 +406,26 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
         @finished;
     }, "Precompiling", :$boring;
 
+    my @r;
     for $precompiled-dists.list -> $precomp-dist {
-        my @r;
+        my @results;
         for $precomp-dist.processes -> $group {
-            my @results;
             for $group.list -> $proc {
                 for $proc.list -> $item {
-                    my $result = { ok => $item.ok, id => $item.id.IO.basename };
+                    my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
+                    @results.push($sub-result);
 
-                    if !$force && !$result<ok> {
+                    if !$force && !$sub-result<ok> {
                         print "!!!> Precompilation failure. Aborting.\n";
                         exit 254;
                     }
-
-                    @results.push($result);
                 }
             }
-            my $result = { :ok(all(@results>><ok>)), :unit-id($precomp-dist.name), :results(@results) };
-            @r.push($result);
         }
-        verbose('Precompiling', @r);
+        my $result = { :ok(all(@results>><ok>)), :unit-id($precomp-dist.name) :results(@results) }
+        @r.push($result);
     }
+    verbose('Precompiling', @r);
 
     return $precompiled-dists;
 }
@@ -554,7 +554,7 @@ sub verbose($phase, $work) {
     if %r<ok>  -> @ok  { print "===> $phase OK for: {@ok>><unit-id>.join(', ')}\n" }
     if %r<nok> -> @nok {
         for @nok -> $failed {
-            FIRST { print "!!!> $phase FAILURES:\n" }
+            FIRST { print "!!!> $phase FAILED: {@nok>><unit-id>}\n" }
             my $to-print = "!> {$failed<unit-id>}";
             with $failed<results> -> $f { $to-print ~= ": {$f.grep(!*<ok>)>><id>.join(', ')}" }
             $to-print ~= "\n";

@@ -1,6 +1,6 @@
 language: perl
 perl:
-    - '5.22'
+    - '5.20'
 env:
     - BACKEND=moar JOBS=""
     - BACKEND=moar JOBS="--jobs=4"

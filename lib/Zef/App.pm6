@@ -240,7 +240,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
             }, "Reporting", :$boring;
 
             verbose('Reporting', $reported.list);
-            my @ok = $reported.list.grep(*.<id>.so).list;
+            my @ok = $reported.list.grep(*.<report-id>.so).list;
             print "===> Report{'s' if $reported.list.elems > 1} can be seen shortly at:\n" if @ok;
             print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
         }

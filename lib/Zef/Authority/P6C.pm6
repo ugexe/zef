@@ -156,12 +156,13 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 my $body     := $response.content(:bin).decode('utf-8');
                 ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;
             }
+                take { :unit-id(%dist.<name>), :path(@git.[0].<path>), :ok(?$save-to.IO.e) }
 
             take {
-                ok     => ?$report-id, 
-                module => %meta<name>, 
-                report => $report,
-                id     => $report-id // '',
+                ok        => ?$report-id,
+                unit-id   => %meta<name>,
+                report    => $report,
+                report-id => $report-id // '',
             }
         }
     }

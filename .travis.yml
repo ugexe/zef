@@ -1,6 +1,6 @@
 language: perl
 perl:
-    - '5.20'
+    - '5.22'
 env:
     - BACKEND=moar JOBS=""
     - BACKEND=moar JOBS="--jobs=4"
@@ -11,14 +11,17 @@ matrix:
     fast_finish: true
 sudo: false
 before_install:
-    - git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew
-    - export PATH=~/.rakudobrew/bin:$PATH
-    - rakudobrew build $BACKEND
+    - git clone https://github.com/rakudo/rakudo.git ~/rakudo && cd rakudo
+    - cd rakudo
+    - 'if [[ $BACKEND == "moar" ]]; then perl Configure.pl --gen-moar --gen-nqp --backends=$BACKEND; fi'
+    - 'if [[ $BACKEND == "jvm" ]]; then perl Configure.pl --gen-nqp --backends=$BACKEND; fi'
+    - make install && cd
+    - export PATH=~/rakudo/install/bin:$PATH
 install:
     # need at least 1 statement in 'install'
     - perl6 -v
 script:
     - prove -j4 -v -e "perl6 -Ilib" t/ xt/
 after_success:
-    - 'if [[ $BACKEND == "moar" ]]; then perl6 -Ilib bin/zef -v --boring $JOBS --save-to=precomp/ build; fi'
-    - 'if [[ $BACKEND == "moar" ]]; then perl6 -Iprecomp bin/zef -v --boring --lib=precomp $JOBS install Zef; fi'
+    - perl6 -Ilib bin/zef -v --boring $JOBS --save-to=precomp/ build
+    - perl6 -Iprecomp bin/zef -v --boring --lib=precomp $JOBS install Zef

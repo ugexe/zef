@@ -73,7 +73,7 @@ subtest {
     my $http    = Zef::Net::HTTP::Grammar.parse($response, :$actions);
     my %header  = $http.<HTTP-message>.<header-field>>>.made;
 
-    is %header<Accept>.list.elems, 2, "Found both Accept header media types";
+    is %header<Accept>.cache.elems, 2, "Found both Accept header media types";
     is %header<Accept>, [
         [   :range([
                 :type<audio>, 

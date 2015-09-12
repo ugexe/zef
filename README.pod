@@ -253,6 +253,10 @@ Due to a bug in L<Test.pm|https://github.com/rakudo/rakudo/blob/nom/lib/Test.pm>
     perl6 -e "use Test; use aeflkaje;" && echo "OK"
     perl6 --ll-exception -e "use Test; use aeflkaje;" && echo "OK"
 
+=head3 Segmentation fault!
+
+Use the C<--boring> option. This works around a bug that appears to be caused by rakudo's threads.
+
 =head1 INCLUDED TOOLS
 
 =head2 Zef::Net::HTTP
@@ -271,20 +275,6 @@ HTTP library interfaces and Grammars.
 
     my $response = $client.get("https://www.google.com");
     say $reponse.content; # returns $.body with encoding/chunked/etc applied
-
-or build your own client by satisfying the interface requirements during object construction:
-
-    use Zef::Net::HTTP::Client;
-
-    use Different::Responder;
-    use Different::Requestor;
-    use You::Get::The::Idea;
-
-    Zef::Net::HTTP::Client.new(
-        responder   => Different::Responder, # HTTP::Response
-        requestor   => Different::Requestor, # HTTP::Request
-        transporter => You::Get::The::Idea   # HTTP::Transport
-    );
 
 =head1 NOTES
 

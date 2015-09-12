@@ -10,10 +10,10 @@ role Zef::Roles::Precompiling {
 
         # Build the @dep chain for the %meta<provides> by parsing the 
         # use/require/need from the module source. todo: speed up.
-        my @deps := extract-deps( %provides-abspaths.values ).list;
+        my @deps := extract-deps( %provides-abspaths.values ).cache;
 
         my $provides-as-deps := gather for @deps -> $dep-meta is rw {
-            $dep-meta.<depends> = [%provides-abspaths.{$dep-meta.<depends>.list}];
+            $dep-meta.<depends> = [%provides-abspaths.{$dep-meta.<depends>.cache}];
             $dep-meta.<name>    = %provides-abspaths.values\
                 .first: { $_.IO.ACCEPTS($dep-meta.<path>.IO.absolute($.path)) }
             take $dep-meta;
@@ -22,11 +22,11 @@ role Zef::Roles::Precompiling {
 
         # @provides-as-deps is a partial META.info hash, so pass the $meta.<provides>
         # Note topological-sort with no arguments will sort the class's @projects (provides in this case)
-        my @levels := Zef::Utils::Depends.new(projects => $provides-as-deps.list).topological-sort;
+        my @levels := Zef::Utils::Depends.new(projects => $provides-as-deps.cache).topological-sort;
 
         # Create the build order for the `provides`
         @levels.map: -> $level {
-            my $bb = gather for $level.list -> $module-id {
+            my $bb = gather for $level.cache -> $module-id {
                 my $file := $module-id.IO.absolute($.path).IO;
 
                 # Many tests are written with the assumption the cwd is their projects base directory.
@@ -38,7 +38,7 @@ role Zef::Roles::Precompiling {
 
                     mkdirs($out-abs.IO.dirname) unless $out-abs.IO.dirname.IO.e;
 
-                    take $($*EXECUTABLE, $.i-paths.list, "--target={$target}", "--output={$out-rel}", $file-rel)
+                    take $($*EXECUTABLE, $.i-paths.cache, "--target={$target}", "--output={$out-rel}", $file-rel)
                 }
             }
             $bb;

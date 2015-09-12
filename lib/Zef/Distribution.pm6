@@ -12,7 +12,7 @@ role Zef::Distribution {
         my $want-v := ~self.version;
 
         gather for @curlis -> $curli {
-            for $curli.candidates($want-n).list -> $have {
+            for $curli.candidates($want-n).cache -> $have {
                 my $have-n = $have<name> or next;
                 my $have-a = $have<auth>
                     || (($have<authority>.so && $have<author>.so)
@@ -29,7 +29,7 @@ role Zef::Distribution {
 
     method wanted(:$take-whatever = True) {
         return True  if  $take-whatever && $.version ~~ /v? '*'/;
-        return False if $.candidates.list.first({
+        return False if $.candidates.cache.first({
             my $ver = $_.<ver> // $_.<version> // '*';
             VCOMPARE(~$.version, ~$ver) ~~ any(Order::Same, Order::Less)
         });

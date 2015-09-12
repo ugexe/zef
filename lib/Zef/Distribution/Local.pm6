@@ -27,8 +27,8 @@ class Zef::Distribution::Local does Zef::Distribution {
         @!perl6lib = @!perl6lib.grep(*.so);
 
         $!meta-path = ($!path.child('META.info'), $!path.child('META6.json'))\
-            .grep(*.IO.e).list.first(*.IO.f) unless $!meta-path;
-        %!hash = %(from-json( $!meta-path.IO.slurp.list ))\
+            .grep(*.IO.e).cache.first(*.IO.f) unless $!meta-path;
+        %!hash = %(from-json( $!meta-path.IO.slurp.cache ))\
             or die "Distributions require a META file, but one was not found.";
 
         # Clean the `provides` paths. If we find an absolute path, assume that it is 
@@ -46,8 +46,8 @@ class Zef::Distribution::Local does Zef::Distribution {
             my @p = %!hash<provides>.values\
                 .map: { [$!path.IO.SPEC.splitdir($_.IO.parent).grep(*.so)] }
 
-            my @keep-parts = eager gather for 0..@p.list.map({ $_.list.end }).min -> $i {
-                my @check = @p.list.map({ $_.[$i]; }).list;
+            my @keep-parts = eager gather for 0..@p.cache.map({ $_.cache.end }).min -> $i {
+                my @check = @p.cache.map({ $_.[$i]; }).cache;
                 my $elems = @check.unique.elems;
                 last if @check.unique.elems !== 1;
                 take @check[0];
@@ -78,9 +78,9 @@ class Zef::Distribution::Local does Zef::Distribution {
             :auth($!authority),
             :ver($!version                           // '*'),
             :description(%!hash<description>         //  ''),
-            :depends(%!hash<depends>.grep(*.so).list //  []),
+            :depends(%!hash<depends>.grep(*.so).cache //  []),
             :provides(%!hash<provides>.hash          //  {}),
-            :files(%!hash<files>.grep(*.so).list     //  []),
+            :files(%!hash<files>.grep(*.so).cache     //  []),
             :source-url(%!hash<source-url>           //  ''),
         }
     }

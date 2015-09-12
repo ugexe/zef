@@ -6,7 +6,7 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
 
     method queue-processes(*@groups) {
         my %env = %*ENV.hash;
-        my $p6lib = (%env<PERL6LIB>.list, @.perl6lib.list).flat.grep(*.so).join(',');
+        my $p6lib = (%env<PERL6LIB>.cache, @.perl6lib.cache).flat.grep(*.so).join(',');
         %env<PERL6LIB> = $p6lib if $p6lib.so;
 
         my @procs;
@@ -28,7 +28,7 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
         #$p.keep(1);
         #
         #for @!processes -> $level {
-        #    my @not-started := $level.list.grep({ !$_.started });
+        #    my @not-started := $level.cache.grep({ !$_.started });
         #    $p = $p.then: {
         #        my @promises := @not-started.map: { $_.start }
         #        await Promise.allof(@promises) if @promises;

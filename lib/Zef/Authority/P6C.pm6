@@ -16,7 +16,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         my $response = $!ua.get: ~@!mirrors.pick(1);
         my $content  = $response.content or fail "!!!> Failed to update projects file";
         my $json     = from-json($content);
-        @!projects   = try { $json.list }\
+        @!projects   = try { $json.cache }\
             or fail "!!!> Missing or invalid projects json";
     }
 
@@ -33,12 +33,12 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         Bool :$fetch = True,
     ) {
         self.update-projects if $fetch && !@!projects.elems;
-        my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) }).list;
+        my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) }).cache;
 
         my @wants-dists-filtered = !@ignore ?? @wants-dists !! @wants-dists.grep({
-               (!$depends       || any($_.<depends>.list.grep(*.so))       ~~ none(@ignore.grep(*.so)))
-            && (!$test-depends  || any($_.<build-depends>.list.grep(*.so)) ~~ none(@ignore.grep(*.so)))
-            && (!$build-depends || any($_.<test-depends>.list.grep(*.so))  ~~ none(@ignore.grep(*.so)))
+               (!$depends       || any($_.<depends>.cache.grep(*.so))       ~~ none(@ignore.grep(*.so)))
+            && (!$test-depends  || any($_.<build-depends>.cache.grep(*.so)) ~~ none(@ignore.grep(*.so)))
+            && (!$build-depends || any($_.<test-depends>.cache.grep(*.so))  ~~ none(@ignore.grep(*.so)))
         });
 
         return () unless @wants-dists-filtered;
@@ -51,16 +51,16 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
         # Try to fetch each distribution dependency
         eager gather for $levels -> $level {
-            for $level.list -> $package-name {
+            for $level.cache -> $package-name {
                 next if $package-name.lc ~~ any(@skip>>.lc);
                 # todo: filter projects by version/auth
-                my %dist = @!projects.list.first({ $_.<name>.lc eq $package-name.lc }).hash;
+                my %dist = @!projects.cache.first({ $_.<name>.lc eq $package-name.lc }).hash;
                 die "!!!> No source-url for $package-name (META info lost?)" and next unless ?%dist<source-url>;
 
                 # todo: implement the rest of however github.com transliterates paths
                 my $basename  := %dist<name>.trans(':' => '-');
                 temp $save-to  = ~$save-to.IO.child($basename);
-                my @git       := $!git.clone(:$save-to, %dist<source-url>).list;
+                my @git       := $!git.clone(:$save-to, %dist<source-url>).cache;
 
                 take { :unit-id(%dist.<name>), :path(@git.[0].<path>), :ok(?$save-to.IO.e) }
             }
@@ -80,9 +80,9 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             # the GLR transitions is making this this string concating
             # look more complicated than it needs to be
             my $build-output;
-            for $build.processes.list -> $group {
-                for $group.list -> $item {
-                    for $item.list -> $proc {
+            for $build.processes.cache -> $group {
+                for $group.cache -> $item {
+                    for $item.cache -> $proc {
                         with $proc.stdmerge -> $out {
                             $build-output ~= "{$out}\n";
                         }
@@ -90,9 +90,9 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 }
             }
             my $test-output;
-            for $test.processes.list -> $group {
-                for $group.list -> $item {
-                    for $item.list -> $proc {
+            for $test.processes.cache -> $group {
+                for $group.cache -> $item {
+                    for $item.cache -> $proc {
                         with $proc.stdmerge -> $out {
                             $test-output ~= "{$out}\n";
                         }

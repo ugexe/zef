@@ -23,21 +23,21 @@ class Zef::Utils::Depends {
     # http://rosettacode.org/wiki/Topological_sort/Extracted_top_item#Perl_6
     method topological-sort (*@wanted, *%fields) {
         %fields<depends> = True unless %fields.elems;
-        my @top = @wanted.flat.list.map({ $_.<name> });
+        my @top = @wanted.flat.cache.map({ $_.<name> });
         my %deps;
 
         # Handle where provides has 2+ package names mapped to the same path
         # todo: don't do the unique call on every iteration
         for @!projects -> $meta {
             for %fields.kv -> $k, $v {
-                %deps{$meta.<name>} .= push($_) for $meta.{$k}.list;
-                %deps{$meta.<name>} = [%deps{$meta.<name>}.list.grep(*.so).unique];
+                %deps{$meta.<name>} .= push($_) for $meta.{$k}.cache;
+                %deps{$meta.<name>} = [%deps{$meta.<name>}.cache.grep(*.so).unique];
             }
         }
 
         my %ba;
         for %deps.kv -> $after, $befores {
-            for $befores.list -> $before {
+            for $befores.cache -> $before {
                 %ba{$after}{$before} = 0 if $before ne $after;
                 %ba{$before} //= {};
             }
@@ -117,7 +117,7 @@ class Zef::Utils::Depends {
                 next unless $code-only.chars > 5;
 
                 my $dep-parser = Grammar::Dependency::Parser.parse($code-only);
-                my @deps = $dep-parser.<load-statement>.list.grep(*.so)\
+                my @deps = $dep-parser.<load-statement>.cache.grep(*.so)\
                     .grep({ $_.<short-name>.Str ~~ none(@skip) })\
                     .map({ $_.<short-name>.Str });
 

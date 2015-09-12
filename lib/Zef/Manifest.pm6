@@ -49,17 +49,17 @@ class Zef::Manifest {
     method file-count {
         # CURLI appears to have named this confusingly as it is really a max value of all file ids
         # and not an actual count of anything.
-        my $fc = [max] $.files(:bin, :provides).flat.list;
+        my $fc = [max] $.files(:bin, :provides).flat.cache;
         $fc > 0 ?? $fc !! 0; # max on empty array = -Inf
     }
 
     method files(Bool :$bin = True, Bool :$provides) {
         my @files;
-        my @dists = %!hash<dists>.list;
+        my @dists = %!hash<dists>.cache;
         @files <== map {.<files>.values} <== @dists if ?$bin;
         @files <== map {.<file>} <== map {.<provides>.values>>.values} <== @dists if ?$provides;
 
-        @files.grep(*.so).list;
+        @files.grep(*.so).cache;
     }
 
     # this can be put somewhere more appropriate later

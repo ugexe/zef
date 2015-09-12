@@ -17,11 +17,11 @@ subtest {
     $distribution does Zef::Roles::Installing[$install-to];
 
     my @source-files = $distribution.provides(:absolute).values;
-    my @results      = $distribution.install(:force).list;
+    my @results      = $distribution.install(:force).cache;
 
     ok @results.elems,                        "Got non-zero number of results"; 
     is @results.grep({ $_<ok>.so }).elems, 1, "All modules installed OK";
-    is @results.list[0]<name>,       'Zef',   "name:Zef matches in pass results";
+    is @results.cache[0]<name>,       'Zef',   "name:Zef matches in pass results";
     ok $install-to.IO.child('MANIFEST').IO.e, "MANIFEST exists";
 }, 'Zef can install zef';
 

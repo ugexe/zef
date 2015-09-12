@@ -121,7 +121,7 @@ subtest {
         ~"\r\n" ~ q{48092};
 
     my $http = Zef::Net::HTTP::Grammar.parse($response);
-    my $content-length = $http.<HTTP-message>.<header-field>.list.first({ $_.<name> eq 'Content-Length' }).<value>;
+    my $content-length = $http.<HTTP-message>.<header-field>.cache.first({ $_.<name> eq 'Content-Length' }).<value>;
 
     is $content-length, 5, 'Content-Length correct value';
     is $http.<HTTP-message>.<message-body>, 48092, "Report Number parsed from body";

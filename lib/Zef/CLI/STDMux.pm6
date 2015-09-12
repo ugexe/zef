@@ -10,8 +10,8 @@ unit module Zef::CLI::STDMux;
 sub procs2stdout(*@processes, :$max-width) is export {
     return unless @processes;
     my @basenames = gather for @processes -> $group {
-        for $group.list -> $item {
-            for $item.list { take $_.id.IO.basename }
+        for $group.cache -> $item {
+            for $item.cache { take $_.id.IO.basename }
         }
     }
     my $longest-basename = @basenames.max(*.chars);
@@ -19,7 +19,7 @@ sub procs2stdout(*@processes, :$max-width) is export {
         for @group -> $proc {
             for $proc.stdout, $proc.stderr -> $stdio {
                 $stdio.act: -> $out {
-                    for $out.lines.list.grep(*.chars) -> $line {
+                    for $out.lines.cache.grep(*.chars) -> $line {
                         my $formatted = sprintf(
                             "%-{$longest-basename.chars + 1}s# %s",
                             $proc.id.IO.basename,

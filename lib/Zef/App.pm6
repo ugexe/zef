@@ -303,8 +303,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
         $results;
     } unless ?$dry;
 
-
-    exit ?$dry ?? 0 !! (@modules.elems - $install.list.grep({ !$_<ok> }).elems);
+    exit ?$dry ?? 0 !! ($install.list.grep({ !$_<ok> }).elems);
 }
 
 

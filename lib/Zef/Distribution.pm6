@@ -36,10 +36,9 @@ role Zef::Distribution {
         return True;
     }
 
-    method metainfo         { $.meta }
-
-    method content {...}
-    method meta    {...}
+    method metainfo { $.meta }
+    method content  {...}
+    method meta     {...}
 
     my sub VCOMPARE($v1, $v2) is export {
         # TEMPORARY - $version.ACCEPTS() needs work

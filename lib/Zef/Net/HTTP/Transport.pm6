@@ -31,7 +31,7 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
     has HTTP::Response $.responder;
 
     submethod BUILD(HTTP::Dialer :$!dialer, HTTP::Response :$!responder) {
-        $!dialer := Zef::Net::HTTP::Dialer.new unless $!dialer;
+        $!dialer = Zef::Net::HTTP::Dialer.new unless $!dialer;
     }
 
     method round-trip(HTTP::Request $req --> HTTP::Response) {
@@ -41,7 +41,7 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
         my $t = $req.DUMP(:start-line);
         $t   ~= $req.DUMP(:headers);
 
-        my $socket := $!dialer.dial($req.?proxy ?? $req.proxy.uri !! $req.uri);
+        my $socket = $!dialer.dial($req.?proxy ?? $req.proxy.uri !! $req.uri);
 
         $socket does HTTP::BufReader;
         $socket.print: $req.DUMP(:start-line);
@@ -51,7 +51,7 @@ class Zef::Net::HTTP::Transport does HTTP::RoundTrip {
             when *.not { #`<no body in request; skip this> }
 
             when Buf { $socket.write($_) }
-            when Str { $socket.print($_)  }
+            when Str { $socket.print($_) }
 
             default {
                 die "{::?CLASS} doesn't know how to handle :\$body of this type: {$_.perl}";

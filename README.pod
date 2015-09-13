@@ -195,13 +195,9 @@ B<Example>:
 =head4 B<info>
 
 Given C<*@modules> it will list a formatted version of each's C<META.info> data.
-    
-    # basics
-    zef info JSON::Tiny
 
-    # -v to also list:
-    #   * `provides` section
-    #   * Entire dependency chain, ordered and grouped into build levels
+Given C<-v> it will list the C<provides> as well as all dependencies, with those listed directly in C<META.info> marked with C<*>.
+
     zef -v info Task::Star
 
 B<Example>:
@@ -225,24 +221,16 @@ B<Example>:
     #       HTTP::Cookie
     #       HTTP::Response
     #       HTTP::UserAgent
-    # Depends: 7 items
-    #   0)  HTTP::Status
-    #   1)  File::Temp
-    #   2)  DateTime::Parse
-    #   3)  IO::Capture::Simple
-    #   4)  Encode
-    #   5)  MIME::Base64
-    #   6)  URI
     # Depends-chain:
-    #   0.0) DateTime::Parse
-    #   0.1) Encode
-    #   0.2) File::Directory::Tree
-    #   0.3) HTTP::Status
-    #   0.4) IO::Capture::Simple
-    #   0.5) MIME::Base64
-    #   0.6) URI
-    #   1.0) File::Temp
-    #   2.0) HTTP::UserAgent
+    #    0.0) File::Directory::Tree
+    #  * 0.1) MIME::Base64
+    #  * 0.2) Encode
+    #  * 0.3) URI
+    #  * 0.4) DateTime::Parse
+    #  * 0.5) HTTP::Status
+    #  * 0.6) IO::Capture::Simple
+    #  * 1.0) File::Temp
+    #    2.0) HTTP::UserAgent
     
 =head1 FAQ
 

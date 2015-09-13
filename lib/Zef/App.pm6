@@ -501,20 +501,22 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
         }
 
         if $meta.<depends> {
-            print "# Depends: {$meta.<depends>.cache.elems} items\n";
-            for $meta.<depends>.kv -> $k, $v { 
-                print "#   $k)\t$v\n";
+            if $v {
+                my $deps = Zef::Utils::Depends.new(projects => @packages.cache)\
+                    .topological-sort($meta);
+
+                for $deps.cache.kv -> $i1, $level {
+                    FIRST { print "# Depends-chain:\n" }
+                    for $level.cache.kv -> $i2, $dep {
+                        my $mark = $dep ~~ any($meta.<depends>.cache) ?? '*' !! ' ';
+                        print "#  $mark $i1\.$i2) $dep\n";
+                    }
+                }
             }
-        }
-
-        if $meta.<depends> && $v {
-            my $deps = Zef::Utils::Depends.new(projects => @packages.cache)\
-                .topological-sort($meta);
-
-            for $deps.cache.kv -> $i1, $level {
-                FIRST { print "# Depends-chain:\n" }
-                for $level.cache.kv -> $i2, $dep {
-                    print "#   $i1\.$i2) $dep\n";
+            else {
+                print "# Depends: {$meta.<depends>.cache.elems} items\n";
+                for $meta.<depends>.kv -> $k, $v {
+                    print "#   $k)\t$v\n";
                 }
             }
         }

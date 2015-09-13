@@ -10,16 +10,16 @@ role HTTP::BufReader {
                 @crlf.push($d) andthen emit($_);
                 @crlf.shift if @crlf.elems > 4;
                 last if @crlf ~~ ["\r", "\n", "\r", "\n"];
-                LAST { done() }
             }
+            done();
         }
     }
     method body-supply {
         supply {
             while $.recv(:bin) -> \data {
                 my $d = buf8.new(data) andthen emit($_);
-                LAST { done() }
             }
+            done();
         }
     }
     method trailer-supply { }

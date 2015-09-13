@@ -43,7 +43,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
         return () unless @wants-dists-filtered;
 
         # Determine the distribution dependencies we want/need
-        my $levels := ?$depends
+        my $levels = ?$depends
             ?? Zef::Utils::Depends.new(:@!projects).topological-sort( @wants-dists-filtered, 
                 :$depends, :$build-depends, :$test-depends)
             !! @wants-dists-filtered.map({ $_.hash.<name> });
@@ -57,9 +57,9 @@ class Zef::Authority::P6C does Zef::Authority::Net {
                 die "!!!> No source-url for $package-name (META info lost?)" and next unless ?%dist<source-url>;
 
                 # todo: implement the rest of however github.com transliterates paths
-                my $basename  := %dist<name>.trans(':' => '-');
+                my $basename  = %dist<name>.trans(':' => '-');
                 temp $save-to  = ~$save-to.IO.child($basename);
-                my @git       := $!git.clone(:$save-to, %dist<source-url>).cache;
+                my @git       = $!git.clone(:$save-to, %dist<source-url>).cache;
 
                 take { :unit-id(%dist.<name>), :path(@git.[0].<path>), :ok(?$save-to.IO.e) }
             }
@@ -69,9 +69,9 @@ class Zef::Authority::P6C does Zef::Authority::Net {
     # todo: refactor into Zef::Roles::
     method report(*@metas, :@test-results, :@build-results) {
         eager gather for @metas -> $meta-path {
-            my $meta-json := from-json($meta-path.IO.slurp);
-            my %meta      := %($meta-json);
-            my $repo-path := $meta-path.IO.parent;
+            my $meta-json = from-json($meta-path.IO.slurp);
+            my %meta      = %($meta-json);
+            my $repo-path = $meta-path.IO.parent;
 
             my $test  = @test-results.first: { $_.path.IO.ACCEPTS($repo-path.IO) }
             my $build = @build-results.first: { $_.path.IO.ACCEPTS($repo-path.IO) }
@@ -100,7 +100,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             }
 
             # See Panda::Reporter
-            my $report := to-json {
+            my $report = to-json {
                 :name(%meta<name>),
                 :version(%meta<ver> // %meta<version> // '*'),
                 :dependencies(%meta<depends>),
@@ -151,8 +151,8 @@ class Zef::Authority::P6C does Zef::Authority::Net {
 
             my $report-id = try {
                 CATCH { default { print "===> Error while POSTing: $_" }}
-                my $response := $!ua.post("http://testers.perl6.org/report", body => $report);
-                my $body     := $response.content(:bin).decode('utf-8');
+                my $response = $!ua.post("http://testers.perl6.org/report", body => $report);
+                my $body     = $response.content(:bin).decode('utf-8');
                 ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;
             }
 

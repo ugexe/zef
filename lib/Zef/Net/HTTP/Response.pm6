@@ -39,7 +39,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
 
             %!headers = $!header-grammar.<header-field>>>.made;
 
-            for %!headers<Transfer-Encoding>.grep(*.so).list -> $te {
+            for %!headers<Transfer-Encoding>.grep(*.so).cache -> $te {
                 given $te {
                     when /^chunked/ { $!chunked = 1                           }
                     default         { fail "'{$te}' Transfer-Encoding is NYI" }
@@ -63,7 +63,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
     # Apply transfer codings, content encoding, etc to the body data
     method content(Bool :$bin) {
         my @buf;
-        $!body.tap: {@buf.push($_) for $_.list}
+        $!body.tap: {@buf.push($_) for $_.cache}
         await $!body.done;
         my $data = buf8.new(@buf);
 

@@ -24,11 +24,11 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
     @repos .= push($*CWD) unless @repos;
     @repos  = @repos.map: { $_.IO.is-absolute ?? $_ !! $_.IO.abspath }
 
-    my $dists := gather for @repos -> $path {
+    my $dists = gather for @repos -> $path {
         state @perl6lib; # store paths to be used in PERL6LIB in subsequent `depends` processes
-        my $dist := Zef::Distribution::Local.new(
+        my $dist = Zef::Distribution::Local.new(
             path     => $path.IO, 
-            includes => $lib.list.unique,
+            includes => $lib.cache.unique,
             perl6lib => @perl6lib.unique,
         );
         $dist does Zef::Roles::Processing[:$jobs, :$force] unless $dist.does(Zef::Roles::Processing);
@@ -36,7 +36,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
         $dist does Zef::Roles::Testing;
 
         $dist.queue-processes: $($dist.hook-cmds(TEST, :before));
-        $dist.queue-processes($($dist.test-cmds.list));
+        $dist.queue-processes($($dist.test-cmds.cache));
         $dist.queue-processes: $($dist.hook-cmds(TEST, :after));
 
         @perl6lib.push: $dist.precomp-path.absolute;
@@ -47,7 +47,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
 
     my $tested-dists = CLI-WAITING-BAR {
         my @finished;
-        for $dists.list -> $dist-todo {
+        for $dists.cache -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
@@ -60,11 +60,11 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
 
 
     my @r;
-    for $tested-dists.list -> $test-dist {
+    for $tested-dists.cache -> $test-dist {
         my @results;
         for $test-dist.processes -> $group {
-            for $group.list -> $proc {
-                for $proc.list -> $item {
+            for $group.cache -> $proc {
+                for $proc.cache -> $item {
                     my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
                     @results.push($sub-result);
 
@@ -90,7 +90,7 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dr
     say "===> Smoke testing started: [{time}]";
 
     temp $projects-file = packages(:$ignore, :packages-file($projects-file));
-    my @packages = from-json($projects-file.IO.slurp).list;
+    my @packages = from-json($projects-file.IO.slurp).cache;
 
     say "===> Filtered module count: {@packages.elems}";
 
@@ -106,10 +106,10 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dr
         @args.push('--shuffle')    if $shuffle;
         @args.push('--no-wrap')    if $no-wrap;
         @args.push("--jobs=$jobs") if $jobs;
-        @args.push("--ignore=$_")  for $ignore.grep(*.so).list;
+        @args.push("--ignore=$_")  for $ignore.grep(*.so).cache;
 
         say "===> Smoking next: {$result.<name>}";
-        my $proc = run(@args.grep(*.so).list, 'install', $result.<name>, :out);
+        my $proc = run(@args.grep(*.so).cache, 'install', $result.<name>, :out);
 
         say $_ for $proc.out.lines;
     }
@@ -122,10 +122,10 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
     my $ok;
     my $nok;
 
-    for $from.list -> $cur {
+    for $from.cache -> $cur {
         with CompUnitRepo::Local::Installation.new($cur) -> $curli {
             my $mani = Zef::Manifest.new(:cur($curli), :create);
-            for @names.list -> $name {
+            for @names.cache -> $name {
                 for $curli.candidates($name, :$auth, :$ver) -> $candi {
                     my $dist = Distribution.new(:name($candi<name>), :auth($candi<auth>), :ver($candi<ver>));
 
@@ -160,7 +160,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # Add :skip to act like ignore, but not follow depends?
 
     # FETCHING
-    my $fetched = &MAIN('get', @modules, :ignore($ignore.list),
+    my $fetched = &MAIN('get', @modules, :ignore($ignore.cache),
         :$save-to, :$projects-file,
         :$boring, :$jobs,
         :$skip-depends, :$skip-build-depends
@@ -171,7 +171,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
     # VALIDATION
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m = $fetched.list.grep(*.<ok>.so);
+    my @m = $fetched.cache.grep(*.<ok>.so);
     verbose('META.info availability', @m);
 
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
@@ -195,7 +195,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # Version '*' is always installed for now.
     # TEMPORARY - need to refactor as to not create Zef::Distribution::Local for a path multiple times
     my @dists     = @repos.map:   { Zef::Distribution::Local.new(path => $_.IO)            }
-    my @wanted    = @dists.grep:  { $_.wanted || ($force && $_.name ~~ any(@modules.list)) }
+    my @wanted    = @dists.grep:  { $_.wanted || ($force && $_.name ~~ any(@modules.cache)) }
     my @installed = @dists.grep:  { $_.name !~~ any(@wanted>>.name)                        }
     @wanted       = @wanted.grep: { $_.name ~~ none(@installed)                            } if @installed.elems;
 
@@ -213,7 +213,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap)\
         or print "???> Nothing to build.\n";
 
-    my @failed-builds = eager gather for $built.list -> $b {
+    my @failed-builds = eager gather for $built.cache -> $b {
         $b.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
     }
     die "!!!> Aborting. Build failures for: {@failed-builds.map(*.id)}" if !$report && !$force && @failed-builds.elems;
@@ -224,7 +224,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
         my $tested = &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
             :$v, :$boring, :$jobs, :$shuffle, :force, :$no-wrap
         );
-        my @failed-tests = eager gather for $tested.list -> $t {
+        my @failed-tests = eager gather for $tested.cache -> $t {
             $t.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
         }
         die "!!!> Aborting. Test failures for: {@failed-tests.map(*.id)}" if !$report && !$force && @failed-tests.elems;
@@ -239,9 +239,9 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
                 );
             }, "Reporting", :$boring;
 
-            verbose('Reporting', $reported.list);
-            my @ok = $reported.list.grep(*.<report-id>.so).list;
-            print "===> Report{'s' if $reported.list.elems > 1} can be seen shortly at:\n" if @ok;
+            verbose('Reporting', $reported.cache);
+            my @ok = $reported.cache.grep(*.<report-id>.so).cache;
+            print "===> Report{'s' if $reported.cache.elems > 1} can be seen shortly at:\n" if @ok;
             print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
         }
 
@@ -262,7 +262,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     my $install = do {
         my $results = CLI-WAITING-BAR {
             my @finished;
-            for $built.list -> $dist {
+            for $built.cache -> $dist {
                 # todo: check against $tested to make sure tests were passed
                 # currently we call &MAIN for each phase, thus creating a new
                 # Zef::Distribution::Local object for each phase. This means the roles
@@ -303,7 +303,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
         $results;
     } unless ?$dry;
 
-    exit ?$dry ?? 0 !! ($install.list.grep({ !$_<ok> }).elems);
+    exit ?$dry ?? 0 !! $install.cache.grep({ !$_<ok> }).elems;
 }
 
 
@@ -315,8 +315,8 @@ multi MAIN('local-install', *@modules) is export {
 
 #! Download a single module and change into its directory
 multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is export(:look) { 
-    my $auth := Zef::Authority::P6C.new;
-    my @g := $auth.get: $module, :$save-to;
+    my $auth = Zef::Authority::P6C.new;
+    my @g = $auth.get: $module, :$save-to;
     verbose('Fetching', @g);
 
 
@@ -345,14 +345,14 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
     my $fetched = CLI-WAITING-BAR {
         temp $projects-file = packages(:$ignore, :packages-file($projects-file));
         Zef::Authority::P6C.new(:$projects-file).get(
-            @modules, :ignore($ignore.list), :$save-to, :depends(!$skip-depends),
+            @modules, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
             :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
         );
     }, "Fetching", :$boring;
 
     verbose('Fetching', $fetched);
 
-    unless $fetched.list {
+    unless $fetched.cache {
         say "!!!> No matching candidates found.";
         exit 1;
     }
@@ -365,18 +365,18 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
 multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
     Int :$jobs, Bool :$boring, Bool :$force = True) is export(:build :install) {
     @repos .= push($*CWD) unless @repos;
-    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).list;
+    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).cache;
 
 
-    my $dists := gather for @repos -> $path {
+    my $dists = gather for @repos -> $path {
         state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
-        my $dist := Zef::Distribution::Local.new(
+        my $dist = Zef::Distribution::Local.new(
             path         => $path.IO, 
             precomp-path => (?$save-to.IO.is-relative
                 ?? $save-to.IO.absolute($path).IO
                 !! $save-to.IO.abspath.IO
             ),
-            includes     => $lib.list.unique,
+            includes     => $lib.cache.unique,
             perl6lib     => @perl6lib.unique,
         );
         $dist does Zef::Roles::Processing[:$jobs, :$force];
@@ -384,7 +384,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
         $dist does Zef::Roles::Hooking;
 
         $dist.queue-processes: $($dist.hook-cmds(BUILD, :before));
-        $dist.queue-processes($($_)) for $dist.precomp-cmds.list;
+        $dist.queue-processes($($_)) for $dist.precomp-cmds.cache;
         $dist.queue-processes: $($dist.hook-cmds(BUILD, :after));
 
         @perl6lib.push: $dist.precomp-path.absolute;
@@ -394,7 +394,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
 
     my $precompiled-dists = CLI-WAITING-BAR {
         my @finished;
-        for $dists.list -> $dist-todo {
+        for $dists.cache -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
@@ -406,11 +406,11 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
     }, "Precompiling", :$boring;
 
     my @r;
-    for $precompiled-dists.list -> $precomp-dist {
+    for $precompiled-dists.cache -> $precomp-dist {
         my @results;
         for $precomp-dist.processes -> $group {
-            for $group.list -> $proc {
-                for $proc.list -> $item {
+            for $group.cache -> $proc {
+                for $proc.cache -> $item {
                     my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
                     @results.push($sub-result);
 
@@ -435,11 +435,11 @@ multi MAIN('search', :$projects-file is copy, :$ignore, Bool :$v, *@names, *%fie
     # Filter the projects.json file
     my $results = CLI-WAITING-BAR { 
         temp $projects-file = packages(:force, :$ignore, :packages-file($projects-file));
-        Zef::Authority::P6C.new(:$projects-file).search(|@names, |%fields).list;
+        Zef::Authority::P6C.new(:$projects-file).search(|@names, |%fields).cache;
     }, "Querying for: name = {@names.join('|')}{~%fields}";
 
-    say "===> Found " ~ $results.list.elems ~ " results";
-    my @rows = eager gather for $results.list {
+    say "===> Found " ~ $results.cache.elems ~ " results";
+    my @rows = eager gather for $results.cache {
         once { take [<ID Package Version Description>] }
         take ["{state $id += 1}", $_.<name>,  ($_.<ver> // $_.<version> // '*'), ($_.<description> // '')]
     }
@@ -466,14 +466,14 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
     my $results = CLI-WAITING-BAR { 
         temp $projects-file = packages(:force, :$ignore, :packages-file($projects-file));
         my $auth = Zef::Authority::P6C.new(:$projects-file);
-        @packages = $auth.projects.list;
-        $auth.search(|@modules).list;
+        @packages = $auth.projects.cache;
+        $auth.search(|@modules).cache;
     }, "Querying for: name = {@modules.join('|')}";
 
 
-    say "===> Found " ~ $results.list.elems ~ " results";
+    say "===> Found " ~ $results.cache.elems ~ " results";
 
-    for $results.list -> $meta {
+    for $results.cache -> $meta {
         print "[{$meta.<name>}]\n";
 
         print "# Version: {$meta.<version> // $meta.<vers> // '*'}\n";
@@ -481,7 +481,7 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
         print "# Auth:\t {$meta.<auth>}\n" if $meta.<auth>;
         print "# Authority:\t {$meta.<auth>}\n" if $meta.<auth>;
         print "# Author:\t {$meta.<author>}\n" if $meta.<author>;
-        print "# Authors:\t {$meta.<authors>.list.join(', ')}\n" if $meta.<authors>.list.elems;
+        print "# Authors:\t {$meta.<authors>.cache.join(', ')}\n" if $meta.<authors>.cache.elems;
 
         print "# Description:\t {$meta.<description>}\n" if $meta.<description>;
 
@@ -489,7 +489,7 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
         print "# Source:\t {$meta.<source>}\n" if $meta.<source>;
 
         if $meta.<provides> {
-            print "# Provides: {$meta.<provides>.list.elems} items\n";
+            print "# Provides: {$meta.<provides>.cache.elems} items\n";
             if $v { print "#\t$_\n" for $meta.<provides>.keys }
         }
 
@@ -501,19 +501,19 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
         }
 
         if $meta.<depends> {
-            print "# Depends: {$meta.<depends>.list.elems} items\n";
+            print "# Depends: {$meta.<depends>.cache.elems} items\n";
             for $meta.<depends>.kv -> $k, $v { 
                 print "#   $k)\t$v\n";
             }
         }
 
         if $meta.<depends> && $v {
-            my $deps := Zef::Utils::Depends.new(projects => @packages.list)\
+            my $deps = Zef::Utils::Depends.new(projects => @packages.cache)\
                 .topological-sort($meta);
 
-            for $deps.list.kv -> $i1, $level {
+            for $deps.cache.kv -> $i1, $level {
                 FIRST { print "# Depends-chain:\n" }
-                for $level.list.kv -> $i2, $dep {
+                for $level.cache.kv -> $i2, $dep {
                     print "#   $i1\.$i2) $dep\n";
                 }
             }
@@ -528,9 +528,9 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
     state $p6c = Zef::Authority::P6C.new(:projects-files($file));
     once { $p6c.update-projects unless $p6c.projects.elems }
 
-    my @packages = $p6c.projects.list;
+    my @packages = $p6c.projects.cache;
     print "===> Module count: {@packages.elems}\n";
-    if $ignore.list.elems {
+    if $ignore.cache.elems {
         @packages = @packages\
             .grep({ $_.<name>:exists })\
             .grep({ $_.<name> ~~ none($ignore.grep(*.so)) })\
@@ -549,7 +549,7 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
 
 # will be replaced soon
 sub verbose($phase, $work) {
-    my %r = $work.list.grep(*.so).classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
+    my %r = $work.cache.grep(*.so).classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
     if %r<ok>  -> @ok  { print "===> $phase OK for: {@ok>><unit-id>.join(', ')}\n" }
     if %r<nok> -> @nok {
         for @nok -> $failed {

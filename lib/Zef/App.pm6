@@ -475,18 +475,14 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
 
     for $results.cache -> $meta {
         print "[{$meta.<name>}]\n";
-
         print "# Version: {$meta.<version> // $meta.<vers> // '*'}\n";
-
-        print "# Auth:\t {$meta.<auth>}\n" if $meta.<auth>;
-        print "# Authority:\t {$meta.<auth>}\n" if $meta.<auth>;
-        print "# Author:\t {$meta.<author>}\n" if $meta.<author>;
-        print "# Authors:\t {$meta.<authors>.cache.join(', ')}\n" if $meta.<authors>.cache.elems;
-
-        print "# Description:\t {$meta.<description>}\n" if $meta.<description>;
-
-        print "# Source-url:\t {$meta.<source-url>}\n" if $meta.<source-url>;
-        print "# Source:\t {$meta.<source>}\n" if $meta.<source>;
+        print "# Auth:\t {$meta.<auth>}\n"                                   if $meta.<auth>;
+        print "# Authority:\t {$meta.<authority>}\n"                         if $meta.<authority>;
+        print "# Author:\t {$meta.<author>}\n"                               if $meta.<author>;
+        print "# Authors:\t {$meta.<authors>.grep(*.so).cache.join(', ')}\n" if $meta.<authors>.grep(*.so).cache.elems;
+        print "# Description:\t {$meta.<description>}\n"                     if $meta.<description>;
+        print "# Source-url:\t {$meta.<source-url>}\n"                       if $meta.<source-url>;
+        print "# Source:\t {$meta.<source>}\n"                               if $meta.<source>;
 
         if $meta.<provides> {
             print "# Provides: {$meta.<provides>.cache.elems} items\n";
@@ -500,13 +496,14 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
             }
         }
 
-        if $meta.<depends> {
+        if $meta.<depends>.cache.elems -> $dep-count {
+            once print "# Depends: {$dep-count} items\n";
+
             if $v {
                 my $deps = Zef::Utils::Depends.new(projects => @packages.cache)\
                     .topological-sort($meta);
 
                 for $deps.cache.kv -> $i1, $level {
-                    once print "# Depends-chain:\n";
                     for $level.cache.kv -> $i2, $dep {
                         my $mark = $dep ~~ any($meta.<depends>.cache) ?? '*' !! ' ';
                         print "#  $mark $i1\.$i2) $dep\n";
@@ -514,7 +511,6 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
                 }
             }
             else {
-                print "# Depends: {$meta.<depends>.cache.elems} items\n";
                 for $meta.<depends>.kv -> $k, $v {
                     print "#   $k)\t$v\n";
                 }

@@ -221,7 +221,7 @@ B<Example>:
     #       HTTP::Cookie
     #       HTTP::Response
     #       HTTP::UserAgent
-    # Depends-chain:
+    # Depends: 7 items
     #    0.0) File::Directory::Tree
     #  * 0.1) MIME::Base64
     #  * 0.2) Encode

@@ -506,7 +506,7 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
                     .topological-sort($meta);
 
                 for $deps.cache.kv -> $i1, $level {
-                    FIRST { print "# Depends-chain:\n" }
+                    once print "# Depends-chain:\n";
                     for $level.cache.kv -> $i2, $dep {
                         my $mark = $dep ~~ any($meta.<depends>.cache) ?? '*' !! ' ';
                         print "#  $mark $i1\.$i2) $dep\n";
@@ -555,7 +555,7 @@ sub verbose($phase, $work) {
     if %r<ok>  -> @ok  { print "===> $phase OK for: {@ok>><unit-id>.join(', ')}\n" }
     if %r<nok> -> @nok {
         for @nok -> $failed {
-            FIRST { print "!!!> $phase FAILED: {@nok>><unit-id>}\n" }
+            once print "!!!> $phase FAILED: {@nok>><unit-id>}\n";
             my $to-print = "!> {$failed<unit-id>}";
             with $failed<results> -> $f { $to-print ~= ": {$f.grep(!*<ok>)>><id>.join(', ')}" }
             $to-print ~= "\n";

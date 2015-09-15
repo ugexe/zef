@@ -18,7 +18,7 @@ use Zef::Utils::SystemInfo;
 
 #| Test modules in the specified directories
 multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v, 
-    Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap) is export(:test, :install) {
+    Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap) is export {
     
 
     @repos .= push($*CWD) unless @repos;
@@ -86,7 +86,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
 
 
 multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dry,
-    Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Int :$jobs) is export(:smoke) {
+    Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Int :$jobs) is export {
     say "===> Smoke testing started: [{time}]";
 
     temp $projects-file = packages(:$ignore, :packages-file($projects-file));
@@ -151,7 +151,7 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
 multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
     Bool :$no-test, Bool :$force, Int :$jobs, Bool :$report, Bool :$v, Bool :$dry,
     Bool :$skip-depends, Bool :$skip-build-depends, Bool :$skip-test-depends,
-    Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export(:install) {
+    Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export {
 
     # todo:
     # Change workflow so we can check the packages file and remove already installed modules 
@@ -314,7 +314,7 @@ multi MAIN('local-install', *@modules) is export {
 
 
 #! Download a single module and change into its directory
-multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is export(:look) { 
+multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is export { 
     my $auth = Zef::Authority::P6C.new;
     my @g = $auth.get: $module, :$save-to;
     verbose('Fetching', @g);
@@ -337,7 +337,7 @@ multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is expor
 #| Get the freshness
 multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
     Int :$jobs, Bool :$v, Bool :$boring, Bool :$skip-depends, 
-    Bool :$skip-test-depends, Bool :$skip-build-depends) is export(:get :install) {
+    Bool :$skip-test-depends, Bool :$skip-build-depends) is export {
 
 
     # Download the requested modules from some authority
@@ -363,7 +363,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
 
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
-    Int :$jobs, Bool :$boring, Bool :$force = True) is export(:build :install) {
+    Int :$jobs, Bool :$boring, Bool :$force = True) is export {
     @repos .= push($*CWD) unless @repos;
     @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).cache;
 
@@ -431,7 +431,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
 
 # todo: non-exact matches on non-version fields
 # todo: restrict fields to those found in a todo: Zef::META type module
-multi MAIN('search', :$projects-file is copy, :$ignore, Bool :$v, *@names, *%fields) is export(:search) {
+multi MAIN('search', :$projects-file is copy, :$ignore, Bool :$v, *@names, *%fields) is export {
     # Filter the projects.json file
     my $results = CLI-WAITING-BAR { 
         temp $projects-file = packages(:force, :$ignore, :packages-file($projects-file));
@@ -461,7 +461,7 @@ multi MAIN('search', :$projects-file is copy, :$ignore, Bool :$v, *@names, *%fie
 
 
 # todo: use the auto-sizing table formatting
-multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool :$boring) is export(:info) {
+multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool :$boring) is export {
     my @packages;
     my $results = CLI-WAITING-BAR { 
         temp $projects-file = packages(:force, :$ignore, :packages-file($projects-file));

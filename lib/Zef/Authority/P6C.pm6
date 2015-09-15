@@ -3,7 +3,7 @@ use Zef::Net::HTTP::Client;
 use Zef::Utils::Depends;
 use Zef::Utils::Git;
 
-our @skip = <Test MONKEY-TYPING MONKEY_TYPING nqp v6 NativeCall>;
+my @skip = <v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>;
 
 # perl6 community ecosystem + test reporting
 class Zef::Authority::P6C does Zef::Authority::Net {
@@ -49,7 +49,7 @@ class Zef::Authority::P6C does Zef::Authority::Net {
             !! @wants-dists-filtered.map({ $_.hash.<name> });
 
         # Try to fetch each distribution dependency
-        eager gather for $levels -> $level {
+        eager gather for $levels.cache -> $level {
             for $level.cache -> $package-name {
                 next if $package-name.lc ~~ any(@skip>>.lc);
                 # todo: filter projects by version/auth

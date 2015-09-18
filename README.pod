@@ -2,6 +2,10 @@
 
 =encoding utf8
 
+=head2 Notice
+
+CompUnitRepo::Local::Installation is now broken in Rakudo, so modules installed with Zef can no longer be loaded.
+
 =head2 Name
 
 Zef - Perl6 Module Management

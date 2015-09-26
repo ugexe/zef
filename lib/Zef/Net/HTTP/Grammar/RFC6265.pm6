@@ -8,7 +8,7 @@ role Zef::Net::HTTP::Grammar::RFC6265 {
 
     # this token does not come from this RFC
     # todo: s/<date2>/lexical month/day/year tokens/
-    token rfc1123-date { [<.day-of-week> ',']? <.SP> [<date2>\d\d] <.SP> <.time-of-day> <.SP> 'GMT' }
+    token rfc1123-date { [<.day-of-week> ',']? <.SP> [<date2>] <.SP> <.time-of-day> <.SP> 'GMT' }
 
     token set-cookie-header { 'Set-Cookie:' <.SP> <Set-Cookie>   }
     token Set-Cookie   { <cookie-pair> [';' <.SP> <cookie-av>]*  } # renamed from RFC for our indirect method call 

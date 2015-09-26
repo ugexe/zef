@@ -4,6 +4,10 @@ role Zef::Net::HTTP::Grammar::RFC7234 {
     token Age           { <.delta-seconds> }
     token Cache-Control { [[<.OWS> <cache-directive>]*] *%% ',' }
 
+    # todo: is lower casing legal for this header? cloudflare does this instead of Cache-Control
+    token cache-control { [[<.OWS> <cache-directive>]*] *%% ',' }
+
+
     # Added `|| (.*?)` to make it easier to handle invalid expires contents as expired (as the spec requires)
     # i.e. -1 or 0 should be treated as an expired value and not invalidate the header
     token Expires       { <.HTTP-date> || <.token> }

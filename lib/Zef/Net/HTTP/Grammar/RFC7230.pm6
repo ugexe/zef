@@ -91,6 +91,7 @@ role Zef::Net::HTTP::Grammar::RFC7230 {
     token known-header:sym<Content-Range>     { <.sym> }
     # 7234
     token known-header:sym<Cache-Control>     { <.sym> }
+    token known-header:sym<cache-control>     { <.sym> } # ??? (cloudflare uses lowercase)
     token known-header:sym<Expires>           { <.sym> }
     token known-header:sym<Warning>           { <.sym> }
     # 7235
@@ -103,8 +104,8 @@ role Zef::Net::HTTP::Grammar::RFC7230 {
     }
 
     token field-name    { <.token> }
-    token field-value   { [<.field-content> || <.obs-fold>]*                     }
-    token field-content { <.field-vchar> [[<.SP> || <.HTAB> || <.field-vchar>]* <.field-vchar>]? }
+    token field-value   { [<.field-content> || <.obs-fold>]*                   }
+    token field-content { <.field-vchar> [<.SP> || <.HTAB> || <.field-vchar>]* }
     token field-vchar   { <.VCHAR> || <.obs-text>  }
     token last-chunk    { 0+ <.chunk-ext>? <.CRLF> }
 

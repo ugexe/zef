@@ -17,6 +17,10 @@ role Zef::Net::HTTP::Grammar::Extensions {
     token known-header:sym<X-Robots-Tag>       { <.sym> }
     token known-header:sym<X-UA-Compatible>    { <.sym> }
     token known-header:sym<X-XSS-Protection>   { <.sym> }
+    token known-header:sym<Status> { <.sym> }
+
+    token Status { <status-code> <.SP> <reason-phrase> }
+
 
     token Alternate-Protocol { [[<port> ':' <protocol>] || <directive>] *%% ','       }
     token Keep-Alive         { [<directive>]?  [";" [<.OWS> <directive> ]?]*          }

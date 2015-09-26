@@ -14,7 +14,7 @@ use Zef::CLI::StatusBar;
 use Zef::CLI::STDMux;
 use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
-
+use Zef::Utils::JSON;
 
 #| Test modules in the specified directories
 multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v, 
@@ -521,7 +521,6 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
 
 # this should go into Zef::Authority
 sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
-    use Zef::Utils::JSON;
     my $file = $packages-file // $*TMPDIR.child("p6c-packages.{~time}.{(1..10000).pick(1)}.json");
     state $p6c = Zef::Authority::P6C.new(:projects-files($file));
     once { $p6c.update-projects unless $p6c.projects.elems }

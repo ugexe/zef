@@ -41,8 +41,9 @@ sub ChunkedReader(buf8 $buf) is export(:DEFAULT) {
     loop {
         my $size-line;
         loop {
+            last if $i == $buf.bytes;
             $size-line ~= $buf.subbuf($i++,1).decode('latin-1');
-            last if $size-line ~~ /^\d+ [';' .*?]? \r\n/;
+            last if $size-line ~~ /\r\n/;
         }
         my $size = :16($size-line.substr(0,*-2));
         last if $size == 0;

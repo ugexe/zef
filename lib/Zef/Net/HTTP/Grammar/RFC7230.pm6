@@ -52,51 +52,50 @@ role Zef::Net::HTTP::Grammar::RFC7230 {
 
     proto token known-header {*};
     # 6265
-    token known-header:sym<Cookie>            { <.sym> }
-    token known-header:sym<Set-Cookie>        { <.sym> }
+    token known-header:sym<Cookie>            { [:i <.sym>] }
+    token known-header:sym<Set-Cookie>        { [:i <.sym>] }
     # 7230
-    token known-header:sym<Connection>        { <.sym> }
-    token known-header:sym<Host>              { <.sym> }
-    token known-header:sym<TE>                { <.sym> }
-    token known-header:sym<Trailer>           { <.sym> }
-    token known-header:sym<Transfer-Encoding> { <.sym> }
-    token known-header:sym<Upgrade>           { <.sym> }
-    token known-header:sym<Via>               { <.sym> }
+    token known-header:sym<Connection>        { [:i <.sym>] }
+    token known-header:sym<Host>              { [:i <.sym>] }
+    token known-header:sym<TE>                { [:i <.sym>] }
+    token known-header:sym<Trailer>           { [:i <.sym>] }
+    token known-header:sym<Transfer-Encoding> { [:i <.sym>] }
+    token known-header:sym<Upgrade>           { [:i <.sym>] }
+    token known-header:sym<Via>               { [:i <.sym>] }
     # 7231
-    token known-header:sym<Accept>            { <.sym> }
-    token known-header:sym<Accept-Charset>    { <.sym> }
-    token known-header:sym<Accept-Encoding>   { <.sym> }
-    token known-header:sym<Accept-Language>   { <.sym> }
-    token known-header:sym<Allow>             { <.sym> }
-    token known-header:sym<Content-Encoding>  { <.sym> }
-    token known-header:sym<Content-Language>  { <.sym> }
-    token known-header:sym<Content-Length>    { <.sym> }
-    token known-header:sym<Content-Location>  { <.sym> }
-    token known-header:sym<Content-Type>      { <.sym> }
-    token known-header:sym<Date>              { <.sym> }
-    token known-header:sym<Expect>            { <.sym> }
-    token known-header:sym<From>              { <.sym> }
-    token known-header:sym<Location>          { <.sym> }
-    token known-header:sym<Max-Forwards>      { <.sym> }
-    token known-header:sym<Referer>           { <.sym> }
-    token known-header:sym<Retry-After>       { <.sym> }
-    token known-header:sym<Server>            { <.sym> }
-    token known-header:sym<User-Agent>        { <.sym> }
-    token known-header:sym<Vary>              { <.sym> }
+    token known-header:sym<Accept>            { [:i <.sym>] }
+    token known-header:sym<Accept-Charset>    { [:i <.sym>] }
+    token known-header:sym<Accept-Encoding>   { [:i <.sym>] }
+    token known-header:sym<Accept-Language>   { [:i <.sym>] }
+    token known-header:sym<Allow>             { [:i <.sym>] }
+    token known-header:sym<Content-Encoding>  { [:i <.sym>] }
+    token known-header:sym<Content-Language>  { [:i <.sym>] }
+    token known-header:sym<Content-Length>    { [:i <.sym>] }
+    token known-header:sym<Content-Location>  { [:i <.sym>] }
+    token known-header:sym<Content-Type>      { [:i <.sym>] }
+    token known-header:sym<Date>              { [:i <.sym>] }
+    token known-header:sym<Expect>            { [:i <.sym>] }
+    token known-header:sym<From>              { [:i <.sym>] }
+    token known-header:sym<Location>          { [:i <.sym>] }
+    token known-header:sym<Max-Forwards>      { [:i <.sym>] }
+    token known-header:sym<Referer>           { [:i <.sym>] }
+    token known-header:sym<Retry-After>       { [:i <.sym>] }
+    token known-header:sym<Server>            { [:i <.sym>] }
+    token known-header:sym<User-Agent>        { [:i <.sym>] }
+    token known-header:sym<Vary>              { [:i <.sym>] }
     # 7232
-    token known-header:sym<ETag>              { <.sym> }
-    token known-header:sym<Last-Modified>     { <.sym> }
+    token known-header:sym<ETag>              { [:i <.sym>] }
+    token known-header:sym<Last-Modified>     { [:i <.sym>] }
     # 7233
-    token known-header:sym<Accept-Ranges>     { <.sym> }
-    token known-header:sym<Content-Range>     { <.sym> }
+    token known-header:sym<Accept-Ranges>     { [:i <.sym>] }
+    token known-header:sym<Content-Range>     { [:i <.sym>] }
     # 7234
-    token known-header:sym<Cache-Control>     { <.sym> }
-    token known-header:sym<cache-control>     { <.sym> } # ??? (cloudflare uses lowercase)
-    token known-header:sym<Expires>           { <.sym> }
-    token known-header:sym<Warning>           { <.sym> }
+    token known-header:sym<Cache-Control>     { [:i <.sym>] }
+    token known-header:sym<Expires>           { [:i <.sym>] }
+    token known-header:sym<Warning>           { [:i <.sym>] }
     # 7235
-    token known-header:sym<WWW-Authenticate>   { <.sym> }
-    token known-header:sym<Proxy-Authenticate> { <.sym> }
+    token known-header:sym<WWW-Authenticate>   { [:i <.sym>] }
+    token known-header:sym<Proxy-Authenticate> { [:i <.sym>] }
 
     token header-field {
         || $<name>=<.known-header> ':' <.OWS> {} $<value>=<::($<name>)> <.OWS>

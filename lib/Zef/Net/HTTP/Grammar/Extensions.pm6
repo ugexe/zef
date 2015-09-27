@@ -9,15 +9,15 @@ role Zef::Net::HTTP::Grammar::Extensions {
     # The default field-value from RFC7230 does not detect
     # when to use the various parameter separation rules without
     # explicitly telling it, so explicitly tell it we shall.
-    token known-header:sym<Alternate-Protocol> { <.sym> }
-    token known-header:sym<Keep-Alive>         { <.sym> }
-    token known-header:sym<P3P>                { <.sym> }
-    token known-header:sym<Strict-Transport-Security> {<.sym> }
-    token known-header:sym<X-Powered-By>       { <.sym> }
-    token known-header:sym<X-Robots-Tag>       { <.sym> }
-    token known-header:sym<X-UA-Compatible>    { <.sym> }
-    token known-header:sym<X-XSS-Protection>   { <.sym> }
-    token known-header:sym<Status> { <.sym> }
+    token known-header:sym<Alternate-Protocol> { [:i <.sym>] }
+    token known-header:sym<Keep-Alive>         { [:i <.sym>] }
+    token known-header:sym<P3P>                { [:i <.sym>] }
+    token known-header:sym<Strict-Transport-Security> {[:i <.sym>] }
+    token known-header:sym<X-Powered-By>       { [:i <.sym>] }
+    token known-header:sym<X-Robots-Tag>       { [:i <.sym>] }
+    token known-header:sym<X-UA-Compatible>    { [:i <.sym>] }
+    token known-header:sym<X-XSS-Protection>   { [:i <.sym>] }
+    token known-header:sym<Status> { [:i <.sym>] }
 
     token Status { <status-code> <.SP> <reason-phrase> }
 

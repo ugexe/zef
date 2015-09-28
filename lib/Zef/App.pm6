@@ -75,7 +75,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
                 }
             }
         }
-        my $result = { :ok(all(@results>><ok>)), :unit-id($test-dist.name) :results(@results) }
+        my $result = { :ok(all(@results>><ok>)), :unit-id($test-dist.name), :results(@results) }
         @r.push($result);
     }
     verbose('Testing', @r);
@@ -421,7 +421,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
                 }
             }
         }
-        my $result = { :ok(all(@results>><ok>)), :unit-id($precomp-dist.name) :results(@results) }
+        my $result = { :ok(all(@results>><ok>)), :unit-id($precomp-dist.name), :results(@results) }
         @r.push($result);
     }
     verbose('Precompiling', @r);

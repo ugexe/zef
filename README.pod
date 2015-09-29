@@ -2,10 +2,6 @@
 
 =encoding utf8
 
-=head2 Notice
-
-CompUnitRepo::Local::Installation is now broken in Rakudo, so modules installed with Zef can no longer be loaded.
-
 =head2 Name
 
 Zef - Perl6 Module Management
@@ -22,6 +18,10 @@ Be sure your `PATH` includes the file path shown by the command below:
 
     $ perl6 -e "say %*CUSTOM_LIB<site>.IO.child('bin').Str"
     # example: /home/perl6/install/share/perl6/site/bin
+
+=head2 Notice
+
+Rakudo does not currently load any precompiled module code. It is suggested to use the C<--no-build> flag with C<install> until such a time that it does.
 
 =head1 USAGE
 
@@ -96,6 +96,12 @@ Fetch, build, test, optional report, and install.
     # install the requested modules regardless of currently installed versions
     # (does not affect dependencies)
     --force
+
+    # skip testing
+    --no-test
+
+    # skip precompilation
+    --no-build
 
     # livin that multi thread life
     zef -v --report --jobs=4 install HTTP::Server::Threaded

@@ -17,30 +17,118 @@ use Zef::Utils::PathTools;
 use Zef::Utils::SystemInfo;
 use Zef::Utils::JSON;
 
-#| Test modules in the specified directories
-multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v, 
-    Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap) is export {
-    
+#| Build modules in the specified directory
+multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
+    Int :$jobs, Bool :$boring, Bool :$force = True) is export {
 
     @repos .= push($*CWD) unless @repos;
-    @repos  = @repos.map: { $_.IO.is-absolute ?? $_ !! $_.IO.abspath }
 
-    my $dists = gather for @repos -> $path {
+    # todo: this same gather is used in MAIN('test'), so it should really be a MAKE-DIST sub
+    # to turn any paths into dists, and taking items that are already dist objects
+    my $dists = gather for @repos -> $r {
         state @perl6lib; # store paths to be used in PERL6LIB in subsequent `depends` processes
-        my $dist = Zef::Distribution::Local.new(
-            path     => $path.IO, 
-            includes => $lib.cache.unique,
-            perl6lib => @perl6lib.unique,
-        );
+
+        my $dist =  do given $r {
+            when Zef::Distribution::Local {
+                $lib.cache.unique.grep(*.so).map: -> $i { $r.includes.push($i) }
+                @perl6lib.unique.grep(*.so).map:  -> $i { $r.perl6lib.push($i) }
+                $r;
+            }
+            when IO::Path {
+                Zef::Distribution::Local.new(
+                    path     => ($_.IO.is-absolute ?? $_ !! $_.IO.abspath),
+                    includes => $lib.cache.unique,
+                    perl6lib => @perl6lib.unique,
+                );
+            }
+        }
+
         $dist does Zef::Roles::Processing[:$jobs, :$force] unless $dist.does(Zef::Roles::Processing);
         $dist does Zef::Roles::Hooking unless $dist.does(Zef::Roles::Hooking);
-        $dist does Zef::Roles::Testing;
+        $dist does Zef::Roles::Precompiling unless $dist.does(Zef::Roles::Precompiling);
+
+        $dist.queue-processes: $($dist.hook-cmds(BUILD, :before));
+        $dist.queue-processes($($_)) for $dist.precomp-cmds.cache;
+        $dist.queue-processes: $($dist.hook-cmds(BUILD, :after));
+
+        @perl6lib.push: $dist.precomp-path.absolute;
+        @perl6lib.push: $dist.source-path.absolute;
+
+        take $dist;
+    };
+
+    my $precompiled-dists = CLI-WAITING-BAR {
+        my @finished;
+        for $dists.cache -> $dist-todo {
+            my $max-width = $MAX-TERM-COLS if ?$no-wrap;
+            procs2stdout(:$max-width, $dist-todo.processes) if $v;
+            my $promise = $dist-todo.start-processes;
+            $promise.result; # osx bug RT125758
+            await $promise;
+            @finished.push: $dist-todo;
+        }
+        @finished;
+    }, "Precompiling", :$boring;
+
+    my @r;
+    for $precompiled-dists.cache -> $precomp-dist {
+        my @results;
+        for $precomp-dist.processes -> $group {
+            for $group.cache -> $proc {
+                for $proc.cache -> $item {
+                    my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
+                    @results.push($sub-result);
+
+                    if !$force && !$sub-result<ok> {
+                        print "!!!> Precompilation failure. Aborting.\n";
+                        exit 254;
+                    }
+                }
+            }
+        }
+        my $result = { :ok(all(@results>><ok>)), :unit-id($precomp-dist.name), :results(@results) }
+        @r.push($result);
+    }
+    verbose('Precompiling', @r);
+
+    return $precompiled-dists;
+}
+
+#| Test modules in the specified directories
+multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v, 
+    Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap, Bool :$no-build) is export {
+    
+    # todo: better handling of blib/precomp testing other than passing $no-build option (use $lib?)
+    @repos .= push($*CWD) unless @repos;
+
+    my $dists = gather for @repos -> $r {
+        state @perl6lib; # store paths to be used in PERL6LIB in subsequent `depends` processes
+
+        my $dist =  do given $r {
+            when Zef::Distribution::Local {
+                $lib.cache.unique.grep(*.so).map: -> $i { $r.includes.push($i) }
+                @perl6lib.unique.grep(*.so).map:  -> $i { $r.perl6lib.push($i) }
+                $r;
+            }
+            when IO::Path {
+                Zef::Distribution::Local.new(
+                    path     => ($_.IO.is-absolute ?? $_ !! $_.IO.abspath), 
+                    includes => $lib.cache.unique,
+                    perl6lib => @perl6lib.unique,
+                );
+            }
+        }
+
+        $dist does Zef::Roles::Processing[:$jobs, :$force] unless $dist.does(Zef::Roles::Processing);
+        $dist does Zef::Roles::Hooking unless $dist.does(Zef::Roles::Hooking);
+        $dist does Zef::Roles::Testing unless $dist.does(Zef::Roles::Testing);
 
         $dist.queue-processes: $($dist.hook-cmds(TEST, :before));
         $dist.queue-processes($($dist.test-cmds.cache));
         $dist.queue-processes: $($dist.hook-cmds(TEST, :after));
 
-        @perl6lib.push: $dist.precomp-path.absolute;
+        @perl6lib.push($dist.precomp-path.absolute) unless ?$no-build;
+        @perl6lib.push: $dist.source-path.absolute;
 
         take $dist;
     };
@@ -150,9 +238,12 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
 
 #| Install with business logic
 multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
-    Bool :$no-test, Bool :$force, Int :$jobs, Bool :$report, Bool :$v, Bool :$dry,
-    Bool :$skip-depends, Bool :$skip-build-depends, Bool :$skip-test-depends,
+    Bool :$no-test, Bool :$no-build, Bool :$force, Int :$jobs, Bool :$report, Bool :$v, Bool :$dry,
+    Bool :$skip-depends, Bool :$skip-build-depends is copy, Bool :$skip-test-depends is copy,
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export {
+
+    $skip-build-depends = True if ?$no-build && !$skip-build-depends.defined;
+    $skip-test-depends  = True if ?$no-test  && !$skip-build-depends.defined;
 
     # todo:
     # Change workflow so we can check the packages file and remove already installed modules 
@@ -162,10 +253,8 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
     # FETCHING
     my $fetched = &MAIN('get', @modules, :ignore($ignore.cache),
-        :$save-to, :$projects-file,
-        :$boring, :$jobs,
-        :$skip-depends, :$skip-build-depends
-        :skip-test-depends(($no-test || $skip-test-depends) ?? True !! False),
+        :$save-to, :$projects-file, :$boring, :$jobs,
+        :$skip-depends, :$skip-build-depends, :$skip-test-depends,
     );
 
 
@@ -211,63 +300,69 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     }
 
     # BUIDLING
-    my $built = &MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap)\
-        or print "???> Nothing to build.\n";
+    my $built = do {
+        my $build-me = (&MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap)\
+            or print "???> Nothing to build.\n") unless ?$no-build;
 
-    my @failed-builds = eager gather for $built.cache -> $b {
-        $b.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
+        my @failed-builds = eager gather for $build-me.cache -> $b {
+            $b.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
+        }
+        die "!!!> Aborting. Build failures for: {@failed-builds.map(*.id)}" if !$report && !$force && @failed-builds.elems;
+        ?$no-build ?? [] !! $build-me.cache;
     }
-    die "!!!> Aborting. Build failures for: {@failed-builds.map(*.id)}" if !$report && !$force && @failed-builds.elems;
 
     # TESTING
-    unless $no-test {
-        # force the tests so we can report them. *then* we will bail out
-        my $tested = &MAIN('test', @repos, :lib('blib/lib'), :$lib, 
-            :$v, :$boring, :$jobs, :$shuffle, :force, :$no-wrap
-        );
-        my @failed-tests = eager gather for $tested.cache -> $t {
+    my $tested = do {
+        my @to-test = $built.grep(*.so).elems ?? $built.cache !! @repos;
+        my $test-me = &MAIN('test', @to-test, :lib('blib/lib'), :$lib, 
+            :$v, :$boring, :$jobs, :$shuffle, :force, :$no-wrap, :$no-build,
+        ) unless ?$no-test;
+
+        my @failed-tests = eager gather for $test-me.cache -> $t {
             $t.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
         }
         die "!!!> Aborting. Test failures for: {@failed-tests.map(*.id)}" if !$report && !$force && @failed-tests.elems;
+        ?$no-test ?? [] !! $test-me;
+    }
 
-        # Send a build/test report
-        if ?$report {
-            my $reported = CLI-WAITING-BAR {
-                Zef::Authority::P6C.new.report(
-                    @metas,
-                    test-results  => $tested,
-                    build-results => $built,
-                );
-            }, "Reporting", :$boring;
+    # Send a build/test report
+    if ?$report && !$no-test {
+        my $reported = CLI-WAITING-BAR {
+            Zef::Authority::P6C.new.report(
+                @metas,
+                test-results  => $tested,
+                build-results => $built,
+            );
+        }, "Reporting", :$boring;
 
-            verbose('Reporting', $reported.cache);
-            my @ok = $reported.cache.grep(*.<report-id>.so).cache;
-            print "===> Report{'s' if $reported.cache.elems > 1} can be seen shortly at:\n" if @ok;
-            print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
-        }
+        verbose('Reporting', $reported.cache);
+        my @ok = $reported.cache.grep(*.<report-id>.so).cache;
+        print "===> Report{'s' if $reported.cache.elems > 1} can be seen shortly at:\n" if @ok;
+        print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
+    }
 
-        my @failed <== grep *.so <== $tested>>.failures;
-        my @passed <== grep *.so <== $tested>>.passes;
+    my @failed <== grep *.so <== $tested>>.failures if $tested;
+    my @passed <== grep *.so <== $tested>>.passes   if $tested;
 
-        if @failed.elems {
-            !$force
-                ?? do { print "!!!> {@failed.elems} packages failed testing. Aborting.\n" and exit @failed.elems }
-                !! do { print "!==> {@failed.elems} packages failed testing. [but using --force to continue]\n"  };
-        }
-        elsif !@passed.elems {
-            print "???> No tests.\n";
-        }
+    if @failed.elems {
+        !$force
+            ?? do { print "!!!> {@failed.elems} packages failed testing. Aborting.\n" and exit @failed.elems }
+            !! do { print "!==> {@failed.elems} packages failed testing. [but using --force to continue]\n"  };
+    }
+    elsif !@passed.elems {
+        print "???> No tests.\n";
     }
 
 
     my $install = do {
         my $results = CLI-WAITING-BAR {
             my @finished;
-            for $built.cache -> $dist {
+            my $distros = $tested.cache.elems ?? $tested !! $built;
+            for $distros.grep(*.so) -> $dist {
                 # todo: check against $tested to make sure tests were passed
                 # currently we call &MAIN for each phase, thus creating a new
                 # Zef::Distribution::Local object for each phase. This means the roles
-                # do not carry over. The fix should work around is.
+                # do not carry over. The fix should work around this.
 
                 # todo: refactor
                 # some of these roles may already be applied. in such situations 
@@ -308,12 +403,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 }
 
 
-#| Install local freshness
-multi MAIN('local-install', *@modules) is export {
-    say "NYI";
-}
-
-
+# Not Yet Reimplemented?
 #! Download a single module and change into its directory
 multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is export { 
     my $auth = Zef::Authority::P6C.new;
@@ -374,75 +464,6 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
     }
 
     return $fetched;
-}
-
-
-#| Build modules in the specified directory
-multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
-    Int :$jobs, Bool :$boring, Bool :$force = True) is export {
-    @repos .= push($*CWD) unless @repos;
-    @repos  = @repos.map({ $_.IO.is-absolute ?? $_ !! $_.IO.abspath }).cache;
-
-
-    my $dists = gather for @repos -> $path {
-        state @perl6lib; # store paths to be used in -I in subsequent `depends` processes
-        my $dist = Zef::Distribution::Local.new(
-            path         => $path.IO, 
-            precomp-path => (?$save-to.IO.is-relative
-                ?? $save-to.IO.absolute($path).IO
-                !! $save-to.IO.abspath.IO
-            ),
-            includes     => $lib.cache.unique,
-            perl6lib     => @perl6lib.unique,
-        );
-        $dist does Zef::Roles::Processing[:$jobs, :$force];
-        $dist does Zef::Roles::Precompiling;
-        $dist does Zef::Roles::Hooking;
-
-        $dist.queue-processes: $($dist.hook-cmds(BUILD, :before));
-        $dist.queue-processes($($_)) for $dist.precomp-cmds.cache;
-        $dist.queue-processes: $($dist.hook-cmds(BUILD, :after));
-
-        @perl6lib.push: $dist.precomp-path.absolute;
-
-        take $dist;
-    };
-
-    my $precompiled-dists = CLI-WAITING-BAR {
-        my @finished;
-        for $dists.cache -> $dist-todo {
-            my $max-width = $MAX-TERM-COLS if ?$no-wrap;
-            procs2stdout(:$max-width, $dist-todo.processes) if $v;
-            my $promise = $dist-todo.start-processes;
-            $promise.result; # osx bug RT125758
-            await $promise;
-            @finished.push: $dist-todo;
-        }
-        @finished;
-    }, "Precompiling", :$boring;
-
-    my @r;
-    for $precompiled-dists.cache -> $precomp-dist {
-        my @results;
-        for $precomp-dist.processes -> $group {
-            for $group.cache -> $proc {
-                for $proc.cache -> $item {
-                    my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
-                    @results.push($sub-result);
-
-                    if !$force && !$sub-result<ok> {
-                        print "!!!> Precompilation failure. Aborting.\n";
-                        exit 254;
-                    }
-                }
-            }
-        }
-        my $result = { :ok(all(@results>><ok>)), :unit-id($precomp-dist.name), :results(@results) }
-        @r.push($result);
-    }
-    verbose('Precompiling', @r);
-
-    return $precompiled-dists;
 }
 
 # todo: non-exact matches on non-version fields

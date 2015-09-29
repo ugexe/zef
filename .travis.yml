@@ -26,4 +26,4 @@ script:
     - prove -j4 -v -e "perl6 -Ilib" t/ xt/
 after_success:
     - perl6 -Ilib bin/zef -v --boring $JOBS --save-to=precomp/ build
-    - perl6 -Iprecomp bin/zef -v --boring --lib=precomp $JOBS install Zef
+    - perl6 -Iprecomp bin/zef -v --boring --lib=precomp $JOBS install .

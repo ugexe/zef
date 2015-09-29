@@ -66,9 +66,9 @@ class Zef::Manifest {
     method uninstall($dist) {
         $!lock.protect( {
         my @deleted;
-        my $repo         = %!hash;
-        my @candi        = $!cur.candidates($dist.name, :auth($dist.authority), :ver($dist.version)) or return False;
-        my $delete-idx   = $repo<dists>.first-index({ $_<id> eq @candi[0]<id> });
+        my $repo  = %!hash;
+        my $candi = $!cur.candidates($dist.name, :auth($dist.authority), :ver($dist.version)) or return False;
+        my $delete-idx = $repo<dists>.first-index({ $_<id> eq DIST-PATH2ID($!cur, $candi.Str) });
 
         my @provides  <== map { .<file> } <== $repo<dists>[$delete-idx]<provides>.values>>.values;
         my @wrappers  <== map { "{$_}", "{$_}-m", "{$_}-j" } <== $repo<dists>[$delete-idx]<files>>>.keys;
@@ -89,5 +89,19 @@ class Zef::Manifest {
         self.write(@dists);
         @deleted;
         } );
+    }
+}
+
+sub DIST-PATH2ID($cur, $path) {
+    my %dists = $cur.get-dists.hash;
+    my @candi;
+    for %dists.kv -> $p, $repo {
+        for @($repo) -> $dist {
+            for $dist<provides>.hash.values -> %v {
+                for %v.values -> $info {
+                    return $dist<id> if $info<file> eq $path.IO.basename;
+                }
+            }
+        }
     }
 }

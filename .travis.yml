@@ -8,6 +8,7 @@ env:
 matrix:
     allow_failures:
         - env: BACKEND=jvm  JOBS=""
+        - env: BACKEND=moar JOBS="--jobs=4"
     fast_finish: true
 sudo: false
 before_install:

@@ -10,6 +10,7 @@ use Zef::Roles::Testing;
 use Zef::Roles::Hooking;
 
 use Zef::Authority::P6C;
+use Zef::Authority::Local;
 use Zef::CLI::StatusBar;
 use Zef::CLI::STDMux;
 use Zef::Utils::PathTools;
@@ -339,15 +340,30 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
     Int :$jobs, Bool :$v, Bool :$boring, Bool :$skip-depends, 
     Bool :$skip-test-depends, Bool :$skip-build-depends) is export {
 
+    # todo: better handling of different source-types
+    my @local = @modules.grep(*.starts-with('.' | '/')).grep({ $_.IO.e }).grep(*.so);
+    my @p6cs  = @modules.grep(!*.starts-with('.' | '/')).grep(*.so);
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
     my $fetched = CLI-WAITING-BAR {
-        temp $projects-file = packages(:$ignore, :packages-file($projects-file));
-        Zef::Authority::P6C.new(:$projects-file).get(
-            @modules, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
-            :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
-        );
+        my @f;
+        if @p6cs.elems {
+            temp $projects-file = packages(:$ignore, :packages-file($projects-file));
+            @f.push: Zef::Authority::P6C.new(:$projects-file).get(
+                @p6cs, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
+                :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
+            );
+        }
+
+        if @local.elems {
+            @f.push: Zef::Authority::Local.new(:$projects-file).get(
+                @local, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
+                :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
+            );            
+        }
+
+        @f;
     }, "Fetching", :$boring;
 
     verbose('Fetching', $fetched);

@@ -1,4 +1,4 @@
-use Zef::Authority::Net;
+use Zef::Authority;
 use Zef::Net::HTTP::Client;
 use Zef::Utils::Depends;
 use Zef::Utils::Git;
@@ -6,7 +6,7 @@ use Zef::Utils::Git;
 my @skip = <v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>;
 
 # perl6 community ecosystem + test reporting
-class Zef::Authority::P6C does Zef::Authority::Net {
+class Zef::Authority::P6C does Zef::Authority {
     has $!ua      = Zef::Net::HTTP::Client.new;
     has $!git     = Zef::Utils::Git.new;
     has @!mirrors = <http://ecosystem-api.p6c.org/projects.json>;

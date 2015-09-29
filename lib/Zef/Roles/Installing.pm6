@@ -1,12 +1,20 @@
 use Zef::Utils::PathTools;
 
-role curli-copy-fix[$path] {
+role curli-fix[$path] {
     my $cp;
     ENTER {
         $cp = &copy.wrap({
             nextsame if $^a.IO.is-absolute;
             callwith($^a.IO.absolute($path), $^b);
         });
+    }
+
+    method get-dists {
+        my $manifest := $.IO.child("MANIFEST");
+        my $abspath  := $.IO.abspath;
+        my %dists = $manifest.e
+          ?? from-json($manifest.slurp)
+          !! {};
     }
 }
 
@@ -17,7 +25,7 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
         my @installed;
         for $curlis.cache -> $curli is copy {
             mkdirs(PARSE-INCLUDE-SPEC($curli.Str).[*-1]) unless $curli.IO.e;
-            $curli does curli-copy-fix[$.path];
+            $curli does curli-fix[$.path];
 
             my %result       = %($.metainfo);
             %result<unit-id> = $.name;

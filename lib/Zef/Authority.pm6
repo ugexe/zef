@@ -1,8 +1,3 @@
-role Zef::Authority::Net { ... }
-
-
-
-# Authorities can provide meta info on project and a target to send test reports
 role Zef::Authority {
     has @.projects is rw;
 
@@ -21,6 +16,7 @@ role Zef::Authority {
         }
     }
 
+    method get { ... }
     method update-projects { ... }
 
     method search(*@names, *%fields) {

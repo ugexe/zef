@@ -49,7 +49,7 @@ subtest {
 
     my $to-be-deleted = any($save-to, $sub-folder, $save-to-file, $sub-folder-file);
     for @delete-us -> $path-to-delete {
-        is $path-to-delete, any(@ls,$save-to), 'file was found in .ls';
+        is $path-to-delete, any(|@ls,$save-to), 'file was found in .ls';
         is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete.IO.path}";
     }
 

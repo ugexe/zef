@@ -23,7 +23,7 @@ install:
     # need at least 1 statement in 'install'
     - perl6 -v
 script:
-    - perl6 -Ilib -v --boring $JOBS install .
+    - perl6 -Ilib bin/zef -v --boring $JOBS install .
 after_success:
 # rakudo not currently able to load precompiled modules
 #    - perl6 -Ilib bin/zef -v --boring $JOBS --save-to=precomp/ build

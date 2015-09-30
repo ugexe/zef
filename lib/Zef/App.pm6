@@ -371,9 +371,11 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
     Bool :$skip-test-depends, Bool :$skip-build-depends) is export {
 
     # todo: better handling of different source-types
+    say "MODULES: {@modules.perl}";
     my @local = @modules.grep(*.starts-with('.' | '/')).grep({ $_.IO.e }).grep(*.so);
     my @p6cs  = @modules.grep(!*.starts-with('.' | '/')).grep(*.so);
-
+say "LOCAL: {@local.perl}";
+say "P6CS: {@p6cs.perl}";
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
     my $fetched = CLI-WAITING-BAR {
@@ -392,10 +394,10 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
                 :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
             );            
         }
-
+say "f: {@f.perl}";
         @f;
     }, "Fetching", :$boring;
-
+say "FETCHED: {$fetched.perl}";
     verbose('Fetching', $fetched);
 
     unless $fetched.cache {

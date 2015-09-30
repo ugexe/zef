@@ -33,6 +33,32 @@ role HTTP::RoundTrip {
 }
 
 
+role HTTP::BufReader {
+    method header-supply {
+        supply {
+            state @crlf;
+            while $.recv(1, :bin) -> \data {
+                my $d = buf8.new(data).decode('latin-1');
+                @crlf.push($d);
+                emit($d);
+                @crlf.shift if @crlf.elems > 4;
+                last if @crlf ~~ ["\r", "\n", "\r", "\n"];
+            }
+            done();
+        }
+    }
+    method body-supply {
+        supply {
+            while $.recv(:bin) -> \data {
+                my $d = buf8.new(data);
+                emit($d);
+            }
+            done();
+        }
+    }
+    method trailer-supply { }
+}
+
 # decode a chunked buffer (ignores extensions)
 sub ChunkedReader(buf8 $buf) is export(:DEFAULT) {
     my @data;

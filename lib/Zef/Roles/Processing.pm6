@@ -4,6 +4,11 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
     has @.processes;
     has $.jobs = $jobs;
 
+
+    # todo: tag processes with their phase so as to simplify checking failures.
+    # Recent update reusing previously created $dist, for instance, may show
+    # build failures as test failures as well (this might be the correct/wanted result,
+    # but in case its not we would then have a way around it).
     method queue-processes(*@groups) {
         my %env = %*ENV.hash;
         my $p6lib = (%env<PERL6LIB>.cache, @.perl6lib.cache).flat.grep(*.so).join(',');
@@ -22,6 +27,7 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
         return $(@procs);
     }
 
+    # todo: allow starting processes of a specific phase only
     method start-processes {
         # osx bug RT125758
         #my $p = Promise.new;

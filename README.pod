@@ -57,7 +57,7 @@ Rakudo does not currently load any precompiled module code. It is suggested to u
 
 =head2 More CLI
 
-=head4 B<install>
+=head4 B<HTTP::Request>
 
 Fetch, build, test, optional report, and install.
 
@@ -76,7 +76,7 @@ Fetch, build, test, optional report, and install.
     # no status bar or other CLI eye candy
     --boring
 
-    # do everything except the actually install
+    # do everything except the actuall install
     --dry
 
     # include library paths to the spawned processes

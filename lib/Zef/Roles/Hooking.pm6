@@ -21,8 +21,7 @@ role Zef::Roles::Hooking {
             .map: { [$*EXECUTABLE, $_.IO.relative($.path)]            }
 
         # temporary
-        @hooks.push: $.legacy-builder-cmds
-            if $phase ~~ BUILD && $when.lc eq 'before' && $.has-legacy-builder;
+        @hooks.append($.legacy-builder-cmds) if $phase ~~ BUILD && $when.lc eq 'before' && $.has-legacy-builder;
 
         @hooks;
     }

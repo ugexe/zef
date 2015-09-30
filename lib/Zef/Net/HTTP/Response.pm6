@@ -63,7 +63,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
     # Apply transfer codings, content encoding, etc to the body data
     method content(Bool :$bin) {
         my @buf;
-        $!body.tap: {@buf.push($_) for $_.cache}
+        $!body.tap: {@buf.append($_) for $_.cache}
         await $!body.done;
         my $data = buf8.new(@buf);
 

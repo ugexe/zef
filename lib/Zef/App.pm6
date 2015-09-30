@@ -21,7 +21,7 @@ use Zef::Utils::JSON;
 multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
     Int :$jobs, Bool :$boring, Bool :$force = True) is export {
 
-    @repos .= push($*CWD) unless @repos;
+    @repos .= append($*CWD) unless @repos;
 
     my @does = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Precompiling;
     my @dists = DISTS(:$lib, :@does,|@repos).map: -> $dist {
@@ -39,7 +39,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
             my $promise = $dist.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
-            @finished.push: $dist;
+            @finished.append: $dist;
         }
         @finished;
     }, "Precompiling", :$boring;
@@ -51,7 +51,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
             for $group.cache -> $proc {
                 for $proc.cache -> $item {
                     my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
-                    @results.push($sub-result);
+                    @results.append($sub-result);
 
                     if !$force && !$sub-result<ok> {
                         print "!!!> Precompilation failure. Aborting.\n";
@@ -61,7 +61,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
             }
         }
         my $result = { :ok(all(@results>><ok>)), :unit-id($precomp-dist.name), :results(@results) }
-        @r.push($result);
+        @r.append($result);
     }
     verbose('Precompiling', @r);
 
@@ -73,7 +73,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
     Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap, Bool :$no-build) is export {
     
     # todo: better handling of blib/precomp testing other than passing $no-build option (use $lib?)
-    @repos .= push($*CWD) unless @repos;
+    @repos .= append($*CWD) unless @repos;
 
     my @does = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Testing;
     my $dists = DISTS(:$lib, :@does,|@repos).map: -> $dist {
@@ -92,7 +92,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
             my $promise = $dist-todo.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
-            @finished.push: $dist-todo;
+            @finished.append: $dist-todo;
         }
         @finished;
     }, "Testing", :$boring;
@@ -105,7 +105,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
             for $group.cache -> $proc {
                 for $proc.cache -> $item {
                     my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
-                    @results.push($sub-result);
+                    @results.append($sub-result);
 
                     if !$force && !$sub-result<ok> {
                         print "!!!> Test failure. Aborting.\n";
@@ -115,7 +115,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
             }
         }
         my $result = { :ok(all(@results>><ok>)), :unit-id($test-dist.name), :results(@results) }
-        @r.push($result);
+        @r.append($result);
     }
     verbose('Testing', @r);
 
@@ -139,13 +139,13 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dr
         # todo: fix first argument so it invokes the bin wrapper directly if it can find it,
         # else try to invoke $*PROGRAM?
         my @args = 'zef', '--boring', "--projects-file={$projects-file}";
-        @args.push('-v')           if $v;
-        @args.push('--report')     if $report;
-        @args.push('--dry')        if $dry;
-        @args.push('--shuffle')    if $shuffle;
-        @args.push('--no-wrap')    if $no-wrap;
-        @args.push("--jobs=$jobs") if $jobs;
-        @args.push("--ignore=$_")  for $ignore.grep(*.so).cache;
+        @args.append('-v')           if $v;
+        @args.append('--report')     if $report;
+        @args.append('--dry')        if $dry;
+        @args.append('--shuffle')    if $shuffle;
+        @args.append('--no-wrap')    if $no-wrap;
+        @args.append("--jobs=$jobs") if $jobs;
+        @args.append("--ignore=$_")  for $ignore.grep(*.so).cache;
 
         say "===> Smoking next: {$result.<name>}";
         my $proc = run(@args.grep(*.so).cache, 'install', $result.<name>, :out);
@@ -273,7 +273,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
             $t.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
         }
         die "!!!> Aborting. Test failures for: {@failed-tests.map(*.id)}" if !$report && !$force && @failed-tests.elems;
-        ?$no-test ?? [] !! $test-me;
+        ?$no-test ?? [] !! $test-me.cache;
     }
 
     # Send a build/test report
@@ -292,8 +292,8 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
         print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
     }
 
-    my @failed <== grep *.so <== $tested>>.failures if $tested;
-    my @passed <== grep *.so <== $tested>>.passes   if $tested;
+    my @failed = $tested.map({ $_.failures.cache.grep(*.so) }).grep(*.so).cache if $tested;
+    my @passed = $tested.map({ $_.passes.cache.grep(*.so)   }).grep(*.so).cache if $tested;
 
     if @failed.elems {
         !$force
@@ -301,9 +301,10 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
             !! do { print "!==> {@failed.elems} packages failed testing. [but using --force to continue]\n"  };
     }
     elsif !@passed.elems {
-        print "???> No tests.\n";
+        ?$no-test
+            ?? do { print "===> Testing skipped" }
+            !! do { print "???> No tests\n"      }
     }
-
 
     my $install = do {
         my $results = CLI-WAITING-BAR {
@@ -320,7 +321,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
                 $promise1.result; # osx bug RT125758
                 await $promise1;
 
-                @finished.push: $dist.install(:$force);
+                @finished.append: $dist.install(:$force);
                 
                 my $after-procs  = $dist.queue-processes: $($dist.hook-cmds(INSTALL, :after));
                 procs2stdout(:$max-width, $after-procs) if $v;
@@ -380,19 +381,18 @@ multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is 
         my @f;
         if @p6cs.elems {
             temp $projects-file = packages(:$ignore, :packages-file($projects-file));
-            @f.push: Zef::Authority::P6C.new(:$projects-file).get(
+            @f.append: Zef::Authority::P6C.new(:$projects-file).get(
                 @p6cs, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
                 :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
             );
         }
 
         if @local.elems {
-            @f.push: Zef::Authority::Local.new(:$projects-file).get(
+            @f.append: Zef::Authority::Local.new(:$projects-file).get(
                 @local, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
                 :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
             );            
         }
-
         @f;
     }, "Fetching", :$boring;
 
@@ -513,13 +513,13 @@ sub DISTS(:$lib, :@does, *@repos) {
         for @does -> $role { $dist does $role unless $dist.does($role) }
 
         $dist.includes = $lib.cache if $lib.grep(*.so);
-        $dist.perl6lib.push($_) for @perl6lib;
+        $dist.perl6lib.append($_) for @perl6lib;
         $dist.perl6lib = $dist.perl6lib.unique.cache;
 
-        @perl6lib.push($dist.precomp-path.absolute) if $dist.precomp-path;
-        @perl6lib.push($dist.source-path.absolute)  if $dist.source-path;
+        @perl6lib.append($dist.precomp-path.absolute) if $dist.precomp-path;
+        @perl6lib.append($dist.source-path.absolute)  if $dist.source-path;
 
-        @dists.push($dist);
+        @dists.append($dist);
     }
 
     @dists;

@@ -19,7 +19,6 @@ before_install:
     - make install
     - export PATH=$HOME/rakudo/install/bin:$PATH
     - cd $TRAVIS_BUILD_DIR
-    - ls
 install:
     # need at least 1 statement in 'install'
     - perl6 -v

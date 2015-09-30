@@ -45,7 +45,7 @@ class Zef::Authority::Local does Zef::Authority {
         Zef::Authority::Local:D: 
         *@wants, # really paths
         :@ignore,
-        :$save-to is copy,
+        :$save-to is copy, # todo: copy files to $save-to if defined
         Bool :$depends,
         Bool :$test-depends,
         Bool :$build-depends,
@@ -77,9 +77,11 @@ class Zef::Authority::Local does Zef::Authority {
                 die "!!!> No source-path for $package-name (META info lost?)" and next unless ?%dist<source-path>;
 
                 # todo: implement the rest of however github.com transliterates paths
-                my $basename   = %dist<name>.trans(':' => '-');
-                temp $save-to  = ~$save-to.IO.child($basename);
                 my $path       = %dist<source-path>.IO.parent;
+                my $basename   = %dist<name>.trans(':' => '-');
+                # temp $save-to  = ~$save-to.IO.child($basename);
+                # cp $path, $save-to
+                temp $save-to  = $path;
                 take { :unit-id(%dist<name>), :$path, :ok(?$save-to.IO.e) }
             }
         }

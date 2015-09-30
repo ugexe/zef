@@ -21,7 +21,7 @@ role curli-fix[$path] {
 role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
     my $curlis = $curli-paths.cache.map: -> $dir { CompUnitRepo::Local::Installation.new($dir) }
 
-    method install(Bool :$force)  {
+    method install(Bool :$force = False)  {
         my @installed;
         for $curlis.cache -> $curli is copy {
             mkdirs(PARSE-INCLUDE-SPEC($curli.Str).[*-1]) unless $curli.IO.e;

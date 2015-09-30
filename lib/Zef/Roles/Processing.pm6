@@ -71,9 +71,12 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
     }
 
     method i-paths {
-        return flat ($.precomp-path, $.source-path, @.includes)\
-            .grep(*.so).unique\
+        return ($.precomp-path, $.source-path, @.includes)\
+            .flat\
+            .grep(*.so)\
             .map({ ?$_.IO.is-relative ?? $_.IO.relative !! $_.IO.relative($.path) })\
-            .map({ qqw/-I$_/ });
+            .map({ qqw/-I$_/ })\
+            .unique\
+            .cache;
     }
 }

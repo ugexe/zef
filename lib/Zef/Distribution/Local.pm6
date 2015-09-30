@@ -10,7 +10,7 @@ class Zef::Distribution::Local does Zef::Distribution {
     # blib/lib, lib. Passed in via -I
     # Only uses relative file paths and expects the cwd to reflect this.
     # Reason: name mangling on windows trying to pass absolute paths (mangled)
-    has @.includes;
+    has @.includes is rw;
 
 
     # /some/dependency/blib/lib, /some/dependency/lib ...
@@ -19,7 +19,7 @@ class Zef::Distribution::Local does Zef::Distribution {
     # at possibly not-yet-installed-but-built packages (such that its
     # possible to bail out of a multi-package install if something fails
     # without having anything actually installed leftover)
-    has @.perl6lib;
+    has @.perl6lib is rw;
 
     submethod BUILD(IO::Path :$!path!, IO::Path :$!meta-path, :@!perl6lib,
         IO::Path :$!source-path, IO::Path :$!precomp-path, :@!includes) {
@@ -112,10 +112,10 @@ class Zef::Distribution::Local does Zef::Distribution {
         $p.hash;
     }
 
-    method candidates(::CLASS:D:) {
+    method candidates(::CLASS:D: :$version) {
         my %opts;
         %opts<authority> = $.authority if $.authority;
-        flat $.curlis.map: {.candidates($.name, :auth($.authority)).grep(*)}
+        flat $.curlis.map: {.candidates($.name, :auth($.authority), :ver($version // '*')).grep(*)}
     }
     method curlis {
         @*INC.grep( { .starts-with("inst#") } )\

@@ -23,49 +23,23 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
 
     @repos .= push($*CWD) unless @repos;
 
-    # todo: this same gather is used in MAIN('test'), so it should really be a MAKE-DIST sub
-    # to turn any paths into dists, and taking items that are already dist objects
-    my $dists = gather for @repos -> $r {
-        state @perl6lib; # store paths to be used in PERL6LIB in subsequent `depends` processes
-
-        my $dist =  do given $r {
-            when Zef::Distribution::Local {
-                $lib.cache.unique.grep(*.so).map: -> $i { $r.includes.push($i) }
-                @perl6lib.unique.grep(*.so).map:  -> $i { $r.perl6lib.push($i) }
-                $r;
-            }
-            when IO::Path {
-                Zef::Distribution::Local.new(
-                    path     => ($_.IO.is-absolute ?? $_ !! $_.IO.abspath),
-                    includes => $lib.cache.unique,
-                    perl6lib => @perl6lib.unique,
-                );
-            }
-        }
-
-        $dist does Zef::Roles::Processing[:$jobs, :$force] unless $dist.does(Zef::Roles::Processing);
-        $dist does Zef::Roles::Hooking unless $dist.does(Zef::Roles::Hooking);
-        $dist does Zef::Roles::Precompiling unless $dist.does(Zef::Roles::Precompiling);
-
+    my @does = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Precompiling;
+    my @dists = DISTS(:$lib, :@does,|@repos).map: -> $dist {
         $dist.queue-processes: $($dist.hook-cmds(BUILD, :before));
         $dist.queue-processes($($_)) for $dist.precomp-cmds.cache;
         $dist.queue-processes: $($dist.hook-cmds(BUILD, :after));
-
-        @perl6lib.push: $dist.precomp-path.absolute;
-        @perl6lib.push: $dist.source-path.absolute;
-
-        take $dist;
-    };
+        $dist;
+    }
 
     my $precompiled-dists = CLI-WAITING-BAR {
         my @finished;
-        for $dists.cache -> $dist-todo {
+        for @dists -> $dist {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
-            procs2stdout(:$max-width, $dist-todo.processes) if $v;
-            my $promise = $dist-todo.start-processes;
+            procs2stdout(:$max-width, $dist.processes) if $v;
+            my $promise = $dist.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
-            @finished.push: $dist-todo;
+            @finished.push: $dist;
         }
         @finished;
     }, "Precompiling", :$boring;
@@ -101,37 +75,13 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
     # todo: better handling of blib/precomp testing other than passing $no-build option (use $lib?)
     @repos .= push($*CWD) unless @repos;
 
-    my $dists = gather for @repos -> $r {
-        state @perl6lib; # store paths to be used in PERL6LIB in subsequent `depends` processes
-
-        my $dist =  do given $r {
-            when Zef::Distribution::Local {
-                $lib.cache.unique.grep(*.so).map: -> $i { $r.includes.push($i) }
-                @perl6lib.unique.grep(*.so).map:  -> $i { $r.perl6lib.push($i) }
-                $r;
-            }
-            when IO::Path {
-                Zef::Distribution::Local.new(
-                    path     => ($_.IO.is-absolute ?? $_ !! $_.IO.abspath), 
-                    includes => $lib.cache.unique,
-                    perl6lib => @perl6lib.unique,
-                );
-            }
-        }
-
-        $dist does Zef::Roles::Processing[:$jobs, :$force] unless $dist.does(Zef::Roles::Processing);
-        $dist does Zef::Roles::Hooking unless $dist.does(Zef::Roles::Hooking);
-        $dist does Zef::Roles::Testing unless $dist.does(Zef::Roles::Testing);
-
+    my @does = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Testing;
+    my $dists = DISTS(:$lib, :@does,|@repos).map: -> $dist {
         $dist.queue-processes: $($dist.hook-cmds(TEST, :before));
         $dist.queue-processes($($dist.test-cmds.cache));
         $dist.queue-processes: $($dist.hook-cmds(TEST, :after));
-
-        @perl6lib.push($dist.precomp-path.absolute) unless ?$no-build;
-        @perl6lib.push: $dist.source-path.absolute;
-
-        take $dist;
-    };
+        $dist;
+    }
 
 
     my $tested-dists = CLI-WAITING-BAR {
@@ -238,7 +188,7 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
 
 #| Install with business logic
 multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
-    Bool :$no-test, Bool :$no-build, Bool :$force, Int :$jobs, Bool :$report, Bool :$v, Bool :$dry,
+    Bool :$no-test, Bool :$no-build, Bool :$force = False, Int :$jobs, Bool :$report, Bool :$v, Bool :$dry,
     Bool :$skip-depends, Bool :$skip-build-depends is copy, Bool :$skip-test-depends is copy,
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export {
 
@@ -284,7 +234,8 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # Prevent processing modules that are already installed with the same or greater version.
     # Version '*' is always installed for now.
     # TEMPORARY - need to refactor as to not create Zef::Distribution::Local for a path multiple times
-    my @dists     = @repos.map:   { Zef::Distribution::Local.new(path => $_.IO)            }
+    my @dists     = DISTS(:$lib, |@repos);
+
     my @wanted    = @dists.grep:  { $_.wanted || ($force && $_.name ~~ any(@modules.cache)) }
     my @installed = @dists.grep:  { $_.name !~~ any(@wanted>>.name)                        }
     @wanted       = @wanted.grep: { $_.name ~~ none(@installed)                            } if @installed.elems;
@@ -301,7 +252,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
     # BUIDLING
     my $built = do {
-        my $build-me = (&MAIN('build', @repos, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap)\
+        my $build-me = (&MAIN('build', |@dists, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap)\
             or print "???> Nothing to build.\n") unless ?$no-build;
 
         my @failed-builds = eager gather for $build-me.cache -> $b {
@@ -357,20 +308,9 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     my $install = do {
         my $results = CLI-WAITING-BAR {
             my @finished;
-            my $distros = $tested.cache.elems ?? $tested !! $built;
-            for $distros.grep(*.so) -> $dist {
-                # todo: check against $tested to make sure tests were passed
-                # currently we call &MAIN for each phase, thus creating a new
-                # Zef::Distribution::Local object for each phase. This means the roles
-                # do not carry over. The fix should work around this.
-
-                # todo: refactor
-                # some of these roles may already be applied. in such situations 
-                # we don't want to duplicate the functionality.
-                $dist does Zef::Roles::Processing[:$jobs, :$force] unless $dist.does(Zef::Roles::Processing);
-                $dist does Zef::Roles::Hooking unless $dist.does(Zef::Roles::Hooking);
-                $dist does Zef::Roles::Installing;
-
+            my @distros = $tested.cache.elems ?? $tested.cache !! $built.cache.elems ?? $built.cache !! @repos;
+            my @does = Zef::Roles::Processing[:$force], Zef::Roles::Hooking, Zef::Roles::Installing;
+            for DISTS(:$lib, :@does, |@distros) -> $dist {
                 my $max-width = $MAX-TERM-COLS if ?$no-wrap;
 
                 my $before-procs = $dist.queue-processes: $($dist.hook-cmds(INSTALL, :before));
@@ -554,6 +494,35 @@ multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool 
             }
         }
     }
+}
+
+sub DISTS(:$lib, :@does, *@repos) {
+    my @dists;
+    my @perl6lib;
+    for @repos -> $r {
+        my $dist =  do given $r {
+            when Zef::Distribution::Local {
+                $r;
+            }
+            when IO::Path | Str {
+                my $new-dist = Zef::Distribution::Local.new( :path($_.IO.is-absolute ?? $_.IO !! $_.IO.abspath) );
+                $new-dist;
+            }
+        }
+
+        for @does -> $role { $dist does $role unless $dist.does($role) }
+
+        $dist.includes = $lib.cache if $lib.grep(*.so);
+        $dist.perl6lib.push($_) for @perl6lib;
+        $dist.perl6lib = $dist.perl6lib.unique.cache;
+
+        @perl6lib.push($dist.precomp-path.absolute) if $dist.precomp-path;
+        @perl6lib.push($dist.source-path.absolute)  if $dist.source-path;
+
+        @dists.push($dist);
+    }
+
+    @dists;
 }
 
 # this should go into Zef::Authority

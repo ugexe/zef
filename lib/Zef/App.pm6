@@ -380,7 +380,11 @@ say "P6CS: {@p6cs.perl}";
     # todo: allow turning dependency auth-download off
     my $fetched = CLI-WAITING-BAR {
         my @f;
+            say "p6cs elems : {@p6cs.elems}";
+            say "local elems : {@local.elems}";
+
         if @p6cs.elems {
+            say 1;
             temp $projects-file = packages(:$ignore, :packages-file($projects-file));
             @f.push: Zef::Authority::P6C.new(:$projects-file).get(
                 @p6cs, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
@@ -389,6 +393,7 @@ say "P6CS: {@p6cs.perl}";
         }
 
         if @local.elems {
+            say 2;
             @f.push: Zef::Authority::Local.new(:$projects-file).get(
                 @local, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
                 :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),

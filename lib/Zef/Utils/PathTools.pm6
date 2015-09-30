@@ -17,7 +17,7 @@ augment class IO::Path {
 
                         if $r {
                             for $_.IO.dir(|c) -> IO::Path $sp {
-                                @paths.push: $sp;
+                                @paths.append: $sp;
                             }
                         }
                     }
@@ -37,9 +37,9 @@ augment class IO::Path {
         my @dirs  = @paths.grep(*.IO.d);
 
         my @deleted; 
-        for @files -> $file { @deleted.push($file) if $file.IO.unlink }
-        for @dirs.sort({ -.chars }) -> $delete-dir { @deleted.push($delete-dir) if rmdir($delete-dir) }
-        @deleted.push($.path.IO) if ($.path.IO.d ?? $.path.IO.rmdir !! $.path.IO.unlink);
+        for @files -> $file { @deleted.append($file) if $file.IO.unlink }
+        for @dirs.sort({ -.chars }) -> $delete-dir { @deleted.append($delete-dir) if rmdir($delete-dir) }
+        @deleted.append($.path.IO) if ($.path.IO.d ?? $.path.IO.rmdir !! $.path.IO.unlink);
         
         return @deleted;
     }

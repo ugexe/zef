@@ -15,15 +15,15 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
         %env<PERL6LIB> = $p6lib if $p6lib.so;
 
         my @procs;
-        for @groups.flat -> $group {
-            for $group.flat -> @execute {
+        for @groups -> $group {
+            for $group.cache -> @execute {
                 my @args    = flat @execute;
                 my $command = @args.shift;
-                @procs.push: Zef::Process.new(:$command, :@args, :async(?$jobs), cwd => $.path, :%env);
+                @procs.append: Zef::Process.new(:$command, :@args, :async(?$jobs), cwd => $.path, :%env);
             }
         }
 
-        @!processes.push($(@procs)) if @procs.elems;
+        @!processes.append($(@procs)) if @procs.elems;
         return $(@procs);
     }
 
@@ -46,7 +46,7 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
         for @!processes.flat -> @group {
             my @group-promises;
             for @group.flat.grep(!*.started) -> $process {
-                @promises.push: @group-promises.push: $process.start;
+                @promises.append: @group-promises.append: $process.start;
 
                 if $jobs && @group-promises == $jobs {
                     await Promise.anyof(@group-promises);

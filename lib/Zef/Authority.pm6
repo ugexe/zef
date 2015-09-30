@@ -21,7 +21,7 @@ role Zef::Authority {
 
     method search(*@names, *%fields) {
         return () unless @names || %fields;
-        temp %fields<name> .= push($_) for @names;
+        temp %fields<name> .= append($_) for @names;
 
         # todo: turn this into a method `cmp` for Distribution objects.
         # Also probably need to create specialized rules for each field

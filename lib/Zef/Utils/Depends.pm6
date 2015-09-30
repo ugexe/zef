@@ -30,7 +30,7 @@ class Zef::Utils::Depends {
         # todo: don't do the unique call on every iteration
         for @!projects -> $meta {
             for %fields.kv -> $k, $v {
-                %deps{$meta.<name>} .= push($_) for $meta.{$k}.cache;
+                %deps{$meta.<name>} .= append($_) for $meta.{$k}.cache;
                 %deps{$meta.<name>} = [%deps{$meta.<name>}.cache.grep(*.so).unique];
             }
         }
@@ -55,7 +55,7 @@ class Zef::Utils::Depends {
                         for %ba{$before}.keys -> $after {
                             if not %ba{$before}{$after} {
                                 %ba{$before}{$after}++;
-                                push @newwant, $after;
+                                append @newwant, $after;
                             }
                         }
                     }
@@ -121,7 +121,7 @@ class Zef::Utils::Depends {
                     .grep({ $_.<short-name>.Str ~~ none(@skip) })\
                     .map({ $_.<short-name>.Str });
 
-                @depends.push($(@deps));
+                @depends.append($(@deps));
             }
 
             my $file-path = $f.IO.path;

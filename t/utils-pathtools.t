@@ -32,15 +32,15 @@ subtest {
         try rm($save-to, :d, :f, :r);
     }
 
-    @delete-us.push(try mkdirs($save-to));
+    @delete-us.append(try mkdirs($save-to));
     my $sub-folder = $save-to.IO.child('deleteme-subfolder').IO;
-    @delete-us.push(try mkdirs($sub-folder));
+    @delete-us.append(try mkdirs($sub-folder));
 
     # create 2 test files, one in each directory we created above
     my $save-to-file    = $save-to.IO.child('base-delete.me').IO;
     my $sub-folder-file = $sub-folder.IO.child('sub-delete.me').IO;
-    @delete-us.push($save-to-file.IO.path) if try open($save-to-file.IO.path, :w);
-    @delete-us.push($sub-folder-file.IO.path) if try open($sub-folder-file.IO.path, :w);
+    @delete-us.append($save-to-file.IO.path) if try open($save-to-file.IO.path, :w);
+    @delete-us.append($sub-folder-file.IO.path) if try open($sub-folder-file.IO.path, :w);
 
     ok $save-to.IO.d, "Folder available to delete";
 
@@ -79,7 +79,7 @@ subtest {
     # create 2 test files, one in each directory we created above
     my $save-to-file    = $save-to.IO.child('base-delete.me').IO;
     my $sub-folder-file = $sub-folder.IO.child('sub-delete.me').IO;
-    @delete-us.push($save-to-file.IO.path) if open($save-to-file.IO, :w).close;
+    @delete-us.append($save-to-file.IO.path) if open($save-to-file.IO, :w).close;
     try open($sub-folder-file, :w).close;
 
     ok $save-to.IO.d, "Folder available to delete";
@@ -120,7 +120,7 @@ subtest {
     my $sub-folder = $save-to.IO.child('deleteme-subfolder');
     try mkdirs($sub-folder);
     my $sub-folder-empty = $save-to.child('empty-subfolder');
-    @delete-us.push($sub-folder-empty) if try mkdirs($sub-folder-empty);
+    @delete-us.append($sub-folder-empty) if try mkdirs($sub-folder-empty);
 
     # create 2 test files, one in each directory we created above
     my $save-to-file    = $save-to.IO.child('base-delete.me');
@@ -169,8 +169,8 @@ subtest {
     # create 2 test files, one in each directory we created above
     my $save-to-file    = $save-to.IO.child('base-delete.me').IO;
     my $sub-folder-file = $sub-folder.IO.child('sub-delete.me').IO;
-    @delete-us.push($save-to-file) if try open($save-to-file.IO.path, :w);
-    @delete-us.push($sub-folder-file) if try open($sub-folder-file.IO.path, :w);
+    @delete-us.append($save-to-file) if try open($save-to-file.IO.path, :w);
+    @delete-us.append($sub-folder-file) if try open($sub-folder-file.IO.path, :w);
 
     ok $save-to.IO.d, "Folder available to delete";
 

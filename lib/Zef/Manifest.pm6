@@ -81,7 +81,7 @@ class Zef::Manifest {
             try {
                 $file = $file.IO.is-absolute ?? ~$file !! ~$file.IO.absolute($!cur);
                 unlink($file);
-                @deleted.push($file);
+                @deleted.append($file);
             }
         }
         with $delete-idx -> $index { $repo<dists>[$index]:delete }

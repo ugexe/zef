@@ -2,7 +2,7 @@ use Zef::Net::HTTP;
 try require IO::Socket::SSL;
 
 class Zef::Net::HTTP::Dialer does HTTP::Dialer {
-    has $.can-ssl = !::("IO::Socket::SSL") ~~ Failure;
+    method can-ssl { state $ssl = !::("IO::Socket::SSL").isa(Failure) }
 
     method dial(HTTP::URI $uri) {
         my $scheme = $uri.scheme // 'http';
@@ -13,7 +13,7 @@ class Zef::Net::HTTP::Dialer does HTTP::Dialer {
 
         given $scheme {
             when 'https' {
-                die "Please install IO::Socket::SSL to use https" unless $!can-ssl;
+                die "Please install IO::Socket::SSL to use https" unless self.can-ssl;
                 return ::('IO::Socket::SSL').new( :$client-socket );
             }
             when 'http'  { return $client-socket          }

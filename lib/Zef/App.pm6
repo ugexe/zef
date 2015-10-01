@@ -2,6 +2,7 @@ unit class Zef::App;
 
 use Zef::Distribution::Local;
 use Zef::Manifest;
+use Zef::Utils::Git;
 
 use Zef::Roles::Installing;
 use Zef::Roles::Precompiling;
@@ -302,8 +303,8 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     }
     elsif !@passed.elems {
         ?$no-test
-            ?? do { print "===> Testing skipped" }
-            !! do { print "???> No tests\n"      }
+            ?? do { print "===> Testing skipped\n" }
+            !! do { print "???> No tests\n"        }
     }
 
     my $install = do {
@@ -367,32 +368,56 @@ multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is expor
 
 
 #| Get the freshness
-multi MAIN('get', *@modules, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
+multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-file is copy, 
     Int :$jobs, Bool :$v, Bool :$boring, Bool :$skip-depends, 
     Bool :$skip-test-depends, Bool :$skip-build-depends) is export {
 
-    # todo: better handling of different source-types
-    my @local = @modules.grep(*.starts-with('.' | '/')).grep({ $_.IO.e }).grep(*.so);
-    my @p6cs  = @modules.grep(!*.starts-with('.' | '/')).grep(*.so);
+    my @gits;
+    my @locals;
+    my @identifiers;
+
+    for @modules -> $m {
+        given $m {
+            when *.starts-with('.' | '/') { @locals.push($_) }
+            when *.starts-with('git://')  { @gits.push($_)   }
+            when *.starts-with('git@')    { @gits.push($_)   }
+            when *.starts-with('https://') && *.index('.git')  { 
+                @gits.push($_)   
+            }
+            default { @identifiers.push($_) }
+        }
+    }
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
     my $fetched = CLI-WAITING-BAR {
         my @f;
-        if @p6cs.elems {
-            temp $projects-file = packages(:$ignore, :packages-file($projects-file));
-            @f.append: Zef::Authority::P6C.new(:$projects-file).get(
-                @p6cs, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
+
+        # This should all be put into a Storage module which handles fetching based on scheme/identity-spec/source-type
+        if @gits.elems {
+            my $git = Zef::Utils::Git.new;
+            for @gits -> $git-uri {
+                temp $save-to = $save-to.IO.child($git-uri.IO.basename.subst(/'.git'$/, ''));
+                my @git = $git.clone(:$save-to, $git-uri).cache;
+                @locals.push($_<path>) for @git;
+            }
+        }
+
+        if @locals.elems {
+            @f.append: Zef::Authority::Local.new(:$projects-file).get(
+                @locals, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
                 :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
             );
         }
 
-        if @local.elems {
-            @f.append: Zef::Authority::Local.new(:$projects-file).get(
-                @local, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
+        if @identifiers.elems {
+            temp $projects-file = packages(:$ignore, :packages-file($projects-file));
+            @f.append: Zef::Authority::P6C.new(:$projects-file).get(
+                @identifiers, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
                 :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
-            );            
+            );
         }
+
         @f;
     }, "Fetching", :$boring;
 

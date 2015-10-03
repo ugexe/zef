@@ -2,7 +2,7 @@ unit class Zef::App;
 
 use Zef;
 
-use Zef::Utils::SystemInfo
+use Zef::Utils::SystemInfo;
 
 use Zef::Distribution::Local;
 use Zef::Manifest;

@@ -5,7 +5,8 @@
     "description" : "It's like [cpanm] wearing high heels with a tracksuit.",
     "depends"     : [ ],
     "provides"    : {
-        "Zef" : "lib/Zef.pm6",
+        "Zef"     : "lib/Zef.pm6",
+        "Storage" : "lib/Storage.pm6",
 
         "Zef::App"            : "lib/Zef/App.pm6",
         "Zef::Manifest"       : "lib/Zef/Manifest.pm6",

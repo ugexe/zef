@@ -1,6 +1,6 @@
 unit class Zef::App;
 
-use Zef;
+use Storage;
 
 use Zef::Distribution::Local;
 use Zef::Manifest;
@@ -11,10 +11,17 @@ use Zef::Roles::Processing;
 use Zef::Roles::Testing;
 use Zef::Roles::Hooking;
 
+
 use Zef::Authority::P6C;
 use Zef::Authority::Local;
 use Zef::CLI::StatusBar;
 use Zef::CLI::STDMux;
+
+use Zef::Utils::SystemInfo;
+use Zef::Utils::PathTools;
+use Zef::Utils::SystemInfo;
+use Zef::Utils::JSON;
+
 
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
@@ -393,11 +400,10 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
 
         # This should all be put into a Storage module which handles fetching based on scheme/identity-spec/source-type
         if @gits.elems {
-            my $git = Zef::Utils::Git.new;
-            for @gits -> $git-uri {
-                temp $save-to = $save-to.IO.child($git-uri.IO.basename.subst(/'.git'$/, ''));
-                my @git = $git.clone(:$save-to, $git-uri).cache;
-                @locals.push($_<path>) for @git;
+            for @gits -> $source-uri {
+                my $store = Storage.new($source-uri, :path($save-to));
+                my @dists-from-store = $store.rms>>.dist;
+                @locals.push(~$_) for @dists-from-store>>.path;
             }
         }
 
@@ -524,7 +530,7 @@ sub DISTS(:$lib, :@does, *@repos) {
     my @perl6lib;
     for @repos -> $r {
         my $dist =  do given $r {
-            when Zef::Distribution::Local {
+            when ::('Zef::Distribution::Local') {
                 $r;
             }
             when IO::Path | Str {

@@ -1,8 +1,9 @@
 unit class Zef::App;
 
+use Zef;
+
 use Zef::Distribution::Local;
 use Zef::Manifest;
-use Zef::Utils::Git;
 
 use Zef::Roles::Installing;
 use Zef::Roles::Precompiling;
@@ -14,9 +15,6 @@ use Zef::Authority::P6C;
 use Zef::Authority::Local;
 use Zef::CLI::StatusBar;
 use Zef::CLI::STDMux;
-use Zef::Utils::PathTools;
-use Zef::Utils::SystemInfo;
-use Zef::Utils::JSON;
 
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,

@@ -2,6 +2,8 @@ unit class Zef::App;
 
 use Storage;
 
+use Zef::Utils::SystemInfo;
+
 use Zef::Distribution::Local;
 use Zef::Manifest;
 

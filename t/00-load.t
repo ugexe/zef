@@ -5,9 +5,11 @@ plan 4;
 subtest {
     # most other modules loaded in Zef.pm6 itself
     use-ok('Zef');
+    use-ok('Storage');
+    use-ok('PathTools');
+
     use-ok('Zef::Process');
-    use-ok('Zef::CLI::StatusBar');
-    use-ok('Zef::CLI::STDMux');
+    use-ok('Zef::CLI');
 }, 'Base package modules';
 
 subtest {

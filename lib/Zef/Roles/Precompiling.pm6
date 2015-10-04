@@ -1,4 +1,4 @@
-use Zef::Utils::PathTools;
+use PathTools;
 use Zef::Utils::Depends;
 
 

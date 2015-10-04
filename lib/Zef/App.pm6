@@ -1,6 +1,9 @@
 unit class Zef::App;
 
+use PathTools;
 use Storage;
+
+use Zef::CLI;
 
 use Zef::Utils::SystemInfo;
 
@@ -13,16 +16,8 @@ use Zef::Roles::Processing;
 use Zef::Roles::Testing;
 use Zef::Roles::Hooking;
 
-
 use Zef::Authority::P6C;
 use Zef::Authority::Local;
-use Zef::CLI::StatusBar;
-use Zef::CLI::STDMux;
-
-use Zef::Utils::SystemInfo;
-use Zef::Utils::PathTools;
-use Zef::Utils::SystemInfo;
-use Zef::Utils::JSON;
 
 
 #| Build modules in the specified directory
@@ -403,7 +398,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
         # This should all be put into a Storage module which handles fetching based on scheme/identity-spec/source-type
         if @gits.elems {
             for @gits -> $source-uri {
-                my $store = Storage.new($source-uri, :path($save-to));
+                my $store = Storage.new($save-to, $source-uri);
                 my @dists-from-store = $store.rms>>.dist;
                 @locals.push(~$_) for @dists-from-store>>.path;
             }

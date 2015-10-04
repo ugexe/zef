@@ -1,10 +1,10 @@
+use PathTools;
+
 enum Phase <BUILD TEST INSTALL>; # todo: have phases register themselves somewhere
 role Zef::Roles::Hooking {
     # todo: Allow hooks to abort test based on exit code unless :$force
 
-    method hook-files {
-        $.path.child('hooks').IO.ls(:f);
-    }
+    method hook-files { ls($.path.child('hooks'), :f) }
 
     proto method hook-cmds(Phase $phase) {*}
     multi method hook-cmds(Phase $phase, Bool :$before where *.so) {

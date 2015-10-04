@@ -1,4 +1,4 @@
-use Zef::Utils::PathTools;
+use PathTools;
 
 role curli-fix[$path] {
     my $cp;
@@ -41,7 +41,7 @@ role Zef::Roles::Installing[$curli-paths = %*CUSTOM_LIB<site>] {
 
             my @provides = $.provides.values;
             my @precomps = self.?provides-precomp.values;
-            my @bins     = $.path.child('bin').ls(:f, :r)\
+            my @bins     = ls($.path.child('bin'), :f, :r)\
                 .grep(!*.starts-with('.'))\
                 .map: {.IO.relative($.path)}
             my @files    = flat (@provides, @precomps, @bins).grep(*.so);

@@ -1,8 +1,8 @@
 use v6;
+use PathTools;
 use Zef::Distribution::Local;
 use Zef::Roles::Precompiling;
 use Zef::Roles::Processing;
-use Zef::Utils::PathTools;
 use Test;
 plan 1;
 
@@ -11,10 +11,8 @@ plan 1;
 # Basic tests on default builder method
 subtest {
     my $path    = $?FILE.IO.dirname.IO.parent; # ehhh
-    my $save-to = $path.child("test-libs_{time}{100000.rand.Int}").IO;
+    my $save-to = mktemp($path.child("test-libs_{time}{100000.rand.Int}")).IO;
     my $precomp-path = $save-to.IO.child('lib');
-
-    LEAVE { try rm($save-to, :d, :f, :r) }
 
     my $distribution = Zef::Distribution::Local.new(:$path, :$precomp-path);
     $distribution does Zef::Roles::Precompiling;

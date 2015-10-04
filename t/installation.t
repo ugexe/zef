@@ -1,17 +1,15 @@
 use v6;
+use PathTools;
 use Zef::Distribution::Local;
 use Zef::Roles::Installing;
-use Zef::Utils::PathTools;
 use Zef::Manifest;
+
 use Test;
 plan 2;
 
 my $path         = $?FILE.IO.dirname.IO.parent; # ehhh
-my $install-to   = $path.child("test-libs_{time}{100000.rand.Int}").IO;
+my $install-to   = mktemp().IO;
 my $distribution = Zef::Distribution::Local.new(:$path, :precomp-path($install-to));
-try mkdirs($install-to);
-LEAVE { try rm($install-to, :d, :f, :r) }
-
 
 subtest {
     $distribution does Zef::Roles::Installing[$install-to];

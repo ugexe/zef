@@ -1,6 +1,7 @@
+use PathTools;
 use Zef::Distribution::Local;
 
-# Transparent storage access for CompUnitRepos
+# Transparent storage access to Distribution for CompUnitRepos
 
 # Attempt to mimic CUR; Something like:
 #   [Distribution <-> Storage::GitRepo]
@@ -23,7 +24,7 @@ class Storage::GitRepo {
 
     proto method new(|) {*}
     multi method new(Storage::GitRepo:U: $path is copy, $source-uri?) {
-        md($path);
+        mkdirs($path);
 
         # If a $source-uri is passed in then we will assume the user *wants* to update-or-create.
         # Otherwise the user may pass in just the $path of a local repo with no $source-uri.
@@ -52,9 +53,6 @@ class Storage::GitRepo {
     method meta  { state $json = try { from-json(self.meta-path.IO.slurp) } }
     method meta-path { state $file = self.files.first(*.IO.basename.lc eq 'meta6.json').IO }
 
-    sub ls($p) { $p.IO.f ?? $p !! $p.IO.dir>>.&?ROUTINE }
-    sub md($p) is export { &?ROUTINE($p.IO.dirname) unless $p.IO.dirname.IO.e; mkdir($p) }
-
     sub git-shell($cmd, $cwd) {
         my $s = shell(qq|git $cmd 2>&1|, :$cwd, :out);
         my @lines = $s.out.lines.eager andthen $s.out.close;
@@ -82,5 +80,9 @@ class Storage {
         }
         self.bless(:@rms, :@specs);
     }
+
+    method from-json { } # some sort of way to import package lists
+
+    method candidates(*%_) { }
 }
 

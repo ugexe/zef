@@ -1,16 +1,16 @@
 use v6;
+use PathTools;
+use Zef::Utils::Depends;
+
 use Test;
 plan 1;
-
-use Zef::Utils::PathTools;
-use Zef::Utils::Depends;
 
 
 # Test parsing out POD from modules
 subtest {
     my $tlib-dir   = $?FILE.IO.dirname.IO.child('lib').IO;
     my $tlib-file  = $tlib-dir.IO.child('depends.pm6').IO;
-    my @libs       = $tlib-dir.IO.ls(:r, :f, d => False);
+    my @libs       = ls($tlib-dir, :r, :f, :!d);
     my @depends    = Zef::Utils::Depends.new(projects => extract-deps(@libs).grep(*.so).cache).topological-sort;
 
     is @depends[0].elems, 2,                 'We only got two dependencies';

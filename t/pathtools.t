@@ -1,46 +1,40 @@
 use v6;
-use Zef::Utils::PathTools;
+use PathTools;
+
 use Test;
 plan 5;
 
 subtest {
-    my $save-to = $*TMPDIR.child("{time}{100000.rand.Int}").IO;
-    LEAVE { try rm($save-to, :d, :f, :r) }
-
-
+    my $save-to = mktemp();
     my $sub-save-to     = $save-to.IO.child('sub1');
     my $sub-sub-save-to = $sub-save-to.IO.child('sub2');
-    my $dir             = try mkdirs($sub-sub-save-to);
+    my $created-dir     = mkdirs($sub-sub-save-to);
 
-    ok $sub-sub-save-to.IO.e, "Created {$sub-sub-save-to}";
-    is $dir.IO.path, $sub-sub-save-to.IO.path, 'Proper directory path';
+    ok (~$sub-sub-save-to).IO.e, "Created {$sub-sub-save-to}";
+    is $created-dir.IO.path, $sub-sub-save-to.IO.path, 'Proper directory path';
 }, 'mkdirs';
 
 # :d :f :r
 subtest {
     my @delete-us;
 
-    # 1. Folder: /tmp/{time}
-    # 2. File:   /tmp/{time}/base-delete.me 
-    # 3. Folder: /tmp/{time}/deleteme-subfolder
-    # 4. File:   /tmp/{time}/deleteme-subfolder/base-delete.me
+    # 1. Folder: /{temp folder}
+    # 2. File:   /{temp folder}/base-delete.me 
+    # 3. Folder: /{temp folder}/deleteme-subfolder
+    # 4. File:   /{temp folder}/deleteme-subfolder/base-delete.me
     # All 4 items should get deleted
 
-    my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
-    LEAVE { # Cleanup
-        sleep 1;
-        try rm($save-to, :d, :f, :r);
-    }
+    my $save-to = mktemp();
 
-    @delete-us.append(try mkdirs($save-to));
+    @delete-us.append(mkdirs(~$save-to));
     my $sub-folder = $save-to.IO.child('deleteme-subfolder').IO;
-    @delete-us.append(try mkdirs($sub-folder));
+    @delete-us.append(mkdirs(~$sub-folder));
 
     # create 2 test files, one in each directory we created above
     my $save-to-file    = $save-to.IO.child('base-delete.me').IO;
     my $sub-folder-file = $sub-folder.IO.child('sub-delete.me').IO;
-    @delete-us.append($save-to-file.IO.path) if try open($save-to-file.IO.path, :w);
-    @delete-us.append($sub-folder-file.IO.path) if try open($sub-folder-file.IO.path, :w);
+    @delete-us.append($save-to-file.IO.path) if open($save-to-file.IO.path, :w);
+    @delete-us.append($sub-folder-file.IO.path) if open($sub-folder-file.IO.path, :w);
 
     ok $save-to.IO.d, "Folder available to delete";
 
@@ -54,7 +48,7 @@ subtest {
     }
 
     # deletion doesn't always happen immediately
-    #is $save-to.IO.e, False, "Folder deleted"; 
+    # is $save-to.IO.e, False, "Folder deleted"; 
 }, ".ls and .rm :d :f :r (rm -rf)";
 
 
@@ -62,30 +56,27 @@ subtest {
 subtest {
     my @delete-us;
 
-    # 1. Folder: /tmp/{time}
-    # 2. File:   /tmp/{time}/base-delete.me 
-    # 3. Folder: /tmp/{time}/deleteme-subfolder
-    # 4. File:   /tmp/{time}/deleteme-subfolder/base-delete.me
+    # 1. Folder: /{temp folder}
+    # 2. File:   /{temp folder}/base-delete.me 
+    # 3. Folder: /{temp folder}/deleteme-subfolder
+    # 4. File:   /{temp folder}/deleteme-subfolder/base-delete.me
     # Only item 2 should get deleted
 
-    my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
-    try mkdirs($save-to);
-    LEAVE { try rm($save-to, :d, :f, :r) }
-
+    my $save-to = mktemp();
 
     my $sub-folder = $save-to.IO.child('deleteme-subfolder');
-    try mkdirs($sub-folder);
+    mkdirs($sub-folder);
 
     # create 2 test files, one in each directory we created above
-    my $save-to-file    = $save-to.IO.child('base-delete.me').IO;
-    my $sub-folder-file = $sub-folder.IO.child('sub-delete.me').IO;
-    @delete-us.append($save-to-file.IO.path) if open($save-to-file.IO, :w).close;
-    try open($sub-folder-file, :w).close;
+    my $save-to-file    = $save-to.IO.child('base-delete.me');
+    my $sub-folder-file = $sub-folder.IO.child('sub-delete.me');
+    @delete-us.append($save-to-file) if open($save-to-file, :w).close;
+    open($sub-folder-file, :w).close;
 
     ok $save-to.IO.d, "Folder available to delete";
 
-    my @ls      = $save-to.ls(:d, :f);
-    my @deleted = $save-to.rm(:d, :f);
+    my @ls      = ls($save-to, :d, :f);
+    my @deleted = rm($save-to, :d, :f);
 
     my $to-be-deleted = any($save-to-file);
     my $not-deleted   = any($save-to, $sub-folder, $sub-folder-file);
@@ -105,28 +96,26 @@ subtest {
 subtest {
     my @delete-us;
 
-    # 1. Folder: /tmp/{time}
-    # 2. File:   /tmp/{time}/base-delete.me 
-    # 3. Folder: /tmp/{time}/deleteme-subfolder
-    # 4. File:   /tmp/{time}/deleteme-subfolder/base-delete.me
-    # 5. Folder  /tmp/{time}/empty-subfolder
+    # 1. Folder: /{temp folder}
+    # 2. File:   /{temp folder}/base-delete.me 
+    # 3. Folder: /{temp folder}/deleteme-subfolder
+    # 4. File:   /{temp folder}/deleteme-subfolder/base-delete.me
+    # 5. Folder  /{temp folder}/empty-subfolder
     # Only item 5 will be deleted
 
-    my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
-    try mkdirs($save-to);
-    LEAVE { try rm($save-to, :d, :f, :r) }
-
+    my $save-to = mktemp().IO;
 
     my $sub-folder = $save-to.IO.child('deleteme-subfolder');
-    try mkdirs($sub-folder);
-    my $sub-folder-empty = $save-to.child('empty-subfolder');
-    @delete-us.append($sub-folder-empty) if try mkdirs($sub-folder-empty);
+    mkdirs($sub-folder);
+    my $sub-folder-empty = $save-to.IO.child('empty-subfolder');
+    @delete-us.append($sub-folder-empty);
+    mkdirs($sub-folder-empty);
 
     # create 2 test files, one in each directory we created above
     my $save-to-file    = $save-to.IO.child('base-delete.me');
     my $sub-folder-file = $sub-folder.IO.child('sub-delete.me');
-    try open($save-to-file, :w);
-    try open($sub-folder-file, :w);
+    open($save-to-file, :w);
+    open($sub-folder-file, :w);
 
     ok $save-to.IO.d, "Folder available to delete";
 
@@ -150,27 +139,25 @@ subtest {
 subtest {
     my @delete-us;
 
-    # 1. Folder: /tmp/{time}
-    # 2. File:   /tmp/{time}/base-delete.me 
-    # 3. Folder: /tmp/{time}/deleteme-subfolder
-    # 4. File:   /tmp/{time}/deleteme-subfolder/base-delete.me
-    # 5. Folder  /tmp/{time}/empty-subfolder
+    # 1. Folder: /{temp folder}
+    # 2. File:   /{temp folder}/base-delete.me 
+    # 3. Folder: /{temp folder}/deleteme-subfolder
+    # 4. File:   /{temp folder}/deleteme-subfolder/base-delete.me
+    # 5. Folder  /{temp folder}/empty-subfolder
     # Delete items 2 and 4
 
-    my $save-to = $*TMPDIR.IO.child("{time}{100000.rand.Int}").IO;
-    try mkdirs($save-to.IO.path);
-    LEAVE { try rm($save-to, :d, :f, :r) }
+    my $save-to = mktemp();
 
     my $sub-folder = $save-to.IO.child('deleteme-subfolder').IO;
-    try mkdirs($sub-folder);
+    mkdirs($sub-folder);
     my $sub-folder-empty = $save-to.IO.child('empty-subfolder').IO;
-    try mkdirs($sub-folder-empty);
+    mkdirs($sub-folder-empty);
 
     # create 2 test files, one in each directory we created above
     my $save-to-file    = $save-to.IO.child('base-delete.me').IO;
     my $sub-folder-file = $sub-folder.IO.child('sub-delete.me').IO;
-    @delete-us.append($save-to-file) if try open($save-to-file.IO.path, :w);
-    @delete-us.append($sub-folder-file) if try open($sub-folder-file.IO.path, :w);
+    @delete-us.append($save-to-file) if open($save-to-file.IO.path, :w);
+    @delete-us.append($sub-folder-file) if open($sub-folder-file.IO.path, :w);
 
     ok $save-to.IO.d, "Folder available to delete";
 
@@ -186,5 +173,5 @@ subtest {
     }
 
     # deletion doesn't always happen immediately
-    #is $save-to.IO.e, False, "Folder deleted"; 
+    # is $save-to.IO.e, False, "Folder deleted"; 
 }, ".ls and .rm :f :r";

@@ -3,6 +3,8 @@ use Zef::Net::HTTP::Client;
 use Zef::Utils::Depends;
 use Zef::Utils::Git;
 
+# XXX Authority:: modules will be getting replaced with Storage (or Storage related modules)
+
 my @skip = <v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>;
 
 # perl6 community ecosystem + test reporting

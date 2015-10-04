@@ -1,3 +1,5 @@
+# XXX Authority:: modules will be getting replaced with Storage (or Storage related modules)
+
 role Zef::Authority {
     has @.projects is rw;
 

@@ -1,10 +1,10 @@
 use Zef::Authority;
 use Zef::Utils::Depends;
 
+# XXX Authority:: modules will be getting replaced with Storage (or Storage related modules)
+
 my @skip = <v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>;
 
-# rename all this authority stuff to content storagey name and play nicely 
-# with passing in a projects.json
 class Zef::Authority::Local does Zef::Authority {
     method update-projects(*@wants is copy) {
         my @files = gather for @wants -> $path {

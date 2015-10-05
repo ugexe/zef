@@ -1,7 +1,7 @@
 use Base64;
 
 use Test;
-plan 2;
+plan 5;
 
 subtest {
     is encode64(""), '', 'Encoding the empty string';
@@ -33,3 +33,19 @@ subtest {
     is-deeply decode64('AQ=='), Buf.new(1), 'decode Test on byte value 1';
     is-deeply decode64('/w=='), Buf.new(255), 'decode Test on byte value 255';
 }, 'Decode';
+
+subtest {
+    is encode64("\x14\xfb\x9c\x03\xd9\x7e"), "FPucA9l+";
+    is encode64("\x14\xfb\x9c\x03\xd9"),     "FPucA9k=";
+    is encode64("\x14\xfb\x9c\x03"),         "FPucAw==";
+}, 'RFC 3548';
+
+subtest {
+    my %from-to = :f<Zg==>, :fo<Zm8=>, :foo<Zm9v>, :foob<Zm9vYg==>, :fooba<Zm9vYmE=>, :foobar<Zm9vYmFy>;
+    %from-to.pairs.map: {is encode64($_.key), $_.value; }
+}, 'RFC 4648';
+
+subtest {
+    my @invalid = <!!!! ==== =AAA A=AA AA=A AA==A AAA=AAAA AAAAA AAAAAA A= A== AA= AA== AAA= AAAA AAAAAA=>;
+    @invalid.map: { is-deeply decode64($_, :uri), Buf.new(0) }
+}, 'Currupt/invalid encodings';

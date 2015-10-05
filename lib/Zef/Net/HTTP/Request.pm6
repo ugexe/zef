@@ -1,6 +1,6 @@
+use Base64;
 use Zef::Net::HTTP;
 use Zef::Net::URI;
-use Zef::Utils::Base64;
 
 class Zef::Net::HTTP::Request does HTTP::Request {
     # start line
@@ -54,12 +54,12 @@ class Zef::Net::HTTP::Request does HTTP::Request {
             }
 
             with $!proxy.uri.?user-info -> $user-info {
-                %!headers<Proxy-Authorization> = "Basic " ~ b64encode($user-info);
+                %!headers<Proxy-Authorization> = "Basic " ~ encode64($user-info);
             }
         }
 
         with $!uri.?user-info -> $user-info {
-            %!headers<Authorization> = "Basic " ~ b64encode($user-info);
+            %!headers<Authorization> = "Basic " ~ encode64($user-info);
         }
 
         %!headers<Connection> = 'Close';

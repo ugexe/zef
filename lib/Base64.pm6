@@ -14,9 +14,9 @@ multi sub encode64(Buf $buf is copy, :@alpha = @chars64 --> Str) {
     my $padding  = do with (3 - $buf.bytes % 3) -> $mod { $mod == 3 ?? 0 !! $mod }
     $buf.append(0) for ^$padding;
     my @raw = $buf.rotor(3).map: -> $chunk {
-        my $n   = [+] @$chunk.map:     { $_ +< ((state $m = 24) -= 8) }
-        my $res = (18, 12, 6, 0).map({ $n +> $_ +& 63 });
-        @alpha[@$res>>.item].grep(*.so).Slip;
+        my $n   = [+] @$chunk.map:    { $_ +< ((state $m = 24) -= 8) }
+        my $res = (18, 12, 6, 0).map: { $n +> $_ +& 63 }
+        slip(@alpha[@$res>>.item])
     }
     @raw.append('=') for ^$padding;
     return @raw[0..(@raw.elems - $padding*2 - 1),(@raw.elems - $padding)..@raw.end].flat.join;
@@ -27,11 +27,11 @@ multi sub decode64(Buf $buf,              |c) { samewith($buf.decode,         |c
 multi sub decode64(Bool :$uri where *.so, |c) { samewith(:alpha(@chars64uri), |c) }
 multi sub decode64(Str $str, :@alpha = @chars64 --> Buf) {
     return Buf.new unless $str;
-    my %lookup = @alpha.elems == 64 ?? @alpha.kv.hash.antipairs !! die "\@alpha contains only {@alpha.elems} of 64 required encodings";
+    die "\@alpha contains only {@alpha.elems} of 64 required encodings" unless @alpha.elems == 64;
     my $padding  = $str.ends-with('==') ?? 2 !! $str.ends-with('=') ?? 1 !! 0;
     my @s = $str.substr(0,*-$padding).comb(/@alpha/);
-
     my @raw = @s.rotor(4, :partial).map: -> $chunk {
+        state %lookup = @alpha.kv.hash.antipairs;
         my $n   = [+] $chunk.map: { (%lookup{$_} || 0) +< ((state $m = 24) -= 6) }
         my $res = (16, 8, 0).map: { $n +> $_ +& 255 }
         slip($res.grep(* > 0));

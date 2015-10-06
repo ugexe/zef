@@ -1,36 +1,37 @@
 unit module Base64;
 
-my @chars64    = flat 'A'..'Z','a'..'z','0'..'9', '+', '/';
-my @chars64uri = flat 'A'..'Z','a'..'z','0'..'9', '-', '_';
 
-# todo: turn padding on/off
+my @chars64base = flat 'A'..'Z','a'..'z','0'..'9';
+my @chars64std  = chars64with('+', '/');
+my @chars64uri  = chars64with('-', '_');
+my sub chars64with(*@_) { @chars64base.Slip, @_.Slip; }
 
 proto sub encode64(|) is export {*}
-multi sub encode64(Str $str, |c)              { samewith(Buf.new($str.ords),  |c) }
-multi sub encode64(Bool :$uri where *.so, |c) { samewith(:alpha(@chars64uri), |c) }
-multi sub encode64(Buf $buf is copy, :@alpha = @chars64 --> Str) {
+multi sub encode64(Str $str, |c) { samewith(Buf.new($str.ords), |c) }
+multi sub encode64(Bool :$uri! where *.so, |c) { samewith(:alpha(@chars64uri), |c) }
+multi sub encode64(Str :@alpha! where *.elems == 2, |c) { samewith(:alpha(chars64with(|@alpha)), |c) }
+multi sub encode64(Buf $buf, :$pad = '=', :@alpha where *.unique.elems == 64 = @chars64std, |c) {
     return '' unless $buf;
-    die "\@alpha contains only {@alpha.elems} of 64 required encodings" unless @alpha.elems == 64;
-    my $padding  = do with (3 - $buf.bytes % 3) -> $mod { $mod == 3 ?? 0 !! $mod }
+    my $padding  = do with (3 - $buf.bytes % 3) -> $mod { ?$pad ?? $mod == 3 ?? 0 !! $mod !! 0 }
     $buf.append(0) for ^$padding;
     my @raw = $buf.rotor(3).map: -> $chunk {
         my $n   = [+] @$chunk.map:    { $_ +< ((state $m = 24) -= 8) }
         my $res = (18, 12, 6, 0).map: { $n +> $_ +& 63 }
         slip(@alpha[@$res>>.item])
     }
-    @raw.append('=') for ^$padding;
+    @raw.append($pad) for ^$padding;
     return @raw[0..(@raw.elems - $padding*2 - 1),(@raw.elems - $padding)..@raw.end].flat.join;
 }
 
 proto sub decode64(|) is export {*}
-multi sub decode64(Buf $buf,              |c) { samewith($buf.decode,         |c) }
+multi sub decode64(Buf $buf, |c) { samewith($buf.decode, |c) }
 multi sub decode64(Bool :$uri where *.so, |c) { samewith(:alpha(@chars64uri), |c) }
-multi sub decode64(Str $str, :@alpha = @chars64 --> Buf) {
+multi sub decode64(Str :@alpha where *.elems == 2, |c) { samewith(:alpha(chars64with(|@alpha)), |c) }
+multi sub decode64(Str $str, :$pad = '=', :@alpha where *.unique.elems == 64 = @chars64std, |c) {
     return Buf.new unless $str;
-    die "\@alpha contains only {@alpha.elems} of 64 required encodings" unless @alpha.elems == 64;
-    my $padding  = $str.ends-with('==') ?? 2 !! $str.ends-with('=') ?? 1 !! 0;
-    my @s = $str.substr(0,*-$padding).comb(/@alpha/);
-    my @raw = @s.rotor(4, :partial).map: -> $chunk {
+    my $padding  = ?$pad ?? $str.ends-with("{$pad}{$pad}") ?? 2 !! $str.ends-with("{$pad}") ?? 1 !! 0 !! 0;
+    my @chars = $str.substr(0,*-$padding).comb(/@alpha/);
+    my @raw = @chars.rotor(4, :partial).map: -> $chunk {
         state %lookup = @alpha.kv.hash.antipairs;
         my $n   = [+] $chunk.map: { (%lookup{$_} || 0) +< ((state $m = 24) -= 6) }
         my $res = (16, 8, 0).map: { $n +> $_ +& 255 }

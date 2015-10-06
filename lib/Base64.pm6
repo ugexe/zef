@@ -62,3 +62,43 @@ my sub chars64with(*@chars) is cached {
     }
     @alpha;
 }
+
+=begin pod
+
+=encoding utf8
+
+=head2 Base64
+
+Base64 encoding and decoding routines
+
+=head2 Exports
+
+=head4 B<routine> L<encode-base64> C<$encode-me where Buf|Str, :$pad, :@alpha E<-->> Str>
+
+    encode-base64($encode-me)
+    encode-base64($encode-me, :!pad)           # No padding
+    encode-base64($encode-me, :pad("*"))       # Alternative padding character
+    encode-base64($encode-me, :uri)            # Use '-' and '/' for chars 63 and 64
+    encode-base64($encode-me, :alpha(1..64))   # Set the entire alphabet
+    encode-base64($encode-me, :alpha('-','_')) # Same as :uri
+
+Takes a C<Buf> and applies base64 encoding with the requested options. If passed a C<Str> it will be converted to a C<Buf> via C<.ords> first.
+
+    say encode-base64("any carnal pleasure.")
+    # YW55IGNhcm5hbCBwbGVhc3VyZS4=
+
+=head4 B<routine> L<decode-base64> C<$decode-me where Buf|Str, :$pad, :@alpha --> Buf>
+
+    decode-base64($decode-me)
+    decode-base64($decode-me, :!pad)           # No padding
+    decode-base64($decode-me, :pad("*"))       # Alternative padding character
+    decode-base64($decode-me, :uri)            # Use '-' and '/' for chars 63 and 64
+    decode-base64($decode-me, :alpha(1..64))   # Set the entire alphabet
+    decode-base64($decode-me, :alpha('-','_')) # Same as :uri
+
+Takes a C<Str> and applies base64 decoding with the requested options. If passed a C<Buf> it will be converted to a C<Str> with C<.decode> first.
+
+    say decode-base64("YW55IGNhcm5hbCBwbGVhc3VyZS4=")
+    # any carnal pleasure.
+
+=end pod

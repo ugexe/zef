@@ -78,7 +78,7 @@ Base64 encoding and decoding routines
     encode-base64($encode-me)
     encode-base64($encode-me, :!pad)           # No padding
     encode-base64($encode-me, :pad("*"))       # Alternative padding character
-    encode-base64($encode-me, :uri)            # Use '-' and '/' for chars 63 and 64
+    encode-base64($encode-me, :uri)            # Use '-' and '_' for chars 63 and 64
     encode-base64($encode-me, :alpha(1..64))   # Set the entire alphabet
     encode-base64($encode-me, :alpha('-','_')) # Same as :uri
 
@@ -92,7 +92,7 @@ Takes a C<Buf> and applies base64 encoding with the requested options. If passed
     decode-base64($decode-me)
     decode-base64($decode-me, :!pad)           # No padding
     decode-base64($decode-me, :pad("*"))       # Alternative padding character
-    decode-base64($decode-me, :uri)            # Use '-' and '/' for chars 63 and 64
+    decode-base64($decode-me, :uri)            # Use '-' and '_' for chars 63 and 64
     decode-base64($decode-me, :alpha(1..64))   # Set the entire alphabet
     decode-base64($decode-me, :alpha('-','_')) # Same as :uri
 

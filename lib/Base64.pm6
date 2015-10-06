@@ -5,10 +5,16 @@ my @chars64base = flat 'A'..'Z','a'..'z','0'..'9';
 my @chars64std  = chars64with('+', '/');
 my @chars64uri  = chars64with('-', '_');
 
+
 proto sub encode-base64(|) is export {*}
 multi sub encode-base64(Str $str, |c) { samewith(Buf.new($str.ords), |c) }
 multi sub encode-base64(Bool :$uri! where *.so, |c) { samewith(:alpha(@chars64uri), |c) }
-multi sub encode-base64(Buf $buf, :$pad = '=', :@alpha, |c) {
+multi sub encode-base64(:$pad = '=', |c) {
+    die ":\$pad must be a single character (or empty) Str, or a Boolean"
+        unless ($pad ~~ Str && $pad.chars == 0|1) || $pad ~~ Bool;
+    callwith(:pad($pad ~~ Bool ?? ?$pad ?? '=' !! '' !! $pad), |c)
+}
+multi sub encode-base64(Buf $buf, :$pad, :@alpha, |c) {
     return '' unless $buf;
     my $padding   = do with (3 - $buf.bytes % 3) -> $mod { ?$pad ?? $mod == 3 ?? 0 !! $mod !! 0 }
     $buf.append(0) for ^$padding;
@@ -24,8 +30,13 @@ multi sub encode-base64(Buf $buf, :$pad = '=', :@alpha, |c) {
 
 proto sub decode-base64(|) is export {*}
 multi sub decode-base64(Buf $buf, |c) { samewith($buf.decode, |c) }
-multi sub decode-base64(Bool :$uri where *.so, |c) { samewith(:alpha(@chars64uri), |c) }
-multi sub decode-base64(Str $str, :$pad = '=', :@alpha, |c) {
+multi sub decode-base64(Bool :$uri! where *.so, |c) { samewith(:alpha(@chars64uri), |c) }
+multi sub decode-base64(:$pad = '=', |c) {
+    die ":\$pad must be a single character (or empty) Str, or a Boolean"
+        unless ($pad ~~ Str && $pad.chars == 0|1) || $pad ~~ Bool;
+    callwith(:pad($pad ~~ Bool ?? ?$pad ?? '=' !! '' !! $pad), |c)
+}
+multi sub decode-base64(Str $str, :$pad, :@alpha, |c) {
     return Buf.new unless $str;
     my @encodings = chars64with(@alpha);
     my $padding   = ?$pad ?? $str.ends-with("{$pad}{$pad}") ?? 2 !! $str.ends-with("{$pad}") ?? 1 !! 0 !! 0;
@@ -40,7 +51,7 @@ multi sub decode-base64(Str $str, :$pad = '=', :@alpha, |c) {
 }
 
 
-my sub chars64with(*@chars) {
+my sub chars64with(*@chars) is cached {
     my @alpha = do with @chars.elems -> $c {
         die "alphabet contains {$c} of {$c > 2 ?? 64 !! 2} required encodings" unless $c == 0|2|64;
         $c == 64 ?? @chars !! $c == 2 ??  (@chars64base.Slip, @chars.Slip) !! @chars64std;

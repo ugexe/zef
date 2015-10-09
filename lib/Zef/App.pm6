@@ -5,6 +5,7 @@ use Storage;
 
 use Zef::CLI;
 
+use Zef::Utils::JSON;
 use Zef::Utils::SystemInfo;
 
 use Zef::Distribution::Local;
@@ -18,7 +19,6 @@ use Zef::Roles::Hooking;
 
 use Zef::Authority::P6C;
 use Zef::Authority::Local;
-
 
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,

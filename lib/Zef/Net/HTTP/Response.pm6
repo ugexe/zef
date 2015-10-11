@@ -64,7 +64,7 @@ class Zef::Net::HTTP::Response does HTTP::Response {
     method content(Bool :$bin) {
         my @buf;
         $!body.tap: {@buf.append($_) for $_.cache}
-        await $!body.done;
+        # $!body.wait if ?$!body;
         my $data = buf8.new(@buf);
 
         my $content = ?$!chunked ?? ChunkedReader($data) !! $data;

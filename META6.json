@@ -5,7 +5,6 @@
     "description" : "It's like [cpanm] wearing high heels with a tracksuit.",
     "depends"     : [ ],
     "provides"    : {
-        "Base64"    : "lib/Base64.pm6",
         "PathTools" : "lib/PathTools.pm6",
         "Storage"   : "lib/Storage.pm6",
         "Zef"       : "lib/Zef.pm6",

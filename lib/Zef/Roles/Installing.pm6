@@ -9,12 +9,10 @@ role curli-fix[$path] {
         });
     }
 
-    method get-dists {
+    method dists {
         my $manifest := $.IO.child("MANIFEST");
         my $abspath  := $.IO.abspath;
-        my %dists = $manifest.e
-          ?? from-json($manifest.slurp)
-          !! {};
+        try { from-json($manifest.slurp).<dists>.cache } || []
     }
 }
 

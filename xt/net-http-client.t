@@ -9,6 +9,10 @@ ENTER {
         print("ok - # Skip: No internet connection available? Test requires http://httpbin.org:80\n");
         return;
     }
+    try { require Base64; } or do {
+        print("ok - # Skip: Please install the `Base64` module to use authorization\n");
+        return;
+    }
 }
 
 
@@ -35,7 +39,7 @@ subtest {
         temp $ua.auto-check = False;
         nok $ua.get($url ~ '/basic-auth/unx/pwx').status-code, "Fail basic auth and live. auto-check => False";
     }
-}, "HTTP";
+}, "HTTP auth";
 
 
 subtest {
@@ -66,4 +70,4 @@ subtest {
         temp $ua.auto-check = False;
         nok $ua.get($url ~ '/basic-auth/unx/pwx').status-code, "Fail basic auth and live. auto-check => True";
     }
-}, "HTTPS";
+}, "HTTPS auth";

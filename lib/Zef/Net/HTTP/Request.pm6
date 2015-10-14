@@ -1,4 +1,3 @@
-use Base64;
 use Zef::Net::HTTP;
 use Zef::Net::URI;
 
@@ -54,12 +53,12 @@ class Zef::Net::HTTP::Request does HTTP::Request {
             }
 
             with $!proxy.uri.?user-info -> $user-info {
-                %!headers<Proxy-Authorization> = "Basic " ~ encode-base64($user-info);
+                %!headers<Proxy-Authorization> = "Basic " ~ encode-auth($user-info);
             }
         }
 
         with $!uri.?user-info -> $user-info {
-            %!headers<Authorization> = "Basic " ~ encode-base64($user-info);
+            %!headers<Authorization> = "Basic " ~ encode-auth($user-info);
         }
 
         %!headers<Connection> = 'Close';
@@ -116,5 +115,11 @@ class Zef::Net::HTTP::Request does HTTP::Request {
 
     method Str {
         self.DUMP(:start-line, :headers);
+    }
+
+    my sub encode-auth($str) {
+        try { require Base64; return Base64::encode-base64($str, :str) }
+        print("Please install the Base64 module to use authorization\n");
+        return $str;
     }
 }

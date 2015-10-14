@@ -1,6 +1,5 @@
 unit module Zef;
 
-use Base64;
 use PathTools;
 use Storage;
 

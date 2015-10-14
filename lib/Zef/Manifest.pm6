@@ -93,14 +93,10 @@ class Zef::Manifest {
 }
 
 sub DIST-PATH2ID($cur, $path) {
-    my %dists = $cur.get-dists.hash;
-    my @candi;
-    for %dists.kv -> $p, $repo {
-        for @($repo) -> $dist {
-            for $dist<provides>.hash.values -> %v {
-                for %v.values -> $info {
-                    return $dist<id> if $info<file> eq $path.IO.basename;
-                }
+    for $cur.dists.grep(*.so) -> $dist {
+        for $dist<provides>.values -> $v {
+            for $v.values -> $info {
+                return $dist<id> if $info<file> eq $path.IO.basename;
             }
         }
     }

@@ -53,7 +53,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
         for $precomp-dist.processes -> $group {
             for $group.cache -> $proc {
                 for $proc.cache -> $item {
-                    my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
+                    my $sub-result = %( :ok($item.ok), :id($item.id.IO.basename) );
                     @results.append($sub-result);
 
                     if !$force && !$sub-result<ok> {
@@ -63,7 +63,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
                 }
             }
         }
-        my $result = { :ok(all(@results>><ok>)), :unit-id($precomp-dist.name), :results(@results) }
+        my $result = %( :ok(all(@results>><ok>)), :unit-id($precomp-dist.name), :results(@results) );
         @r.append($result);
     }
     verbose('Precompiling', @r);
@@ -107,7 +107,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
         for $test-dist.processes -> $group {
             for $group.cache -> $proc {
                 for $proc.cache -> $item {
-                    my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
+                    my $sub-result = %( :ok($item.ok), :id($item.id.IO.basename) );
                     @results.append($sub-result);
 
                     if !$force && !$sub-result<ok> {
@@ -117,7 +117,7 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
                 }
             }
         }
-        my $result = { :ok(all(@results>><ok>)), :unit-id($test-dist.name), :results(@results) }
+        my $result = %( :ok(all(@results>><ok>)), :unit-id($test-dist.name), :results(@results) );
         @r.append($result);
     }
     verbose('Testing', @r);
@@ -578,13 +578,7 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
 
 # will be replaced soon
 sub verbose($phase, $work) {
-    say "WORK";
-    say $work.perl;
-    say '-----';
     my %r = $work.grep(*.so).classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
-    say "R";
-    say %r.perl;
-    say '----';
     if %r<ok>  -> @ok  { print "===> $phase OK for: {@ok>><unit-id>.join(', ')}\n" }
     if %r<nok> -> @nok {
         for @nok -> $failed {

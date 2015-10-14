@@ -14,10 +14,14 @@ Zef - Perl6 Module Management
     cd zef
     perl6 -Ilib bin/zef -v --no-build install .
 
-Be sure your `PATH` includes the file path shown by the command below:
+Be sure your `PATH` includes the path to perl6 scripts:
 
+    # using rakudobrew?
+    $ rakudobrew rehash
+
+    # not using rakudobrew? Add the command output below to your `PATH`
     $ perl6 -e "say %*CUSTOM_LIB<site>.IO.child('bin').Str"
-    # example: /home/perl6/install/share/perl6/site/bin
+    /home/perl6/install/share/perl6/site/bin
 
 =head2 Notice
 

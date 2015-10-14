@@ -1,5 +1,5 @@
 unit class Zef::App;
-
+use trace;
 use PathTools;
 use Storage;
 

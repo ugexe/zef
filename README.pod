@@ -12,7 +12,7 @@ Zef - Perl6 Module Management
 
     git clone https://github.com/ugexe/zef.git
     cd zef
-    perl6 -Ilib bin/zef -v install .
+    perl6 -Ilib bin/zef -v --no-build install .
 
 Be sure your `PATH` includes the file path shown by the command below:
 

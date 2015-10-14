@@ -578,7 +578,13 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
 
 # will be replaced soon
 sub verbose($phase, $work) {
-    my %r = $work.cache.grep(*.so).classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
+    say "WORK";
+    say $work.perl;
+    say '-----';
+    my %r = $work.grep(*.so).classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
+    say "R";
+    say %r.perl;
+    say '----';
     if %r<ok>  -> @ok  { print "===> $phase OK for: {@ok>><unit-id>.join(', ')}\n" }
     if %r<nok> -> @nok {
         for @nok -> $failed {

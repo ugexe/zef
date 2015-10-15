@@ -126,7 +126,7 @@ sub CLI-WAITING-BAR(&code, str $message, Bool :$boring) is export {
         my $cl = clear-line($last-line-len);
         return "$fc$cl$fc$str";
     }
-    say "===> $message" and return code() if $boring;
+    say "===> $message" and return (my $r = code()) if $boring;
     my $promise = Promise.new;
     my $vow     = $promise.vow;
     my $await   = start { show-await($message, $promise) };

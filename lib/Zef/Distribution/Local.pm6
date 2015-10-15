@@ -112,10 +112,11 @@ class Zef::Distribution::Local does Zef::Distribution {
         $p.hash;
     }
 
-    method candidates(::CLASS:D: :$version) {
+    method candidates(::CLASS:D: :$version = $.version) {
         my %opts;
-        %opts<authority> = $.authority if $.authority;
-        flat $.curlis.map: {.candidates($.name, :auth($.authority), :ver($version // '*')).grep(*)}
+        %opts<auth> = $.authority if $.authority;
+        %opts<ver>  = $version || '*';
+        flat $.curlis.map: {.candidates($.name, |%opts).grep(*.so)}
     }
     method curlis {
         @*INC.grep( { .starts-with("inst#") } )\

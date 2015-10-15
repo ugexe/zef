@@ -63,7 +63,7 @@ class Zef::Authority::P6C does Zef::Authority {
                 temp $save-to  = ~$save-to.IO.child($basename);
                 my @git       = $!git.clone(:$save-to, %dist<source-url>).cache;
 
-                take { :unit-id(%dist.<name>), :path(@git.[0].<path>), :ok(?$save-to.IO.e) }
+                take %( :unit-id(%dist.<name>), :path(@git.[0].<path>), :ok(?$save-to.IO.e) )
             }
         }
     }

@@ -42,29 +42,29 @@ class Zef::Process {
             if $!async && !$!can-async;
 
         if $!async {
-            $!process := Proc::Async.new($!command, @!args);
+            $!process = Proc::Async.new($!command, @!args);
             $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }
             $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
             $!process.stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
 
-            $!promise  := $!process.start(:$!cwd, ENV => %!env);
+            $!promise = $!process.start(:$!cwd, ENV => %!env);
 
-            $!started  := $!process.started;
-            $!finished := $!promise.Bool;
+            $!started  = $!process.started;
+            $!finished = $!promise.Bool;
         }
         else {
-            $!process := shell("{$!command} {@!args.join(' ')} 2>&1", :out, :$!cwd, :%!env, :!chomp);
-            $!promise := Promise.new;
+            $!process = shell("{$!command} {@!args.join(' ')} 2>&1", :out, :$!cwd, :%!env, :!chomp);
+            $!promise = Promise.new;
             $!stdout.act: { $!stdmerge ~= $_ }
             $!stderr.act: { $!stdmerge ~= $_ }
 
             $!stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
 
             $!started = True;
-            $!stdout.emit($_) for $!process.out.lines(:!eager, :close);
+            $!stdout.emit($_) for $!process.out.lines;
             $!stdout.done; $!stderr.done;
             $!process.out.close; $!stderr.close;
-            $!finished := ?$!promise.keep($!process);
+            $!finished = ?$!promise.keep($!process);
         }
 
         $!promise;

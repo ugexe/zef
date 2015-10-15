@@ -29,7 +29,7 @@ role Zef::Distribution {
 
     method wanted(:$take-whatever = True) {
         return True  if  $take-whatever && $.version ~~ /v? '*'/;
-        return False if $.candidates.cache.elems;
+        return False if $.candidates(:version($.version)).elems;
         return True;
     }
 

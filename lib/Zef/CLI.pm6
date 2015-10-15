@@ -6,8 +6,6 @@ unit module Zef::CLI;
 # and still make a little sense of it (and allow it to be sorted)
 
 # todo: handle line wrapping with seperator
-
-# note: this still needs to be redone post-glr for --async to work properly, but i'm unsure why yet
 sub procs2stdout(*@processes, :$max-width) is export {
     return unless @processes;
     my @basenames = gather for @processes -> $group {
@@ -38,9 +36,9 @@ sub procs2stdout(*@processes, :$max-width) is export {
 sub _widther($str, :$max-width) is export {
     return $str unless ?$max-width && $str.chars > $max-width;
     my $cutoff = $str.substr(0, $max-width);
-    return ($cutoff.substr(0,*-3) ~ '...') if $cutoff.substr(*-1,1) ~~ /\S/;
-    return ($cutoff.substr(0,*-3) ~ '...') if $cutoff.substr(*-2,1) ~~ /\S/;
-    return ($cutoff.substr(0,*-3) ~ '...') if $cutoff.substr(*-3,1) ~~ /\S/;
+    return ($cutoff.substr(0,*-3) ~ '...') if $cutoff.substr(*-3,3) ~~ /\S\S\S/;
+    return ($cutoff.substr(0,*-2) ~ '..')  if $cutoff.substr(*-2,2) ~~ /\S\S/;
+    return ($cutoff.substr(0,*-1) ~ '.')   if $cutoff.substr(*-1,1) ~~ /\S/;
     return $cutoff;
 }
 
@@ -84,24 +82,25 @@ sub CLI-WAITING-BAR(&code, str $message, Bool :$boring) is export {
             done    => { print r-print; },
             closing => { print r-print; };
 
-            method print(*@_) {
-                if @_ {
-                    my str $lines = @_.join;
-                    $lock.protect({
-                        my $out2 = $*OUT;
-                        $*ERR = $*OUT = $out;
-                        if $lines.chars {
-                            my $line = r-print($lines.trim-trailing, :$last-line-len) ~ "\n";
-                            print $line;
-                            $last-line-len = 0;
-                        }
-                        my str $msg = "$e> $message$d";
-                        my $status-bar := r-print($msg, :$last-line-len);
-                        print $status-bar;
-                        $last-line-len = $msg.chars;
-                        $*ERR = $*OUT = $out2;
-                    });
-                }
+            method print(*@text) {
+                $lock.protect({
+                    my str $lines = @text.join;
+                    my $out2      = $*OUT;
+                    $*ERR = $*OUT = $out;
+
+                    if $lines.chars {
+                        my $line = r-print($lines.trim-trailing, :$last-line-len) ~ "\n";
+                        print $line;
+                        $last-line-len = 0;
+                    }
+
+                    my str $msg    = "$e> $message$d";
+                    my $status-bar = r-print($msg, :$last-line-len);
+                    print $status-bar;
+
+                    $last-line-len = $msg.chars;
+                    $*ERR = $*OUT  = $out2;
+                });
             }
 
             method flush {}
@@ -123,8 +122,8 @@ sub CLI-WAITING-BAR(&code, str $message, Bool :$boring) is export {
     sub r-print(str $str = '', int :$last-line-len = 0) {
         return $str unless $last-line-len;
 
-        my $fc  := fake-carriage($last-line-len);
-        my $cl  := clear-line($last-line-len);
+        my $fc = fake-carriage($last-line-len);
+        my $cl = clear-line($last-line-len);
         return "$fc$cl$fc$str";
     }
     say "===> $message" and return code() if $boring;

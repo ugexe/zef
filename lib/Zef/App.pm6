@@ -26,49 +26,44 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
 
     @repos .= append($*CWD) unless @repos;
 
-    my @does = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Precompiling;
-    my @dists = DISTS(:$lib, :@does,|@repos).map: -> $dist {
-        $dist.queue-processes: $($dist.hook-cmds(BUILD, :before));
-        $dist.queue-processes($($_)) for $dist.precomp-cmds.cache;
-        $dist.queue-processes: $($dist.hook-cmds(BUILD, :after));
-        $dist;
-    }
-
-    my $precompiled-dists = CLI-WAITING-BAR {
-        my @finished;
-        for @dists -> $dist {
+    my @built-dists = CLI-WAITING-BAR {
+        my @does = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Precompiling;
+        my @dists = DISTS(:$lib, :@does,|@repos).map: -> $dist {
+            $dist.queue-processes: $($dist.hook-cmds(BUILD, :before));
+            $dist.queue-processes($($_)) for $dist.precomp-cmds.cache;
+            $dist.queue-processes: $($dist.hook-cmds(BUILD, :after));
+            $dist;
+        }
+        my @built = @dists.map( -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
-            procs2stdout(:$max-width, $dist.processes) if $v;
-            my $promise = $dist.start-processes;
+            procs2stdout(:$max-width, $dist-todo.processes) if $v;
+            my $promise = $dist-todo.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
-            @finished.append: $dist;
-        }
-        @finished;
+            $dist-todo;
+        }).Slip;
     }, "Precompiling", :$boring;
 
-    my @r;
-    for $precompiled-dists.cache -> $precomp-dist {
+    my @r = @built-dists>>.map: -> $dist {
         my @results;
-        for $precomp-dist.processes -> $group {
-            for $group.cache -> $proc {
-                for $proc.cache -> $item {
-                    my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
-                    @results.append($sub-result);
+        for $dist.processes -> @group {
+            for @group -> $proc {
+                for @$proc -> $item {
+                    @results.push: %( :ok($item.ok), :id($item.id.IO.basename) );
 
-                    if !$force && !$sub-result<ok> {
+                    if !$force && !$item<ok> {
                         print "!!!> Precompilation failure. Aborting.\n";
                         exit 254;
                     }
                 }
             }
         }
-        my $result = { :ok(all(@results>><ok>)), :unit-id($precomp-dist.name), :results(@results) }
-        @r.append($result);
+        %( :ok(all(@results>><ok>)), :unit-id($dist.name), :results(@results) );
     }
-    verbose('Precompiling', @r);
 
-    return $precompiled-dists;
+    verbose('Precompiling', |@r);
+
+    @built-dists;
 }
 
 #| Test modules in the specified directories
@@ -78,52 +73,44 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
     # todo: better handling of blib/precomp testing other than passing $no-build option (use $lib?)
     @repos .= append($*CWD) unless @repos;
 
-    my @does = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Testing;
-    my $dists = DISTS(:$lib, :@does,|@repos).map: -> $dist {
-        $dist.queue-processes: $($dist.hook-cmds(TEST, :before));
-        $dist.queue-processes($($dist.test-cmds.cache));
-        $dist.queue-processes: $($dist.hook-cmds(TEST, :after));
-        $dist;
-    }
-
-
-    my $tested-dists = CLI-WAITING-BAR {
-        my @finished;
-        for $dists.cache -> $dist-todo {
+    my @tested-dists = CLI-WAITING-BAR {
+        my @does   = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Testing;
+        my @dists  = DISTS(:$lib, :@does,|@repos).map: -> $dist {
+            $dist.queue-processes: $($dist.hook-cmds(TEST, :before));
+            $dist.queue-processes($($dist.test-cmds.cache));
+            $dist.queue-processes: $($dist.hook-cmds(TEST, :after));
+            $dist;
+        }
+        my @tested = @dists.map( -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
             procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
-            @finished.append: $dist-todo;
-        }
-        @finished;
+            $dist-todo;
+        });
     }, "Testing", :$boring;
 
-
-    my @r;
-    for $tested-dists.cache -> $test-dist {
+    my @r = @tested-dists>>.map: -> $dist {
         my @results;
-        for $test-dist.processes -> $group {
-            for $group.cache -> $proc {
-                for $proc.cache -> $item {
-                    my $sub-result = { :ok($item.ok), :id($item.id.IO.basename) };
-                    @results.append($sub-result);
+        for $dist.processes -> @group {
+            for @group -> $proc {
+                for @$proc -> $item {
+                    @results.push: %( :ok($item.ok), :id($item.id.IO.basename) );
 
-                    if !$force && !$sub-result<ok> {
+                    if !$force && !$item.ok {
                         print "!!!> Test failure. Aborting.\n";
                         exit 254;
                     }
                 }
             }
         }
-        my $result = { :ok(all(@results>><ok>)), :unit-id($test-dist.name), :results(@results) }
-        @r.append($result);
+        %( :ok(all(@results>><ok>)), :unit-id($dist.name), :results(@results) );
     }
-    verbose('Testing', @r);
 
+    verbose('Testing', |@r);
 
-    return $tested-dists;
+    @tested-dists;
 }
 
 
@@ -205,16 +192,15 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # Add :skip to act like ignore, but not follow depends?
 
     # FETCHING
-    my $fetched = &MAIN('get', @modules, :ignore($ignore.cache),
+    my @fetched = &MAIN('get', @modules, :ignore($ignore.cache),
         :$save-to, :$projects-file, :$boring, :$jobs,
         :$skip-depends, :$skip-build-depends, :$skip-test-depends,
     );
 
-
-
     # VALIDATION
     # Ignore anything we downloaded that doesn't have a META.info in its root directory
-    my @m = $fetched.cache.grep(*.<ok>.so);
+    my @m = flat @fetched>>.grep(*.<ok>.so);
+
     verbose('META.info availability', @m);
 
     # An array of `path`s to each modules repo (local directory, 1 per module) and their meta files
@@ -236,47 +222,40 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
     # Prevent processing modules that are already installed with the same or greater version.
     # Version '*' is always installed for now.
-    # TEMPORARY - need to refactor as to not create Zef::Distribution::Local for a path multiple times
-    my @dists     = DISTS(:$lib, |@repos);
-
-    my @wanted    = @dists.grep:  { $_.wanted || ($force && $_.name ~~ any(@modules.cache)) }
-    my @installed = @dists.grep:  { $_.name !~~ any(@wanted>>.name)                        }
-    @wanted       = @wanted.grep: { $_.name ~~ none(@installed)                            } if @installed.elems;
+    my @dists  = DISTS(:$lib, |@repos);
+    my @wanted = @dists.grep:  { $_.wanted || ($force && $_.name ~~ any(@modules.cache)) }
+    my @have   = @dists.grep:  { $_.name !~~ any(@wanted>>.name) }
+    @wanted    = @wanted.grep: { $_.name ~~ none(@have)          } if @have.elems;
 
     if @wanted.elems != @dists.elems {
-        print "===> The following modules are already up to date: {@installed.map(*.name).join(', ')}\n";
+        print "===> The following modules are already up to date: {@have.map(*.name).join(', ')}\n";
         if !$force {
-            @repos = @repos.grep: { none(@installed.map(*.path).grep(*.ACCEPTS($_.IO)))         }
-            @metas = @metas.grep: { none(@installed.map(*.path).grep(*.ACCEPTS($_.dirname.IO))) }
+            @repos = @repos.grep: -> $rp { none(@have.map(*.path).grep(*.ACCEPTS($rp.IO)))         }
+            @metas = @metas.grep: -> $mp { none(@have.map(*.path).grep(*.ACCEPTS($mp.dirname.IO))) }
         }
         print "===> ...but using --force\n" if ?$force;
         print "===> Nothing to do.\n" and exit 0 unless @repos.elems && @metas.elems;
     }
 
     # BUIDLING
-    my $built = do {
-        my $build-me = (&MAIN('build', |@dists, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap)\
-            or print "???> Nothing to build.\n") unless ?$no-build;
-
-        my @failed-builds = eager gather for $build-me.cache -> $b {
-            $b.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
-        }
-        die "!!!> Aborting. Build failures for: {@failed-builds.map(*.id)}" if !$report && !$force && @failed-builds.elems;
-        ?$no-build ?? [] !! $build-me.cache;
+    my @built = ?$no-build ?? [] !! do {
+        my @built  = &MAIN('build', |@dists, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap);
+        my @procs  = flat @built>>.processes>>.Slip;
+        my @failed = flat @procs>>.grep(*.nok);
+        die "!!!> Aborting. Build failures for: {@failed>>.id}" if !$report && !$force && @failed.elems;
+        @built>>.Slip;
     }
 
     # TESTING
-    my $tested = do {
-        my @to-test = $built.grep(*.so).elems ?? $built.cache !! @repos;
-        my $test-me = &MAIN('test', @to-test, :lib('blib/lib'), :$lib, 
+    my @tested = ?$no-test ?? [] !! do {
+        my @to-test = (?$force || !@built.elems) ?? @repos !! @built;
+        my @tested = &MAIN('test', @to-test, :$lib,
             :$v, :$boring, :$jobs, :$shuffle, :force, :$no-wrap, :$no-build,
-        ) unless ?$no-test;
-
-        my @failed-tests = eager gather for $test-me.cache -> $t {
-            $t.map({ $_.processes.grep({ $_.nok }).map(-> $proc { take $proc }) });
-        }
-        die "!!!> Aborting. Test failures for: {@failed-tests.map(*.id)}" if !$report && !$force && @failed-tests.elems;
-        ?$no-test ?? [] !! $test-me.cache;
+        );
+        my @procs  = flat @tested>>.processes>>.Slip;
+        my @failed = flat @procs>>.grep(*.nok);
+        die "!!!> Aborting. Test failures for: {@failed>>.id}" if !$report && !$force && @failed.elems;
+        @tested>>.Slip;
     }
 
     # Send a build/test report
@@ -284,19 +263,19 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
         my $reported = CLI-WAITING-BAR {
             Zef::Authority::P6C.new.report(
                 @metas,
-                test-results  => $tested,
-                build-results => $built,
+                test-results  => @tested,
+                build-results => @built,
             );
         }, "Reporting", :$boring;
 
         verbose('Reporting', $reported.cache);
-        my @ok = $reported.cache.grep(*.<report-id>.so).cache;
-        print "===> Report{'s' if $reported.cache.elems > 1} can be seen shortly at:\n" if @ok;
-        print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok.map({ $_.<id> });
+        my @ok = $reported.grep(*.<report-id>.so).cache;
+        print "===> Report{'s' if $reported.elems > 1} can be seen shortly at:\n" if @ok;
+        print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok>><id>;
     }
 
-    my @failed = $tested.map({ $_.failures.cache.grep(*.so) }).grep(*.so).cache if $tested;
-    my @passed = $tested.map({ $_.passes.cache.grep(*.so)   }).grep(*.so).cache if $tested;
+    my @failed = flat @tested>>.failures if @tested;
+    my @passed = flat @tested>>.passes   if @tested;
 
     if @failed.elems {
         !$force
@@ -309,12 +288,12 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
             !! do { print "???> No tests\n"        }
     }
 
-    my $install = do {
-        my $results = CLI-WAITING-BAR {
-            my @finished;
-            my @distros = $tested.cache.elems ?? $tested.cache !! $built.cache.elems ?? $built.cache !! @repos;
-            my @does = Zef::Roles::Processing[:$force], Zef::Roles::Hooking, Zef::Roles::Installing;
-            for DISTS(:$lib, :@does, |@distros) -> $dist {
+    my @installed = do {
+        my @results = CLI-WAITING-BAR {
+            my @to-do     = @tested.elems ?? @tested !! @built.elems ?? @built !! @repos;
+            my @does      = Zef::Roles::Processing[:$force], Zef::Roles::Hooking, Zef::Roles::Installing;
+            my @dists     = DISTS(:$lib, :@does, |@to-do);
+            my @installed = flat @dists.map( -> $dist {
                 my $max-width = $MAX-TERM-COLS if ?$no-wrap;
 
                 my $before-procs = $dist.queue-processes: $($dist.hook-cmds(INSTALL, :before));
@@ -324,26 +303,27 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
                 $promise1.result; # osx bug RT125758
                 await $promise1;
 
-                @finished.append: $dist.install(:$force);
+                my @result = $dist.install(:$force);
                 
                 my $after-procs  = $dist.queue-processes: $($dist.hook-cmds(INSTALL, :after));
                 procs2stdout(:$max-width, $after-procs) if $v;
                 my $promise2 = $dist.start-processes;
                 $promise2.result; # osx bug RT125758
                 await $promise2;
-            }
-            @finished;
+
+                @result.Slip;
+            });
         }, "Installing", :$boring;
 
-        my @tried   = $results.grep({ !$_.<skipped> }).flat;
-        my @skipped = $results.grep({ ?$_.<skipped> }).flat;
+        my @tried   = flat @results>>.grep({ !$_.<skipped> });
+        my @skipped = flat @results>>.grep({ ?$_.<skipped> });
 
         verbose('Install', @tried)                     if @tried.elems;
         verbose('Skip (already installed!)', @skipped) if @skipped.elems;
-        $results;
+        @results.Slip;
     } unless ?$dry;
 
-    exit ?$dry ?? 0 !! $install.cache.grep({ !$_<ok> }).elems;
+    exit ?$dry ?? 0 !! @installed.grep({ !$_<ok> }).elems;
 }
 
 
@@ -380,19 +360,19 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
 
     for @modules -> $m {
         given $m {
-            when *.starts-with('.' | '/') { @locals.push($_) }
-            when *.starts-with('git://')  { @gits.push($_)   }
-            when *.starts-with('git@')    { @gits.push($_)   }
+            when *.starts-with('.' | '/') { @locals.append($_) }
+            when *.starts-with('git://')  { @gits.append($_)   }
+            when *.starts-with('git@')    { @gits.append($_)   }
             when *.starts-with('https://') && *.index('.git')  { 
-                @gits.push($_)   
+                @gits.append($_)
             }
-            default { @identifiers.push($_) }
+            default { @identifiers.append($_) }
         }
     }
 
     # Download the requested modules from some authority
     # todo: allow turning dependency auth-download off
-    my $fetched = CLI-WAITING-BAR {
+    my @fetched = CLI-WAITING-BAR {
         my @f;
 
         # This should all be put into a Storage module which handles fetching based on scheme/identity-spec/source-type
@@ -400,7 +380,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
             for @gits -> $source-uri {
                 my $store = Storage.new($save-to, $source-uri);
                 my @dists-from-store = $store.rms>>.dist;
-                @locals.push(~$_) for @dists-from-store>>.path;
+                @locals.append(~$_) for @dists-from-store>>.path;
             }
         }
 
@@ -419,17 +399,17 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
             );
         }
 
-        @f;
+        @f.Slip;
     }, "Fetching", :$boring;
 
-    verbose('Fetching', $fetched);
+    verbose('Fetching', |@fetched);
 
-    unless $fetched.cache {
+    unless @fetched {
         say "!!!> No matching candidates found.";
         exit 1;
     }
 
-    return $fetched;
+    @fetched;
 }
 
 # todo: non-exact matches on non-version fields
@@ -577,8 +557,8 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
 }
 
 # will be replaced soon
-sub verbose($phase, $work) {
-    my %r = $work.cache.grep(*.so).classify({ ?$_.hash.<ok> ?? 'ok' !! 'nok' }).hash;
+sub verbose($phase, @work is raw) {
+    my %r = @work.cache.classify({ ?$_<ok> ?? 'ok' !! 'nok' });
     if %r<ok>  -> @ok  { print "===> $phase OK for: {@ok>><unit-id>.join(', ')}\n" }
     if %r<nok> -> @nok {
         for @nok -> $failed {
@@ -589,7 +569,7 @@ sub verbose($phase, $work) {
             print $to-print;
         }
     }
-    return { :ok(%r<ok>.elems), :nok(%r<nok>.elems) }
+    %( :ok(%r<ok>.elems), :nok(%r<nok>.elems) )
 }
 
 

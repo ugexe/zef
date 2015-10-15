@@ -52,12 +52,12 @@ class Zef::Net::HTTP::Request does HTTP::Request {
                 }
             }
 
-            with $!proxy.uri.?user-info -> $user-info {
+            if $!proxy.uri.?user-info -> $user-info {
                 %!headers<Proxy-Authorization> = "Basic " ~ encode-auth($user-info);
             }
         }
 
-        with $!uri.?user-info -> $user-info {
+        if $!uri.?user-info -> $user-info {
             %!headers<Authorization> = "Basic " ~ encode-auth($user-info);
         }
 

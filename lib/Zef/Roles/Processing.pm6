@@ -42,11 +42,11 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
         #}
         #
         #$p;
-        my @promises;
-        for @!processes.flat -> @group {
-            my @group-promises;
-            for @group.flat.grep(!*.started) -> $process {
-                @promises.append: @group-promises.append: $process.start;
+        my @promises = eager gather for @!processes.flat -> $group {
+            for $group.grep(!*.started) -> $process {
+                state @group-promises;
+                take my $promise = $process.start;
+                @group-promises.append: $promise;
 
                 if $jobs && @group-promises == $jobs {
                     await Promise.anyof(@group-promises);
@@ -55,20 +55,14 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
                 LAST { await Promise.allof(@group-promises) }
             }
         }
-        @promises.elems ?? Promise.allof(@promises) !! do { my $p = Promise.new; $p.keep; $p };
+
+        return @promises.elems
+            ?? Promise.allof(@promises)
+            !! (Promise.new andthen {$_.keep; $_});
     }
 
-    #method tap(&code) { @!processes>>.tap(&code)          }
-    method passes     {
-        gather for @!processes -> @group {
-            take $_.id for @group.grep(*.ok.so);
-        }
-    }
-    method failures   {
-        gather for @!processes -> @group {
-            take $_.id for @group.grep(*.ok.not);
-        }
-    }
+    method passes   { slip(grep *.so, @!processes>>.grep(*.ok.so)>>.id)  }
+    method failures { slip(grep *.so, @!processes>>.grep(*.ok.not)>>.id) }
 
     method i-paths {
         return ($.precomp-path, $.source-path, @.includes)\

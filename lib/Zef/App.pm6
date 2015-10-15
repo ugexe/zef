@@ -274,15 +274,15 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
         print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok>><id>;
     }
 
-    my @failed = flat @tested>>.failures if @tested;
-    my @passed = flat @tested>>.passes   if @tested;
+    my @failed-tests = flat @tested>>.failures if @tested;
+    my @passed-tests = flat @tested>>.passes   if @tested;
 
-    if @failed.elems {
+    if @failed-tests.elems {
         !$force
-            ?? do { print "!!!> {@failed.elems} packages failed testing. Aborting.\n" and exit @failed.elems }
-            !! do { print "!==> {@failed.elems} packages failed testing. [but using --force to continue]\n"  };
+            ?? do { print "!!!> {@failed-tests.elems} packages failed testing. Aborting.\n" and exit @failed-tests.elems }
+            !! do { print "!==> {@failed-tests.elems} packages failed testing. [but using --force to continue]\n"  };
     }
-    elsif !@passed.elems {
+    elsif !@passed-tests.elems {
         ?$no-test
             ?? do { print "===> Testing skipped\n" }
             !! do { print "???> No tests\n"        }
@@ -323,7 +323,10 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
         @results.Slip;
     } unless ?$dry;
 
-    exit ?$dry ?? 0 !! @installed.grep({ !$_<ok> }).elems;
+    my @failed-install = flat @installed>>.grep({ !$_<ok> });
+    my @passed-install = flat @installed>>.grep({ ?$_<ok> });
+
+    exit ?$dry ?? 0 !! @failed-install.elems;
 }
 
 

@@ -45,11 +45,10 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
     }, "Precompiling", :$boring;
 
     my @r = @built-dists>>.map: -> $dist {
-        my @results;
-        for $dist.processes -> @group {
+        my @results = eager gather for $dist.processes -> @group {
             for @group -> $proc {
                 for @$proc -> $item {
-                    @results.push: %( :ok($item.ok), :id($item.id.IO.basename) );
+                    take %( :ok($item.ok), :id($item.id.IO.basename) );
 
                     if !$force && !$item<ok> {
                         print "!!!> Precompilation failure. Aborting.\n";
@@ -92,11 +91,10 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
     }, "Testing", :$boring;
 
     my @r = @tested-dists>>.map: -> $dist {
-        my @results;
-        for $dist.processes -> @group {
+        my @results = eager gather for $dist.processes -> @group {
             for @group -> $proc {
                 for @$proc -> $item {
-                    @results.push: %( :ok($item.ok), :id($item.id.IO.basename) );
+                    take %( :ok($item.ok), :id($item.id.IO.basename) );
 
                     if !$force && !$item.ok {
                         print "!!!> Test failure. Aborting.\n";

@@ -1,16 +1,18 @@
 use v6;
 use Zef::Net::HTTP::Client;
+try require Base64;
+
 use Test;
 plan 2;
 
 
 ENTER {
     try { IO::Socket::INET.new(:host<httpbin.org>, :port(80)) } or do {
-        print("ok - # Skip: No internet connection available? Test requires http://httpbin.org:80\n");
+        print("1..0 ok - # Skip: No internet connection available? Test requires http://httpbin.org:80\n");
         return;
     }
-    try { require Base64; } or do {
-        print("ok - # Skip: Please install the `Base64` module to use authorization\n");
+    try { ::("Base64") ~~ Failure } or do {
+        print("1..0 ok - # Skip: Please install the `Base64` module to use authorization\n");
         return;
     }
 }

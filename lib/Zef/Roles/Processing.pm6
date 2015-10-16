@@ -61,8 +61,9 @@ role Zef::Roles::Processing[Int :$jobs, Bool :$force] {
             !! (Promise.new andthen {$_.keep; $_});
     }
 
-    method passes   { slip(grep *.so, @!processes>>.grep(*.ok.so)>>.id)  }
-    method failures { slip(grep *.so, @!processes>>.grep(*.ok.not)>>.id) }
+    method passes   { my @passes = @!processes.map( -> @group { @group.grep(*.ok.so).map(*.id).Slip }) }
+
+    method failures { my @failures = @!processes.map( -> @group { @group.grep(*.ok.not).map(*.id).Slip }) }
 
     method i-paths {
         return ($.precomp-path, $.source-path, @.includes)\

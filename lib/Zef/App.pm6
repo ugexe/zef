@@ -258,22 +258,23 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
     # Send a build/test report
     if ?$report && !$no-test {
-        my $reported = CLI-WAITING-BAR {
-            Zef::Authority::P6C.new.report(
+        my @reported = CLI-WAITING-BAR {
+            my @reports = Zef::Authority::P6C.new.report(
                 @metas,
-                test-results  => @tested,
-                build-results => @built,
+                :test-results(@tested),
+                :build-results(@built),
             );
         }, "Reporting", :$boring;
 
-        verbose('Reporting', $reported.cache);
-        my @ok = $reported.grep(*.<report-id>.so).cache;
-        print "===> Report{'s' if $reported.elems > 1} can be seen shortly at:\n" if @ok;
-        print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok>><id>;
+        verbose('Reporting', |@reported);
+
+        my @ok = flat @reported>>.grep(*.<report-id>.so);
+        print "===> Report{'s' if @reported.elems > 1} can be seen shortly at:\n" if @ok;
+        print "\thttp://testers.perl6.org/reports/$_.html\n" for @ok>><report-id>;
     }
 
-    my @failed-tests = flat @tested>>.failures if @tested;
-    my @passed-tests = flat @tested>>.passes   if @tested;
+    my @failed-tests = flat @tested>>.failures>>.Slip if @tested;
+    my @passed-tests = flat @tested>>.passes>>.Slip   if @tested;
 
     if @failed-tests.elems {
         !$force

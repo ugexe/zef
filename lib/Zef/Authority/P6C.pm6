@@ -75,49 +75,43 @@ class Zef::Authority::P6C does Zef::Authority {
             my %meta      = %($meta-json);
             my $repo-path = $meta-path.IO.parent;
 
-            my $test  = @test-results.first: { $_.path.IO.ACCEPTS($repo-path.IO) }
-            my $build = @build-results.first: { $_.path.IO.ACCEPTS($repo-path.IO) }
+            my $test  = @test-results>>.first({ $_.path.IO.ACCEPTS($repo-path.IO) }).first(*.so);
+            my $build = @build-results>>.first({ $_.path.IO.ACCEPTS($repo-path.IO) }).first(*.so);
 
-            # the GLR transitions is making this this string concating
-            # look more complicated than it needs to be
-            my $build-output;
-            for $build.processes.cache -> $group {
-                for $group.cache -> $item {
-                    for $item.cache -> $proc {
-                        with $proc.stdmerge -> $out {
-                            $build-output ~= "{$out}\n";
+            my sub output($d) {
+                my $out;
+                for $d.processes -> @group {
+                    for @group -> $proc {
+                        with $proc.stdmerge -> $o {
+                            $out ~= $o;
                         }
                     }
                 }
-            }
-            my $test-output;
-            for $test.processes.cache -> $group {
-                for $group.cache -> $item {
-                    for $item.cache -> $proc {
-                        with $proc.stdmerge -> $out {
-                            $test-output ~= "{$out}\n";
-                        }
-                    }
-                }
+                $out;
             }
 
-            # See Panda::Reporter
-            my $report = to-json {
+            my $build-output = ?$build ?? output($build) !! '';
+            my $build-passed = ?(?$build.passes.elems && !$build.failures.elems) if ?$build;
+
+            my $test-output  = ?$test  ?? output($test)  !! '';
+            my $test-passed  = ?(?$test.passes.elems && !$test.failures.elems)   if ?$test;
+
+            my $report = to-json %(
                 :name(%meta<name>),
                 :version(%meta<ver> // %meta<version> // '*'),
                 :dependencies(%meta<depends>),
                 :metainfo($meta-json),
-                :build-output($build-output // ''),
-                :test-output($test-output   // ''),
-                :build-passed(?$build.processes.elems ?? (?$build.passes.elems && !$build.failures.elems) !! Nil),
-                :test-passed(?$test.processes.elems   ?? (?$test.passes.elems  && !$test.failures.elems ) !! Nil),
-                :distro({
+                :build-output($build-output),
+                :test-output($test-output),
+                :build-passed($build-passed),
+                :test-passed($test-passed),
+                :distro(%(
                     :name($*DISTRO.name),
                     :version($*DISTRO.version.Str),
                     :auth($*DISTRO.auth),
                     :release($*DISTRO.release),
-                }),
-                :kernel({
+                )),
+                :kernel(%(
                     :name($*KERNEL.name),
                     :version($*KERNEL.version.Str),
                     :auth($*KERNEL.auth),
@@ -125,21 +119,21 @@ class Zef::Authority::P6C does Zef::Authority {
                     :hardware($*KERNEL.hardware),
                     :arch($*KERNEL.arch),
                     :bits($*KERNEL.bits),
-                }),
-                :perl({
+                )),
+                :perl(%(
                     :name($*PERL.name),
                     :version($*PERL.version.Str),
                     :auth($*PERL.auth),
-                    :compiler({
+                    :compiler(%(
                         :name($*PERL.compiler.name),
                         :version($*PERL.compiler.version.Str),
                         :auth($*PERL.compiler.auth),
                         :release($*PERL.compiler.release),
                         :build-date($*PERL.compiler.build-date.Str),
                         :codename($*PERL.compiler.codename),
-                    }),
-                }),
-                :vm({
+                    )),
+                )),
+                :vm(%(
                     :name($*VM.name),
                     :version($*VM.version.Str),
                     :auth($*VM.auth),
@@ -148,22 +142,17 @@ class Zef::Authority::P6C does Zef::Authority {
                     :precomp-ext($*VM.precomp-ext),
                     :precomp-target($*VM.precomp-target),
                     :prefix($*VM.prefix.Str),
-                }),
-            }
+                )),
+            );
 
             my $report-id = try {
                 CATCH { default { print "===> Error while POSTing: $_" }}
-                my $response = $!ua.post("http://testers.perl6.org/report", body => $report);
+                my $response = $!ua.post("http://testers.perl6.org/report", :body($report));
                 my $body     = $response.content(:bin).decode('utf-8');
                 ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;
-            }
+            } // '';
 
-            take {
-                ok        => ?$report-id,
-                unit-id   => %meta<name>,
-                report    => $report,
-                report-id => $report-id // '',
-            }
+            take %( :ok(?$report-id), :unit-id(%meta<name>), :$report, :$report-id );
         }
     }
 }

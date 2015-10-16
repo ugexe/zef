@@ -70,7 +70,6 @@ class Zef::Utils::Depends {
             }
         }
 
-
         # XXX redo after GLR
         my @levels = gather {
             loop {
@@ -92,7 +91,6 @@ class Zef::Utils::Depends {
         my @pm-files = @paths.grep(*.IO.f).grep({ $_.IO.basename ~~ / \.pm6? $/ });
         my $slash    = / [ \/ | '\\' ]  /;
         my @skip     = <v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>;
-
         my @minimeta = gather for @pm-files -> $f is copy {
             my @depends;
             for $f.IO.slurp.lines -> $line {
@@ -117,19 +115,17 @@ class Zef::Utils::Depends {
                 next unless $code-only.chars > 5;
 
                 my $dep-parser = Grammar::Dependency::Parser.parse($code-only);
-                my @deps = $dep-parser.<load-statement>.cache.grep(*.so)\
+                my @deps = $dep-parser.<load-statement>.grep(*.so)\
                     .grep({ $_.<short-name>.Str ~~ none(@skip) })\
                     .map({ $_.<short-name>.Str });
 
-                @depends.append($(@deps));
+                @depends.append(@deps);
             }
 
             my $file-path = $f.IO.path;
 
-            take { path => $file-path, name => $file-path, depends => @depends }
+            take %( path => $file-path, name => $file-path, depends => @depends )
         }
-
-        return @minimeta;
     }
 
     # Not used currently. May be used to parse dependencies from an exception message.

@@ -60,6 +60,6 @@ class Zef::Net::HTTP::Client {
     }
 
     method post(Str $url, :$body) {
-        return $.method('POST', $url, :$body);
+        return my $response = $.method('POST', $url, :$body);
     }
 }

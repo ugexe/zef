@@ -44,7 +44,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
         }).Slip;
     }, "Precompiling", :$boring;
 
-    my @r = @built-dists>>.map: -> $dist {
+    my @r = @built-dists>>.map( -> $dist {
         my @results = eager gather for $dist.processes -> @group {
             for @group -> $proc {
                 for @$proc -> $item {
@@ -58,7 +58,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
             }
         }
         %( :ok(all(@results>><ok>)), :unit-id($dist.name), :results(@results) );
-    }
+    })>>.Slip;
 
     verbose('Precompiling', |@r);
 
@@ -90,21 +90,21 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v,
         });
     }, "Testing", :$boring;
 
-    my @r = @tested-dists>>.map: -> $dist {
+    my @r = @tested-dists>>.map( -> $dist {
         my @results = eager gather for $dist.processes -> @group {
             for @group -> $proc {
                 for @$proc -> $item {
-                    take %( :ok($item.ok), :id($item.id.IO.basename) );
-
                     if !$force && !$item.ok {
                         print "!!!> Test failure. Aborting.\n";
                         exit 254;
                     }
+
+                    take %( :ok($item.ok), :id($item.id.IO.basename) );
                 }
             }
         }
         %( :ok(all(@results>><ok>)), :unit-id($dist.name), :results(@results) );
-    }
+    })>>.Slip;
 
     verbose('Testing', |@r);
 
@@ -221,7 +221,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     # Prevent processing modules that are already installed with the same or greater version.
     # Version '*' is always installed for now.
     my @dists  = DISTS(:$lib, |@repos);
-    my @wanted = @dists.grep:  { $_.wanted || ($force && $_.name ~~ any(@modules.cache)) }
+    my @wanted = @dists.grep:  { $_.wanted || ($force && $_.name ~~ any(@modules)) }
     my @have   = @dists.grep:  { $_.name !~~ any(@wanted>>.name) }
     @wanted    = @wanted.grep: { $_.name ~~ none(@have)          } if @have.elems;
 
@@ -559,8 +559,8 @@ sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
 }
 
 # will be replaced soon
-sub verbose($phase, @work is raw) {
-    my %r = @work.cache.classify({ ?$_<ok> ?? 'ok' !! 'nok' });
+sub verbose($phase, @work) {
+    my %r = @work.classify({ ?$_<ok> ?? 'ok' !! 'nok' });
     if %r<ok>  -> @ok  { print "===> $phase OK for: {@ok>><unit-id>.join(', ')}\n" }
     if %r<nok> -> @nok {
         for @nok -> $failed {

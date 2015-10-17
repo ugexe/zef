@@ -37,9 +37,9 @@ class Zef::Authority::P6C does Zef::Authority {
         my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) }).cache;
 
         my @wants-dists-filtered = !@ignore ?? @wants-dists !! @wants-dists.grep({
-               (!$depends       || any($_.<depends>.cache.grep(*.so))       ~~ none(@ignore.grep(*.so)))
-            && (!$test-depends  || any($_.<build-depends>.cache.grep(*.so)) ~~ none(@ignore.grep(*.so)))
-            && (!$build-depends || any($_.<test-depends>.cache.grep(*.so))  ~~ none(@ignore.grep(*.so)))
+               (!$depends       || any($_.<depends>.grep(*.so))       ~~ none(@ignore.grep(*.so)))
+            && (!$test-depends  || any($_.<build-depends>.grep(*.so)) ~~ none(@ignore.grep(*.so)))
+            && (!$build-depends || any($_.<test-depends>.grep(*.so))  ~~ none(@ignore.grep(*.so)))
         });
 
         return () unless @wants-dists-filtered;

@@ -93,8 +93,8 @@ class Zef::Authority::P6C does Zef::Authority {
             # Now that the same Distribution object is used for building and testing we need to find
             # a way to separate the output of different phases. Currently $build-output's value will
             # be the actual build value if --no-tests, or the same as $test-output otherwise (or whatever is last)
-            my $build-output = '';  # ?$build ?? output($build) !! '';
-            my $build-passed = Nil; # ?$build ?? ?(?$build.passes.elems && !$build.failures.elems) !! Nil;
+            my $build-output;  # ?$build ?? output($build) !! '';
+            my $build-passed = True; # ?$build ?? ?(?$build.passes.elems && !$build.failures.elems) !! Nil;
 
             my $test-output  = ?$test  ?? output($test)  !! '';
             my $test-passed  = ?$test  ?? ?(?$test.passes.elems && !$test.failures.elems) !! Nil;

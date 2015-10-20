@@ -68,7 +68,7 @@ class Zef::Manifest {
         my @deleted;
         my $repo  = %!hash;
         my $candi = $!cur.candidates($dist.name, :auth($dist.authority), :ver($dist.version)) or return False;
-        my $delete-idx = $repo<dists>.first-index({ $_<id> eq DIST-PATH2ID($!cur, $candi.Str) });
+        my $delete-idx = $repo<dists>.first({ $_<id> eq DIST-PATH2ID($!cur, $candi.Str) }, :k);
 
         my @provides  <== map { .<file> } <== $repo<dists>[$delete-idx]<provides>.values>>.values;
         my @wrappers  <== map { "{$_}", "{$_}-m", "{$_}-j" } <== $repo<dists>[$delete-idx]<files>>>.keys;

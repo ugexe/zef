@@ -44,7 +44,7 @@ class Zef::Distribution::Local does Zef::Distribution {
         unless $!source-path {
             die "No provides section." unless %!hash<provides>; # ??
             my @p = %!hash<provides>.values\
-                .map: { [$!path.IO.SPEC.splitdir($_.IO.parent).grep(*.so)] }
+                .map: { [$!path.IO.SPEC.splitdir($_.IO.dirname).grep(*.so)] }
 
             my @keep-parts = eager gather for 0..@p.cache.map({ $_.cache.end }).min -> $i {
                 my @check = @p.cache.map({ $_.[$i]; }).cache;

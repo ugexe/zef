@@ -12,7 +12,7 @@ Zef - Perl6 Module Management
 
     git clone https://github.com/ugexe/zef.git
     cd zef
-    perl6 -Ilib bin/zef -v --no-build install .
+    perl6 -Ilib bin/zef -v install .
 
 Be sure your `PATH` includes the path to perl6 scripts:
 
@@ -25,7 +25,7 @@ Be sure your `PATH` includes the path to perl6 scripts:
 
 =head2 Notice
 
-Rakudo does not currently load any precompiled module code. It is suggested to use the C<--no-build> flag with C<install> until such a time that it does.
+Rakudo does not currently load any precompiled module code, so the --no-build option is defaulted to True
 
 =head1 USAGE
 
@@ -258,6 +258,11 @@ Due to a bug in L<Test.pm|https://github.com/rakudo/rakudo/blob/nom/lib/Test.pm>
 =head3 Segmentation fault!
 
 Use the C<--boring> option. This works around a bug that appears to be caused by rakudo's threads.
+
+=head3 Slowww
+
+Core module C<CompUnitRepo::Local::Installation> slows down rakudo with each module installed.
+This should be rectified in rakudo itself soon.
 
 =head1 INCLUDED TOOLS
 

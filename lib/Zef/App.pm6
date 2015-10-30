@@ -176,8 +176,8 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
 
 #| Install with business logic
 multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
-    Bool :$no-test, Bool :$no-build, Bool :$force = False, Int :$jobs, Bool :$report, Bool :$v, Bool :$dry,
-    Bool :$skip-depends, Bool :$skip-build-depends is copy, Bool :$skip-test-depends is copy,
+    Bool :$no-test, Bool :$no-build = True, Bool :$force = False, Int :$jobs, Bool :$report, Bool :$v, 
+    Bool :$dry, Bool :$skip-depends, Bool :$skip-build-depends is copy, Bool :$skip-test-depends is copy,
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export {
 
     $skip-build-depends = True if ?$no-build && !$skip-build-depends.defined;

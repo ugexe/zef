@@ -22,15 +22,18 @@ use Zef::Authority::Local;
 
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
-    Int :$jobs, Bool :$boring, Bool :$force = True) is export {
+    Int :$jobs, Bool :$boring, Bool :$force = True, Bool :$no-build) is export {
 
     @repos .= append($*CWD) unless @repos;
 
     my @built-dists = CLI-WAITING-BAR {
-        my @does = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Precompiling;
-        my @dists = DISTS(:$lib, :@does,|@repos).map: -> $dist {
+        my @does = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking;
+        @does.append(Zef::Roles::Precompiling) unless ?$no-build;
+        my @dists = DISTS(:$lib, :@does, |@repos).map: -> $dist {
             $dist.queue-processes: $($dist.hook-cmds(BUILD, :before));
-            $dist.queue-processes($($_)) for $dist.precomp-cmds.cache;
+            unless ?$no-build { # allow Build.pm to run :/
+                $dist.queue-processes($($_)) for $dist.precomp-cmds.cache;
+            }
             $dist.queue-processes: $($dist.hook-cmds(BUILD, :after));
             $dist;
         }
@@ -42,7 +45,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
             await $promise;
             $dist-todo;
         }).Slip;
-    }, "Precompiling", :$boring;
+    }, "Building", :$boring;
 
     my @r = @built-dists>>.map( -> $dist {
         my @results = eager gather for $dist.processes -> @group {
@@ -66,17 +69,20 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
 }
 
 #| Test modules in the specified directories
-multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v, 
+multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v, Bool :$no-test,
     Bool :$boring, Bool :$shuffle, Bool :$force, Bool :$no-wrap, Bool :$no-build) is export {
     
     # todo: better handling of blib/precomp testing other than passing $no-build option (use $lib?)
     @repos .= append($*CWD) unless @repos;
 
     my @tested-dists = CLI-WAITING-BAR {
-        my @does   = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking, Zef::Roles::Testing;
-        my @dists  = DISTS(:$lib, :@does,|@repos).map: -> $dist {
+        my @does   = Zef::Roles::Processing[:$jobs, :$force], Zef::Roles::Hooking;
+        @does.append(Zef::Roles::Testing) unless ?$no-test;
+        my @dists  = DISTS(:$lib, :@does, |@repos).map: -> $dist {
             $dist.queue-processes: $($dist.hook-cmds(TEST, :before));
-            $dist.queue-processes($($dist.test-cmds.cache));
+            unless ?$no-test {
+                $dist.queue-processes($($dist.test-cmds.cache));
+            }
             $dist.queue-processes: $($dist.hook-cmds(TEST, :after));
             $dist;
         }
@@ -236,8 +242,8 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     }
 
     # BUIDLING
-    my @built = ?$no-build ?? [] !! do {
-        my @built  = &MAIN('build', |@dists, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap);
+    my @built = do {
+        my @built  = &MAIN('build', |@dists, :save-to('blib/lib'), :$lib, :$v, :$boring, :$jobs, :$no-wrap, :$no-build);
         my @procs  = flat @built>>.processes>>.Slip;
         my @failed = flat @procs>>.grep(*.nok);
         die "!!!> Aborting. Build failures for: {@failed>>.id}" if !$report && !$force && @failed.elems;
@@ -245,10 +251,10 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     }
 
     # TESTING
-    my @tested = ?$no-test ?? [] !! do {
+    my @tested = do {
         my @to-test = (?$force || !@built.elems) ?? @repos !! @built;
         my @tested = &MAIN('test', @to-test, :$lib,
-            :$v, :$boring, :$jobs, :$shuffle, :force, :$no-wrap, :$no-build,
+            :$v, :$boring, :$jobs, :$shuffle, :force, :$no-wrap, :$no-build, :$no-test
         );
         my @procs  = flat @tested>>.processes>>.Slip;
         my @failed = flat @procs>>.grep(*.nok);
@@ -397,7 +403,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
             temp $projects-file = packages(:$ignore, :packages-file($projects-file));
             @f.append: Zef::Authority::P6C.new(:$projects-file).get(
                 @identifiers, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
-                :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
+                :test-depends(!$skip-test-depends), :build-depends(!$skip-build-depends),
             );
         }
 

@@ -186,8 +186,9 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     Bool :$dry, Bool :$skip-depends, Bool :$skip-build-depends is copy, Bool :$skip-test-depends is copy,
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export {
 
-    $skip-build-depends = True if ?$no-build && !$skip-build-depends.defined;
-    $skip-test-depends  = True if ?$no-test  && !$skip-build-depends.defined;
+    # hooks still need depends... should set these accordingly
+    # $skip-build-depends = True if ?$no-build && !$skip-build-depends.defined;
+    # $skip-test-depends  = True if ?$no-test  && !$skip-build-depends.defined;
 
     # todo:
     # Change workflow so we can check the packages file and remove already installed modules 

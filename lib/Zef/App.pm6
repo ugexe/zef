@@ -63,7 +63,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
         %( :ok(all(@results>><ok>)), :unit-id($dist.name), :results(@results) );
     })>>.Slip;
 
-    verbose('Precompiling', |@r);
+    verbose('Building', |@r);
 
     @built-dists;
 }
@@ -186,8 +186,9 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
     Bool :$dry, Bool :$skip-depends, Bool :$skip-build-depends is copy, Bool :$skip-test-depends is copy,
     Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export {
 
-    $skip-build-depends = True if ?$no-build && !$skip-build-depends.defined;
-    $skip-test-depends  = True if ?$no-test  && !$skip-build-depends.defined;
+    # hooks still need depends... should set these accordingly
+    # $skip-build-depends = True if ?$no-build && !$skip-build-depends.defined;
+    # $skip-test-depends  = True if ?$no-test  && !$skip-build-depends.defined;
 
     # todo:
     # Change workflow so we can check the packages file and remove already installed modules 
@@ -395,7 +396,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
         if @locals.elems {
             @f.append: Zef::Authority::Local.new(:$projects-file).get(
                 @locals, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
-                :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
+                :test-depends(!$skip-test-depends), :build-depends(!$skip-build-depends),
             );
         }
 

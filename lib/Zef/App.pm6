@@ -395,7 +395,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
         if @locals.elems {
             @f.append: Zef::Authority::Local.new(:$projects-file).get(
                 @locals, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
-                :test-depends(!$skip-test-depends), :build-depends(!$skip-test-depends),
+                :test-depends(!$skip-test-depends), :build-depends(!$skip-build-depends),
             );
         }
 

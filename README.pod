@@ -23,6 +23,10 @@ Be sure your `PATH` includes the path to perl6 scripts:
     $ perl6 -e "say %*CUSTOM_LIB<site>.IO.child('bin').Str"
     /home/perl6/install/share/perl6/site/bin
 
+To install it via rakudobrew, please use the following command:
+
+    rakudobrew build-zef
+
 =head2 Notice
 
 Rakudo does not currently load any precompiled module code, so the --no-build option is defaulted to True

@@ -10,18 +10,18 @@ Zef - Perl6 Module Management
 
 =head1 INSTALLATION
 
+=head4 Manual
+
     git clone https://github.com/ugexe/zef.git
     cd zef
     perl6 -Ilib bin/zef install .
 
 Be sure your `PATH` includes the path to perl6 scripts:
 
-    # using rakudobrew?
-    $ rakudobrew rehash
-
-    # not using rakudobrew? Add the command output below to your `PATH`
     $ perl6 -e "say %*CUSTOM_LIB<site>.IO.child('bin').Str"
     /home/perl6/install/share/perl6/site/bin
+
+=head4 Rakudobrew
 
 To install it via rakudobrew, please use the following command:
 

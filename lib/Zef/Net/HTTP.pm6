@@ -36,13 +36,14 @@ role HTTP::RoundTrip {
 role HTTP::BufReader {
     method header-supply {
         supply {
-            state @crlf;
+            my @crlf;
+            my @sep = 13, 10, 13, 10;
             while $.recv(1, :bin) -> \data {
                 my $d = buf8.new(data).decode('latin-1');
-                @crlf.push($d);
+                @crlf.push(data.contents);
                 emit($d);
                 @crlf.shift if @crlf.elems > 4;
-                last if @crlf ~~ ["\r", "\n", "\r", "\n"];
+                last if @crlf ~~ @sep;
             }
             done();
         }
@@ -71,7 +72,7 @@ sub ChunkedReader(buf8 $buf) is export(:DEFAULT) {
             $size-line ~= $buf.subbuf($i++,1).decode('latin-1');
             last if $size-line ~~ /\r\n/;
         }
-        my $size = :16($size-line.substr(0,*-2));
+        my $size = :16($size-line.substr(0,*-1)); # -1 because \r\n is 1 now, but only for string... or something
         last if $size == 0;
         @data.push: $buf.subbuf($i,$size);
         $i += $size + 2; # 1) \r 2) \n

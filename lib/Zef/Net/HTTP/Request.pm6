@@ -19,15 +19,7 @@ class Zef::Net::HTTP::Request does HTTP::Request {
     has %.headers;
     has %.trailers;
 
-    has $.header-grammar;
-    has $.trailer-grammar;
-
-    # easy access to common options. temporary?
-    has $.chunked;
-    has $.encoding;
-
-    # todo: move proxy stuff into its own interface/class
-    has $.proxy;
+    has $!proxy;
 
     submethod BUILD(
         :$!method = 'GET',

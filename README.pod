@@ -25,7 +25,7 @@ Be sure your `PATH` includes the path to perl6 scripts:
 
 To install it via rakudobrew, please use the following command:
 
-    rakudobrew build-zef
+    $ rakudobrew build-zef
 
 =head2 Notice
 

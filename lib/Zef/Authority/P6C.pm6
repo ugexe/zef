@@ -16,7 +16,7 @@ class Zef::Authority::P6C does Zef::Authority {
         my $request  = buf8.new("GET /projects.json HTTP/1.0\r\nHost: ecosystem-api.p6c.org\r\nConnection: close\r\n\r\n".encode.contents);
         $socket.write($request);
         my $response = buf8.new andthen do while $socket.recv(:bin) -> $d { $response ~= $d };
-        my $content  = $response.decode('latin-1').split("\n").grep({ state $header; $header++ if $_ eq "\r"; $header; }).join;
+        my $content  = $response.decode('latin-1').split("\r\n").grep({ state $header; $header++ unless "$_"; $header; }).join;
         my $json     = from-json($content);
         @!projects   = try { $json.cache }\
             or fail "!!!> Missing or invalid projects json";

@@ -1,5 +1,4 @@
 use Zef::Authority;
-use Zef::Net::HTTP::Client;
 use Zef::Utils::Depends;
 use Zef::Utils::Git;
 
@@ -9,13 +8,15 @@ my @skip = <v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib T
 
 # perl6 community ecosystem + test reporting
 class Zef::Authority::P6C does Zef::Authority {
-    has $!ua      = Zef::Net::HTTP::Client.new;
     has $!git     = Zef::Utils::Git.new;
     has @!mirrors = <http://ecosystem-api.p6c.org/projects.json>;
 
     method update-projects {
-        my $response = $!ua.get: ~@!mirrors.pick(1);
-        my $content  = $response.content or fail "!!!> Failed to update projects file";
+        my $socket   = IO::Socket::INET.new(:host<ecosystem-api.p6c.org>, :port(80));
+        my $request  = buf8.new("GET /projects.json HTTP/1.0\r\nHost: ecosystem-api.p6c.org\r\nConnection: close\r\n\r\n".encode.contents);
+        $socket.write($request);
+        my $response = buf8.new andthen do while $socket.recv(:bin) -> $d { $response ~= $d };
+        my $content  = $response.decode('latin-1').split("\r\n").grep({ state $header; $header++ unless "$_"; $header; }).join;
         my $json     = from-json($content);
         @!projects   = try { $json.cache }\
             or fail "!!!> Missing or invalid projects json";
@@ -150,7 +151,7 @@ class Zef::Authority::P6C does Zef::Authority {
 
             my $report-id = try {
                 CATCH { default { print "===> Error while POSTing: $_" }}
-                my $response = $!ua.post("http://testers.perl6.org/report", :body($report));
+                my $response = die "Temproarily disabled while rakudo newline support is worked on"; #$!ua.post("http://testers.perl6.org/report", :body($report));
                 my $body     = $response.content(:bin).decode('utf-8');
                 ?$body.match(/^\d+$/) ?? $body.match(/^\d+$/).Str !! 0;
             } // '';

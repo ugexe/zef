@@ -63,7 +63,7 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
         %( :ok(all(@results>><ok>)), :unit-id($dist.name), :results(@results) );
     })>>.Slip;
 
-    verbose('Precompiling', |@r);
+    verbose('Building', |@r);
 
     @built-dists;
 }

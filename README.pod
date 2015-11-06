@@ -10,18 +10,22 @@ Zef - Perl6 Module Management
 
 =head1 INSTALLATION
 
+=head4 Manual
+
     git clone https://github.com/ugexe/zef.git
     cd zef
-    perl6 -Ilib bin/zef -v install .
+    perl6 -Ilib bin/zef install .
 
 Be sure your `PATH` includes the path to perl6 scripts:
 
-    # using rakudobrew?
-    $ rakudobrew rehash
-
-    # not using rakudobrew? Add the command output below to your `PATH`
     $ perl6 -e "say %*CUSTOM_LIB<site>.IO.child('bin').Str"
     /home/perl6/install/share/perl6/site/bin
+
+=head4 Rakudobrew
+
+To install it via rakudobrew, please use the following command:
+
+    $ rakudobrew build-zef
 
 =head2 Notice
 
@@ -30,34 +34,34 @@ Rakudo does not currently load any precompiled module code, so the --no-build op
 =head1 USAGE
 
     # duh
-    zef -v install CSV::Parser
+    zef install CSV::Parser
 
     # noooooo!
-    zef -v uninstall CSV::Parser
+    zef uninstall CSV::Parser
 
     # fire off test reports this time *onomatopoeia of an uzi*
-    zef -v --report install CSV::Parser
+    zef --report install CSV::Parser
 
     # search for module names matching `CSV::Parser`
-    zef -v search CSV::Parser
+    zef search CSV::Parser
 
     # META information about `CSV::Parser`
-    zef -v info CSV::Parser
+    zef info CSV::Parser
 
     # build project in current directory
-    zef -v build
+    zef build
 
     # test project in current directory    
-    zef -v test
+    zef test
 
     # fetch a specific module only
-    zef -v get CSV::Parser
+    zef get CSV::Parser
 
     # fetch a specific module, and shell into the directory it is saved to
-    zef -v look CSV::Parser
+    zef look CSV::Parser
 
     # build/test/install all modules in the ecosystem
-    zef -v --report smoke
+    zef --report smoke
 
 =head2 More CLI
 
@@ -145,7 +149,7 @@ B<Example>: (note parallelized output format will be improved)
 
 Tests every module in the ecosystem, ignoring any modules with a name (or dependency name) matching argument C<*@ignores>
 
-    snoop@cali:~/ zef -v --report smoke
+    snoop@cali:~/ zef --report smoke
 
     # skip modules with matching names (or any modules depending on them)
     --ignore=Acme::Virus --ignore=Acme::TakesForever
@@ -165,22 +169,22 @@ Add a C<*> to any filter to have the filter apply a C<.starts-with()> filter usi
 Note: C<*> behaves slightly differently for C<--version>
 
     # search by name
-    zef -v search Text::Table::Simple            # or zef -v --name="Text::Table::Simple"
+    zef search Text::Table::Simple            # or zef --name="Text::Table::Simple"
 
     # search by version
-    zef -v --version="*" search                  # Version filter only
-    zef -v --version="*" search HTTP::Server     # Can search for 'whatevers'
-    zef -v --version="0.1" search HTTP::Server   # Version matching
-    zef -v --version="0.1+" search HTTP::Server  # Basic version ranges
+    zef --version="*" search                  # Version filter only
+    zef --version="*" search HTTP::Server     # Can search for 'whatevers'
+    zef --version="0.1" search HTTP::Server   # Version matching
+    zef --version="0.1+" search HTTP::Server  # Basic version ranges
 
     # search by other fields in META
-    zef -v --depends="HTTP::Server" search       # Match `HTTP::Server` inside --`depends`
+    zef --depends="HTTP::Server" search       # Match `HTTP::Server` inside --`depends`
 
     # a naive substring search using a wildcard
-    zef -v --depends="HTTP*" search              # Matches anything that $results.starts-with("HTTP")
+    zef --depends="HTTP*" search              # Matches anything that $results.starts-with("HTTP")
 
     # sure
-    zef -v --depends="HTTP::Server" --version="0.1+" search HTTP::Server::Threaded
+    zef --depends="HTTP::Server" --version="0.1+" search HTTP::Server::Threaded
 
 B<Example>:
 
@@ -263,25 +267,6 @@ Use the C<--boring> option. This works around a bug that appears to be caused by
 
 Core module C<CompUnitRepo::Local::Installation> slows down rakudo with each module installed.
 This should be rectified in rakudo itself soon.
-
-=head1 INCLUDED TOOLS
-
-=head2 Zef::Net::HTTP
-
-HTTP library interfaces and Grammars.
-
-    use Zef::Net::HTTP::Client;
-    
-    my $client = Zef::Net::HTTP::Client.new(:auto-check);
-
-    my $body     = to-json({ term => "zef" });
-    my $response = $client.post("http://httpbin.org/post", :$body);
-
-    # .content takes care of encoding. The .body attribute has the raw data for manual processing
-    my $json     = from-json($response.content);
-
-    my $response = $client.get("https://www.google.com");
-    say $reponse.content; # returns $.body with encoding/chunked/etc applied
 
 =head1 NOTES
 

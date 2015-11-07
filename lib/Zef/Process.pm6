@@ -53,22 +53,21 @@ class Zef::Process {
             $!finished = $!promise.Bool;
         }
         else {
-            try {
-                $!process = shell("{$!command} {@!args.join(' ')} 2>&1", :out, :$!cwd, :%!env, :!chomp);
+            $!process = shell("{$!command} {@!args.join(' ')} 2>&1", :out, :$!cwd, :%!env, :!chomp);
+            $!process does role :: { method sink(|) { } }
 
-                $!promise = Promise.new;
-                $!stdout.act: { $!stdmerge ~= $_ }
-                $!stderr.act: { $!stdmerge ~= $_ }
+            $!promise = Promise.new;
+            $!stdout.act: { $!stdmerge ~= $_ }
+            $!stderr.act: { $!stdmerge ~= $_ }
 
-                $!stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
+            $!stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
 
-                $!started = True;
-                $!stdout.emit($_) for $!process.out.lines;
-                $!stdout.done; $!stderr.done;
+            $!started = True;
+            $!stdout.emit($_) for $!process.out.lines;
+            $!stdout.done; $!stderr.done;
 
-                $!process.out.close; $!stderr.close;
-                CATCH { default { $!process = $_.proc } }
-            }
+            $!process.out.close; $!stderr.close;
+
             $!finished = ?$!promise.keep($!process);
         }
 

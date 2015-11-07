@@ -53,17 +53,22 @@ class Zef::Process {
             $!finished = $!promise.Bool;
         }
         else {
-            $!process = shell("{$!command} {@!args.join(' ')} 2>&1", :out, :$!cwd, :%!env, :!chomp);
-            $!promise = Promise.new;
-            $!stdout.act: { $!stdmerge ~= $_ }
-            $!stderr.act: { $!stdmerge ~= $_ }
+            try {
+                $!process = shell("{$!command} {@!args.join(' ')} 2>&1", :out, :$!cwd, :%!env, :!chomp);
 
-            $!stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
+                $!promise = Promise.new;
+                $!stdout.act: { $!stdmerge ~= $_ }
+                $!stderr.act: { $!stdmerge ~= $_ }
 
-            $!started = True;
-            $!stdout.emit($_) for $!process.out.lines;
-            $!stdout.done; $!stderr.done;
-            $!process.out.close; $!stderr.close;
+                $!stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
+
+                $!started = True;
+                $!stdout.emit($_) for $!process.out.lines;
+                $!stdout.done; $!stderr.done;
+
+                $!process.out.close; $!stderr.close;
+                CATCH { default { $!process = $_.proc } }
+            }
             $!finished = ?$!promise.keep($!process);
         }
 
@@ -73,8 +78,12 @@ class Zef::Process {
     method ok       { $!process.DEFINITE ?? $.exitcode == 0 ?? True !! False !! False }
     method nok      { ?$.ok ?? False !! True    }
     method status   { $!process.status          }
-    method exitcode { 
-        $!promise.result; # osx bug RT125758
-        $!promise.result.exitcode;
+    method exitcode {
+        $ = try {
+            my $exit-code;
+            CATCH { when X::Proc::Unsuccessful { return $exit-code = $_.proc.exitcode } }
+            $!promise.result; # osx bug RT125758
+            $exit-code = $!promise.result.exitcode;
+        }
     }
 }

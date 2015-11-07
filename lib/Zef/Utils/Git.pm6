@@ -1,4 +1,5 @@
 use Zef::Process;
+
 # This is hacky as all hell and will be replaced by something proper in Zef::Net eventually
 class Zef::Utils::Git {
     has @.flags is rw = <--quiet>;
@@ -12,10 +13,16 @@ class Zef::Utils::Git {
                 :cwd($save-to.IO.dirname),
                 :!async,
             );
-            my $clone-promise = $proc.start;
-            $clone-promise.result; # osx bug RT125758
-            await $clone-promise;
-            my $git_result = $proc.exitcode;
+
+            my $git_result;
+            try {
+                my $result;
+                CATCH { when X::Proc::Unsuccessful { $git_result = $_.proc.exitcode } }
+                my $clone-promise = $proc.start;
+                $clone-promise.result; # osx bug RT125758
+                await $clone-promise;
+                $git_result = $proc.exitcode;
+            }
 
             given $git_result {
                 when 128 { # directory already exists and is not empty
@@ -28,6 +35,7 @@ class Zef::Utils::Git {
                             :cwd($save-to.IO),
                             :!async,
                         );
+
                         my $checkout-promise = $proc.start;
                         $checkout-promise.result; # osx bug RT125758
                         await $checkout-promise;
@@ -41,10 +49,15 @@ class Zef::Utils::Git {
                         :cwd($save-to.IO),
                         :!async,
                     );
-                    my $pull-promise = $proc.start;
-                    $pull-promise.result; # osx bug RT125758
-                    await $pull-promise;
-                    $git_result = $proc.exitcode;
+
+                    try {
+                        my $result;
+                        CATCH { when X::Proc::Unsuccessful { $git_result = $_.proc.exitcode } }
+                        my $pull-promise = $proc.start;
+                        $pull-promise.result; # osx bug RT125758
+                        await $pull-promise;
+                        $git_result = $proc.exitcode;
+                    }
                 }
             }
 
@@ -52,4 +65,3 @@ class Zef::Utils::Git {
         }
     }
 }
-

@@ -6,11 +6,11 @@ use Zef::Utils::Depends;
 my @skip = <v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib Test>;
 
 class Zef::Authority::Local does Zef::Authority {
-    method update-projects(*@wants is copy) {
+    method get-metas(*@wants is copy) {
         my @files = gather for @wants -> $path {
             next unless $path.IO.e;
             given $path {
-                when $_.ends-with('META6.json')  && $_.IO.e {
+                when $_.ends-with('META6.json') && $_.IO.e {
                     take ~$_;
                 }
                 when $_.ends-with('META.info') && $_.IO.e {
@@ -32,9 +32,7 @@ class Zef::Authority::Local does Zef::Authority {
             take $m;
         }
 
-        # this wont hold up to multiple calls. needs a better solution
-        state @combined-projects = |@!projects, |@metas;
-        @!projects = @combined-projects;
+        @metas;
     }
 
     # needs to be redone to register by source-type and handle projects.json file specifically.
@@ -49,8 +47,7 @@ class Zef::Authority::Local does Zef::Authority {
         Bool :$build-depends,
         Bool :$fetch = True,
     ) {
-        self.update-projects(@wants) if $fetch && !@!projects.elems;
-        my @wants-dists = self.update-projects(@wants).cache;
+        my @wants-dists = self.get-metas(@wants).cache;
 
         my @wants-dists-filtered = !@ignore ?? @wants-dists !! @wants-dists.grep({
                (!$depends       || any($_.<depends>.cache.grep(*.so))       ~~ none(@ignore.grep(*.so)))
@@ -59,6 +56,8 @@ class Zef::Authority::Local does Zef::Authority {
         });
 
         return () unless @wants-dists-filtered;
+
+        temp @!projects = @!projects.grep({ $_<name> !~~ @wants-dists-filtered>><name> });
 
         # Determine the distribution dependencies we want/need
         my $levels = ?$depends
@@ -71,7 +70,7 @@ class Zef::Authority::Local does Zef::Authority {
             for $level.cache -> $package-name {
                 next if $package-name.lc ~~ any(@skip>>.lc);
                 # todo: filter projects by version/auth
-                my %dist = @!projects.cache.first({ $_.<name>.lc eq $package-name.lc }).hash;
+                my %dist = @wants-dists-filtered.first({ $_.<name>.lc eq $package-name.lc }).hash || @!projects.first({ $_.<name>.lc eq $package-name.lc }).hash;
                 die "!!!> No source-path for $package-name (META info lost?)" and next unless ?%dist<source-path>;
 
                 # todo: implement the rest of however github.com transliterates paths

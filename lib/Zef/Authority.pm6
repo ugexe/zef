@@ -3,7 +3,7 @@
 role Zef::Authority {
     has @.projects is rw;
 
-    submethod BUILD(:$projects-file) {
+    submethod BUILD(:@!projects, :$projects-file) {
         if $projects-file -> Str(Cool) $file {
             if $file.chars {
                 if $file.IO.e {
@@ -19,7 +19,6 @@ role Zef::Authority {
     }
 
     method get { ... }
-    method update-projects { ... }
 
     method search(*@names, *%fields) {
         return () unless @names || %fields;

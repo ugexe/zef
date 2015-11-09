@@ -20,6 +20,9 @@ use Zef::Roles::Hooking;
 use Zef::Authority::P6C;
 use Zef::Authority::Local;
 
+my $ZEF_HOME_DIR = $*HOME.child(".zef")        andthen do { mkdir($_) unless $_.IO.e }
+my $ZEF_GIT_DIR  = $ZEF_HOME_DIR.child("git")  andthen do { mkdir($_) unless $_.IO.e }
+
 #| Build modules in the specified directory
 multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, Bool :$no-wrap,
     Int :$jobs, Bool :$boring, Bool :$force = True, Bool :$no-build) is export {
@@ -122,8 +125,7 @@ multi MAIN('smoke', :$ignore, Bool :$no-wrap, :$projects-file is copy, Bool :$dr
     Bool :$report, Bool :$v, Bool :$boring, Bool :$shuffle, Int :$jobs) is export {
     say "===> Smoke testing started: [{time}]";
 
-    temp $projects-file = packages(:$ignore, :packages-file($projects-file));
-    my @packages = from-json($projects-file.IO.slurp).cache;
+    my @packages = packages(:$ignore, :packages-file($projects-file)).cache;
 
     say "===> Filtered module count: {@packages.elems}";
 
@@ -394,15 +396,17 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
         }
 
         if @locals.elems {
-            @f.append: Zef::Authority::Local.new(:$projects-file).get(
+            my @packages = packages(:$ignore, :packages-file($projects-file));
+
+            @f.append: Zef::Authority::Local.new(:projects(@packages)).get(
                 @locals, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
                 :test-depends(!$skip-test-depends), :build-depends(!$skip-build-depends),
             );
         }
 
         if @identifiers.elems {
-            temp $projects-file = packages(:$ignore, :packages-file($projects-file));
-            @f.append: Zef::Authority::P6C.new(:$projects-file).get(
+            my @packages = packages(:ignore($ignore.cache), :packages-file($projects-file));
+            @f.append: Zef::Authority::P6C.new(:projects(@packages)).get(
                 @identifiers, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
                 :test-depends(!$skip-test-depends), :build-depends(!$skip-build-depends),
             );
@@ -413,7 +417,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
 
     verbose('Fetching', |@fetched);
 
-    unless @fetched {
+    unless @fetched.grep(*.so).elems {
         say "!!!> No matching candidates found.";
         exit 1;
     }
@@ -426,8 +430,8 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
 multi MAIN('search', :$projects-file is copy, :$ignore, Bool :$v, *@names, *%fields) is export {
     # Filter the projects.json file
     my $results = CLI-WAITING-BAR { 
-        temp $projects-file = packages(:force, :$ignore, :packages-file($projects-file));
-        Zef::Authority::P6C.new(:$projects-file).search(|@names, |%fields).cache;
+        my @projects = packages(:force, :$ignore, :packages-file($projects-file));
+        Zef::Authority::P6C.new(:@projects).search(|@names, |%fields).cache;
     }, "Querying for: name = {@names.join('|')}{~%fields}";
 
     say "===> Found " ~ $results.cache.elems ~ " results";
@@ -456,8 +460,8 @@ multi MAIN('search', :$projects-file is copy, :$ignore, Bool :$v, *@names, *%fie
 multi MAIN('info', *@modules, :$projects-file is copy, :$ignore, Bool :$v, Bool :$boring) is export {
     my @packages;
     my $results = CLI-WAITING-BAR { 
-        temp $projects-file = packages(:force, :$ignore, :packages-file($projects-file));
-        my $auth = Zef::Authority::P6C.new(:$projects-file);
+        my @projects = packages(:force, :$ignore, :packages-file($projects-file));
+        my $auth = Zef::Authority::P6C.new(:@projects);
         @packages = $auth.projects.cache;
         $auth.search(|@modules).cache;
     }, "Querying for: name = {@modules.join('|')}";
@@ -540,30 +544,70 @@ sub DISTS(:$lib, :@does, *@repos) {
     @dists;
 }
 
-# this should go into Zef::Authority
 sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
-    my $file = $packages-file // $*TMPDIR.child("p6c-packages.{~time}.{(1..10000).pick(1)}.json");
-    state $p6c = Zef::Authority::P6C.new(:projects-files($file));
-    once { $p6c.update-projects unless $p6c.projects.elems }
-
-    my @packages = $p6c.projects.cache;
+    my @packages = $packages-file ?? from-json($packages-file.IO.slurp) !! git-package-json('p6c').cache;
     print "===> Module count: {@packages.elems}\n";
-    if $ignore.cache.elems {
-        @packages = @packages\
-            .grep({ $_.<name>:exists })\
-            .grep({ $_.<name> ~~ none($ignore.grep(*.so)) })\
-            .grep({ any($_.<depends>.grep(*.so))       ~~ none($ignore.grep(*.so)) })\
-            .grep({ any($_.<test-depends>.grep(*.so))  ~~ none($ignore.grep(*.so)) })\
-            .grep({ any($_.<build-depends>.grep(*.so)) ~~ none($ignore.grep(*.so)) })\
-            .pick(*);
+
+    if $ignore && $ignore.elems {
+        my @filtered = filter-packages(|@packages, :$ignore).cache;
+        print "===> Filtered module count: {@filtered.elems}\n";
+        @packages = @filtered;
+    }
+    
+    @packages;
+}
+
+sub filter-packages(*@packages, :$ignore) {
+    return @packages unless ?$ignore && $ignore.elems;
+    my @ = @packages\
+        .grep({ $_.<name>:exists })\
+        .grep({ $_.<name> ~~ none($ignore.grep(*.so)) })\
+        .grep({ any($_.<depends>.grep(*.so))       ~~ none($ignore.grep(*.so)) })\
+        .grep({ any($_.<test-depends>.grep(*.so))  ~~ none($ignore.grep(*.so)) })\
+        .grep({ any($_.<build-depends>.grep(*.so)) ~~ none($ignore.grep(*.so)) })\
+        .pick(*);
+}
+
+our $GIT_EXE = 'git';
+sub git-shell(:$cwd = $*CWD, :$out = False, :$err = False, :$in = False, *@_, *%_) {
+    my %args  = |%_.classify({ .value === True ?? 'flags' !! 'opts' });
+    my @flags = do with %args<flags> {.hash.keys.map: { $_.chars == 1 ?? "-{$_}" !! "--{$_}" }}
+    my @opts  = do with %args<opts>  {.map: { qq|--{.key}="{.value}"| }}
+    my $proc  = ?%_<quiet>
+        ?? (run( $GIT_EXE, |@opts, |@_, :$cwd, :out, :err ) andthen ($_.out.close && $_.err.close))
+        !!  run( $GIT_EXE, |@opts, |@_, :$cwd , :out($out) );
+}
+
+sub git-ls(:$cwd) { my $p = git-shell(qq|ls-files|, :$cwd, :out); my @lines = $p.out.lines; $p.out.close; @lines; }
+
+sub git-package-json($name) {
+    my $eco-dir = $ZEF_GIT_DIR.child('packages');
+
+    try {
+        my sub fetch(|c) { git-shell('fetch', '--depth=1', '--quiet', :cwd($eco-dir)) }
+
+        # clone or fetch
+        $eco-dir.IO.child('.git').IO.e ?? fetch() !! do {
+            git-shell('clone', '--depth=1', '--quiet', 'https://github.com/ugexe/Perl6-ecosystems.git', $eco-dir, :cwd($eco-dir.IO.dirname));
+            CATCH {
+                when X::Proc::Unsuccessful {
+                    if .proc.exitcode == 127 {
+                        fetch;
+                    }
+                    elsif .proc.exitcode == 128 {
+                        die "directory already exists and is not empty";
+                    }
+                }
+                default { die "Don't know how to handle this error: $_" }
+            }
+        }
     }
 
-    print "===> Filtered module count: {@packages.elems}\n";
-    my $json = to-json(@packages);
-    $file.IO.spurt($json);
-    print "===> Package file: $file\n";
-    return ~$file;
+    my $eco          = git-ls(:cwd($eco-dir)).first(*.lc eq "{$name}.json".lc);
+    my $eco-json     = $eco-dir.IO.child($eco).IO.slurp;
+    my $eco-projects = from-json($eco-json);   
 }
+
 
 # will be replaced soon
 sub verbose($phase, @work) {

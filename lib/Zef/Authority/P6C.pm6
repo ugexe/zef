@@ -9,18 +9,6 @@ my @skip = <v6 MONKEY-TYPING MONKEY_TYPING strict fatal nqp NativeCall cur lib T
 # perl6 community ecosystem + test reporting
 class Zef::Authority::P6C does Zef::Authority {
     has $!git     = Zef::Utils::Git.new;
-    has @!mirrors = <http://ecosystem-api.p6c.org/projects.json>;
-
-    method update-projects {
-        my $socket   = IO::Socket::INET.new(:host<ecosystem-api.p6c.org>, :port(80));
-        my $request  = buf8.new("GET /projects.json HTTP/1.0\r\nHost: ecosystem-api.p6c.org\r\nConnection: close\r\n\r\n".encode.contents);
-        $socket.write($request);
-        my $response = buf8.new andthen do while $socket.recv(:bin) -> $d { $response ~= $d };
-        my $content  = $response.decode('latin-1').split("\r\n").grep({ state $header; $header++ unless "$_"; $header; }).join;
-        my $json     = from-json($content);
-        @!projects   = try { $json.cache }\
-            or fail "!!!> Missing or invalid projects json";
-    }
 
     # Use the p6c hosted projects.json to get a list of name => git-repo that 
     # can then be fetched with Utils::Git
@@ -34,7 +22,6 @@ class Zef::Authority::P6C does Zef::Authority {
         Bool :$build-depends,
         Bool :$fetch = True,
     ) {
-        self.update-projects if $fetch && !@!projects.elems;
         my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) }).cache;
 
         my @wants-dists-filtered = !@ignore ?? @wants-dists !! @wants-dists.grep({
@@ -43,7 +30,7 @@ class Zef::Authority::P6C does Zef::Authority {
             && (!$build-depends || any($_.<test-depends>.grep(*.so))  ~~ none(@ignore.grep(*.so)))
         });
 
-        return () unless @wants-dists-filtered;
+        return [] unless @wants-dists-filtered;
 
         # Determine the distribution dependencies we want/need
         my $levels = ?$depends

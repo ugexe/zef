@@ -54,6 +54,8 @@ class Zef::Process {
         }
         else {
             $!process = shell("{$!command} {@!args.join(' ')} 2>&1", :out, :$!cwd, :%!env, :!chomp);
+            $!process does role :: { method sink(|) { } }
+
             $!promise = Promise.new;
             $!stdout.act: { $!stdmerge ~= $_ }
             $!stderr.act: { $!stdmerge ~= $_ }
@@ -63,7 +65,9 @@ class Zef::Process {
             $!started = True;
             $!stdout.emit($_) for $!process.out.lines;
             $!stdout.done; $!stderr.done;
+
             $!process.out.close; $!stderr.close;
+
             $!finished = ?$!promise.keep($!process);
         }
 
@@ -73,8 +77,12 @@ class Zef::Process {
     method ok       { $!process.DEFINITE ?? $.exitcode == 0 ?? True !! False !! False }
     method nok      { ?$.ok ?? False !! True    }
     method status   { $!process.status          }
-    method exitcode { 
-        $!promise.result; # osx bug RT125758
-        $!promise.result.exitcode;
+    method exitcode {
+        $ = try {
+            my $exit-code;
+            CATCH { when X::Proc::Unsuccessful { return $exit-code = $_.proc.exitcode } }
+            $!promise.result; # osx bug RT125758
+            $exit-code = $!promise.result.exitcode;
+        }
     }
 }

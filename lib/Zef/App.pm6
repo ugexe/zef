@@ -584,8 +584,10 @@ sub git-update-index(:$cwd) {
 
 sub git-ls(:$cwd) {
     git-update-index(:$cwd);
-    my $p = git-shell(qq|ls-files|, :$cwd, :out);
-    my @lines <== grep *.so <== split /[\r\n || \n]/, $p.out.slurp-rest;
+    my $p  = git-shell(qq|ls-files|, :$cwd, :out);
+    my $nl = Buf.new(10).decode; # TEMPORARY: split(/regex/) doesn't work on jvm yet, and windows
+                                 # proc output uses "\n" for proc.out line endings unlike everything else
+    my @lines <== grep *.so <== split $nl, $p.out.slurp-rest;
     $p.out.close;
     @lines;
 }

@@ -578,7 +578,17 @@ sub git-shell(:$cwd = $*CWD, :$out = False, :$err = False, :$in = False, *@_, *%
         !!  run( $GIT_EXE, |@opts, |@_, :$cwd , :out($out) );
 }
 
-sub git-ls(:$cwd) { my $p = git-shell(qq|ls-files|, :$cwd, :out); my @lines = $p.out.lines; $p.out.close; @lines; }
+sub git-update-index(:$cwd) {
+    try { git-shell('update-index', :$cwd) }
+}
+
+sub git-ls(:$cwd) {
+    git-update-index(:$cwd);
+    my $p = git-shell(qq|ls-files|, :$cwd, :out);
+    my @lines <== grep *.so <== split /[\r\n || \n]/, $p.out.slurp-rest;
+    $p.out.close;
+    @lines;
+}
 
 sub git-package-json($name) {
     my $eco-dir = $ZEF_GIT_DIR.child('packages');

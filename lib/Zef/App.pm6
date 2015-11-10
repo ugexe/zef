@@ -596,15 +596,15 @@ sub git-package-json($name) {
     my $eco-dir = $ZEF_GIT_DIR.child('packages');
 
     try {
-        my sub fetch(|c) { git-shell('fetch', '--depth=1', '--quiet', :cwd($eco-dir)) }
+        my sub pull(|c) { try { so git-shell('pull', '-n', '--depth=1', '--quiet', :cwd($eco-dir)) } }
 
         # clone or fetch
-        $eco-dir.IO.child('.git').IO.e ?? fetch() !! do {
+        $eco-dir.IO.child('.git').IO.e ?? pull() !! do {
             git-shell('clone', '--depth=1', '--quiet', 'https://github.com/ugexe/Perl6-ecosystems.git', $eco-dir, :cwd($eco-dir.IO.dirname));
             CATCH {
                 when X::Proc::Unsuccessful {
                     if .proc.exitcode == 127 {
-                        fetch;
+                        pull();
                     }
                     elsif .proc.exitcode == 128 {
                         die "directory already exists and is not empty";

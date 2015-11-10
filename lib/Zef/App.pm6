@@ -182,11 +182,15 @@ multi MAIN('uninstall', *@names, :$auth, :$ver, :$from = %*CUSTOM_LIB<site>, Boo
     exit $nok.so ?? $nok !! 0;
 }
 
+multi MAIN('update', Bool :$boring, Bool :$v) {
+    exit git-package-json('p6c', :update) ?? 0 !! 1
+}
+
 #| Install with business logic
 multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projects-file is copy, 
     Bool :$no-test, Bool :$no-build = True, Bool :$force = False, Int :$jobs, Bool :$report, Bool :$v, 
     Bool :$dry, Bool :$skip-depends, Bool :$skip-build-depends is copy, Bool :$skip-test-depends is copy,
-    Bool :$shuffle, Bool :$no-wrap, Bool :$boring) is export {
+    Bool :$shuffle, Bool :$no-wrap, Bool :$boring, Bool :$update) is export {
 
     # hooks still need depends... should set these accordingly
     # $skip-build-depends = True if ?$no-build && !$skip-build-depends.defined;
@@ -200,7 +204,7 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
 
     # FETCHING
     my @fetched = &MAIN('get', @modules, :ignore($ignore.cache),
-        :$save-to, :$projects-file, :$boring, :$jobs,
+        :$save-to, :$projects-file, :$boring, :$jobs, :$update,
         :$skip-depends, :$skip-build-depends, :$skip-test-depends,
     );
 
@@ -362,7 +366,7 @@ multi MAIN('look', $module, Bool :$v, :$save-to = $*CWD.IO.child(time)) is expor
 
 #| Get the freshness
 multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-file is copy, 
-    Int :$jobs, Bool :$v, Bool :$boring, Bool :$skip-depends, 
+    Int :$jobs, Bool :$v, Bool :$boring, Bool :$skip-depends, Bool :$update,
     Bool :$skip-test-depends, Bool :$skip-build-depends) is export {
 
     my @gits;
@@ -396,7 +400,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
         }
 
         if @locals.elems {
-            my @packages = packages(:$ignore, :packages-file($projects-file));
+            my @packages = packages(:$ignore, :update(?$update), :packages-file($projects-file));
 
             @f.append: Zef::Authority::Local.new(:projects(@packages)).get(
                 @locals, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
@@ -405,7 +409,7 @@ multi MAIN('get', *@modules, :$ignore, :$save-to is copy = $*TMPDIR, :$projects-
         }
 
         if @identifiers.elems {
-            my @packages = packages(:ignore($ignore.cache), :packages-file($projects-file));
+            my @packages = packages(:ignore($ignore.cache), :update(?$update), :packages-file($projects-file));
             @f.append: Zef::Authority::P6C.new(:projects(@packages)).get(
                 @identifiers, :ignore($ignore.cache), :$save-to, :depends(!$skip-depends),
                 :test-depends(!$skip-test-depends), :build-depends(!$skip-build-depends),
@@ -544,8 +548,8 @@ sub DISTS(:$lib, :@does, *@repos) {
     @dists;
 }
 
-sub packages(Bool :$force, :$ignore, :$boring, :$packages-file) {
-    my @packages = $packages-file ?? from-json($packages-file.IO.slurp) !! git-package-json('p6c').cache;
+sub packages(Bool :$force, :$ignore, :$boring, :$update, :$packages-file) {
+    my @packages = $packages-file ?? from-json($packages-file.IO.slurp) !! git-package-json('p6c', :update(?$update)).cache;
     print "===> Module count: {@packages.elems}\n";
 
     if $ignore && $ignore.elems {
@@ -592,33 +596,38 @@ sub git-ls(:$cwd) {
     @lines;
 }
 
-sub git-package-json($name) {
+sub git-package-json($name, Bool :$update = False) {
     my $eco-dir = $ZEF_GIT_DIR.child('packages');
 
-    try {
-        my sub shallow-pull(|c) {
-            try { so git-shell('pull', '--update-shallow', '-n', '--depth=1', '--quiet', :cwd($eco-dir)) }
-        }
+    if ?$update || !$eco-dir.IO.child('.git').IO.e { # force update on first run
+        try {
+            my sub shallow-pull(|c) {
+                try { so git-shell('checkout', '--', '.', :cwd($eco-dir)) }
+                try { so git-shell('pull', '--force', '--quiet', '--update-shallow', '--depth=1', :cwd($eco-dir)) }
+            }
 
-        # clone or fetch
-        $eco-dir.IO.child('.git').IO.e ?? shallow-pull() !! do {
-            git-shell('clone', '--depth=1', '--quiet', 'https://github.com/ugexe/Perl6-ecosystems.git', $eco-dir, :cwd($eco-dir.IO.dirname));
-            CATCH {
-                when X::Proc::Unsuccessful {
-                    if .proc.exitcode == 127 {
-                        shallow-pull();
+            # clone or fetch
+            $eco-dir.IO.child('.git').IO.e ?? shallow-pull() !! do {
+                so git-shell('clone', '--depth=1', '--quiet', 'https://github.com/ugexe/Perl6-ecosystems.git', $eco-dir, :cwd($eco-dir.IO.dirname));
+                CATCH {
+                    when X::Proc::Unsuccessful {
+                        if .proc.exitcode == 127 {
+                            shallow-pull();
+                        }
+                        elsif .proc.exitcode == 128 {
+                            die "directory already exists and is not empty";
+                        }
                     }
-                    elsif .proc.exitcode == 128 {
-                        die "directory already exists and is not empty";
-                    }
+                    default { die "Don't know how to handle this error: $_" }
                 }
-                default { die "Don't know how to handle this error: $_" }
             }
         }
     }
 
     my $eco          = git-ls(:cwd($eco-dir)).first(*.lc eq "{$name}.json".lc);
-    my $eco-json     = $eco-dir.IO.child($eco).IO.slurp;
+    my $eco-file     = $eco-dir.IO.child($eco);
+    die "No ecosystem file found. Run `zef update` or use `--update` with other commands" unless $eco-file.IO.e;
+    my $eco-json     = $eco-file.IO.slurp;
     my $eco-projects = from-json($eco-json);   
 }
 

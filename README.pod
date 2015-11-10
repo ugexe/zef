@@ -33,6 +33,9 @@ Rakudo does not currently load any precompiled module code, so the --no-build op
 
 =head1 USAGE
 
+    # get that fresh package index update
+    zef update
+
     # duh
     zef install CSV::Parser
 
@@ -71,6 +74,9 @@ Fetch, build, test, optional report, and install.
 
     # verbose output
     -v
+
+    # update the package list first
+    --update
 
     # send a test report
     --report

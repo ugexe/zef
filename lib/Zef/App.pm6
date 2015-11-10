@@ -579,7 +579,7 @@ sub git-shell(:$cwd = $*CWD, :$out = False, :$err = False, :$in = False, *@_, *%
 }
 
 sub git-update-index(:$cwd) {
-    try { git-shell('update-index', :$cwd) }
+    try { so git-shell('update-index', :$cwd) }
 }
 
 sub git-ls(:$cwd) {

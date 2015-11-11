@@ -603,7 +603,9 @@ sub git-package-json($name, Bool :$update = False) {
         try {
             my sub shallow-pull(|c) {
                 try { so git-shell('checkout', '--', '.', :cwd($eco-dir)) }
-                try { so git-shell('pull', '--force', '--quiet', '--update-shallow', '--depth=1', :cwd($eco-dir)) }
+                try { so git-shell('clean', '--force', :cwd($eco-dir)) }
+                try { so git-shell('reset', 'HEAD', :cwd($eco-dir)) }
+                try { so git-shell('pull', :cwd($eco-dir)) }
             }
 
             # clone or fetch

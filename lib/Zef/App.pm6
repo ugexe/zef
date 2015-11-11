@@ -601,20 +601,20 @@ sub git-package-json($name, Bool :$update = False) {
 
     if ?$update || !$eco-dir.IO.child('.git').IO.e { # force update on first run
         try {
-            my sub shallow-pull(|c) {
+            my sub pull(|c) {
                 try { so git-shell('checkout', '--', '.', :cwd($eco-dir)) }
-                try { so git-shell('clean', '--force', :cwd($eco-dir)) }
-                try { so git-shell('reset', 'HEAD', :cwd($eco-dir)) }
-                try { so git-shell('pull', :cwd($eco-dir)) }
+                try { so git-shell('clean', '--force', :cwd($eco-dir))    }
+                try { so git-shell('reset', 'HEAD', :cwd($eco-dir))       }
+                try { so git-shell('pull', '--force', :cwd($eco-dir))     }
             }
 
             # clone or fetch
-            $eco-dir.IO.child('.git').IO.e ?? shallow-pull() !! do {
-                so git-shell('clone', '--depth=1', '--quiet', 'https://github.com/ugexe/Perl6-ecosystems.git', $eco-dir, :cwd($eco-dir.IO.dirname));
+            $eco-dir.IO.child('.git').IO.e ?? pull() !! do {
+                so git-shell('clone', '--quiet', 'https://github.com/ugexe/Perl6-ecosystems.git', $eco-dir, :cwd($eco-dir.IO.dirname));
                 CATCH {
                     when X::Proc::Unsuccessful {
                         if .proc.exitcode == 127 {
-                            shallow-pull();
+                            pull();
                         }
                         elsif .proc.exitcode == 128 {
                             die "directory already exists and is not empty";

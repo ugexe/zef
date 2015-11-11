@@ -27,6 +27,12 @@ To install it via rakudobrew, please use the following command:
 
     $ rakudobrew build-zef
 
+=head4 Manual on Windows
+
+    git clone https://github.com/ugexe/zef.git %USERPROFILE%\zef
+    cd /D %USERPROFILE%\zef
+    perl6 -Ilib bin\zef install .
+
 =head2 Notice
 
 Rakudo does not currently load any precompiled module code, so the --no-build option is defaulted to True

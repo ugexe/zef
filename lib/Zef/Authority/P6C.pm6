@@ -22,7 +22,18 @@ class Zef::Authority::P6C does Zef::Authority {
         Bool :$build-depends,
         Bool :$fetch = True,
     ) {
-        my @wants-dists = @!projects.grep({ $_.<name> ~~ any(@wants) }).cache;
+
+        my @explicit-wants = @!projects.grep({ $_.<name> ~~ any(@wants) }).cache;
+
+        # implicit meaning the user expects us to try to turn module names into distro names if needed
+        my @implicit-wants = @!projects\
+            .grep({ $_.<name> !~~ @explicit-wants }).grep({ $_.<provides> })\
+            .grep( -> $dist { any($dist.<provides>.hash.keys) ~~ any(@wants) }).cache;
+
+        my @still-missing = @wants.grep: {$_ ~~ none(@explicit-wants>><name>, @implicit-wants>><name>)}
+        my @implicit-deps = @!projects.grep({ $_<name> ~~ any(@still-missing) });
+
+        my @wants-dists = unique flat @explicit-wants, @implicit-wants, @implicit-deps;
 
         my @wants-dists-filtered = !@ignore ?? @wants-dists !! @wants-dists.grep({
                (!$depends       || any($_.<depends>.grep(*.so))       ~~ none(@ignore.grep(*.so)))
@@ -39,16 +50,23 @@ class Zef::Authority::P6C does Zef::Authority {
             !! @wants-dists-filtered.map({ $_.hash.<name> });
 
         # Try to fetch each distribution dependency
+        my %cache;
         eager gather for $levels.cache -> $level {
             for $level.cache -> $package-name {
                 next if $package-name.lc ~~ any(@skip>>.lc);
+
                 # todo: filter projects by version/auth
                 my %dist = @!projects.cache.first({ $_.<name>.lc eq $package-name.lc }).hash;
+                unless %dist.keys {
+                    %dist = @!projects.cache.first({ $package-name eq any($_.<provides>.hash.keys) });
+                }
                 die "!!!> No source-url for $package-name (META info lost?)" and next unless ?%dist<source-url>;
+                next if ?%cache{%dist<name>}; # hack to prevent reinstalling implied and reundant deps (ala URI, URI::Encoded)
+                %cache{%dist<name>} = $package-name;
 
                 # todo: implement the rest of however github.com transliterates paths
                 my $basename  = %dist<name>.trans(':' => '-');
-                temp $save-to  = ~$save-to.IO.child($basename);
+                temp $save-to = ~$save-to.IO.child($basename);
                 my @git       = $!git.clone(:$save-to, %dist<source-url>).cache;
 
                 take %( :unit-id(%dist.<name>), :path(@git.[0].<path>), :ok(?$save-to.IO.e) )

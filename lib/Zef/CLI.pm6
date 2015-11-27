@@ -17,7 +17,7 @@ sub procs2stdout(*@processes, :$max-width) is export {
     for @processes -> @group {
         for @group -> $proc {
             for $proc.stdout, $proc.stderr -> $stdio {
-                $stdio.act: -> $out {
+                $stdio.Supply.act: -> $out {
                     for $out.lines.cache.grep(*.chars) -> $line {
                         my $formatted = sprintf(
                             "%-{$longest-basename.chars + 1}s# %s",
@@ -49,8 +49,10 @@ sub CLI-WAITING-BAR(&code, str $message, Bool :$boring) is export {
         # This works *much* better when using "\r" instead of some number of "\b"
         # Unfortunately MoarVM on Windows has a bug where it prints "\r" as if it were "\n"
         # (JVM is OK on windows, JVM/Moar are ok on linux)
+        my $timer   = Supply.interval(1);
+        my $loading = $timer.Supply;
+        my $loading-tap;
 
-        my $loading = Supply.interval(1);
         my $out = $*OUT;
         my $err = $*ERR;
         my $in  = $*IN;
@@ -61,7 +63,7 @@ sub CLI-WAITING-BAR(&code, str $message, Bool :$boring) is export {
             my str ($e, $d);
             my int ($m, $n);
 
-            $loading.act: {
+            $loading-tap = $loading.act: {
                 $e = do given ++$m { 
                     when 2  { '-==' }
                     when 3  { '=-=' }
@@ -108,8 +110,7 @@ sub CLI-WAITING-BAR(&code, str $message, Bool :$boring) is export {
 
         $promise.result; # osx bug RT125758
         await $promise;
-        $loading.done;
-        $loading.close;
+        $loading-tap.close if $loading-tap;
         $*ERR = $err;
         $*OUT = $out;
 

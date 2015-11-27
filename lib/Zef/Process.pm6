@@ -21,8 +21,8 @@ class Zef::Process {
 
     submethod BUILD(:$!command = $*EXECUTABLE, :@!args, :$!cwd = $*CWD, :%!env = %*ENV.hash, Bool :$!async, :$!id) {
         $!can-async = $*DISTRO.name eq 'macosx' ?? False !! not ::("Proc::Async") ~~ Failure;
-        $!stdout := Supply.new;
-        $!stderr := Supply.new;
+        $!stdout := Supplier.new;
+        $!stderr := Supplier.new;
         $!type   := $!async && $!can-async ?? ::("Proc::Async") !! ::("Proc");
         $!id      = $!id 
             ?? $!id 
@@ -43,9 +43,12 @@ class Zef::Process {
 
         if $!async {
             $!process = Proc::Async.new($!command, @!args);
-            $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }
-            $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
-            $!process.stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
+            my $out = $!process.stdout.act: { $!stdout.emit($_); $!stdmerge ~= $_ }
+            my $err = $!process.stderr.act: { $!stderr.emit($_); $!stdmerge ~= $_ }
+
+            # no more emitting into a Proc::Async Supply (no access to the Supplier), but
+            # a Supply.concat should work here once its implemented
+            #$!process.stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
 
             $!promise = $!process.start(:$!cwd, ENV => %!env);
 
@@ -57,16 +60,15 @@ class Zef::Process {
             $!process does role :: { method sink(|) { } }
 
             $!promise = Promise.new;
-            $!stdout.act: { $!stdmerge ~= $_ }
-            $!stderr.act: { $!stdmerge ~= $_ }
+            my $out = $!stdout.Supply.act: { $!stdmerge ~= $_ }
+            my $err = $!stderr.Supply.act: { $!stdmerge ~= $_ }
 
             $!stdout.emit("{$!command.IO.basename} {@!args.join(' ')}\n");
 
             $!started = True;
             $!stdout.emit($_) for $!process.out.lines;
-            $!stdout.done; $!stderr.done;
-
-            $!process.out.close; $!stderr.close;
+            $out.close; $err.close;
+            $!process.out.close;
 
             $!finished = ?$!promise.keep($!process);
         }

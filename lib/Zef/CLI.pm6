@@ -14,10 +14,11 @@ sub procs2stdout(*@processes, :$max-width) is export {
         }
     }
     my $longest-basename = @basenames.max(*.chars);
+    my @taps;
     for @processes -> @group {
         for @group -> $proc {
             for $proc.stdout, $proc.stderr -> $stdio {
-                $stdio.Supply.act: -> $out {
+                my $tap = $stdio.Supply.act: -> $out {
                     for $out.lines.cache.grep(*.chars) -> $line {
                         my $formatted = sprintf(
                             "%-{$longest-basename.chars + 1}s# %s",
@@ -28,9 +29,11 @@ sub procs2stdout(*@processes, :$max-width) is export {
                         print "{_widther($formatted, :$max-width)}\n";
                     }
                 }
+                @taps.append($tap);
             }
         }
     }
+    $ = @taps;
 }
 
 sub _widther($str, :$max-width) is export {

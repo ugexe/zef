@@ -42,10 +42,11 @@ multi MAIN('build', *@repos, :$lib, :$ignore, :$save-to = 'blib/lib', Bool :$v, 
         }
         my @built = @dists.map( -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
-            procs2stdout(:$max-width, $dist-todo.processes) if $v;
+            my @taps = procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
+            @taps.grep(*.so)>>.close if $v;
             $dist-todo;
         }).Slip;
     }, "Building", :$boring;
@@ -91,10 +92,11 @@ multi MAIN('test', *@repos, :$lib, Int :$jobs, Bool :$v, Bool :$no-test,
         }
         my @tested = @dists.map( -> $dist-todo {
             my $max-width = $MAX-TERM-COLS if ?$no-wrap;
-            procs2stdout(:$max-width, $dist-todo.processes) if $v;
+            my @taps = procs2stdout(:$max-width, $dist-todo.processes) if $v;
             my $promise = $dist-todo.start-processes;
             $promise.result; # osx bug RT125758
             await $promise;
+            @taps.grep(*.so)>>.close if $v;
             $dist-todo;
         });
     }, "Testing", :$boring;
@@ -309,20 +311,21 @@ multi MAIN('install', *@modules, :$lib, :$ignore, :$save-to = $*TMPDIR, :$projec
                 my $max-width = $MAX-TERM-COLS if ?$no-wrap;
 
                 my $before-procs = $dist.queue-processes: $($dist.hook-cmds(INSTALL, :before));
-                procs2stdout(:$max-width, $before-procs) if $v;
+                my @taps = procs2stdout(:$max-width, $before-procs) if $v;
 
                 my $promise1 = $dist.start-processes;
                 $promise1.result; # osx bug RT125758
                 await $promise1;
+                @taps.grep(*.so)>>.close if $v;
 
                 my @result = $dist.install(:$force);
                 
                 my $after-procs  = $dist.queue-processes: $($dist.hook-cmds(INSTALL, :after));
-                procs2stdout(:$max-width, $after-procs) if $v;
+                @taps = procs2stdout(:$max-width, $after-procs) if $v;
                 my $promise2 = $dist.start-processes;
                 $promise2.result; # osx bug RT125758
                 await $promise2;
-
+                @taps.grep(*.so)>>.close if $v;
                 @result.Slip;
             });
         }, "Installing", :$boring;

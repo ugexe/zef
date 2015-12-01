@@ -2,6 +2,12 @@
 
 =encoding utf8
 
+=head2 NOTICE
+
+Zef is currently undergoing its final refactor before the first release of Perl6 (due to the recent breaking improvements to rakudo and CompUnit)
+
+Look for it back in the ecosystem with many other improvements on Dec 07, 2015
+
 =head2 Name
 
 Zef - Perl6 Module Management

@@ -6,7 +6,7 @@
 
 Zef is currently undergoing its final refactor before the first release of Perl6 (due to the recent breaking improvements to rakudo and CompUnit)
 
-Look for it back in the ecosystem with many other improvements on Dec 07, 2015
+Look for it back in the ecosystem with many other improvements with the release of perl6 around Dec 25, 2015 (date moved back to allow rakudo CompUnit to work out new bugs popping after the refactor)
 
 =head2 Name
 

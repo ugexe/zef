@@ -2,11 +2,33 @@
 
 =encoding utf8
 
-=head2 NOTICE
+=head2 *~*~* The Struggle *~*~*~*
 
-Zef is currently undergoing its final refactor before the first release of Perl6 (due to the recent breaking improvements to rakudo and CompUnit)
+Precompilation is still broken in rakudo, and this is the #1 stopper. For certain reasons I cannot release an unpolished end result (where unpolished is not defined entirely by me).
 
-Look for it back in the ecosystem with many other improvements with the release of perl6 around Dec 25, 2015 (date moved back to allow rakudo CompUnit to work out new bugs popping after the refactor)
+The good news is development has been moving along all the same. Some features the *in-house* copy of Zef currently implements:
+
+=over 4
+    
+=item * Supports the original p6c ecosystem
+
+=item * Supports enough of the metacpan API to download a distribution's metacpan meta data *or* the entire distribution itself
+
+=item * Transparently use both of the above 2 `ContentStorages` (or any others provided by a plugin) for cross-storage dependency/identity searching
+
+=item * Supports .zip/.tar.gz/.git via shell wrappers (i.e. does not require `git`)
+
+=item * Supports wget/curl/PowerShell.WebRequest via shell wrappers (no bootstraping/dependencies required; proxy support out of the box)
+
+=item * Don't want to use the (safe) shell wrappers? Plugins for any phase are easy to write, and easily fallback to alternatives (so you can provide OS specific implementations for instance)
+
+=item * A detailed configuration file format that lets you control which plugins to use and fallback to
+
+=item * Version comparisons
+
+=back
+
+It was hoped this could be released in good faith to the public on December 25th 2015. Unfortunately new things are still being "broken" as of today (December 24th) in addition to the previously mentioned CompUnit problems. If these are fixed by the official release of Perl6 i'm happy to say you can expect the new Zef release shortly after... but i'm not holding my breath. In the mean time it is an implied spec that you can torture the perl6 implementors (#perl6). Yes, I am slightly frustrated.
 
 =head2 Name
 

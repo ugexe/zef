@@ -1,0 +1,67 @@
+{
+    "store" : "$*HOME/.zef",
+    "Zef::ContentStorage" : [
+        {
+            "name" : "p6c",
+            "module" : "Zef::ContentStorage::P6C",
+            "default" : 1,
+            "options" : {
+                "auto-update" : 1,
+                "mirrors" : ["https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c.json"]
+            }
+        },
+        {
+            "name" : "CPAN",
+            "module" : "Zef::ContentStorage::CPAN",
+            "options" : {
+                "mirrors" : ["http://hack.p6c.org:5000/v0/release/"]
+            }
+        }
+    ],
+    "Zef::Fetch" : [
+        {
+            "name" : "git",
+            "module" : "Zef::Shell::git"
+        },
+        {
+            "name" : "wget",
+            "module" : "Zef::Shell::wget"
+        },
+        {
+            "name" : "curl",
+            "module" : "Zef::Shell::curl"
+        },
+        {
+            "name" : "pswebrequest",
+            "module" : "Zef::Shell::PowerShell::download"
+        }
+    ],
+    "Zef::Extract" : [
+        {
+            "name" : "unzip",
+            "module" : "Zef::Shell::unzip"
+        },
+        {
+            "name" : "tar",
+            "module" : "Zef::Shell::tar"
+        },
+        {
+            "name" : "psunzip",
+            "module" : "Zef::Shell::PowerShell::unzip"
+        }
+    ],
+    "Zef::Test" : [
+        {
+            "name" : "default",
+            "module" : "Zef::Shell::Test"
+        },
+        {
+            "name" : "prove6",
+            "module" : "Zef::Shell::prove6"
+        },
+        {
+            "name" : "prove",
+            "module" : "Zef::Shell::prove"
+        }
+    ]
+}

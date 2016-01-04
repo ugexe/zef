@@ -6,8 +6,6 @@ our $signal-handler := &::("signal") ~~ Failure ?? &::("signal-ignore") !! &::("
 our $sig-resize     := ::("Signal::SIGWINCH");
 try $signal-handler.($sig-resize).act: { $MAX-TERM-COLS = GET-TERM-COLUMNS() }
 
-
-
 # Get terminal width
 sub GET-TERM-COLUMNS is export {
     if $*DISTRO.is-win {

@@ -1,5 +1,5 @@
-*.pir
 *.moarvm
 *.jar
 blib/
 tmp/
+lib/.precomp/

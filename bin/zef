@@ -1,3 +1,17 @@
-#!/usr/bin/env perl6
-BEGIN { say 'Initializing' }
+#! perl6
+use v6;
+
 use Zef::App;
+use Zef::Utils::SystemTools;
+
+my $app = Zef::App.new;
+
+#| Download a specific distribution
+multi MAIN('get', *@identities) {
+    say "Downloaded: " ~ $app.get(:depends, |@identities);
+}
+
+#| Find that shit
+multi MAIN('search', *@identities, *%fields) {
+    say $app.search(|@identities, |%fields);
+}

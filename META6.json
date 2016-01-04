@@ -2,35 +2,36 @@
     "perl"        : "v6.0.0",
     "name"        : "Zef",
     "version"     : "*",
-    "description" : "It's like [cpanm] wearing high heels with a tracksuit.",
+    "description" : "It's like [cpanm] wearing high heels with a tracksuit",
     "depends"     : [ ],
     "provides"    : {
-        "PathTools" : "lib/PathTools.pm6",
-        "Storage"   : "lib/Storage.pm6",
         "Zef"       : "lib/Zef.pm6",
-
-        "Zef::App"            : "lib/Zef/App.pm6",
-        "Zef::CLI"            : "lib/Zef/CLI.pm6",
-        "Zef::Manifest"       : "lib/Zef/Manifest.pm6",
-        "Zef::Process"        : "lib/Zef/Process.pm6",
-
-        "Zef::Authority"        : "lib/Zef/Authority.pm6",
-        "Zef::Authority::P6C"   : "lib/Zef/Authority/P6C.pm6",
-        "Zef::Authority::Local" : "lib/Zef/Authority/Local.pm6",
+        "Zef::App"  : "lib/Zef/App.pm6",
 
         "Zef::Distribution"        : "lib/Zef/Distribution.pm6",
         "Zef::Distribution::Local" : "lib/Zef/Distribution/Local.pm6",
 
-        "Zef::Utils::Depends"    : "lib/Zef/Utils/Depends.pm6",
-        "Zef::Utils::Git"        : "lib/Zef/Utils/Git.pm6",
-        "Zef::Utils::JSON"       : "lib/Zef/Utils/JSON.pm6",
-        "Zef::Utils::SystemInfo" : "lib/Zef/Utils/SystemInfo.pm6",
+        "Zef::ContentStorage" : "lib/Zef/ContentStorage.pm6",
+        "Zef::Extract"        : "lib/Zef/Extract.pm6",
+        "Zef::Fetch"          : "lib/Zef/Fetch.pm6",
+        "Zef::Shell"          : "lib/Zef/Shell.pm6",
+        "Zef::Test"           : "lib/Zef/Test.pm6",
 
-        "Zef::Roles::Installing"   : "lib/Zef/Roles/Installing.pm6",
-        "Zef::Roles::Precompiling" : "lib/Zef/Roles/Precompiling.pm6",
-        "Zef::Roles::Processing"   : "lib/Zef/Roles/Processing.pm6",
-        "Zef::Roles::Hooking"      : "lib/Zef/Roles/Hooking.pm6",
-        "Zef::Roles::Testing"      : "lib/Zef/Roles/Testing.pm6"
+        "Zef::Shell::Test"   : "lib/Zef/Shell/Test.pm6",
+        "Zef::Shell::prove"  : "lib/Zef/Shell/prove.pm6",
+        "Zef::Shell::prove6" : "lib/Zef/Shell/prove6.pm6",
+        "Zef::Shell::unzip"  : "lib/Zef/Shell/unzip.pm6",
+        "Zef::Shell::tar"    : "lib/Zef/Shell/tar.pm6",
+        "Zef::Shell::curl"   : "lib/Zef/Shell/curl.pm6",
+        "Zef::Shell::git"    : "lib/Zef/Shell/git.pm6",
+        "Zef::Shell::wget"   : "lib/Zef/Shell/wget.pm6",
+
+        "Zef::Shell::PowerShell"           : "lib/Zef/Shell/PowerShell.pm6",
+        "Zef::Shell::PowerShell::download" : "lib/Zef/Shell/PowerShell/download.pm6",
+        "Zef::Shell::PowerShell::unzip"    : "lib/Zef/Shell/PowerShell/unzip.pm6",
+        "Zef::Shell::PowerShell::tar"      : "lib/Zef/Shell/PowerShell/tar.pm6",
+
+        "Zef::Utils::SystemInfo" : "lib/Zef/SystemInfo.pm6"
     },
     "auth"    : "github:ugexe",
     "authors" : [

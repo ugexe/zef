@@ -139,7 +139,7 @@ class Zef::App {
             @got.map({ Zef::Distribution::Local.new($_) }).Slip;
         }
 
-        for topological-sort(@dist, |%_) -> $dist {
+        for topological-sort(@dists, |%_) -> $dist {
             my %tested = ?$test ?? self.test($dist.path, :force(?$force)) !! { };
 
             if ?$dist.is-installed {

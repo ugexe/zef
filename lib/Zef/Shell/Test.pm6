@@ -12,12 +12,11 @@ class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
 
         my @results = gather for @test-files -> $test-file {
             say "[DEBUG] Testing: $test-file";
-            my $proc = zrun('perl6', '--ll-exception', '-Ilib', $test-file, :cwd($test-file.IO.parent.IO.parent), :out);
-            my $nl   = Buf.new(10).decode;
+            my $proc = $.zrun('perl6', '--ll-exception', '-Ilib', $test-file, :cwd($test-file.IO.parent.IO.parent), :out, :err);
             .say for $proc.out.lines;
+            $proc.out.close;
             take $proc;
         }
-
         ?@results.map(?*);
     }
 

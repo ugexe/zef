@@ -1,5 +1,3 @@
-# `zrun` uses the default `run` with some sugar for fixing a strange %*ENV bug related to where a .value === Any
-
 class Zef::Shell {
     # @.invocation is an optional list of arguments to be passed *first* to any shell/run calls
     # The purpose is to setup Procs we can spawn with different shell schematics (PowerShell for instance)
@@ -8,8 +6,8 @@ class Zef::Shell {
     has @.invocation;
 
     method zrun(:$env, :$cwd = $*CWD, :$out, :$err, *%_, *@_) {
-        # clean up the %env due to a bug in Proc complaining when .key ~~ Any|Nil|etc
-        my %env = ($env ?? $env.hash !! %*ENV.hash).grep({ .value ~~ Str }).hash;
+        my %env = ($env ?? $env.hash !! %*ENV.hash);
+        temp @!invocation = ($*DISTRO.is-win ?? ('cmd', '/c', |@!invocation) !! |@!invocation).Slip;
         $ = run(|@.invocation, |@_, :%env, :$cwd, :$out, :$err);
     }
 

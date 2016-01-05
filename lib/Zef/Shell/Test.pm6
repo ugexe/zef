@@ -12,7 +12,14 @@ class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
 
         my @results = gather for @test-files -> $test-file {
             say "[DEBUG] Testing: $test-file";
-            my $proc = $.zrun('perl6', '--ll-exception', '-Ilib', $test-file, :cwd($test-file.IO.parent.IO.parent), :out, :err);
+
+            # many tests are written with the assumption that $*CWD will be their distro's base directory
+            # so we have to hack around it so people can still (rightfully) pass absolute paths to `.test`
+            my $base-path = $test-file.parent.parent.absolute.IO;
+
+            my $proc = zrun($*EXECUTABLE, '--ll-exception', '-Ilib', $test-file.relative($base-path),
+                :cwd(~$base-path), :out, :err);
+
             .say for $proc.out.lines;
             $proc.out.close;
             take $proc;

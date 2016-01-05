@@ -1,0 +1,27 @@
+language: perl
+perl:
+    - '5.20'
+env:
+    - BACKEND=moar JOBS=""
+    - BACKEND=moar JOBS="--jobs=4"
+    - BACKEND=jvm  JOBS=""
+matrix:
+    allow_failures:
+        - env: BACKEND=jvm  JOBS=""
+        - env: BACKEND=moar JOBS="--jobs=4"
+    fast_finish: true
+sudo: false
+before_install:
+    - git clone https://github.com/rakudo/rakudo.git $HOME/rakudo
+    - cd $HOME/rakudo
+    - 'if [[ $BACKEND == "moar" ]]; then perl Configure.pl --gen-moar --gen-nqp --backends=$BACKEND; fi'
+    - 'if [[ $BACKEND == "jvm" ]]; then perl Configure.pl --gen-nqp --backends=$BACKEND; fi'
+    - make install
+    - export PATH=$HOME/rakudo/install/bin:$PATH
+    - cd $TRAVIS_BUILD_DIR
+install:
+    # need at least 1 statement in 'install'
+    - perl6 -v
+script:
+    - perl6 -Ilib bin/zef install .
+

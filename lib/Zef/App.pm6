@@ -142,7 +142,9 @@ class Zef::App {
         for topological-sort(@dists, |%_) -> $dist {
             my %tested = ?$test ?? self.test($dist.path, :force(?$force)) !! { };
 
-            if ?$dist.is-installed {
+            # until CU::R.resolve is merged we need to force on '.' so rakudobrew's install
+            # does not think it is already installed when EVAL'd due to the -Ilib finding it
+            if ?$dist.is-installed && $dist.path.abspath ne $*CWD.abspath {
                 say "[DEBUG] {$dist.name} is already installed. Skipping... (use :force to override)" and next unless ?$force;
                 say "[DEBUG] {$dist.name} is already installed. Continuing anyway with :force";
             }

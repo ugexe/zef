@@ -10,8 +10,16 @@ role Zef::Distribution::Local {
         $ = Zef::Distribution.new(|%(%meta.grep(?*.value.elems))) but Zef::Distribution::Local($path);
     }
 
+    method resources(Bool :$absolute) {
+        % = self.hash<resources>.grep(*.defined).map(*.flat).map({
+            $_ => $_.IO.is-relative
+                ?? ( ?$absolute ?? $_.IO.absolute($!path) !! $_ )
+                !! ( !$absolute ?? $_.IO.relative($!path) !! $_ );
+        }).hash;
+    }
+
     method sources(Bool :$absolute) {
-        % = self.hash<provides>.map({
+        % = self.hash<provides>.grep(*.so).map({
             .key => .value.IO.is-relative
                 ?? ( ?$absolute ?? .value.IO.absolute($!path) !! .value )
                 !! ( !$absolute ?? .value.IO.relative($!path) !! .value );

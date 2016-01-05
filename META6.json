@@ -5,18 +5,21 @@
     "description" : "It's like [cpanm] wearing high heels with a tracksuit",
     "depends"     : [ ],
     "provides"    : {
-        "Zef"       : "lib/Zef.pm6",
-        "Zef::App"  : "lib/Zef/App.pm6",
+        "Zef"          : "lib/Zef.pm6",
+        "Zef::App"     : "lib/Zef/App.pm6",
+        "Zef::Config"  : "lib/Zef/Config.pm6",
+        "Zef::Extract" : "lib/Zef/Extract.pm6",
+        "Zef::Fetch"   : "lib/Zef/Fetch.pm6",
+        "Zef::Shell"   : "lib/Zef/Shell.pm6",
+        "Zef::Test"    : "lib/Zef/Test.pm6",
 
         "Zef::Distribution"                          : "lib/Zef/Distribution.pm6",
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",
         "Zef::Distribution::Local"                   : "lib/Zef/Distribution/Local.pm6",
 
-        "Zef::ContentStorage" : "lib/Zef/ContentStorage.pm6",
-        "Zef::Extract"        : "lib/Zef/Extract.pm6",
-        "Zef::Fetch"          : "lib/Zef/Fetch.pm6",
-        "Zef::Shell"          : "lib/Zef/Shell.pm6",
-        "Zef::Test"           : "lib/Zef/Test.pm6",
+        "Zef::ContentStorage"       : "lib/Zef/ContentStorage.pm6",
+        "Zef::ContentStorage::CPAN" : "lib/Zef/ContentStorage/CPAN.pm6",
+        "Zef::ContentStorage::P6C"  : "lib/Zef/ContentStorage/P6C.pm6",
 
         "Zef::Shell::Test"   : "lib/Zef/Shell/Test.pm6",
         "Zef::Shell::prove"  : "lib/Zef/Shell/prove.pm6",
@@ -34,6 +37,9 @@
 
         "Zef::Utils::SystemInfo" : "lib/Zef/Utils/SystemInfo.pm6"
     },
+    "resources" : [
+        "resources/config.json"
+    ],
     "auth"    : "github:ugexe",
     "authors" : [
         "Nick Logan",

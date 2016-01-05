@@ -8,6 +8,7 @@ subtest {
     use-ok("Zef::Distribution");
     use-ok("Zef::Distribution::DependencySpecification");
     use-ok("Zef::Distribution::Local");
+    use-ok("Zef::Config");
     use-ok("Zef::ContentStorage");
     use-ok("Zef::Extract");
     use-ok("Zef::Fetch");

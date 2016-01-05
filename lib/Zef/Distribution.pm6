@@ -4,7 +4,10 @@ class Zef::Distribution is Distribution {
     # missing from Distribution
     has @.build-depends;
     has @.test-depends;
-    has %.metainfo is rw; # attach arbitrary data, like for topological sort
+    has @.resources;
+
+    # attach arbitrary data, like for topological sort, that won't be saved on install
+    has %.metainfo is rw;
 
     method is-installed(*@curlis is copy) { $ = IS-INSTALLED(self.identity) }
 
@@ -17,11 +20,16 @@ class Zef::Distribution is Distribution {
     method test-depends-specs  { @.test-depends.map(*.flat).flat.map({  Zef::Distribution::DependencySpecification.new($_) }) }
 
     method hash {
-        my %hash = callsame.append({ :$.api, :@!build-depends, :@!test-depends });
-        # prevent CU::R::I from saving depends inside an unneeded container (otherwise no depends ends up as `[ [] ]`)
+        # missing from Distribution.hash
+        my %hash = callsame.append({ :$.api, :@!build-depends, :@!test-depends, :@!resources });
+
+        # prevent CU::R::I from saving depends inside an unneeded container
+        # due to Distribution's attributes (ex. no depends ends up as `[ [] ]`)
+        # XXX: `resources` still gets saved as `[ ['some resource'] ]` for some reason
         %hash<depends>       .= Slip;
         %hash<build-depends> .= Slip;
         %hash<test-depends>  .= Slip;
+        %hash<resources>     .= Slip;
 
         %hash<id>       = $.id;
         %hash<identity> = $.Str;

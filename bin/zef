@@ -8,7 +8,7 @@ my $app = Zef::App.new;
 
 #| Download a specific distribution
 multi MAIN('get', Bool :$depends, Bool :$test-depends, Bool :$build-depends, *@identities) {
-    $app.get(|@identities, :$depends, $test-depends, :$build-depends);
+    $app.get(|@identities, :$depends, :$test-depends, :$build-depends);
 }
 
 #| Download a specific distribution
@@ -20,7 +20,7 @@ multi MAIN('test', *@paths) {
 #| Install
 multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
                       Bool :v($verbose), Bool :$force, Bool :$skip-tests, :@install-to = ['site'], *@identities) {
-    $app.install(|@identities, :$depends, $test-depends, :$build-depends, :$force, :@install-to, :fetch, :test(?$skip-tests));
+    $app.install(|@identities, :$depends, :$test-depends, :$build-depends, :$force, :@install-to, :fetch, :test(?$skip-tests));
 }
 
 #| Find that shit

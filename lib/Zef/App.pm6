@@ -1,15 +1,9 @@
+use Zef::Config;
 use Zef::Distribution::Local;
 use Zef::Fetch;
 use Zef::ContentStorage;
 use Zef::Extract;
 use Zef::Test;
-
-our $*ZEF-CONFIG = sub {
-    state %config = %(from-json("config.json".IO.slurp));
-    once %config<store>.subst-mutate(/'{$*HOME}' || '$*HOME'/,   $*HOME, :g);
-    %config;
-}
-our $ZEF-CONFIG = $*ZEF-CONFIG; # workaround bug where $*ZEF-CONFIG can't be found from inside `.new`
 
 # concept: most of what you would expect in bin/zef, except we will emit
 # results out. Then bin/zef can use react on Zef::App events, and a GUI
@@ -26,11 +20,11 @@ class Zef::App {
     has $!lock = Lock.new;
 
     submethod BUILD(
-        :$!cache     = "{$ZEF-CONFIG()<store>}/store",
-        :@fetchers   = |($ZEF-CONFIG()<Zef::Fetch>),
-        :@storages   = |($ZEF-CONFIG()<Zef::ContentStorage>),
-        :@extractors = |($ZEF-CONFIG()<Zef::Extract>),
-        :@testers    = |($ZEF-CONFIG()<Zef::Test>),
+        :$!cache     = "{ZEF-CONFIG()<store>}/store",
+        :@fetchers   = |(ZEF-CONFIG()<Zef::Fetch>),
+        :@storages   = |(ZEF-CONFIG()<Zef::ContentStorage>),
+        :@extractors = |(ZEF-CONFIG()<Zef::Extract>),
+        :@testers    = |(ZEF-CONFIG()<Zef::Test>),
     ) {
         mkdir $!cache unless $!cache.IO.e;
         $!fetcher   = Zef::Fetch.new( :backends(@fetchers) );
@@ -152,7 +146,7 @@ class Zef::App {
             for @target-curs -> $cur {
                 $!lock.protect({
                     say "[DEBUG] Installing {$dist.name}:{$dist.path} to {$cur.short-id}#{~$cur}";
-                    $cur.install($dist, $dist.sources(:absolute), $dist.scripts, :force(?$force));
+                    $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :force(?$force));
                     # $dist.cache{~$dist}:delete # clear cache?
                 });
             }
@@ -184,7 +178,6 @@ sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True,
         }
     };
 
-    my $i = 0;
     for @dists -> $dist {
         $visit($dist, 'olaf') if ($dist.metainfo<marked> // 0) == 0;
     }

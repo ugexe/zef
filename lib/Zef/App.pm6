@@ -133,12 +133,13 @@ class Zef::App {
             # 2) @wants may contain an identity but also a path string. However, if dependencies
             # are needed they will always be identities so this would let us translate those
             # identities into local paths (if they exist) to take any required actions on
-            my @got = (?$fetch ?? |self.fetch($want, |%_) !! $want.IO.e ?? $want.IO !! die "Don't know how to locate $want locally. Did you mean to pass :fetch?");
+            my @got = ($want.starts-with('.' | '/') && ?$want.IO.e ?? $want.IO
+                    !! ?$fetch ?? |self.fetch($want, |%_)
+                    !! die "Don't know how to locate $want locally. Did you mean to pass :fetch?");
             @got.map({ Zef::Distribution::Local.new($_) }).Slip;
         }
 
-
-        for topological-sort(@dists) -> $dist {
+        for topological-sort(@dist, |%_) -> $dist {
             my %tested = ?$test ?? self.test($dist.path, :force(?$force)) !! { };
 
             if ?$dist.is-installed {
@@ -148,7 +149,7 @@ class Zef::App {
 
             for @target-curs -> $cur {
                 $!lock.protect({
-                    say "[DEBUG] Installing {$dist.name}:{$dist.path} to {$cur.short-id}:{~$cur}";
+                    say "[DEBUG] Installing {$dist.name}:{$dist.path} to {$cur.short-id}#{~$cur}";
                     $cur.install($dist, $dist.sources(:absolute), $dist.scripts, :force(?$force));
                     # $dist.cache{~$dist}:delete # clear cache?
                 });
@@ -158,26 +159,32 @@ class Zef::App {
 }
 
 # XXX: Simplistic topological sort
-# todo: integrate more directly with Distribution objects
-sub topological-sort(@dists is copy) {
+# todo: build-depends, test-depends
+sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True, Bool :$test-depends = True, *%_) {
     my @tree;
     my $visit = sub ($dist, $from? = '') {
-        return if ($dist.meta<marked> // 0) == 1;
-        if ($dist.meta<marked> // 0) == 0 {
-            $dist.meta<marked> = 1;
-            for $dist.depends-specs -> $m {
+        return if ($dist.metainfo<marked> // 0) == 1;
+        if ($dist.metainfo<marked> // 0) == 0 {
+            $dist.metainfo<marked> = 1;
+
+            my @deps = slip grep *.defined,
+                ($dist.depends-specs       if ?$depends).Slip,
+                ($dist.test-depends-specs  if ?$test-depends).Slip,
+                ($dist.build-depends-specs if ?$build-depends).Slip;
+
+            for @deps.unique( :as(*.Str) ) -> $m {
                 for @dists.grep(* ~~ $m) -> $m2 {
                     $visit($m2, $dist.identity);
                 }
             }
-            $dist.meta<marked>++;
+            $dist.metainfo<marked>++;
             @tree.append($dist);
         }
     };
 
     my $i = 0;
     for @dists -> $dist {
-        $visit($dist, 'olaf') if ($dist.meta<marked> // 0) == 0;
+        $visit($dist, 'olaf') if ($dist.metainfo<marked> // 0) == 0;
     }
 
     return @tree;

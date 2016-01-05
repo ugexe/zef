@@ -8,8 +8,9 @@
         "Zef"       : "lib/Zef.pm6",
         "Zef::App"  : "lib/Zef/App.pm6",
 
-        "Zef::Distribution"        : "lib/Zef/Distribution.pm6",
-        "Zef::Distribution::Local" : "lib/Zef/Distribution/Local.pm6",
+        "Zef::Distribution"                          : "lib/Zef/Distribution.pm6",
+        "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",
+        "Zef::Distribution::Local"                   : "lib/Zef/Distribution/Local.pm6",
 
         "Zef::ContentStorage" : "lib/Zef/ContentStorage.pm6",
         "Zef::Extract"        : "lib/Zef/Extract.pm6",
@@ -31,7 +32,7 @@
         "Zef::Shell::PowerShell::unzip"    : "lib/Zef/Shell/PowerShell/unzip.pm6",
         "Zef::Shell::PowerShell::tar"      : "lib/Zef/Shell/PowerShell/tar.pm6",
 
-        "Zef::Utils::SystemInfo" : "lib/Zef/SystemInfo.pm6"
+        "Zef::Utils::SystemInfo" : "lib/Zef/Utils/SystemInfo.pm6"
     },
     "auth"    : "github:ugexe",
     "authors" : [

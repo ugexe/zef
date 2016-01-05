@@ -4,7 +4,7 @@ class Zef::Distribution is Distribution {
     # missing from Distribution
     has @.build-depends;
     has @.test-depends;
-    has %.meta is rw; # keep track of topological sort stuff for now
+    has %.metainfo is rw; # attach arbitrary data, like for topological sort
 
     method is-installed(*@curlis is copy) { $ = IS-INSTALLED(self.identity) }
 
@@ -18,10 +18,12 @@ class Zef::Distribution is Distribution {
 
     method hash {
         my %hash = callsame.append({ :$.api, :@!build-depends, :@!test-depends });
+        # prevent CU::R::I from saving depends inside an unneeded container (otherwise no depends ends up as `[ [] ]`)
         %hash<depends>       .= Slip;
         %hash<build-depends> .= Slip;
         %hash<test-depends>  .= Slip;
-        %hash<id> = $.id;
+
+        %hash<id>       = $.id;
         %hash<identity> = $.Str;
         %hash;
     }

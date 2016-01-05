@@ -137,10 +137,8 @@ class Zef::App {
             @got.map({ Zef::Distribution::Local.new($_) }).Slip;
         }
 
-        my @ordered-names = topological-sort(@dists.map(*.hash));
-        my @ordered-dists = @ordered-names.map(-> $meta { @dists.first({ $_.name eq $meta<name> }) });
 
-        for @ordered-dists -> $dist {
+        for topological-sort(@dists) -> $dist {
             my %tested = ?$test ?? self.test($dist.path, :force(?$force)) !! { };
 
             if ?$dist.is-installed {
@@ -161,27 +159,26 @@ class Zef::App {
 
 # XXX: Simplistic topological sort
 # todo: integrate more directly with Distribution objects
-sub topological-sort(@metas is copy) {
-  my @tree;
-
-  my $visit = sub ($meta, $from? = '') {
-    return if ($meta<marked> // 0) == 1; 
-    if ($meta<marked> // 0) == 0 {
-      $meta<marked> = 1;
-      for $meta<depends>.grep(?*.elems).map(*.flat).flat -> $m {
-        for @metas.grep({ $_<name> eq $m }) -> $m2 {
-          $visit($m2, $meta<name>);
+sub topological-sort(@dists is copy) {
+    my @tree;
+    my $visit = sub ($dist, $from? = '') {
+        return if ($dist.meta<marked> // 0) == 1;
+        if ($dist.meta<marked> // 0) == 0 {
+            $dist.meta<marked> = 1;
+            for $dist.depends-specs -> $m {
+                for @dists.grep(* ~~ $m) -> $m2 {
+                    $visit($m2, $dist.identity);
+                }
+            }
+            $dist.meta<marked>++;
+            @tree.append($dist);
         }
-      }
-      $meta<marked>++;
-      @tree.append($meta);
+    };
+
+    my $i = 0;
+    for @dists -> $dist {
+        $visit($dist, 'olaf') if ($dist.meta<marked> // 0) == 0;
     }
-  };
 
-  my $i = 0;
-  for @metas -> $meta {
-    $visit($meta, 'olaf') if ($meta<marked> // 0) == 0;
-  }
-
-  return @tree;
+    return @tree;
 }

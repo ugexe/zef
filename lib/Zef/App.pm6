@@ -134,6 +134,11 @@ class Zef::App {
         }
 
         for topological-sort(@dists, |%_) -> $dist {
+            # temporary: legacy build hook. may have to package own version of Panda::Builder,
+            # even if releasing that name into the ecosystem messes up other installers as
+            # there is no other sane way of handling this junk
+            die "Build.pm hook failed" if $dist.path.child('Build.pm').e && !legacy-hook($dist) && !$force;
+
             my %tested = ?$test ?? self.test($dist.path, :force(?$force)) !! { };
 
             # until CU::R.resolve is merged we need to force on '.' so rakudobrew's install
@@ -183,4 +188,50 @@ sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True,
     }
 
     return @tree;
+}
+
+# A giant fuck all to fix the sad state of build hooks because the lack of a documentated core interface
+# has left many writing code that only works for a single package manager when its not needed. Why
+# a package manager would force themselves as a dependency when it only wants to know if an interface
+# is fulfilled is beyond me so I have no qualms with modifying code to make it work proper.
+# What *SHOULD* happen is CompUnit::Repository::Installation and friends should define the damned
+# interfaces themselves so not only does it leave the ecosystem in a better state (less fragile dependency
+# chains) but reinstallation can also re-execute the hooks instead of (once again) demanding you have
+# a dependency on an external package manager. This is not to be construed as a jab against the author,
+# as Build.pm did what was needed *at the time*, but its 2016 and perl6 is released so lets do this shit right.
+sub legacy-hook($dist) {
+    my $builder-path = $dist.path.child('Build.pm');
+
+    # if panda is declared as a dependency then there is no need to fix the code, although
+    # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
+    unless $dist.depends.first(/'panda' | 'Panda::'/)
+        || $dist.build-depends.first(/'panda' | 'Panda::'/)
+        || $dist.test-depends.first(/'panda' | 'Panda::'/) {
+        my $legacy-fixer-code = q:to/END_LEGACY_FIX/;
+            class Build {
+                method isa($what) {
+                    return True if $what.^name eq 'Panda::Builder';
+                    callsame;
+                }
+            END_LEGACY_FIX
+
+        my $legacy-code = $builder-path.IO.slurp;
+        $legacy-code.subst-mutate(/'use Panda::' \w+ ';'/, '', :g);
+        $legacy-code.subst-mutate('class Build is Panda::Builder {', "{$legacy-fixer-code}\n");
+        $builder-path = "{$builder-path.absolute}.zef".IO;
+        try { $builder-path.spurt($legacy-code) } || $builder-path.subst-mutate(/'.zef'$/, '');
+    }
+
+    my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$dist.path.IO.absolute}') ?? exit(0) !! exit(1);";
+
+    my $result;
+    try {
+        CATCH { default { $result = False; } }
+        my $proc = run($*EXECUTABLE, '-I.', '-Ilib', '-e', "$cmd", :cwd($dist.path));
+        .say for $proc.out.lines;
+        $proc.out.close;
+        $result = ?$proc;
+    }
+    $builder-path.IO.unlink if $builder-path.ends-with('.zef') && "{$builder-path}".IO.e;
+    $ = $result;
 }

@@ -8,7 +8,7 @@ multi valid-path(Str(Cool) $path) {
 
     my $write-test-path = $io.child('foo');
     try $write-test-path.mkdir;
-    if "{$io}".IO.e {
+    if "{$write-test-path}".IO.e {
         try $write-test-path.rmdir;
         return True;
     }

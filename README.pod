@@ -42,7 +42,8 @@ Still Beta level software. The process of implementing all of the previous featu
 still in the works (see an older readme to see expected full feature set). It will even generate a build hook from
 convoluted Build.pm hook files to not require an external dependency on a package manager (It does this via saving as
 a file named Build.pm.zef, although its still 100% compatable with any other package manager [proof of the unnecessary
-dependency it otherwise causes] if its renamed back to Build.pm)
+dependency it otherwise causes] if were to be renamed back to Build.pm). Note the generated Build.pm.zef file will
+be deleted after it is used; This is meant to provoke an actual dependency free hook interface defined by rakudo core.
 
 =head2 More CLI
 

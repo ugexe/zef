@@ -1,9 +1,10 @@
 use Zef;
+use Zef::Utils::Path;
 
 class Zef::Extract does DynLoader {
     method extract($path, $extract-to) {
         die "Can't extract non-existent path: {$path}" unless $path.IO.e;
-        die "Can't extract to non-existent path: {$extract-to}" unless $extract-to.IO.e;
+        die "Path {$extract-to} doesn't appear to be valid" unless valid-path($extract-to);
 
         for self.plugins -> $extractor {
             if $extractor.extract-matcher($path) {

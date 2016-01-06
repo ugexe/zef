@@ -38,7 +38,11 @@ To install it via rakudobrew, please use the following command:
 
 =head2 Notice
 
-Still Beta level software. The process of implementing all of the previous features, test suite, and documentation is still in the works (see an older readme to see expected full feature set). Basic installation works, but hooks are not implemented yet and Build.pm may not be reimplemented to force a spec'd hook (and not one that requires a specific package manager, or a bunch of hacks to emulate it).
+Still Beta level software. The process of implementing all of the previous features, test suite, and documentation is
+still in the works (see an older readme to see expected full feature set). It will even generate a build hook from
+convoluted Build.pm hook files to not require an external dependency on a package manager (It does this via saving as
+a file named Build.pm.zef, although its still 100% compatable with any other package manager [proof of the unnecessary
+dependency it otherwise causes] if its renamed back to Build.pm)
 
 =head2 More CLI
 
@@ -52,11 +56,15 @@ Still Beta level software. The process of implementing all of the previous featu
 
 =head4 B<search>
 
-How these are handled depends on the `ContentStorage` engine used, which by default is the p6c ecosystem and metacpan. Note that metacpan search is not likely to produce any useful results yet. More documentation will be available when I have a better idea how to integrate results from these 2 services.
+How these are handled depends on the `ContentStorage` engine used, which by default is the p6c ecosystem and
+metacpan. Note that metacpan search is not likely to produce any useful results yet. More documentation will
+be available when I have a better idea how to integrate results from these 2 services.
 
 =head2 Plugins and Configuration
 
-See the root zef directory for config.json. Each phase module will attempt to load/use each plugin in order. More details to be made available in time, but they are fairly simple and the code itself should provide enough insight to get something done.
+See the root zef directory for config.json. Each phase module will attempt to load/use each plugin in order.
+More details to be made available in time, but they are fairly simple and the code itself should provide enough
+insight to get something done.
 
 =head1 FAQ
 
@@ -66,6 +74,7 @@ Kinda. Paths should be safe, but still needs a URI validator.
 
 =head3 Windows!
 
-Kinda. Still need to figure out how to handle tar (not just zip and gzip) with PowerShell. But by default it will try to use git which should work fine.
+Mostly. Still need to figure out how to handle tar (not just zip and gzip) with PowerShell.
+But by default it will try to use git which should work fine.
 
 =cut

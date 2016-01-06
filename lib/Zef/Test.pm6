@@ -2,6 +2,7 @@ use Zef;
 
 class Zef::Test does DynLoader {
     method test($path) {
+        die "Can't test non-existent path: {$path}" unless $path.IO.e;
         for self.plugins -> $tester {
             if $tester.test-matcher($path) {
                 my $got = $tester.test($path);

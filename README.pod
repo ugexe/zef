@@ -39,11 +39,11 @@ To install it via rakudobrew, please use the following command:
 =head2 Notice
 
 Still Beta level software. The process of implementing all of the previous features, test suite, and documentation is
-still in the works (see an older readme to see expected full feature set). It will even generate a build hook from
-convoluted Build.pm hook files to not require an external dependency on a package manager (It does this via saving as
-a file named Build.pm.zef, although its still 100% compatable with any other package manager [proof of the unnecessary
-dependency it otherwise causes] if were to be renamed back to Build.pm). Note the generated Build.pm.zef file will
-be deleted after it is used; This is meant to provoke an actual dependency free hook interface defined by rakudo core.
+still in the works (see an older readme to see expected full feature set).
+
+It will even generate a build hook from convoluted Build.pm hook files to not require an external dependency on a package
+manager (It does this via saving as a file named Build.pm.zef (a valid Build.pm file the panda can understand if renamed back)
+that gets deleted affterwards.
 
 =head2 More CLI
 
@@ -71,7 +71,8 @@ insight to get something done.
 
 =head3 Are all these shell scripts safe?
 
-Kinda. Paths should be safe, but still needs a URI validator.
+Maybe. Paths are considered valid if it can be turned into a valid B<IO> object. URIs are validated with a URI grammar.
+I don't claim to be a security expert, so if you notice something that could be improved i'll be happy to listen.
 
 =head3 Windows!
 

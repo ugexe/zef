@@ -2,6 +2,9 @@ use Zef;
 
 class Zef::Extract does DynLoader {
     method extract($path, $extract-to) {
+        die "Can't extract non-existent path: {$path}" unless $path.IO.e;
+        die "Can't extract to non-existent path: {$extract-to}" unless $extract-to.IO.e;
+
         for self.plugins -> $extractor {
             if $extractor.extract-matcher($path) {
                 my $got = $extractor.extract($path, $extract-to);

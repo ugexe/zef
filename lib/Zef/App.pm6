@@ -204,9 +204,10 @@ sub legacy-hook($dist) {
 
     # if panda is declared as a dependency then there is no need to fix the code, although
     # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
-    unless $dist.depends.first(/'panda' | 'Panda::'/)
-        || $dist.build-depends.first(/'panda' | 'Panda::'/)
-        || $dist.test-depends.first(/'panda' | 'Panda::'/) {
+    unless $dist.depends-specs.first(/'panda' | 'Panda::'/)
+        || $dist.build-depends-specs.first(/'panda' | 'Panda::'/)
+        || $dist.test-depends-specs.first(/'panda' | 'Panda::'/) {
+
         my $legacy-fixer-code = q:to/END_LEGACY_FIX/;
             class Build {
                 method isa($what) {

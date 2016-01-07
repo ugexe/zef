@@ -34,36 +34,27 @@ class Zef::App {
     }
 
     method fetch(Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True, *@wants) {
-        # temporary
-        # This is just a naive topological sort until I can figure out how to best
-        # parallelize everything with all the locking that goes on now.
-        #
-        # todo: Need to create a dependency class
-        # that does the sort as well as linking the distributions together to allow
-        # parallelization between various phases as well as properly handling
-        # alternatives.
-        # ex: Distro Foo depends on: Distro Bar *or* Distro Baz as well as Distro XXX. 
-        # `install Foo` would download Foo, Bar, and XXX then move on to the test phase.
-        # Foo tests ok, but Bar fails so the dependency object would iterate to the
-        # next alternative and start downloading it. If XXX has no unresolved dependencies
-        # it would be able to start testing while Baz is getting downloaded. If any chain
-        # reaches the end all linked processes can either be aborted or continue instantly.
-        #
         # Once metacpan can return results again this will need to be modified so as not to
         # duplicate an identity that shows up from multiple ContentStorages
+        #
+        # todo: need to search provides.keys not just dist.name, so Zef::Distribution probably needs
+        # to create DependencySpecifications for each of the `provides` fields (so a dependency on
+        # URI::Escape fetches distribution URI as there is no URI::Escape distribution)
+        #
+        # todo: Update ContentStorage::CPAN to use Distribution.name/etc instead of %meta<name>/<etc>
         sub get-dists-metas(*@_) {
             state @found;
-            for @_.grep(*.defined).grep({ $_ !~~ @!ignore.any }) -> $wanted {
+            for @_.grep({ $_ !~~ @!ignore.any }).flat -> $wanted {
                 # todo: :ignore(%seen.keys);
-                my %store = $!storage.candidates($wanted);
+                my %store = $!storage.candidates(Zef::Distribution::DependencySpecification.new($wanted));
                 for %store.kv -> $from, $candi {
                     my $dist = $candi[0];
-                    unless $dist<name> ~~ @found.map({.<name>}).any {
-                        my @wanted-deps = slip grep *.defined,
-                            (|$dist<depends>       if ?$depends).Slip,
-                            (|$dist<test-depends>  if ?$test-depends).Slip,
-                            (|$dist<build-depends> if ?$build-depends).Slip;
-                        get-dists-metas(|@wanted-deps);
+                    unless $dist.name ~~ @found.map({.name}).any {
+                        my @wanted-deps = map *.flat, grep *.defined,
+                            (|$dist.depends       if ?$depends).Slip,
+                            (|$dist.test-depends  if ?$test-depends).Slip,
+                            (|$dist.build-depends if ?$build-depends).Slip;
+                        get-dists-metas(@wanted-deps.map(*.flat).flat);
                         @found .= append($dist);
                     }
                 }
@@ -73,10 +64,10 @@ class Zef::App {
 
         my @discovered = get-dists-metas(|@wants).values;
 
-        my @paths = @discovered.map: -> $seen {
+        my @paths = @discovered.map: -> $dist {
             # todo: temp files
-            my $sanitized-name = $seen<name>.subst(':', '-', :g);
-            my $uri = $seen<source-url>;
+            my $sanitized-name = $dist.name.subst(':', '-', :g);
+            my $uri = $dist.source-url;
             my $extract-to = $!cache.IO.child($sanitized-name);
             my $save-as    = $!cache.IO.child($uri.IO.basename);
 

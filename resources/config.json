@@ -13,6 +13,7 @@
         {
             "name" : "CPAN",
             "module" : "Zef::ContentStorage::CPAN",
+            "disabled" : 1,
             "options" : {
                 "mirrors" : ["http://hack.p6c.org:5000/v0/release/"]
             }

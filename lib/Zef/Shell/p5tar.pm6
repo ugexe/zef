@@ -1,38 +1,37 @@
 use Zef;
 use Zef::Shell;
 
-class Zef::Shell::tar is Zef::Shell does Extractor {
+# covers untar for some windows users until a better solution is found
+class Zef::Shell::p5tar is Zef::Shell does Extractor {
     method extract-matcher($path) { so $path.lc.ends-with('.tar.gz') }
 
     method probe {
-        # todo: check without spawning process (slow)
-        state $untar-help = try {
+        state $p5-module-ok = try {
             CATCH {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
 
-            my $proc = zrun('tar', '--help', :out);
-            my $nl   = Buf.new(10).decode;
-            my @out <== grep *.defined <== split $nl, $proc.out.slurp-rest;
-            $proc.out.close;
-            $ = $proc.exitcode == 0 ?? @out !! False;
+            my $proc = zrun('perl', '-MArchive::Tar', '-e', 1);
         }
 
-        so $untar-help;
+        so $p5-module-ok;
     }
 
     method extract($archive-file, $save-as) {
         die "file does not exist: {$archive-file}" unless $archive-file.IO.e && $archive-file.IO.f;
         die "\$save-as folder does not exist and could not be created" unless (($save-as.IO.e && $save-as.IO.d) || mkdir($save-as));
-        my $proc = $.zrun('tar', '-zxvf', $archive-file, '-C', $save-as, :out);
+        my $p5script = 'my $extractor = Archive::Tar->new(); $extractor->read($ARGV[0]); $extractor->extract();';
+        my $proc = zrun('perl', '-MArchive::Tar', '-e', $p5script, $archive-file.IO.absolute, :cwd($save-as));
         my $extracted-to = $save-as.IO.child(self.list($archive-file).head);
         $ = ?$proc ?? $extracted-to !! False;
     }
 
     method list($archive-file) {
         my $nl   = Buf.new(10).decode;
-        my $proc = $.zrun('tar', '--list', '-f', $archive-file, :out);
+        my $p5script = 'my $extractor = Archive::Tar->new(); $extractor->read($ARGV[0]); for($extractor->list_files()) { print $_ . qq{\n} };';
+        my $proc = zrun('perl', '-MArchive::Tar', '-e', $p5script, $archive-file, :out);
+        say $proc.perl;
         my @extracted-paths <== grep *.defined <== split $nl, $proc.out.slurp-rest;
         $proc.out.close;
         @ = @extracted-paths;

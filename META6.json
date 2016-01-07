@@ -26,6 +26,7 @@
         "Zef::Shell::prove6" : "lib/Zef/Shell/prove6.pm6",
         "Zef::Shell::unzip"  : "lib/Zef/Shell/unzip.pm6",
         "Zef::Shell::tar"    : "lib/Zef/Shell/tar.pm6",
+        "Zef::Shell::p5tar"  : "lib/Zef/Shell/p5tar.pm6",
         "Zef::Shell::curl"   : "lib/Zef/Shell/curl.pm6",
         "Zef::Shell::git"    : "lib/Zef/Shell/git.pm6",
         "Zef::Shell::wget"   : "lib/Zef/Shell/wget.pm6",
@@ -33,7 +34,6 @@
         "Zef::Shell::PowerShell"           : "lib/Zef/Shell/PowerShell.pm6",
         "Zef::Shell::PowerShell::download" : "lib/Zef/Shell/PowerShell/download.pm6",
         "Zef::Shell::PowerShell::unzip"    : "lib/Zef/Shell/PowerShell/unzip.pm6",
-        "Zef::Shell::PowerShell::tar"      : "lib/Zef/Shell/PowerShell/tar.pm6",
 
         "Zef::Utils::SystemInfo" : "lib/Zef/Utils/SystemInfo.pm6",
         "Zef::Utils::URI"        : "lib/Zef/Utils/URI.pm6"

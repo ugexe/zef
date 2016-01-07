@@ -23,11 +23,11 @@ subtest {
     use-ok("Zef::Shell::prove6");
     use-ok("Zef::Shell::unzip");
     use-ok("Zef::Shell::tar");
+    use-ok("Zef::Shell::p5tar");
     use-ok("Zef::Shell::curl");
     use-ok("Zef::Shell::git");
     use-ok("Zef::Shell::wget");
     use-ok("Zef::Shell::PowerShell");
     use-ok("Zef::Shell::PowerShell::download");
     use-ok("Zef::Shell::PowerShell::unzip");
-    use-ok("Zef::Shell::PowerShell::tar");
 }, 'Plugins';

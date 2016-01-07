@@ -48,6 +48,10 @@
         {
             "name" : "psunzip",
             "module" : "Zef::Shell::PowerShell::unzip"
+        },
+        {
+            "name" : "p5tar",
+            "module" : "Zef::Shell::p5tar"
         }
     ],
     "Zef::Test" : [

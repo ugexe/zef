@@ -2,13 +2,11 @@ language: perl
 perl:
     - '5.20'
 env:
-    - BACKEND=moar JOBS=""
-    - BACKEND=moar JOBS="--jobs=4"
-    - BACKEND=jvm  JOBS=""
+    - BACKEND=moar
+    - BACKEND=jvm
 matrix:
     allow_failures:
-        - env: BACKEND=jvm  JOBS=""
-        - env: BACKEND=moar JOBS="--jobs=4"
+        - env: BACKEND=jvm
     fast_finish: true
 sudo: false
 before_install:

@@ -67,16 +67,15 @@ See the root zef directory for config.json. Each phase module will attempt to lo
 More details to be made available in time, but they are fairly simple and the code itself should provide enough
 insight to get something done.
 
+See the configuration file in L<resources/config.json|https://github.com/ugexe/zef/blob/master/resources/config.json> for a little more information on how plugins are invoked.
+
 =head1 FAQ
 
-=head3 Are all these shell scripts safe?
+=head3 CPAN?
 
-Maybe. Paths are considered valid if it can be turned into a valid B<IO> object. URIs are validated with a URI grammar.
-I don't claim to be a security expert, so if you notice something that could be improved i'll be happy to listen.
-
-=head3 Windows!
-
-Mostly. Still need to figure out how to handle tar (not just zip and gzip) with PowerShell.
-But by default it will try to use git which should work fine.
+The functionality is mostly there. The API to search and find a specific module needs more work, but currently can execute
+a query and takes the first matching distribution name. It can also download, extract, and install as well. Other than
+polishing up the search API access it needs metacpan itself to host Perl6 distributions (not interested in the PSIXDIST
+author hackery).
 
 =cut

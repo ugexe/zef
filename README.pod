@@ -39,11 +39,8 @@ To install it via rakudobrew, please use the following command:
 =head2 Notice
 
 Still Beta level software. The process of implementing all of the previous features, test suite, and documentation is
-still in the works (see an older readme to see expected full feature set).
-
-It will even generate a build hook from convoluted Build.pm hook files to not require an external dependency on a package
-manager (It does this via saving as a file named Build.pm.zef (a valid Build.pm file the panda can understand if renamed back)
-that gets deleted affterwards.
+still in the works (see an older readme to see expected full feature set). No real work has been done porting over the
+old CLI overlay from the previous version of Zef, so the output is rather bleh.
 
 =head2 More CLI
 
@@ -77,5 +74,11 @@ The functionality is mostly there. The API to search and find a specific module 
 a query and takes the first matching distribution name. It can also download, extract, and install as well. Other than
 polishing up the search API access it needs metacpan itself to host Perl6 distributions (not interested in the PSIXDIST
 author hackery).
+
+=head3 Proxy support?
+
+All the default fetching plugins support it except for the windows specific `download.pm6` (which only needs a slight change).
+However the git fetcher should support proxies on windows, and a git url is the first mirror tried for fetching package lists
+(for the p6c ecosystem) so for the most part it should Just Work.
 
 =cut

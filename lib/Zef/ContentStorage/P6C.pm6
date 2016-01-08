@@ -8,15 +8,25 @@ class Zef::ContentStorage::P6C does ContentStorage {
     has $.fetcher is rw;
     has $.cache is rw;
 
-    method IO { $ = $!cache.IO.child('p6c').IO }
+    method IO {
+        my $dir = $!cache.IO.child('p6c').IO;
+        $dir.mkdir unless $dir.e;
+        $ = "{$dir}".IO;
+    }
     method package-list-file { $ = self.IO.child('packages.json').IO }
     method !slurp-package-list { @ = |from-json(self.package-list-file.slurp) }
 
     method update {
-        die "Failed to update p6c" unless $!mirrors.first({ $!fetcher.fetch($_, self.package-list-file) });
+        die "Failed to update p6c" unless $!mirrors.first: -> $uri {
+            my $save-as = $!cache.IO.child($uri.IO.basename);
+            my $path    = $!fetcher.fetch($uri, $save-as);
+            if $path.IO.d {
+                $path = $path.IO.child('p6c.json');
+            }
+            try { copy($path, self.package-list-file) } || next;
+            so self.package-list-file.e;
+        }
     }
-
-    method index { $ = $!cache.IO.child("p6c.json").IO }
 
     # todo: handle %fields
     method search(:$max-results = 5, *@identities, *%fields) {

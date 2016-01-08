@@ -7,7 +7,10 @@
             "default" : 1,
             "options" : {
                 "auto-update" : 1,
-                "mirrors" : ["https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c.json"]
+                "mirrors" : [
+                    "https://github.com/ugexe/Perl6-ecosystems.git",
+                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c.json"
+                ]
             }
         },
         {

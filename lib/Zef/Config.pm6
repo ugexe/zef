@@ -9,11 +9,5 @@ sub ZEF-CONFIG  is export {
 }
 
 sub find-config {
-    # use $*CWD
-    with "config.json"            { return $_ if $_.IO.e }
-    # use $*CWD/resources/config (such as during install)
-    with "resources/config.json"  { return $_ if $_.IO.e }
-    # use the config that was installed
-    with %?RESOURCES<config.json> { return $_ if $_.IO.e }
-    die "Failed to find config file";
+    ("config.json", %?RESOURCES<config.json>, "resources/config.json").first(*.IO.e);
 }

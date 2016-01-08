@@ -5,10 +5,6 @@ use Zef::ContentStorage;
 use Zef::Extract;
 use Zef::Test;
 
-# concept: most of what you would expect in bin/zef, except we will emit
-# results out. Then bin/zef can use react on Zef::App events, and a GUI
-# will be much easier to write
-
 class Zef::App {
     has $.cache;
     has $.indexer;
@@ -37,35 +33,27 @@ class Zef::App {
         # Once metacpan can return results again this will need to be modified so as not to
         # duplicate an identity that shows up from multiple ContentStorages
         #
-        # todo: need to search provides.keys not just dist.name, so Zef::Distribution probably needs
-        # to create DependencySpecifications for each of the `provides` fields (so a dependency on
-        # URI::Escape fetches distribution URI as there is no URI::Escape distribution)
-        #
         # todo: Update ContentStorage::CPAN to use Distribution.name/etc instead of %meta<name>/<etc>
-        sub get-dists-metas(*@_) {
+        sub get-dists(*@_) {
             state @found;
             for @_.grep({ $_ !~~ @!ignore.any }).flat -> $wanted {
                 # todo: :ignore(%seen.keys);
-                my %store = $!storage.candidates(Zef::Distribution::DependencySpecification.new($wanted));
+                my %store = $!storage.candidates($wanted);
                 for %store.kv -> $from, $candi {
                     my $dist = $candi[0];
-                    unless $dist.name ~~ @found.map({.name}).any {
-                        my @wanted-deps = map *.flat, grep *.defined,
-                            (|$dist.depends       if ?$depends).Slip,
-                            (|$dist.test-depends  if ?$test-depends).Slip,
-                            (|$dist.build-depends if ?$build-depends).Slip;
-                        get-dists-metas(@wanted-deps.map(*.flat).flat);
-                        @found .= append($dist);
+                    unless $dist.identity ~~ @found.map({.identity}).any {
+                        my @wanted-deps = ($dist.depends if ?$depends).Slip,
+                            ($dist.test-depends  if ?$test-depends).Slip,
+                            ($dist.build-depends if ?$build-depends).Slip;
+                        get-dists(|@wanted-deps);
+                        @found.append($dist);
                     }
                 }
             }
-            return @found;
+            @found;
         }
 
-        my @discovered = get-dists-metas(|@wants).values;
-
-        my @paths = @discovered.map: -> $dist {
-            # todo: temp files
+        gather for get-dists(|@wants) -> $dist {
             my $sanitized-name = $dist.name.subst(':', '-', :g);
             my $uri = $dist.source-url;
             my $extract-to = $!cache.IO.child($sanitized-name);
@@ -74,11 +62,13 @@ class Zef::App {
             say "[DEBUG] Fetching {$uri} to {$save-as}";
             $!fetcher.fetch($uri, $save-as);
             
+            # should probably break this out into its out method
             if $save-as.lc.ends-with('.tar.gz' | '.zip') {
                 say "[DEBUG] Extracting: {$save-as} to {$extract-to}";
                 $save-as = $!extractor.extract($save-as, $extract-to);
             }
-            $save-as;
+
+            take ($dist does Zef::Distribution::Local($save-as));
         }
     }
 
@@ -98,7 +88,6 @@ class Zef::App {
         $!storage.search(|@identities, |%fields);
     }
 
-    # todo: install methods should run fetch/test/etc methods itself so we can skip testing dists that are already installed
     method install(:@install-to = ['site'], *@wanted, *%_) {
         state @can-install-ids = $*REPO.repo-chain.unique( :as(*.id) )\
             .grep(*.?can-install)\
@@ -118,40 +107,41 @@ class Zef::App {
             # 2) @wants may contain an identity but also a path string. However, if dependencies
             # are needed they will always be identities so this would let us translate those
             # identities into local paths (if they exist) to take any required actions on
-            my @got = ($want.starts-with('.' | '/') && ?$want.IO.e ?? $want.IO
-                    !! ?$fetch ?? |self.fetch($want, |%_)
-                    !! die "Don't know how to locate $want locally. Did you mean to pass :fetch?");
-            @got.map({ Zef::Distribution::Local.new($_) }).Slip;
+            ($want.starts-with('.' | '/') && ?$want.IO.e 
+                    ?? Zef::Distribution::Local.new($want.IO.absolute)
+                    !! ?$fetch
+                        ?? |self.fetch($want, |%_)
+                        !! die "Don't know how to locate $want locally. Did you mean to pass :fetch?").Slip;
         }
 
         for topological-sort(@dists, |%_) -> $dist {
-            # temporary: legacy build hook. may have to package own version of Panda::Builder,
-            # even if releasing that name into the ecosystem messes up other installers as
-            # there is no other sane way of handling this junk
-            die "Build.pm hook failed" if $dist.path.child('Build.pm').e && !legacy-hook($dist) && !$force;
-
-            my %tested = ?$test ?? self.test($dist.path, :force(?$force)) !! { };
-
             # until CU::R.resolve is merged we need to force on '.' so rakudobrew's install
             # does not think it is already installed when EVAL'd due to the -Ilib finding it
-            if ?$dist.is-installed && $dist.path.abspath ne $*CWD.abspath {
+            # XXX: require ignores :ver<xxx> and EVAL always throws an error if :ver is used
+            if $dist.name ne 'Zef' && ?$dist.is-installed && $dist.IO !~~ $*CWD {
                 say "[DEBUG] {$dist.name} is already installed. Skipping... (use :force to override)" and next unless ?$force;
                 say "[DEBUG] {$dist.name} is already installed. Continuing anyway with :force";
             }
 
+            # temporary: legacy build hook. may have to package own version of Panda::Builder,
+            # even if releasing that name into the ecosystem messes up other installers as
+            # there is no other sane way of handling this junk
+            die "Build.pm hook failed" if $dist.IO.child('Build.pm').e && !legacy-hook($dist) && !$force;
+
+            my %tested = ?$test ?? self.test($dist.path, :force(?$force)) !! { };
+
             for @target-curs -> $cur {
-                $!lock.protect({
+                #$!lock.protect({
                     say "[DEBUG] Installing {$dist.name}:{$dist.path} to {$cur.short-id}#{~$cur}";
                     $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :force(?$force));
-                    # $dist.cache{~$dist}:delete # clear cache?
-                });
+                #});
             }
         }
     }
 }
 
-# XXX: Simplistic topological sort
-# todo: build-depends, test-depends
+# simple topological sort
+# todo: bring back the more advanced sort zef previously used, but use with Distribution objects
 sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True, Bool :$test-depends = True, *%_) {
     my @tree;
     my $visit = sub ($dist, $from? = '') {
@@ -181,15 +171,8 @@ sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True,
     return @tree;
 }
 
-# A giant fuck all to fix the sad state of build hooks because the lack of a documentated core interface
-# has left many writing code that only works for a single package manager when its not needed. Why
-# a package manager would force themselves as a dependency when it only wants to know if an interface
-# is fulfilled is beyond me so I have no qualms with modifying code to make it work proper.
-# What *SHOULD* happen is CompUnit::Repository::Installation and friends should define the damned
-# interfaces themselves so not only does it leave the ecosystem in a better state (less fragile dependency
-# chains) but reinstallation can also re-execute the hooks instead of (once again) demanding you have
-# a dependency on an external package manager. This is not to be construed as a jab against the author,
-# as Build.pm did what was needed *at the time*, but its 2016 and perl6 is released so lets do this shit right.
+# todo: write a real hooking implementation to CU::R::I instead of the current practice
+# of writing an installer specific (literally) Build.pm
 sub legacy-hook($dist) {
     my $builder-path = $dist.path.child('Build.pm');
 

@@ -1,5 +1,6 @@
 use Zef;
 use Zef::Distribution;
+use Zef::Distribution::DependencySpecification;
 
 class Zef::ContentStorage::P6C does ContentStorage {
     has $.mirrors;
@@ -20,9 +21,15 @@ class Zef::ContentStorage::P6C does ContentStorage {
     # todo: handle %fields
     method search(:$max-results = 5, *@identities, *%fields) {
         self.update if $.auto-update || !self.package-list-file.e;
-        state @cache = self!slurp-package-list;
+        state @dists = self!slurp-package-list.map({ Zef::Distribution.new(|%($_)) });
         return () unless @identities || %fields;
-        my @search-us = @cache.grep({ $_<name> ~~ any(@identities.map(*.name)) }).map: { Zef::Distribution.new(|$_) }
-        my @matches   = @identities.map(-> $ident { @search-us.first(-> $dist { $dist ~~ $ident }) }).grep(*.so);
+
+        my @matches  = eager gather for @identities -> $wanted {
+            my $spec = Zef::Distribution::DependencySpecification.new($wanted);
+            for @dists -> $dist {
+                take $dist if ?$dist.contains-spec($spec);
+            }
+        }
+        @ = @matches.map: { Zef::Distribution.new(|%($_)) }
     }
 }

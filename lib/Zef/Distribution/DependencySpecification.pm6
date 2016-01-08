@@ -1,31 +1,55 @@
+# punnable so we can use it on `provides` instead of using a new Distribution
+# as those are not actually Distributions, while providing these methods to
+# actual Distributions
 class Zef::Distribution::DependencySpecification {
-    has Str $.name;
-    has Str $.version-matcher;
-    has Str $.auth-matcher;
-    has Str $.api-matcher;
+    has $.id;
+    # todo: handle wildcard/+ (like "1.2.3+", "1.2.*", "*:ugexe", "github:*")
 
-    method new($identity is copy) {
-        my $version-matcher = ~($identity.subst-mutate(/":ver"  ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "*");
-        my $auth-matcher    = ~($identity.subst-mutate(/":auth" ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "");
-        my $api-matcher     = ~($identity.subst-mutate(/":api"  ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "");
-        self.bless(:name($identity), :$version-matcher, :$auth-matcher, :$api-matcher);
+    submethod new($id) { self.bless(:$id) }
+
+    method !id { $ = self.?identity // $.id }
+
+    method identity-parts {
+        state %ids;
+        %ids{self!id} //= IDENTITY2HASH(self!id);
     }
 
-    method ACCEPTS(Distribution $dist) {
-        return False unless $dist.name eq $!name;
-        if $!version-matcher.chars {
-            return False unless Version.new($dist.ver) ~~ Version.new($!version-matcher);
+    method name {
+        my $name = callsame() || self.identity-parts<name>;
+    }
+
+    method version-matcher {
+        my $ver = self.identity-parts<ver>;
+    }
+
+    method auth-matcher {
+        my $auth = self.identity-parts<auth>;
+    }
+
+    method api-matcher {
+        my $api = self.identity-parts<api>;
+    }
+
+
+    method spec-matcher($spec) {
+        return False unless $spec.name eq self.name;
+        if $.version-matcher.chars {
+            return False unless Version.new($spec.version-matcher) ~~ Version.new($.version-matcher);
         }
-        if $!auth-matcher.chars {
-            return False unless $dist.auth eq $!auth-matcher;
+        if $.auth-matcher.chars {
+            return False unless $spec.auth-matcher eq $.auth-matcher;
         }
-        if $!api-matcher.chars {
-            return False unless $dist.api eq $!api-matcher;
+        if $.api-matcher.chars {
+            return False unless Version.new($spec.api-matcher) ~~ Version.new($.api-matcher);
         }
         return True;
     }
+}
 
-    method Str() {
-        return "{$.name}:ver<{$.version-matcher  // ''}>:auth<{$.auth-matcher // ''}>:api<{$.api-matcher // ''}>";
-    }
+sub IDENTITY2HASH($identity is copy) is export {
+    my $ver  = ~($identity.subst-mutate(/":ver"  ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "*");
+    my $auth = ~($identity.subst-mutate(/":auth" ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "");
+    my $api  = ~($identity.subst-mutate(/":api"  ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "*");
+    my $name = $identity;
+    return %(:$name, :$ver, :$auth, :$api);
 }

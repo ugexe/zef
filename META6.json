@@ -39,7 +39,7 @@
         "Zef::Utils::URI"        : "lib/Zef/Utils/URI.pm6"
     },
     "resources" : [
-        "resources/config.json"
+        "config.json"
     ],
     "auth"    : "github:ugexe",
     "authors" : [

@@ -35,7 +35,8 @@ class Zef::App {
         #
         # todo: Update ContentStorage::CPAN to use Distribution.name/etc instead of %meta<name>/<etc>
         sub get-dists(*@_) {
-            once { say "[DEBUG] Building index and determining dependencies..." }
+            say "[DEBUG] Searching for {'dependencies ' if state $once++}{@_.join(', ')}";
+
             state @found;
             for @_.grep({ $_ !~~ @!ignore.any }).flat -> $wanted {
                 # todo: :ignore(%seen.keys);
@@ -43,10 +44,12 @@ class Zef::App {
                 for %store.kv -> $from, $candi {
                     my $dist = $candi[0];
                     unless $dist.identity ~~ @found.map({.identity}).any {
-                        my @wanted-deps = ($dist.depends if ?$depends).Slip,
+                        # todo: alternatives, i.e. not a Str but [Str, Str]
+                        my @wanted-deps = grep *.chars,
+                            ($dist.depends       if ?$depends).Slip,
                             ($dist.test-depends  if ?$test-depends).Slip,
                             ($dist.build-depends if ?$build-depends).Slip;
-                        get-dists(|@wanted-deps);
+                        get-dists(|@wanted-deps) if @wanted-deps.elems;
                         @found.append($dist);
                     }
                 }

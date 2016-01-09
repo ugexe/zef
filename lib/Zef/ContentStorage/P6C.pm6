@@ -11,7 +11,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
     method IO {
         my $dir = $!cache.IO.child('p6c').IO;
         $dir.mkdir unless $dir.e;
-        $ = "{$dir}".IO;
+        $dir;
     }
     method package-list-file { $ = self.IO.child('packages.json').IO }
     method !slurp-package-list { @ = |from-json(self.package-list-file.slurp) }
@@ -40,6 +40,5 @@ class Zef::ContentStorage::P6C does ContentStorage {
                 take $dist if ?$dist.contains-spec($spec);
             }
         }
-        @ = @matches.map: { Zef::Distribution.new(|%($_)) }
     }
 }

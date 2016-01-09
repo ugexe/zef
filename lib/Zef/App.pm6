@@ -35,6 +35,7 @@ class Zef::App {
         #
         # todo: Update ContentStorage::CPAN to use Distribution.name/etc instead of %meta<name>/<etc>
         sub get-dists(*@_) {
+            once { say "[DEBUG] Building index and determining dependencies..." }
             state @found;
             for @_.grep({ $_ !~~ @!ignore.any }).flat -> $wanted {
                 # todo: :ignore(%seen.keys);
@@ -115,9 +116,7 @@ class Zef::App {
         }
 
         for topological-sort(@dists, |%_) -> $dist {
-            # until CU::R.resolve is merged we need to force on '.' so rakudobrew's install
-            # does not think it is already installed when EVAL'd due to the -Ilib finding it
-            # XXX: require ignores :ver<xxx> and EVAL always throws an error if :ver is used
+            # todo: handle this lazily or in a way where we don't fetch stuf we already have
             if $dist.name ne 'Zef' && ?$dist.is-installed && $dist.IO !~~ $*CWD {
                 say "[DEBUG] {$dist.name} is already installed. Skipping... (use :force to override)" and next unless ?$force;
                 say "[DEBUG] {$dist.name} is already installed. Continuing anyway with :force";

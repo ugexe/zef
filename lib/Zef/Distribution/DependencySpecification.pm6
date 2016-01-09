@@ -33,13 +33,13 @@ class Zef::Distribution::DependencySpecification {
 
     method spec-matcher($spec) {
         return False unless $spec.name eq self.name;
-        if $.version-matcher.chars {
+        if $spec.version-matcher.chars && $spec.version-matcher ne '*' {
             return False unless Version.new($spec.version-matcher) ~~ Version.new($.version-matcher);
         }
-        if $.auth-matcher.chars {
-            return False unless $spec.auth-matcher eq $.auth-matcher;
+        if $spec.auth-matcher.chars {
+            return False unless $.auth-matcher.chars && $spec.auth-matcher eq $.auth-matcher;
         }
-        if $.api-matcher.chars {
+        if $spec.api-matcher.chars && $.api-matcher ne '*' {
             return False unless Version.new($spec.api-matcher) ~~ Version.new($.api-matcher);
         }
         return True;

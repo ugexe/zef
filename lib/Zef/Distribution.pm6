@@ -19,7 +19,17 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # attach arbitrary data, like for topological sort, that won't be saved on install
     has %.metainfo is rw;
 
-    method is-installed(*@curlis is copy) { $ = IS-INSTALLED(self.identity) }
+    method is-installed(*@curlis is copy) {
+        return True if IS-INSTALLED(self.identity);
+
+        # EVALing a dist name doesn't really tell us if its *not* installed
+        # since a dist name doesn't have to match up to any of its modules
+        if self.provides.keys[0] -> $provided {
+            return True if IS-INSTALLED($provided);
+        }
+
+        False
+    }
 
     method identity { $.Str()  }
 
@@ -56,16 +66,11 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
 
 sub IS-INSTALLED($identity) {
     use MONKEY-SEE-NO-EVAL;
-    try {
-        CATCH { default { return False; }; };
-        my %parts = IDENTITY2HASH($identity);
-        my $require = %parts<name>
-            ~ ((%parts<ver>  // '' ) ne ('*' | '')?? ":ver<{%parts<ver>}>"   !! '')
-            ~ ((%parts<auth> // '' ) ne ('*' | '') ?? ":auth<{%parts<auth>}>" !! '')
-            ~ ((%parts<api>  // '' ) ne ('*' | '') ?? ":api<{%parts<api>}>"   !! '');
-        #EVAL qq|use $require;|;
-        # can't use :ver inside EVAL yet, and require ignores it
-        EVAL qq|%parts<name>|;
-        return True;
-    }
+    my %parts = IDENTITY2HASH($identity);
+    my $require = %parts<name>
+        ~ ((%parts<ver>  // '' ) ne ('*' | '') ?? ":ver<{%parts<ver>}>"   !! '')
+        ~ ((%parts<auth> // '' ) ne ('*' | '') ?? ":auth<{%parts<auth>}>" !! '')
+        ~ ((%parts<api>  // '' ) ne ('*' | '') ?? ":api<{%parts<api>}>"   !! '');
+    try { EVAL ( "use $require" ) }
+    return (not defined $!) ?? True !! False;
 }

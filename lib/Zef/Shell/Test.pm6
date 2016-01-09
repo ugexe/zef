@@ -13,24 +13,24 @@ class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
         my @results = gather for @test-files -> $test-file {
             # many tests are written with the assumption that $*CWD will be their distro's base directory
             # so we have to hack around it so people can still (rightfully) pass absolute paths to `.test`
-            my $base-path = $test-file.parent.parent.absolute.IO;
-            my $rel-test  = $test-file.relative($base-path);
+            my $rel-test  = $test-file.relative($path);
             say "[DEBUG] Testing: {$rel-test}";
-            my $proc = zrun($*EXECUTABLE, '-Ilib', $rel-test, :cwd(~$base-path), :out);
+            my $proc = zrun($*EXECUTABLE, '-Ilib', $rel-test, :cwd($path), :out, :err);
             .say for $proc.out.lines;
+            .say for $proc.err.lines;
             $proc.out.close;
+            $proc.err.close;
             take $proc;
         }
         ?@results.map(?*);
     }
 
     method find-tests($path) {
-        @ = ($path.IO.d && $path.IO.basename eq 't')
-            ?? $path.IO.dir.grep(*.IO.extension.lc eq 't')
-            !! ($path.IO.f && $path.IO.extension.lc eq 't'
-                ?? $path
-                !! ($path.IO.child('t').IO.e && $path.IO.child('t').IO.d
-                    ?? $path.IO.child('t').IO.dir.grep(*.IO.extension.lc eq 't')
-                    !! Nil) );
+        my @stack = $path.IO.child('t').absolute;
+        my $perl-files := gather while ( @stack ) {
+            my $current = @stack.pop;
+            take $current.IO if ($current.IO.f && $current.IO.extension ~~ rx:i/t$/);
+            @stack.append(dir($current)>>.path) if $current.IO.d;
+        }
     }
 }

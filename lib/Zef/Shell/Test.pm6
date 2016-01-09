@@ -7,7 +7,7 @@ class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
     method probe { $ = True }
 
     method test($path) {
-        die "path does not exist: {$path}" unless $path.e;
+        die "path does not exist: {$path}" unless $path.IO.e;
         my @test-files = self.find-tests($path);
 
         my @results = eager gather for @test-files -> $test-file {

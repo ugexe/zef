@@ -2,7 +2,7 @@ use Zef;
 use Zef::Shell;
 
 class Zef::Shell::prove6 is Zef::Shell does Tester {
-    method test-matcher($path) { so ($path.IO.extension.lc eq 't' || $path.IO.dir.first(*.IO.extension.lc eq 't') ) }
+    method test-matcher($path) { True }
 
     method probe {
         # todo: check without spawning process (slow)
@@ -26,7 +26,7 @@ class Zef::Shell::prove6 is Zef::Shell does Tester {
         die "path does not exist: {$path}" unless $path.IO.e;
         my $cwd = $path.IO.parent; # XXX
         my $test-path = $path.IO.f ?? $path !! $path.IO.relative($cwd);
-        my $proc = zrun('prove6', '-l', '-e', q|perl6 -Ilib|, $test-path, :$cwd);
+        my $proc = zrun('prove6', '-e', q|perl6 -Ilib|, $test-path, :$cwd);
         $ = ?$proc;
     }
 }

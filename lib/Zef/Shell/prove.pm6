@@ -2,7 +2,7 @@ use Zef;
 use Zef::Shell;
 
 class Zef::Shell::prove is Zef::Shell does Tester {
-    method test-matcher($path) { so ($path.IO.extension.lc eq 't' || ?$path.IO.dir.first({ $_.IO.extension.lc eq 't' }) ) }
+    method test-matcher($path) { True }
 
     method probe {
         state $prove-help = try {

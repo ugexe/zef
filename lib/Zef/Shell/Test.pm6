@@ -2,7 +2,7 @@ use Zef;
 use Zef::Shell;
 
 class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
-    method test-matcher($path) { so self.find-tests($path).elems }
+    method test-matcher($path) { True }
 
     method probe { $ = True }
 
@@ -10,7 +10,7 @@ class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
         die "path does not exist: {$path}" unless $path.IO.e;
         my @test-files = self.find-tests($path);
 
-        my @results = gather for @test-files -> $test-file {
+        my @results = eager gather for @test-files -> $test-file {
             # many tests are written with the assumption that $*CWD will be their distro's base directory
             # so we have to hack around it so people can still (rightfully) pass absolute paths to `.test`
             my $rel-test  = $test-file.relative($path);
@@ -22,7 +22,7 @@ class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
             $proc.err.close;
             take $proc;
         }
-        ?@results.map(?*);
+        @test-files.elems ?? ?@results.map(?*) !! True;
     }
 
     method find-tests($path) {

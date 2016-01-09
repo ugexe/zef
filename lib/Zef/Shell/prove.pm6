@@ -27,9 +27,9 @@ class Zef::Shell::prove is Zef::Shell does Tester {
 
     method test($path) {
         die "path does not exist: {$path}" unless $path.IO.e;
-        my $cwd = $path.IO.parent; # XXX
-        my $test-path = $path.IO.f ?? $path !! $path.IO.relative($cwd);
-        my $proc = zrun('prove', '-v', '-e', q|perl6 -Ilib|, $test-path, :$cwd);
+        return True unless $.find-tests($path);
+        my $test-path = $path.IO.child('t').absolute;
+        my $proc = zrun('prove', '-v', '-e', q|perl6 -Ilib|, $test-path, :cwd($path));
         $ = ?$proc;
     }
 }

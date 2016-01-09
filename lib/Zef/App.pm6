@@ -204,9 +204,11 @@ sub legacy-hook($dist) {
     my $result;
     try {
         CATCH { default { $result = False; } }
-        my $proc = run($*EXECUTABLE, '-I.', '-Ilib', '-e', "$cmd", :cwd($dist.path));
+        my $proc = run($*EXECUTABLE, '-I.', '-Ilib', '-e', "$cmd", :cwd($dist.path), :out, :err);
         .say for $proc.out.lines;
+        .say for $proc.err.lines;
         $proc.out.close;
+        $proc.err.close;
         $result = ?$proc;
     }
     $builder-path.IO.unlink if $builder-path.ends-with('.zef') && "{$builder-path}".IO.e;

@@ -49,8 +49,17 @@ old CLI overlay from the previous version of Zef, so the output is rather bleh.
     # skip testing
     --skip-tests
 
-    # install the requested modules regardless of currently installed versions
+    # install the requested modules regardless of: currently installed versions,
+    # test results, or failed dependency installations
     --force
+
+    # install to a location determined by short-id
+    --install-to=<id> # site/home/vendor/perl
+
+    # disable fetching dependencies
+    --/depends
+    --/build-depends
+    --/test-depends
 
 =head4 B<search>
 

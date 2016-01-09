@@ -6,12 +6,12 @@ use Zef::Utils::SystemInfo;
 
 my $app = Zef::App.new;
 
-#| Download a specific distribution
+#| Download specific distributions
 multi MAIN('get', Bool :$depends, Bool :$test-depends, Bool :$build-depends, *@identities) {
     $app.get(|@identities, :$depends, :$test-depends, :$build-depends);
 }
 
-#| Download a specific distribution
+#| Run tests
 multi MAIN('test', *@paths) {
     my %results = $app.test(|@paths);
     %results<fail>.elems ?? exit(1) !! exit(0);
@@ -19,8 +19,8 @@ multi MAIN('test', *@paths) {
 
 #| Install
 multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-                      Bool :v($verbose), Bool :$force, Bool :$skip-tests, :@install-to = ['site'], *@identities) {
-    $app.install(|@identities, :$depends, :$test-depends, :$build-depends, :$force, :@install-to, :fetch, :test(!$skip-tests));
+                      Bool :v($verbose), Bool :$force, Bool :$skip-tests, :$install-to = ['site'], *@identities) {
+    $app.install(|@identities, :$depends, :$test-depends, :$build-depends, :$force, :$install-to, :fetch, :test(!$skip-tests));
 }
 
 #| Find that shit

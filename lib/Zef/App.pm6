@@ -89,12 +89,12 @@ class Zef::App {
         $!storage.search(|@identities, |%fields);
     }
 
-    method install(:@install-to = ['site'], *@wanted, *%_) {
+    method install(:$install-to = ['site'], *@wanted, *%_) {
         state @can-install-ids = $*REPO.repo-chain.unique( :as(*.id) )\
             .grep(*.?can-install)\
             .map({.id});
 
-        my @target-curs = @install-to\
+        my @target-curs = $install-to\
             .map({ ($_ ~~ CompUnit::Repository) ?? $_ !! CompUnit::RepositoryRegistry.repository-for-name($_) })\
             .grep(*.defined)\
             .grep({ $_.id ~~ any(@can-install-ids) });

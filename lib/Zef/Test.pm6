@@ -14,6 +14,7 @@ class Zef::Test does DynLoader {
 
     method plugins {
         state @usable = @!backends\
+            .grep({ !$_<disabled> })\
             .grep({ (try require ::($ = $_<module>)) !~~ Nil })\
             .grep({ ::($ = $_<module>).^can("probe") ?? ::($ = $_<module>).probe !! True })\
             .map({ ::($ = $_<module>).new( |($_<options> // []) ) });

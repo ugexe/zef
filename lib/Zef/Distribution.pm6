@@ -2,6 +2,7 @@ use Zef::Distribution::DependencySpecification;
 
 class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecification {
     # missing from Distribution
+    has $.license;
     has @.build-depends;
     has @.test-depends;
     has @.resources;
@@ -58,6 +59,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
         my %hash = callsame.append({ :$.api, :@!build-depends, :@!test-depends, :@!resources });
         %hash<id>       = $.id;
         %hash<identity> = $.Str;
+        %hash<license>  = $.license;
         %hash;
     }
 

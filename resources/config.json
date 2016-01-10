@@ -1,5 +1,9 @@
 {
-    "store" : "$*HOME/.zef",
+    "Store" : "$*HOME/.zef",
+    "License" : {
+        "whitelist" : "*",
+        "blacklist" : []
+    },
     "ContentStorage" : [
         {
             "name" : "p6c",

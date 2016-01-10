@@ -11,7 +11,6 @@ class Zef::ContentStorage does DynLoader {
         for @identities -> $ident {
             STORE:
             for self.plugins -> $storage {
-                # todo: better way / option for knowing when to pass in a fetcher
                 if $storage.search($ident, :max-results(1)) -> @candi {
                     %results{$storage.^name} .= append( @candi[0] );
                     next IDENTITY;
@@ -36,5 +35,6 @@ class Zef::ContentStorage does DynLoader {
             .grep({ (try require ::($ = $_<module>)) !~~ Nil })\
             .grep({ ::($ = $_<module>).^can("probe") ?? ::($ = $_<module>).probe !! True })\
             .map({ ::($ = $_<module>).new( :$!fetcher, :$!cache, |($_<options> // []) ) });
+            # todo: better way / option for knowing when to pass in a fetcher
     }
 }

@@ -19,8 +19,11 @@ multi MAIN('test', *@paths) {
 
 #| Install
 multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-                      Bool :v($verbose), Bool :$force, Bool :$skip-tests, :$install-to = ['site'], *@identities) {
-    $app.install(|@identities, :$depends, :$test-depends, :$build-depends, :$force, :$install-to, :fetch, :test(!$skip-tests));
+                      Bool :v($verbose), Bool :$force, Bool :$skip-tests, Bool :$fetch = True,
+                      :$install-to = ['site'], *@identities) {
+
+    $app.install( :$depends, :$test-depends, :$build-depends, :$force,
+                  :$fetch, :$install-to, :test(!$skip-tests), |@identities );
 }
 
 #| Find that shit

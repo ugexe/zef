@@ -5,6 +5,8 @@ use Zef::ContentStorage;
 use Zef::Extract;
 use Zef::Test;
 
+our %CONFIG = ZEF-CONFIG();
+
 class Zef::App {
     has $.cache;
     has $.indexer;
@@ -16,11 +18,11 @@ class Zef::App {
     has $!lock = Lock.new;
 
     submethod BUILD(
-        :$!cache     = "{ZEF-CONFIG()<store>}/store",
-        :@fetchers   = |(ZEF-CONFIG()<Fetch>),
-        :@storages   = |(ZEF-CONFIG()<ContentStorage>),
-        :@extractors = |(ZEF-CONFIG()<Extract>),
-        :@testers    = |(ZEF-CONFIG()<Test>),
+        :$!cache     = "{%CONFIG<Store>}/store",
+        :@fetchers   = |(%CONFIG<Fetch>),
+        :@storages   = |(%CONFIG<ContentStorage>),
+        :@extractors = |(%CONFIG<Extract>),
+        :@testers    = |(%CONFIG<Test>),
     ) {
         mkdir $!cache unless $!cache.IO.e;
         $!fetcher   = Zef::Fetch.new( :backends(@fetchers) );
@@ -43,7 +45,7 @@ class Zef::App {
                 my %store = $!storage.candidates($wanted);
                 for %store.kv -> $from, $candi {
                     my $dist = $candi[0];
-                    unless $dist.identity ~~ @found.map({.identity}).any {
+                    unless $dist.identity ~~ @found.map(*.identity).any {
                         # todo: alternatives, i.e. not a Str but [Str, Str]
                         my @wanted-deps = grep *.chars,
                             ($dist.depends       if ?$depends).Slip,
@@ -92,7 +94,7 @@ class Zef::App {
         $!storage.search(|@identities, |%fields);
     }
 
-    method install(:$install-to = ['site'], *@wanted, *%_) {
+    method install(:$install-to = ['site'], *@wants, *%_) {
         state @can-install-ids = $*REPO.repo-chain.unique( :as(*.id) )\
             .grep(*.?can-install)\
             .map({.id});
@@ -102,23 +104,53 @@ class Zef::App {
             .grep(*.defined)\
             .grep({ .id ~~ any(@can-install-ids) });
 
-        self!install(|@wanted, :@target-curs, |%_);
+        self!install(:@target-curs, |%_, |@wants);
     }
-    method !install(:@target-curs, Bool :$force, *@wanted, Bool :$fetch, Bool :$test, *%_) {
-        my @dists = @wanted.map: -> $want {
+    method !install(:@target-curs, Bool :$force, Bool :$fetch, Bool :$test, *@wants, *%_) {
+        my &notice = ?$force ?? &say !! &die;
+
+        my @dists = eager gather for @wants -> $want {
             # todo: manifest/lookup for ContentStorage.cache + Fetcher for local paths (for .fetch("some-path", :depends))
             # 1) Will allow checking path for meta info to see if we can skip fetching it
             # 2) @wants may contain an identity but also a path string. However, if dependencies
             # are needed they will always be identities so this would let us translate those
             # identities into local paths (if they exist) to take any required actions on
-            ($want.starts-with('.' | '/') && ?$want.IO.e 
-                    ?? Zef::Distribution::Local.new($want.IO.absolute)
-                    !! ?$fetch
-                        ?? |self.fetch($want, |%_)
-                        !! die "Don't know how to locate $want locally. Did you mean to pass :fetch?").Slip;
+            given $want {
+                when /^<[./]>/ && .IO.e {
+                    take Zef::Distribution::Local.new($_.IO.absolute);
+                }
+                when ?$fetch {
+                    take $_ for |self.fetch($_, |%_);
+                }
+                default {
+                    notice "Don't know how to locate '$want'. Did you mean to pass :fetch?";
+                }
+
+            }
         }
 
-        for topological-sort(@dists, |%_) -> $dist {
+        # todo: put this into its own subroutine or module. just a placeholder example for now
+        my @filtered-dists = gather for @dists -> $dist {
+            # Should `License` be a root option key?
+            # If not, would it go under `Fetch` or `ContentStorage`? a new phase like `Filter`?
+            given %CONFIG<License> {
+                CATCH { default {
+                    say $_.message;
+                    die    "Allowed licenses: {%CONFIG<License>.<whitelist>.join(',')    || 'n/a'}\n"
+                        ~  "Disallowed licenses: {%CONFIG<License>.<blacklist>.join(',') || 'n/a'}";
+                } }
+                when .<blacklist>.?chars && any(|.<blacklist>) ~~ any('*', $dist.license // '') {
+                    notice "License blacklist configuration exists and matches {$dist.license // 'n/a'} for {$dist.name}";
+                }
+                when .<whitelist>.?chars && any(|.<whitelist>) ~~ none('*', $dist.license // '') {
+                    notice "License whitelist configuration exists and does not match {$dist.license // 'n/a'} for {$dist.name}";
+                }
+            }
+
+            take $dist;
+        }
+
+        for topological-sort(@filtered-dists, |%_) -> $dist {
             # todo: handle this lazily or in a way where we don't fetch stuf we already have
             if $dist.name ne 'Zef' && ?$dist.is-installed && $dist.IO !~~ $*CWD {
                 say "[DEBUG] {$dist.name} is already installed. Skipping... (use :force to override)" and next unless ?$force;
@@ -128,7 +160,7 @@ class Zef::App {
             # temporary: legacy build hook. may have to package own version of Panda::Builder,
             # even if releasing that name into the ecosystem messes up other installers as
             # there is no other sane way of handling this junk
-            die "Build.pm hook failed" if $dist.IO.child('Build.pm').e && !legacy-hook($dist) && !$force;
+            notice "Build.pm hook failed" if $dist.IO.child('Build.pm').e && !legacy-hook($dist);
 
             my %tested = ?$test ?? self.test($dist.path, :force(?$force)) !! { };
 

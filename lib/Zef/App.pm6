@@ -17,10 +17,10 @@ class Zef::App {
 
     submethod BUILD(
         :$!cache     = "{ZEF-CONFIG()<store>}/store",
-        :@fetchers   = |(ZEF-CONFIG()<Zef::Fetch>),
-        :@storages   = |(ZEF-CONFIG()<Zef::ContentStorage>),
-        :@extractors = |(ZEF-CONFIG()<Zef::Extract>),
-        :@testers    = |(ZEF-CONFIG()<Zef::Test>),
+        :@fetchers   = |(ZEF-CONFIG()<Fetch>),
+        :@storages   = |(ZEF-CONFIG()<ContentStorage>),
+        :@extractors = |(ZEF-CONFIG()<Extract>),
+        :@testers    = |(ZEF-CONFIG()<Test>),
     ) {
         mkdir $!cache unless $!cache.IO.e;
         $!fetcher   = Zef::Fetch.new( :backends(@fetchers) );
@@ -100,7 +100,7 @@ class Zef::App {
         my @target-curs = $install-to\
             .map({ ($_ ~~ CompUnit::Repository) ?? $_ !! CompUnit::RepositoryRegistry.repository-for-name($_) })\
             .grep(*.defined)\
-            .grep({ $_.id ~~ any(@can-install-ids) });
+            .grep({ .id ~~ any(@can-install-ids) });
 
         self!install(|@wanted, :@target-curs, |%_);
     }

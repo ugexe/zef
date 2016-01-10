@@ -1,6 +1,6 @@
 {
     "store" : "$*HOME/.zef",
-    "Zef::ContentStorage" : [
+    "ContentStorage" : [
         {
             "name" : "p6c",
             "module" : "Zef::ContentStorage::P6C",
@@ -22,7 +22,7 @@
             }
         }
     ],
-    "Zef::Fetch" : [
+    "Fetch" : [
         {
             "name" : "git",
             "module" : "Zef::Shell::git"
@@ -40,7 +40,7 @@
             "module" : "Zef::Shell::PowerShell::download"
         }
     ],
-    "Zef::Extract" : [
+    "Extract" : [
         {
             "name" : "unzip",
             "module" : "Zef::Shell::unzip"
@@ -58,7 +58,7 @@
             "module" : "Zef::Shell::p5tar"
         }
     ],
-    "Zef::Test" : [
+    "Test" : [
         {
             "name" : "prove6",
             "module" : "Zef::Shell::prove6"

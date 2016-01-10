@@ -4,26 +4,29 @@ class Zef { }
 # to `test` (for the prove command), how to handle existing files, etc
 
 # A way to avoid printing everything to make --quiet option more univesal between plugins
+# Need to create a messaging format to include the phase, file, verbosity level, progress,
+# etc we may or may not display as neccesary
 role Messenger  {
-    has $.out = Supplier.new;
+    has $.stdout = Supplier.new;
+    has $.stderr = Supplier.new;
 }
 
 # get a resource located at a uri and save it to the local disk
-role Fetcher {
+role Fetcher does Messenger {
     method fetch($uri, $save-as) { ... }
     method fetch-matcher($uri) { ... }
 }
 
 # as a post-hook to the default fetchers we will need to extract zip
 # files. git does this itself, so a git based Fetcher wouldn't need this
-role Extractor {
+role Extractor does Messenger {
     method extract($archive-file, $target-dir) { ... }
     method list($archive-file) { ... }
     method extract-matcher($path) { ... }
 }
 
 # test a single file OR all the files in a directory (recursive optional)
-role Tester {
+role Tester does Messenger {
     method test($path) { ... }
     method test-matcher($path) { ... }
 }

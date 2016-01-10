@@ -60,16 +60,16 @@
     ],
     "Zef::Test" : [
         {
-            "name" : "default",
-            "module" : "Zef::Shell::Test"
-        },
-        {
             "name" : "prove6",
             "module" : "Zef::Shell::prove6"
         },
         {
             "name" : "prove",
             "module" : "Zef::Shell::prove"
+        },
+        {
+            "name" : "default",
+            "module" : "Zef::Shell::Test"
         }
     ]
 }

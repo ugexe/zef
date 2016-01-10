@@ -29,7 +29,12 @@ class Zef::Shell::prove is Zef::Shell does Tester {
         die "path does not exist: {$path}" unless $path.IO.e;
         my $test-path = $path.IO.child('t');
         return True unless $test-path.e;
-        my $proc = zrun('prove', '-v', '-e', q|perl6 -Ilib|, $test-path, :cwd($path));
+        $.stdout.emit("[DEBUG] Testing: {$test-path.absolute}");
+        my $proc = zrun('prove', '-v', '-r', '-e', q|perl6 -Ilib|, $test-path.relative($path), :cwd($path), :out, :err);
+        $.stdout.emit($_) for $proc.out.lines;
+        $.stderr.emit($_) for $proc.err.lines;
+        $proc.out.close;
+        $proc.err.close;
         $ = ?$proc;
     }
 }

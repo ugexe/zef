@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Shell;
 
-class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
+class Zef::Shell::Test is Zef::Shell does Tester {
     method test-matcher($path) { True }
 
     method probe { $ = True }
@@ -14,10 +14,10 @@ class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
             # many tests are written with the assumption that $*CWD will be their distro's base directory
             # so we have to hack around it so people can still (rightfully) pass absolute paths to `.test`
             my $rel-test  = $test-file.relative($path);
-            say "[DEBUG] Testing: {$rel-test}";
+            $.stdout.emit("[DEBUG] Testing: {$rel-test}");
             my $proc = zrun($*EXECUTABLE, '-Ilib', $rel-test, :cwd($path), :out, :err);
-            .say for $proc.out.lines;
-            .say for $proc.err.lines;
+            $.stdout.emit($_) for $proc.out.lines;
+            $.stderr.emit($_) for $proc.err.lines;
             $proc.out.close;
             $proc.err.close;
             take $proc;

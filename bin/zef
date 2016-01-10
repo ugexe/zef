@@ -39,23 +39,23 @@ multi MAIN(Bool :$help?) {
 
         COMMANDS
 
-         install                Install specific dependencies by name or path
-         test                   Run tests on a given module's path
-         get                    Fetch and extract module's source
+          install                Install specific dependencies by name or path
+          test                   Run tests on a given module's path
+          get                    Fetch and extract module's source
 
 
         OPTIONS
 
-         --install-to=[name]    Short name of CompUnit::Repository to install to
+          --install-to=[name]    Short name of CompUnit::Repository to install to
 
 
         FLAGS
 
-         --force                Continue each phase regardless of failures
-         --skip-tests           Skip the testing phase
+          --force                Continue each phase regardless of failures
+          --skip-tests           Skip the testing phase
 
-         --/depends             Do not fetch dependencies
-         --/test-depends        Do not fetch test dependencies
-         --/build-depends       Do not fetch build dependencies
+          --/depends             Do not fetch dependencies
+          --/test-depends        Do not fetch test dependencies
+          --/build-depends       Do not fetch build dependencies
         END_USAGE
 }

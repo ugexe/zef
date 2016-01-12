@@ -208,7 +208,7 @@ sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True,
 # todo: write a real hooking implementation to CU::R::I instead of the current practice
 # of writing an installer specific (literally) Build.pm
 sub legacy-hook($dist) {
-    my $builder-path = $dist.path.child('Build.pm');
+    my $builder-path = $dist.path.IO.child('Build.pm');
 
     # if panda is declared as a dependency then there is no need to fix the code, although
     # it would still be wise for the author to change their code as outlined in $legacy-fixer-code

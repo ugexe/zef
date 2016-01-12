@@ -11,7 +11,11 @@ role Zef::Distribution::Local {
     }
 
     method resources {
-        % = self.hash<resources>.map: { $_ => $!path.IO.child('resources').child($_) }
+        % = self.hash<resources>.map: {
+            $_ => $_ ~~ m/^libraries\/(.*)/
+                ?? $!path.IO.child('resources').child('libraries').child($*VM.platform-library-name($0.Str.IO))
+                !! $!path.IO.child('resources').child($_);
+        }
     }
 
     method sources(Bool :$absolute) {

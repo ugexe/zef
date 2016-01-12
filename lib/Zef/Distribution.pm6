@@ -8,6 +8,9 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     has @.resources;
     has @!provides-specs;
 
+    # attach arbitrary data, like for topological sort, that won't be saved on install
+    has %.metainfo is rw;
+
     method BUILDALL(|) {
         my $self = callsame;
         @.depends       = @.depends.flatmap(*.flat);
@@ -16,9 +19,6 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
         @!resources     = @!resources.flatmap(*.flat);
         $self;
     }
-
-    # attach arbitrary data, like for topological sort, that won't be saved on install
-    has %.metainfo is rw;
 
     method is-installed(*@curlis is copy) {
         return True if IS-INSTALLED(self.identity);

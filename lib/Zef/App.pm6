@@ -31,35 +31,44 @@ class Zef::App {
         $!tester    = Zef::Test.new( :backends(@testers) );
     }
 
-    method fetch(Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True, *@wants) {
+    method fetch(Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True, Bool :$force, *@wants) {
         # Once metacpan can return results again this will need to be modified so as not to
         # duplicate an identity that shows up from multiple ContentStorages
         #
         # todo: Update ContentStorage::CPAN to use Distribution.name/etc instead of %meta<name>/<etc>
         sub get-dists(*@_) {
-            say "[DEBUG] Searching for {'dependencies ' if state $once++}{@_.join(', ')}";
-
-            state @found;
-            for @_.grep({ $_ !~~ @!ignore.any }).flat -> $wanted {
-                # todo: :ignore(%seen.keys);
-                my %store = $!storage.candidates($wanted);
-                for %store.kv -> $from, $candi {
-                    my $dist = $candi[0];
-                    unless $dist.identity ~~ @found.map(*.identity).any {
+            state %found;
+            my @allowed = |@_.grep(* ~~ none(|@!ignore, |%found.keys)).unique || return;
+            say "[DEBUG] Searching for {'dependencies ' if state $once++}{@allowed.join(', ')}";
+            ALLOWED:
+            for @allowed -> $wanted {
+                CONTENT:
+                for $!storage.candidates($wanted) -> $cs {
+                    my $storage = $cs.key;
+                    my $dist    = $cs.value[0];
+                    unless %found{$wanted}:exists {
+                        %found{$wanted} = $dist;
                         # todo: alternatives, i.e. not a Str but [Str, Str]
                         my @wanted-deps = grep *.chars,
                             ($dist.depends       if ?$depends).Slip,
                             ($dist.test-depends  if ?$test-depends).Slip,
                             ($dist.build-depends if ?$build-depends).Slip;
                         get-dists(|@wanted-deps) if @wanted-deps.elems;
-                        @found.append($dist);
+                        next ALLOWED;
                     }
                 }
             }
-            @found;
+            %found
         }
 
-        gather for get-dists(|@wants) -> $dist {
+        my %found = get-dists(|@wants);
+
+        if @wants.grep({ not %found{$_}:exists }) -> $wanted {
+            say "Could not find distributions matching {$wanted.join(',')}";
+            die unless ?$force;
+        }
+
+        gather for %found.values -> $dist {
             my $sanitized-name = $dist.name.subst(':', '-', :g);
             my $uri = $dist.source-url;
             my $extract-to = $!cache.IO.child($sanitized-name);
@@ -74,7 +83,8 @@ class Zef::App {
                 $save-as = $!extractor.extract($save-as, $extract-to);
             }
 
-            take ($dist does Zef::Distribution::Local($save-as));
+            $dist does Zef::Distribution::Local($save-as);
+            take $dist;
         }
     }
 
@@ -188,9 +198,9 @@ sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True,
                 ($dist.test-depends-specs  if ?$test-depends).Slip,
                 ($dist.build-depends-specs if ?$build-depends).Slip;
 
-            for @deps.unique( :as(*.Str) ) -> $m {
-                for @dists.grep(* ~~ $m) -> $m2 {
-                    $visit($m2, $dist.identity);
+            for @deps -> $m {
+                for @dists.grep(*.spec-matcher($m)) -> $m2 {
+                    $visit($m2, $dist);
                 }
             }
             $dist.metainfo<marked>++;

@@ -46,15 +46,15 @@ old CLI overlay from the previous version of Zef, so the output is rather bleh.
 
 =head4 B<install>
     
-    # skip testing
-    --skip-tests
-
     # install the requested modules regardless of: currently installed versions,
     # test results, or failed dependency installations
     --force
 
     # install to a location determined by short-id
     --install-to=<id> # site/home/vendor/perl
+
+    # disable testing
+    --/test
 
     # disable fetching dependencies
     --/depends

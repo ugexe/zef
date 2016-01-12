@@ -45,6 +45,11 @@ old CLI overlay from the previous version of Zef, so the output is rather bleh.
 =head2 More CLI
 
 =head4 B<install>
+
+Note: The install process does not install anything until all other phases have completed. So if A requires B,
+and a user has requested to C<install A>, it would download A and B, possibly Build A and B, test A and B,
+and then finally install A and B but only if A and B passed all their tests. For instance: if A failed its
+tests then B will not be installed (even if it passed its own tests) without force.
     
     # install the requested modules regardless of: currently installed versions,
     # test results, or failed dependency installations
@@ -52,6 +57,9 @@ old CLI overlay from the previous version of Zef, so the output is rather bleh.
 
     # install to a location determined by short-id
     --install-to=<id> # site/home/vendor/perl
+
+    # do everything except the actual installations
+    --dry
 
     # disable testing
     --/test

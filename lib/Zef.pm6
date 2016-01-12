@@ -27,7 +27,7 @@ role Extractor does Messenger {
 
 # test a single file OR all the files in a directory (recursive optional)
 role Tester does Messenger {
-    method test($path) { ... }
+    method test($path, :@includes) { ... }
     method test-matcher($path) { ... }
 }
 

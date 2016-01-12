@@ -19,11 +19,11 @@ multi MAIN('test', *@paths) {
 
 #| Install
 multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-                      Bool :v($verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True,
+                      Bool :v($verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, Bool :$dry,
                       :$install-to = ['site'], *@identities) {
 
     $app.install( :$depends, :$test-depends, :$build-depends, :$force,
-                  :$fetch, :$install-to, :$test, |@identities );
+                  :$fetch, :$install-to, :$test, :dry(?$dry), |@identities );
 }
 
 #| Find that shit
@@ -55,8 +55,9 @@ multi MAIN(Bool :$help?) {
         FLAGS
 
           --force                Continue each phase regardless of failures
-          --skip-tests           Skip the testing phase
+          --dry                  Run all phases except the actual installations
 
+          --/tests               Skip the testing phase
           --/depends             Do not fetch dependencies
           --/test-depends        Do not fetch test dependencies
           --/build-depends       Do not fetch build dependencies

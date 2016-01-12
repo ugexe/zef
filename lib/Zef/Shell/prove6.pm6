@@ -22,12 +22,15 @@ class Zef::Shell::prove6 is Zef::Shell does Tester {
         so $prove6-help;
     }
 
-    method test($path) {
+    method test($path, :@includes) {
         die "path does not exist: {$path}" unless $path.IO.e;
         my $test-path = $path.IO.child('t');
         return True unless $test-path.e;
         $.stdout.emit("[DEBUG] Testing: {$test-path.absolute}");
-        my $proc = zrun('prove6', '-l', $test-path.relative($path), :cwd($path), :out, :err);
+
+        my $proc = zrun('prove6', '-l', |@includes.map({ "-I{$_}" }),
+                $test-path.relative($path), :cwd($path), :out, :err);
+
         $.stdout.emit($_) for $proc.out.lines;
         $.stderr.emit($_) for $proc.err.lines;
         $proc.out.close;

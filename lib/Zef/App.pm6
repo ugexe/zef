@@ -14,7 +14,7 @@ class Zef::App {
     has $.storage;
     has $.extractor;
     has $.tester;
-    has @!ignore = <Test NativeCall lib MONKEY-TYPING>;
+    has @!ignore = <Test NativeCall lib MONKEY-TYPING nqp>;
     has $!lock = Lock.new;
 
     submethod BUILD(
@@ -88,10 +88,10 @@ class Zef::App {
         }
     }
 
-    method test(Bool :$force, *@paths) {
+    method test(Bool :$force, :@includes, *@paths) {
         % = @paths.classify: -> $path {
-            say "[DEBUG] Testing: $path";
-            my $result = $!tester.test($path);
+            say "[DEBUG] Start test phase for: $path";
+            my $result = $!tester.test($path, :includes(@includes.grep(*.so)));
             unless ?$result {
                 die "Aborting due to test failure at: {$path} (use :force to override)" unless ?$force;
                 say "Test failure at: {$path}. Continuing anyway with :force"
@@ -116,7 +116,7 @@ class Zef::App {
 
         self!install(:@target-curs, |%_, |@wants);
     }
-    method !install(:@target-curs, Bool :$force, Bool :$fetch, Bool :$test, *@wants, *%_) {
+    method !install(:@target-curs, Bool :$force, Bool :$fetch, Bool :$test, Bool :$dry, *@wants, *%_) {
         my &notice = ?$force ?? &say !! &die;
 
         my @dists = eager gather for @wants -> $want {
@@ -140,7 +140,14 @@ class Zef::App {
         }
 
         # todo: put this into its own subroutine or module. just a placeholder example for now
-        my @filtered-dists = gather for @dists -> $dist {
+        my @filtered-dists = eager gather DIST: for @dists -> $dist {
+            say "[DEBUG] Filtering {$dist.name}";
+            # todo: handle this lazily or in a way where we don't fetch stuf we already have
+            if $dist.name ne 'Zef' && ?$dist.is-installed && $dist.IO !~~ $*CWD {
+                say "[DEBUG] {$dist.name} is already installed. Skipping... (use :force to override)" and next DIST unless ?$force;
+                say "[DEBUG] {$dist.name} is already installed. Continuing anyway with :force";
+            }
+
             # Should `License` be a root option key?
             # If not, would it go under `Fetch` or `ContentStorage`? a new phase like `Filter`?
             given %CONFIG<License> {
@@ -160,25 +167,47 @@ class Zef::App {
             take $dist;
         }
 
-        for topological-sort(@filtered-dists, |%_) -> $dist {
-            # todo: handle this lazily or in a way where we don't fetch stuf we already have
-            if $dist.name ne 'Zef' && ?$dist.is-installed && $dist.IO !~~ $*CWD {
-                say "[DEBUG] {$dist.name} is already installed. Skipping... (use :force to override)" and next unless ?$force;
-                say "[DEBUG] {$dist.name} is already installed. Continuing anyway with :force";
+        my @sorted-dists = topological-sort(@filtered-dists, |%_);
+
+        # attach appropriate metadata so we can do --dry runs using -I/some/dep/path
+        # and can install after we know they pass tests
+        my @installable-dists = eager gather for @sorted-dists -> $dist {
+            say "[DEBUG] Processing {$dist.name}";
+
+            # todo: filter by ?$depends, ?$test-depends, ?$build-depends like everywhere else
+            my @dep-specs = ($dist.depends-specs, $dist.test-depends-specs, $dist.build-depends-specs).flatmap(*.flat);
+
+            # this could probably be done in the topological-sort itself
+            $dist.metainfo<includes> = eager gather DEPSPEC: for @dep-specs -> $spec {
+                for @filtered-dists -> $fd {
+                    if $fd.contains-spec($spec) {
+                        # not sure if we can use an absolute file path on windows for -I
+                        # so may need to use PERL6LIB instead of -I. This might also
+                        # solve any possible "command over length limit" that might
+                        # otherwise be reached for a large depenency chain
+                        take $fd.path.IO.child('lib').absolute;
+                        take $_ for |$fd.metainfo<includes>;
+                        next DEPSPEC;
+                    }
+                }
             }
 
-            # temporary: legacy build hook. may have to package own version of Panda::Builder,
-            # even if releasing that name into the ecosystem messes up other installers as
-            # there is no other sane way of handling this junk
             notice "Build.pm hook failed" if $dist.IO.child('Build.pm').e && !legacy-hook($dist);
 
-            my %tested = ?$test ?? self.test($dist.path, :force(?$force)) !! { };
+            take $dist if ?$test ?? self.test($dist.path, :includes(|$dist.metainfo<includes>), :force(?$force)) !! True;
+        }
 
+        for @installable-dists -> $dist {
             for @target-curs -> $cur {
-                #$!lock.protect({
-                    say "[DEBUG] Installing {$dist.name}:{$dist.path} to {$cur.short-id}#{~$cur}";
-                    $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :force(?$force));
-                #});
+                if ?$dry {
+                    say "[DEBUG] Would install {$dist.name}:{$dist.path} to {$cur.short-id}#{~$cur} but using :dry";
+                }
+                else {
+                    #$!lock.protect({
+                        say "[DEBUG] Installing {$dist.name}:{$dist.path} to {$cur.short-id}#{~$cur}";
+                        $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :force(?$force));
+                    #});
+                }
             }
         }
     }
@@ -193,17 +222,16 @@ sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True,
         if ($dist.metainfo<marked> // 0) == 0 {
             $dist.metainfo<marked> = 1;
 
-            my @deps = slip grep *.defined,
+            my @deps = unique(grep *.defined,
                 ($dist.depends-specs       if ?$depends).Slip,
                 ($dist.test-depends-specs  if ?$test-depends).Slip,
-                ($dist.build-depends-specs if ?$build-depends).Slip;
+                ($dist.build-depends-specs if ?$build-depends).Slip);
 
             for @deps -> $m {
                 for @dists.grep(*.spec-matcher($m)) -> $m2 {
                     $visit($m2, $dist);
                 }
             }
-            $dist.metainfo<marked>++;
             @tree.append($dist);
         }
     };
@@ -246,7 +274,8 @@ sub legacy-hook($dist) {
     my $result;
     try {
         CATCH { default { $result = False; } }
-        my $proc = run($*EXECUTABLE, '-I.', '-Ilib', '-e', "$cmd", :cwd($dist.path), :out, :err);
+        my @includes = $dist.metainfo<includes>.map: { "-I{$_}" }
+        my $proc = run($*EXECUTABLE, '-I.', '-Ilib', |@includes, '-e', "$cmd", :cwd($dist.path), :out, :err);
         .say for $proc.out.lines;
         .say for $proc.err.lines;
         $proc.out.close;

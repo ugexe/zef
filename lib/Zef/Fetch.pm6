@@ -6,7 +6,7 @@ use Zef::Utils::URI;
 class Zef::Fetch does DynLoader {
     method ACCEPTS($url) { $ = $url ~~ @$.plugins }
 
-    method fetch($url, $save-as, &stdout = -> $o {$o.say}, &stderr = -> $e {$e.say}) {
+    method fetch($url, $save-as, :&stdout = -> $o {$o.say}, :&stderr = -> $e {$e.say}) {
         die "something went wrong fetching {$url} as path {$save-as} with {$.plugins.join(',')}"
             unless Zef::Utils::URI.parse($url) && ($save-as.IO.parent.IO.e || mkdir($save-as.IO.parent));
         my $fetcher = self.plugins.first(*.fetch-matcher($url));

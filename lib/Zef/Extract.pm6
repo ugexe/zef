@@ -1,7 +1,7 @@
 use Zef;
 
 class Zef::Extract does DynLoader {
-    method extract($path, $extract-to, &stdout = -> $o {$o.say}, &stderr = -> $e {$e.say}) {
+    method extract($path, $extract-to, :&stdout = -> $o {$o.say}, :&stderr = -> $e {$e.say}) {
         die "Can't extract non-existent path: {$path}" unless $path.IO.e;
         die "Can't extract to non-existent path: {$extract-to}" unless $extract-to.IO.e || $extract-to.IO.mkdir;
         my $extractor = self.plugins.first(*.extract-matcher($path));

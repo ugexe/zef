@@ -36,9 +36,24 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
 
     # make matching dependency names against a dist easier
     # when sorting the install order from the meta hash
-    method depends-specs       { @.depends.map:       { $ = Zef::Distribution::DependencySpecification.new($_) } }
-    method build-depends-specs { @.build-depends.map: { $ = Zef::Distribution::DependencySpecification.new($_) } }
-    method test-depends-specs  { @.test-depends.map:  { $ = Zef::Distribution::DependencySpecification.new($_) } }
+    method depends-specs       {
+        eager gather for @.depends {
+            my $ds = Zef::Distribution::DependencySpecification.new($_);
+            take $ds;
+        }
+    }
+    method build-depends-specs {
+        eager gather for @.build-depends {
+            my $ds = Zef::Distribution::DependencySpecification.new($_);
+            take $ds;
+        }
+    }
+    method test-depends-specs  {
+        eager gather for @.test-depends {
+            my $ds = Zef::Distribution::DependencySpecification.new($_);
+            take $ds;
+        }
+    }
 
     # make locating a module that is part of a distribution (ex. URI::Escape of URI) easier.
     # it doesn't need to be a hash mapping as its just for matching

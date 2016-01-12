@@ -6,7 +6,7 @@ class Zef::Shell::Test is Zef::Shell does Tester {
 
     method probe { $ = True }
 
-    method test($path) {
+    method test($path, :@includes) {
         die "path does not exist: {$path}" unless $path.IO.e;
         my @test-files = self.find-tests($path);
 
@@ -15,7 +15,10 @@ class Zef::Shell::Test is Zef::Shell does Tester {
             # so we have to hack around it so people can still (rightfully) pass absolute paths to `.test`
             my $rel-test  = $test-file.relative($path);
             $.stdout.emit("[DEBUG] Testing: {$rel-test}");
-            my $proc = zrun($*EXECUTABLE, '-Ilib', $rel-test, :cwd($path), :out, :err);
+
+            my $proc = zrun($*EXECUTABLE, '-Ilib', |@includes.map({ "-I{$_}" }),
+                $rel-test, :cwd($path), :out, :err);
+
             $.stdout.emit($_) for $proc.out.lines;
             $.stderr.emit($_) for $proc.err.lines;
             $proc.out.close;

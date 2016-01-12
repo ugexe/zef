@@ -1,7 +1,7 @@
 use Zef;
 
 class Zef::Test does DynLoader {
-    method test($path, &stdout = -> $o {$o.say}, &stderr = -> $e {$e.say}) {
+    method test($path, :@includes, :&stdout = -> $o {$o.say}, :&stderr = -> $e {$e.say}) {
         die "Can't test non-existent path: {$path}" unless $path.IO.e;
         my $tester = self.plugins.first(*.test-matcher($path));
         die "No testing backend available" unless ?$tester;
@@ -9,7 +9,7 @@ class Zef::Test does DynLoader {
         $tester.stdout.Supply.act(&stdout);
         $tester.stderr.Supply.act(&stderr);
 
-        my $got = $tester.test($path);
+        my $got = $tester.test($path, :@includes);
 
         $tester.stdout.done;
         $tester.stderr.done;

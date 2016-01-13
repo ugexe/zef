@@ -72,7 +72,6 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     method hash {
         # missing from Distribution.hash
         my %hash = callsame.append({ :$.api, :@!build-depends, :@!test-depends, :@!resources });
-        %hash<id>       = $.id;
         %hash<identity> = $.Str;
         %hash<license>  = $.license;
         %hash;

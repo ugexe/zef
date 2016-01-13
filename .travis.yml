@@ -21,5 +21,4 @@ install:
     # need at least 1 statement in 'install'
     - perl6 -v
 script:
-    - perl6 -Ilib bin/zef install .
-
+    - perl6 -Ilib bin/zef -v install .

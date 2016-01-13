@@ -58,6 +58,9 @@ tests then B will not be installed (even if it passed its own tests) without for
     # install to a location determined by short-id
     --install-to=<id> # site/home/vendor/perl
 
+    # More detailed output
+    --verbose
+
     # do everything except the actual installations
     --dry
 

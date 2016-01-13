@@ -1,5 +1,5 @@
 {
-    "perl"        : "v6.0.0",
+    "perl"        : "6",
     "name"        : "Zef",
     "version"     : "*",
     "description" : "It's like [cpanm] wearing high heels with a tracksuit",

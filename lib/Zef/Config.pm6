@@ -9,5 +9,5 @@ sub ZEF-CONFIG  is export {
 }
 
 sub find-config {
-    ("config.json", %?RESOURCES<config.json>, "resources/config.json").first(*.IO.e);
+    ("config.json", %?RESOURCES<config.json>).first(*.IO.e);
 }

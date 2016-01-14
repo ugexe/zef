@@ -101,7 +101,7 @@ class Zef::App {
 
             my &stdout = ?$verbose ?? -> $o {$o.say} !! -> $ { };
 
-            my $result = $!tester.test($path, :includes(@includes.grep(*.so)), :&stdout);
+            my $result = try $!tester.test($path, :includes(@includes.grep(*.so)), :&stdout);
 
             if !$result {
                 die "Aborting due to test failure at: {$path} (use :force to override)" unless ?$force;

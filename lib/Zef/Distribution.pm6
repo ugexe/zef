@@ -82,11 +82,24 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
 
 sub IS-INSTALLED($identity) {
     use MONKEY-SEE-NO-EVAL;
+    use Zef::Shell;
+
     my %parts = IDENTITY2HASH($identity);
     my $require = %parts<name>
         ~ ((%parts<ver>  // '' ) ne ('*' | '') ?? ":ver<{%parts<ver>}>"   !! '')
         ~ ((%parts<auth> // '' ) ne ('*' | '') ?? ":auth<{%parts<auth>}>" !! '')
         ~ ((%parts<api>  // '' ) ne ('*' | '') ?? ":api<{%parts<api>}>"   !! '');
-    try { EVAL ( "use $require" ) }
+    try {
+        my $perl6 = $*EXECUTABLE;
+        my $cwd   = $*TMPDIR; # change cwd for script below so $*CWD/lib is not accidently considered
+        my $is-installed-script = "use $require;";
+
+        my $proc = zrun($perl6, '-e', qq|$is-installed-script|, :$cwd, :out, :err);
+        my $out = $proc.out.slurp-rest;
+        my $err = $proc.err.slurp-rest;
+        $proc.out.close;
+        $proc.err.close;
+        ?$proc
+    }
     return (not defined $!) ?? True !! False;
 }

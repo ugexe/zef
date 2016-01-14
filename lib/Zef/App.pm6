@@ -166,12 +166,14 @@ class Zef::App {
         my @filtered-dists = eager gather DIST: for @dists -> $dist {
             say "[DEBUG] Filtering {$dist.name}" if ?$verbose;
             # todo: handle this lazily or in a way where we don't fetch stuf we already have
-            if $dist.name ne 'Zef' && ?$dist.is-installed && $dist.IO !~~ $*CWD {
+            if ?$dist.is-installed {
+                my $reported-id = ?$verbose ?? $dist.identity !! $dist.name;
                 unless ?$force {
-                    say "{$dist.name} is already installed. Skipping... (use :force to override)";
+                    say "{$reported-id} is already installed. Skipping... (use :force to override)";
                     next;
                 }
-                say "{$dist.name} is already installed. Continuing anyway with :force";
+
+                say "{$reported-id} is already installed. Continuing anyway with :force";
             }
 
             # Should `License` be a root option key?
@@ -297,9 +299,10 @@ sub legacy-hook($dist) {
 
     my $result;
     try {
+        use Zef::Shell;
         CATCH { default { $result = False; } }
         my @includes = $dist.metainfo<includes>.map: { "-I{$_}" }
-        my $proc = run($*EXECUTABLE, '-I.', '-Ilib', |@includes, '-e', "$cmd", :cwd($dist.path), :out, :err);
+        my $proc = zrun($*EXECUTABLE, '-I.', '-Ilib', |@includes, '-e', "$cmd", :cwd($dist.path), :out, :err);
         .say for $proc.out.lines;
         .say for $proc.err.lines;
         $proc.out.close;

@@ -51,6 +51,10 @@ class Zef::App {
                     my $dist    = $cs.value[0];
                     unless %found{$wanted}:exists {
                         %found{$wanted} = $dist;
+
+                        # so the user can see if $wanted was discovered as dist or a module
+                        $dist.metainfo<requested-as> = $wanted;
+
                         # todo: alternatives, i.e. not a Str but [Str, Str]
                         my @wanted-deps = unique(grep *.chars,
                             ($dist.depends       if ?$depends).Slip,
@@ -77,7 +81,7 @@ class Zef::App {
             my $extract-to = $!cache.IO.child($sanitized-name);
             my $save-as    = $!cache.IO.child($uri.IO.basename);
 
-            say "Fetching {$dist.identity}#{$uri}{?$verbose ?? qq| to $save-as| !! ''}";
+            say "Fetching `{$dist.metainfo<requested-as>}` as {$dist.identity}" ~ (?$verbose ?? qq|#$uri to $save-as| !! '');
             $!fetcher.fetch($uri, $save-as, :&stdout);
             
             # should probably break this out into its out method

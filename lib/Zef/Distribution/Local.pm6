@@ -2,6 +2,7 @@ use Zef::Distribution;
 
 role Zef::Distribution::Local {
     has $.path;
+    has $!IO;
 
     method new(Str(Cool) $path where *.?chars) {
         my $meta-path = $path.IO.child(<META.info META6.json>\
@@ -11,10 +12,13 @@ role Zef::Distribution::Local {
     }
 
     method resources {
-        % = self.hash<resources>.map: {
-            $_ => $_ ~~ m/^libraries\/(.*)/
-                ?? $!path.IO.child('resources').child('libraries').child($*VM.platform-library-name($0.Str.IO))
-                !! $!path.IO.child('resources').child($_);
+        my $res-path := $!IO.child('resources');
+        my $lib-path := $res-path.child('libraries');
+
+        % = self.hash<resources>.map: -> $resource {
+            $resource => $resource ~~ m/^libraries\/(.*)/
+                ?? $lib-path.child($*VM.platform-library-name(IO::Path.new($0, :CWD($!path))))
+                !! $res-path.child($resource);
         }
     }
 
@@ -27,8 +31,8 @@ role Zef::Distribution::Local {
     }
 
     method scripts {
-        % = do with self.IO.child('bin') -> $bin { $bin.dir.grep(*.IO.f).map({ .IO.basename => $_ }).hash if $bin.IO.d };
+        % = do with $.IO.child('bin') -> $bin { $bin.dir.grep(*.IO.f).map({ .IO.basename => $_ }).hash if $bin.IO.d };
     }
 
-    method IO { "{self.path.IO.absolute}".IO }
+    method IO { $!IO //= $!path.IO }
 }

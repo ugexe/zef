@@ -66,8 +66,8 @@ class Zef::App {
 
         my %found = get-dists(|@wants);
 
-        if @wants.grep({ not %found{$_}:exists }) -> $wanted {
-            say "Could not find distributions matching {$wanted.join(',')}";
+        if @wants.grep({ not %found{$_}:exists }) -> @wanted {
+            say "Could not find distributions matching {@wanted.join(',')}";
             die unless ?$force;
         }
 
@@ -139,18 +139,27 @@ class Zef::App {
             # 2) @wants may contain an identity but also a path string. However, if dependencies
             # are needed they will always be identities so this would let us translate those
             # identities into local paths (if they exist) to take any required actions on
-            given $want {
-                when /^<[./]>/ && .IO.e {
-                    take Zef::Distribution::Local.new($_.IO.absolute);
-                }
-                when ?$fetch {
-                    take $_ for |self.fetch($_, :$depends, :$build-depends, :$test-depends, :$verbose, |%_);
-                }
-                default {
-                    notice "Don't know how to locate '$want'. Did you mean to pass :fetch?";
+            if $want.starts-with('.' | '/') && $want.IO.e {
+                my $dist = Zef::Distribution::Local.new($want.IO.absolute);
+                my @deps = unique(grep *.defined,
+                    ($dist.depends       if ?$depends).Slip,
+                    ($dist.test-depends  if ?$test-depends).Slip,
+                    ($dist.build-depends if ?$build-depends).Slip);
+
+                # ideally we check all of @wants for paths before trying to fetch anything
+                if +@deps  && ?$fetch {
+                    take $_ for |self.fetch(|@deps, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, |%_);
                 }
 
+                take $dist;
             }
+            elsif ?$fetch {
+                take $_ for |self.fetch($want, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, |%_);
+            }
+            else {
+                notice "Don't know how to locate '$want'. Did you mean to pass :fetch?";
+            }
+
         }
 
         # todo: put this into its own subroutine or module. just a placeholder example for now
@@ -200,10 +209,6 @@ class Zef::App {
             $dist.metainfo<includes> = eager gather DEPSPEC: for @dep-specs -> $spec {
                 for @filtered-dists -> $fd {
                     if $fd.contains-spec($spec) {
-                        # not sure if we can use an absolute file path on windows for -I
-                        # so may need to use PERL6LIB instead of -I. This might also
-                        # solve any possible "command over length limit" that might
-                        # otherwise be reached for a large depenency chain
                         take $fd.path.IO.child('lib').absolute;
                         take $_ for |$fd.metainfo<includes>;
                         next DEPSPEC;

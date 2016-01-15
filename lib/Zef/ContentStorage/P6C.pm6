@@ -8,13 +8,21 @@ class Zef::ContentStorage::P6C does ContentStorage {
     has $.fetcher is rw;
     has $.cache is rw;
 
+    has @!dists;           # Cache Distribution objects
+    method !gather-dists { # Handle automatically updating package list, recaching, etc
+        once { self.update } if $.auto-update || !self!package-list-file.e;
+        once { @!dists = self!slurp-package-list.map({ Zef::Distribution.new(|%($_)) }) unless +@!dists }
+        @!dists;
+    }
+
     method IO {
         my $dir = $!cache.IO.child('p6c').IO;
         $dir.mkdir unless $dir.e;
         $dir;
     }
-    method package-list-file { $ = self.IO.child('packages.json').IO }
-    method !slurp-package-list { @ = |from-json(self.package-list-file.slurp) }
+
+    method !package-list-file  { $ = self.IO.child('packages.json') }
+    method !slurp-package-list { @ = |from-json(self!package-list-file.slurp) }
 
     method update {
         die "Failed to update p6c" unless $!mirrors.first: -> $uri {
@@ -23,21 +31,24 @@ class Zef::ContentStorage::P6C does ContentStorage {
             if $path.IO.d {
                 $path = $path.IO.child('p6c.json');
             }
-            try { copy($path, self.package-list-file) } || next;
-            so self.package-list-file.e;
+            try { copy($path, self!package-list-file) } || next;
         }
+        @!dists = self!slurp-package-list.map({ Zef::Distribution.new(|%($_)) })
     }
 
     # todo: handle %fields
     method search(:$max-results = 5, *@identities, *%fields) {
-        self.update if $.auto-update || !self.package-list-file.e;
-        state @dists = self!slurp-package-list.map({ Zef::Distribution.new(|%($_)) });
         return () unless @identities || %fields;
 
-        my @matches  = eager gather for @identities -> $wanted {
-            my $spec = Zef::Distribution::DependencySpecification.new($wanted);
-            for @dists -> $dist {
-                take $dist if ?$dist.contains-spec($spec);
+        my $matches := gather DIST: for self!gather-dists -> $dist {
+            state @wanted = |@identities;
+            for @identities.grep(* ~~ any(@wanted)) -> $wants {
+                my $spec = Zef::Distribution::DependencySpecification.new($wants);
+                if ?$dist.contains-spec($spec) {
+                    take $dist;
+                    @wanted.splice(@wanted.first(/$wants/, :k), 1);
+                    last DIST unless +@wanted;
+                }
             }
         }
     }

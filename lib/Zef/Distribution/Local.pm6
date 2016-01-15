@@ -5,8 +5,7 @@ role Zef::Distribution::Local {
     has $!IO;
 
     method new(Str(Cool) $path where *.?chars) {
-        my $meta-path = $path.IO.child(<META.info META6.json>\
-            .first(*.IO.absolute($path).IO.e)) or die "No meta file?";
+        my $meta-path = $path.IO.child(<META.info META6.json>.first({$path.IO.child($_).e}) // die "No meta file?");
         my %meta = from-json($meta-path.IO.slurp);
         $ = Zef::Distribution.new(|%(%meta.grep(?*.value.elems))) but Zef::Distribution::Local($path);
     }

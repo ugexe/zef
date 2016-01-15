@@ -81,7 +81,7 @@ class Zef::App {
             my $extract-to = $!cache.IO.child($sanitized-name);
             my $save-as    = $!cache.IO.child($uri.IO.basename);
 
-            say "Fetching `{$dist.metainfo<requested-as>}` as {$dist.identity}" ~ (?$verbose ?? qq|#$uri to $save-as| !! '');
+            say "Fetching `{$dist.metainfo<requested-as>}` as {$dist.identity}" ~ (?$verbose??"#$uri to $save-as"!!'');
             $!fetcher.fetch($uri, $save-as, :&stdout);
             
             # should probably break this out into its out method
@@ -215,7 +215,7 @@ class Zef::App {
             $dist.metainfo<includes> = eager gather DEPSPEC: for @dep-specs -> $spec {
                 for @filtered-dists -> $fd {
                     if $fd.contains-spec($spec) {
-                        take $fd.path.IO.child('lib').absolute;
+                        take $fd.IO.child('lib').absolute;
                         take $_ for |$fd.metainfo<includes>;
                         next DEPSPEC;
                     }
@@ -238,6 +238,14 @@ class Zef::App {
                         $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :force(?$force));
                     #});
                 }
+            }
+        }
+
+        # report phase
+        unless $dry {
+            if @installable-dists.flatmap(*.scripts.keys).unique -> @bins {
+                say "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$verbose??' ['~@bins~']'!!''} installed to:"
+                ~   "\n\t" ~ @target-curs.map(*.prefix.child('bin')).join("\n");
             }
         }
     }
@@ -276,7 +284,7 @@ sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True,
 # todo: write a real hooking implementation to CU::R::I instead of the current practice
 # of writing an installer specific (literally) Build.pm
 sub legacy-hook($dist) {
-    my $builder-path = $dist.path.IO.child('Build.pm');
+    my $builder-path = $dist.IO.child('Build.pm');
 
     # if panda is declared as a dependency then there is no need to fix the code, although
     # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
@@ -299,7 +307,7 @@ sub legacy-hook($dist) {
         try { $builder-path.spurt($legacy-code) } || $builder-path.subst-mutate(/'.zef'$/, '');
     }
 
-    my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$dist.path.IO.absolute}') ?? exit(0) !! exit(1);";
+    my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$dist.IO.absolute}') ?? exit(0) !! exit(1);";
 
     my $result;
     try {

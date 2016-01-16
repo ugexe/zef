@@ -84,11 +84,9 @@ sub IS-INSTALLED($identity) {
     use MONKEY-SEE-NO-EVAL;
     use Zef::Shell;
 
-    my %parts = IDENTITY2HASH($identity);
-    my $require = %parts<name>
-        ~ ((%parts<ver>  // '' ) ne ('*' | '') ?? ":ver<{%parts<ver>}>"   !! '')
-        ~ ((%parts<auth> // '' ) ne ('*' | '') ?? ":auth<{%parts<auth>}>" !! '')
-        ~ ((%parts<api>  // '' ) ne ('*' | '') ?? ":api<{%parts<api>}>"   !! '');
+    my %parts   = IDENTITY2HASH($identity);
+    my $require = HASH2IDENTITY(%parts); # removes empty key-pairs from $identity
+
     try {
         my $perl6 = $*EXECUTABLE;
         my $cwd   = $*TMPDIR; # change cwd for script below so $*CWD/lib is not accidently considered

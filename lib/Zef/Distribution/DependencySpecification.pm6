@@ -2,32 +2,31 @@
 # as those are not actually Distributions, while providing these methods to
 # actual Distributions
 class Zef::Distribution::DependencySpecification {
-    has $.id;
+    has $.spec;
     # todo: handle wildcard/+ (like "1.2.3+", "1.2.*", "*:ugexe", "github:*")
 
-    submethod new($id) { self.bless(:$id) }
+    submethod new($spec) { self.bless(:$spec) }
 
-    method !id { $ = self.?identity // $.id }
+    method spec { $ = self.?identity // $!spec }
 
-    method identity-parts {
-        state %ids;
-        %ids{self!id} //= IDENTITY2HASH(self!id);
+    method spec-parts(Zef::Distribution::DependencySpecification:_: $spec?) {
+        IDENTITY2HASH($spec // self.spec // return {});
     }
 
     method name {
-        my $name = callsame() || self.identity-parts<name>;
+        my $name = callsame() || self.spec-parts<name>;
     }
 
     method version-matcher {
-        my $ver = self.identity-parts<ver>;
+        my $ver = self.spec-parts<ver>;
     }
 
     method auth-matcher {
-        my $auth = self.identity-parts<auth>;
+        my $auth = self.spec-parts<auth>;
     }
 
     method api-matcher {
-        my $api = self.identity-parts<api>;
+        my $api = self.spec-parts<api>;
     }
 
 
@@ -47,9 +46,19 @@ class Zef::Distribution::DependencySpecification {
 }
 
 sub IDENTITY2HASH($identity is copy) is export {
-    my $ver  = ~($identity.subst-mutate(/":ver"  ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "*");
-    my $auth = ~($identity.subst-mutate(/":auth" ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "");
-    my $api  = ~($identity.subst-mutate(/":api"  ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "*");
-    my $name = $identity;
-    return %(:$name, :$ver, :$auth, :$api);
+    state %ids;
+    %ids{$identity} //= do {
+        my $ver  = ~($identity.subst-mutate(/":ver"  ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "*");
+        my $auth = ~($identity.subst-mutate(/":auth" ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "");
+        my $api  = ~($identity.subst-mutate(/":api"  ["<" | "("] (.*?) [">" | ")"]/, "")[0] // "*");
+        my $name = $identity;
+        %(:$name, :$ver, :$auth, :$api);
+    }
+}
+
+sub HASH2IDENTITY(%hash) is export {
+    %hash<name>
+        ~ ((%hash<ver>  // '' ) ne ('*' | '') ?? ":ver<{%hash<ver>}>"   !! '')
+        ~ ((%hash<auth> // '' ) ne ('*' | '') ?? ":auth<{%hash<auth>}>" !! '')
+        ~ ((%hash<api>  // '' ) ne ('*' | '') ?? ":api<{%hash<api>}>"   !! '');
 }

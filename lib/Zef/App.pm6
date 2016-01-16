@@ -50,6 +50,7 @@ class Zef::App {
                     my $storage = $cs.key;
                     my $dist    = $cs.value[0];
                     unless %found{$wanted}:exists {
+                        say "[$storage] found {$dist.name}" if ?$verbose;
                         %found{$wanted} = $dist;
 
                         # so the user can see if $wanted was discovered as dist or a module
@@ -91,6 +92,8 @@ class Zef::App {
             }
 
             $dist does Zef::Distribution::Local($save-as);
+            $!storage.store($dist);
+
             take $dist;
         }
     }

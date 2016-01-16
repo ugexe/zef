@@ -1,50 +1,77 @@
 use Zef;
-use Zef::Distribution;
-use Zef::Config;
-
-my %CONFIG = ZEF-CONFIG();
+use Zef::Distribution::Local;
 
 class Zef::ContentStorage::LocalCache does ContentStorage {
     has $.mirrors;
     has $.auto-update;
-    has $.fetcher is rw;
     has $.cache is rw;
-    has $.dir = "{%CONFIG<Store>}/store";
+
+    has @!dists;
+
+    method !gather-dists {
+        once { self.update } if $.auto-update || !self!manifest-file.e;
+        @!dists = +@!dists ?? @!dists !! self!manifest-file.lines.map: -> $entry {
+            my ($identity, $path) = $entry.split("\0");
+            $ = Zef::Distribution::Local.new($path);
+        }
+        @!dists;
+    }
+
+    method !manifest-file  { $ = self.IO.child('MANIFEST.zef') }
 
     method IO {
-        my $dir = $.dir.IO;
+        my $dir = $!cache.IO;
         $dir.mkdir unless $dir.e;
         $dir;
     }
 
-    method !gather-metas($path, :@identities, Int :$max-recursion = 3){
-        return @() if $max-recursion <= 0;
-        my @dirs;
-        for $path.dir -> $dir {
-            next if $dir.basename eq '.git';
-            if $dir.basename ~~ /^ 'META' '6'? '.' ['json'|'info'] $/ {
-                my $json = from-json($dir.slurp);
-                @dirs.append(Zef::Distribution.new(|%($json))), next 
-                    if $json<name> eq any @identities;
-                for $json<provides>.keys -> $prov {
-                    @dirs.append(Zef::Distribution.new(|%($json))), next
-                        if $prov eq any @identities;
-                }
+    method update {
+        my @stack = $!cache;
+        my %dcache;
+
+        while ( @stack ) {
+            my $current = @stack.pop.IO;
+            next if !$current.e
+                ||  $current.f
+                ||  $current.basename.starts-with('.')
+                ||  %dcache.values.grep({ $current.absolute.starts-with($_.IO.absolute) });
+
+            unless ?Zef::Distribution::Local.find-meta($current) {
+                @stack.append($current.dir.grep(*.d)>>.absolute);
+                next;
             }
-            @dirs.append(
-                self!gather-metas(
-                    $dir, 
-                    :@identities, 
-                    :max-recursion($max-recursion-1)
-                )
-            ) if $dir.d;
+
+            if Zef::Distribution::Local.new($current) -> $dist {
+                %dcache{$dist.id} //= $dist;
+            }
         }
-        @dirs.grep(*.defined).cache;
+
+        my $data = %dcache.map({ (.key, .value.IO.absolute).join("\0") }).join("\n");
+        self!manifest-file.spurt($data);
+        @!dists = %dcache.values;
     }
 
     # todo: handle %fields
     method search(:$max-results = 5, *@identities, *%fields) {
-        #more efficient to do identities as we parse the json - (1 loop instead of 2)
-        my @distros = self!gather-metas($.dir.IO, :@identities);
+        my $matches := gather DIST: for self!gather-dists -> $dist {
+            state @wanted = |@identities;
+            for @identities.grep(* ~~ any(@wanted)) -> $wants {
+                my $spec = Zef::Distribution::DependencySpecification.new($wants);
+                if ?$dist.contains-spec($spec) {
+                    take $dist;
+                    @wanted.splice(@wanted.first(/$wants/, :k), 1);
+                    last DIST unless +@wanted;
+                }
+            }
+        }
+    }
+
+    method store(*@dists) {
+        my $lines = self!manifest-file.lines;
+        my $data  = @dists\
+            .grep({ !$lines.first(*.starts-with($_.id)) })\
+            .map({ (.id, .IO.absolute).join("\0") })\
+            .join("\n");
+        self!manifest-file.spurt(:append, "{$data}\n") if $data;
     }
 }

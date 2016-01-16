@@ -4,7 +4,7 @@ class Zef::ContentStorage does DynLoader {
     has $.fetcher;
     has $.cache;
 
-    # like search, but meant to return a single result for each specific identity string
+    # Like search, but meant to return a single result for each specific identity string.
     method candidates(*@identities) {
         my %results;
         IDENTITY:
@@ -20,6 +20,12 @@ class Zef::ContentStorage does DynLoader {
         %results;
     }
 
+    # Need to map the given identities to what this returns like:
+    # %results<Text::Table*> = [ from => $storage.^name, dists => $storage.search(|) ]
+    # instead of the current:
+    # %results{$storage.^name} = $storage.search(|)
+    # Note that as each $storage is given all identities to search at once that the above will
+    # likely involve a chance to the ContentStorage interfaces/plugins to handle this
     method search(:$max-results = 5, *@identities, *%fields) {
         return () unless @identities || %fields;
         my %results;
@@ -29,12 +35,19 @@ class Zef::ContentStorage does DynLoader {
         %results;
     }
 
+    method store(*@dists) {
+        state @cacheable = self.plugins.grep(*.^can('store'));
+        for @cacheable -> $storage {
+            $storage.store(|@dists);
+        }
+    }
+
     method plugins {
-        state @usable = @!backends\
-            .grep({ !$_<disabled> })\
-            .grep({ (try require ::($ = $_<module>)) !~~ Nil })\
-            .grep({ ::($ = $_<module>).^can("probe") ?? ::($ = $_<module>).probe !! True })\
-            .map({ ::($ = $_<module>).new( :$!fetcher, :$!cache, |($_<options> // []) ) });
-            # todo: better way / option for knowing when to pass in a fetcher
+        state @usable = @!backends.grep({
+                !$_<disabled>
+            &&  ((try require ::($ = $_<module>)) !~~ Nil)
+            &&  (::($ = $_<module>).^can("probe") ?? ::($ = $_<module>).probe !! True)
+            ?? True !! False
+        }).map: { ::($ = $_<module>).new( :$!fetcher, :$!cache, |($_<options> // []) ) }
     }
 }

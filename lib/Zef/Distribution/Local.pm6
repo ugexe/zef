@@ -4,10 +4,21 @@ role Zef::Distribution::Local {
     has $.path;
     has $!IO;
 
-    method new(Str(Cool) $path where *.?chars) {
-        my $meta-path = $path.IO.child(<META.info META6.json>.first({$path.IO.child($_).e}) // die "No meta file?");
+    method new($path) {
+        my $meta-path = self.find-meta($path) // die "No meta file? Path: {$path}";
         my %meta = from-json($meta-path.IO.slurp);
         $ = Zef::Distribution.new(|%(%meta.grep(?*.value.elems))) but Zef::Distribution::Local($path);
+    }
+
+    method find-meta(Zef::Distribution::Local: $path? is copy) {
+        temp $path = do given $path {
+            when IO::Path           { $path       }
+            when Str && $path.chars { $path.IO    }
+            default { self.IO // return IO::Path  }
+        }
+
+        my $meta-basename = <META6.json META.info>.first({ $path.child($_).e }) // return IO::Path;
+        $path.child($meta-basename);
     }
 
     method resources {

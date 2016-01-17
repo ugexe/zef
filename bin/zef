@@ -4,31 +4,38 @@ use v6;
 use Zef::App;
 use Zef::Utils::SystemInfo;
 
-my $app = Zef::App.new;
-
 #| Download specific distributions
 multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) {
+    my $app = Zef::App.new;
     $app.fetch(:$depends, :$test-depends, :$build-depends, |@identities);
 }
 
 #| Run tests
 multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
-
+    my $app = Zef::App.new;
     my %results = $app.test(:$force, :$verbose, |@paths);
     %results<fail>.elems ?? exit(1) !! exit(0);
 }
 
 #| Install
 multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-                      Bool :v(:$verbose) = False, Bool :$force = False, Bool :$test = True, Bool :$fetch = True,
-                      Bool :$dry, :$install-to = ['site'], *@identities) {
+                      Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True,
+                      Bool :$dry, Bool :$update, :$install-to = ['site'], *@identities) {
 
+    my $app = Zef::App.new;
     $app.install( :$depends, :$test-depends, :$build-depends, :$force, :$verbose,
-                  :$fetch, :$install-to, :$test, :dry(?$dry), |@identities );
+                  :$fetch, :$install-to, :$test, :$update, :$dry, |@identities );
+}
+
+#| Update package indexes
+multi MAIN(*@names) {
+    my $app = Zef::App.new;
+    $app.storage.update(|@names)
 }
 
 #| Find that shit
 multi MAIN('search', *@identities, *%fields) {
+    my $app = Zef::App.new;
     say $app.search(|@identities, |%fields);
 }
 
@@ -46,7 +53,7 @@ multi MAIN(Bool :$help?) {
           install                Install specific dependencies by name or path
           test                   Run tests on a given module's path
           fetch                  Fetch and extract module's source
-
+          update                 Update package indexes for content storages
 
         OPTIONS
 

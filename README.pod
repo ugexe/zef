@@ -72,6 +72,10 @@ tests then B will not be installed (even if it passed its own tests) without for
     --/build-depends
     --/test-depends
 
+=head4 B<update>
+
+Update the package indexes for all `ContentStorage` backends
+
 =head4 B<search>
 
 How these are handled depends on the `ContentStorage` engine used, which by default is the p6c ecosystem and

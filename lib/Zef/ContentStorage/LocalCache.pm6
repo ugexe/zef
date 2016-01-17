@@ -46,8 +46,10 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             }
         }
 
-        my $data = %dcache.map({ (.key, .value.IO.absolute).join("\0") }).join("\n");
-        self!manifest-file.spurt($data);
+        if %dcache.map({ (.key, .value.IO.absolute).join("\0") }).join("\n") -> $data {
+            self!manifest-file.spurt("{$data}\n");
+        }
+
         @!dists = %dcache.values;
     }
 
@@ -66,6 +68,8 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         }
     }
 
+    # todo: remove lines with paths that don't exist and properly handle a dist
+    # saved to multiple paths
     method store(*@dists) {
         my $lines = self!manifest-file.lines;
         my $data  = @dists\

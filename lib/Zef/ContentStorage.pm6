@@ -38,8 +38,16 @@ class Zef::ContentStorage does DynLoader {
     method store(*@dists) {
         state @cacheable = self.plugins.grep(*.^can('store'));
         for @cacheable -> $storage {
-            $storage.store(|@dists);
+            $storage.?store(|@dists);
         }
+    }
+
+    method update(*@names) {
+        # todo: tag on `name` from config to plugins to enable filter by name
+        # +@names
+        #    ?? self.plugins.grep(*.<name> ~~ any(@names)).map(*.?update)
+        #    !! self.plugins.map(*.?update);
+        self.plugins.map(*.?update);
     }
 
     method plugins {

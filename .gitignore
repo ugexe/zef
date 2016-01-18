@@ -3,4 +3,5 @@
 *.jar
 blib/
 tmp/
+lib/.precomp/
 .precomp/

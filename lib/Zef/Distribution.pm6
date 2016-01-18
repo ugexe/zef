@@ -32,7 +32,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
             %hash<auth> //= self.auth;
             %hash<api>  //= self.api;
             my $provides-identity = HASH2IDENTITY(%hash);
-            return True if IS-INSTALLED($provides-identity);
+            return ?IS-INSTALLED($provides-identity);
         }
 
         False

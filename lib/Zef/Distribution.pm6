@@ -25,14 +25,20 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
 
         # EVALing a dist name doesn't really tell us if its *not* installed
         # since a dist name doesn't have to match up to any of its modules
-        if self.provides.keys[0] -> $provided {
-            return True if IS-INSTALLED($provided);
+        for self.provides.keys -> $provides {
+            my %hash = IDENTITY2HASH($provides);
+            next if self.name eq %hash<name>;
+            %hash<ver>  //= self.ver;
+            %hash<auth> //= self.auth;
+            %hash<api>  //= self.api;
+            my $provides-identity = HASH2IDENTITY(%hash);
+            return True if IS-INSTALLED($provides-identity);
         }
 
         False
     }
 
-    method identity { $.Str()  }
+    method identity { $.Str() }
 
     # make matching dependency names against a dist easier
     # when sorting the install order from the meta hash
@@ -69,12 +75,20 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
         so self.spec-matcher($spec) || self.provides-spec-matcher($spec)
     }
 
+    # Add new entries missing from original Distribution.hash
     method hash {
-        # missing from Distribution.hash
         my %hash = callsame.append({ :$.api, :@!build-depends, :@!test-depends, :@!resources });
         %hash<identity> = $.Str;
         %hash<license>  = $.license;
         %hash;
+    }
+
+    # use Distribution's .ver but filter off a leading 'v'
+    method ver { callsame.subst(/^v/, '') }
+
+    # The identity genered by Distribution's Str() does not always parse in `use` statements
+    method Str() {
+        $ = HASH2IDENTITY({ :name($.name), :ver($.ver), :auth($.auth), :api($.api) });
     }
 
     method WHICH(Zef::Distribution:D:) { "{self.^name}|{self.Str()}" }
@@ -84,19 +98,16 @@ sub IS-INSTALLED($identity) {
     use MONKEY-SEE-NO-EVAL;
     use Zef::Shell;
 
-    my %parts   = IDENTITY2HASH($identity);
-    my $require = HASH2IDENTITY(%parts); # removes empty key-pairs from $identity
-
     try {
         my $perl6 = $*EXECUTABLE;
         my $cwd   = $*TMPDIR; # change cwd for script below so $*CWD/lib is not accidently considered
-        my $is-installed-script = "use $require;";
-
-        my $proc = zrun($perl6, '-e', qq|$is-installed-script|, :$cwd, :out, :err);
+        my $is-installed-script = "use $identity;";
+        my $proc = zrun($perl6, '-e', $is-installed-script, :$cwd, :out, :err);
         my $out = $proc.out.slurp-rest;
         my $err = $proc.err.slurp-rest;
         $proc.out.close;
         $proc.err.close;
+
         ?$proc
     }
     return (not defined $!) ?? True !! False;

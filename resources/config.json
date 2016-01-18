@@ -6,17 +6,17 @@
     },
     "ContentStorage" : [
         { 
-            "name": "localcache",
-            "module": "Zef::ContentStorage::LocalCache",
-            "default": 1,
-            "options": { }
+            "name" : "cached",
+            "module" : "Zef::ContentStorage::LocalCache",
+            "default" : 1,
+            "options" : { }
         },
         {
             "name" : "p6c",
             "module" : "Zef::ContentStorage::P6C",
             "default" : 1,
             "options" : {
-                "auto-update" : 1,
+                "auto-update" : 0,
                 "mirrors" : [
                     "https://github.com/ugexe/Perl6-ecosystems.git",
                     "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c.json"
@@ -24,7 +24,7 @@
             }
         },
         {
-            "name" : "CPAN",
+            "name" : "cpan",
             "module" : "Zef::ContentStorage::CPAN",
             "disabled" : 1,
             "options" : {

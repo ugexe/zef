@@ -45,13 +45,15 @@ class Zef::App {
             say "Searching for {'dependencies ' if state $once++}{@allowed.join(', ')}" if ?$verbose;
             ALLOWED:
             for @allowed -> $wanted {
+
+                # todo: allow sorting `candidates` by version
                 CONTENT:
                 for $!storage.candidates($wanted) -> $cs {
-                    my $storage = $cs.key;
-                    my $dist    = $cs.value[0];
+                    my $storage := $cs.key;
+                    my $dist    := $cs.value[0];
                     unless %found{$wanted}:exists {
                         say "[$storage] found {$dist.name}" if ?$verbose;
-                        %found{$wanted} = $dist;
+                        %found{$wanted} := $cs;
 
                         # so the user can see if $wanted was discovered as dist or a module
                         $dist.metainfo<requested-as> = $wanted;
@@ -70,21 +72,31 @@ class Zef::App {
         }
 
         my %found = get-dists(|@wants);
-
-        if @wants.grep({ not %found{$_}:exists }) -> @wanted {
+        if @wants.grep(* !~~ any(@!ignore)).grep({ not %found{$_}:exists }) -> @wanted {
             say "Could not find distributions matching {@wanted.join(',')}";
             die unless ?$force;
         }
 
-        gather for %found.values -> $dist {
+        gather for %found.kv -> $requested-as, $cs {
+            my $from = $cs.key;
+            my $dist = $cs.value[0];
             my $sanitized-name = $dist.name.subst(':', '-', :g);
             my $uri = $dist.source-url;
             my $extract-to = $!cache.IO.child($sanitized-name);
             my $save-as    = $!cache.IO.child($uri.IO.basename);
 
-            say "Fetching `{$dist.metainfo<requested-as>}` as {$dist.identity}" ~ (?$verbose??"#$uri to $save-as"!!'');
-            $!fetcher.fetch($uri, $save-as, :&stdout);
-            
+            say "Fetching `{$requested-as}` as {$dist.identity}";
+
+            # todo: abstract this away properly with either a specific file uri
+            # fetcher, modifying the source-url field to a path, or create a cacher role
+            if $from eq 'Zef::ContentStorage::LocalCache' {
+                say "[$from] cached at $save-as" if ?$verbose;
+            }
+            else {
+                $!fetcher.fetch($uri, $save-as, :&stdout);
+                say "[$from] {$uri} --> $save-as" if ?$verbose;
+            }
+
             # should probably break this out into its out method
             if $save-as.lc.ends-with('.tar.gz' | '.zip') {
                 say "Extracting: {$save-as} to {$extract-to}" if ?$verbose;
@@ -141,13 +153,11 @@ class Zef::App {
         my &notice = ?$force ?? &say !! &die;
 
         my @dists = eager gather for @wants -> $want {
-            # todo: manifest/lookup for ContentStorage.cache + Fetcher for local paths (for .fetch("some-path", :depends))
-            # 1) Will allow checking path for meta info to see if we can skip fetching it
-            # 2) @wants may contain an identity but also a path string. However, if dependencies
-            # are needed they will always be identities so this would let us translate those
-            # identities into local paths (if they exist) to take any required actions on
             if $want.starts-with('.' | '/') && $want.IO.e {
                 my $dist = Zef::Distribution::Local.new($want.IO.absolute);
+
+                # Instead of @deps containing basic dependency strings here it should store actual
+                # Distributions so that we can check `.is-installed` before passing them to `.fetch`
                 my @deps = unique(grep *.defined,
                     ($dist.depends       if ?$depends).Slip,
                     ($dist.test-depends  if ?$test-depends).Slip,
@@ -172,7 +182,6 @@ class Zef::App {
         # todo: put this into its own subroutine or module. just a placeholder example for now
         my @filtered-dists = eager gather DIST: for @dists -> $dist {
             say "[DEBUG] Filtering {$dist.name}" if ?$verbose;
-            # todo: handle this lazily or in a way where we don't fetch stuf we already have
             if ?$dist.is-installed {
                 my $reported-id = ?$verbose ?? $dist.identity !! $dist.name;
                 unless ?$force {

@@ -20,23 +20,23 @@ multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
 #| Install
 multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
                       Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True,
-                      Bool :$dry, Bool :$update, :$install-to = ['site'], *@identities) {
+                      Bool :$dry, Bool :$update, Bool :$upgrade, :$install-to = ['site'], *@identities) {
 
     my $app = Zef::App.new;
     $app.install( :$depends, :$test-depends, :$build-depends, :$force, :$verbose,
-                  :$fetch, :$install-to, :$test, :$update, :$dry, |@identities );
-}
-
-#| Update package indexes
-multi MAIN(*@names) {
-    my $app = Zef::App.new;
-    $app.storage.update(|@names)
+                  :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities );
 }
 
 #| Find that shit
 multi MAIN('search', *@identities, *%fields) {
     my $app = Zef::App.new;
     say $app.search(|@identities, |%fields);
+}
+
+#| Update package indexes
+multi MAIN(*@names) {
+    my $app = Zef::App.new;
+    $app.storage.update(|@names)
 }
 
 multi MAIN(Bool :$help?) {
@@ -65,6 +65,7 @@ multi MAIN(Bool :$help?) {
           --verbose              More detailed output
           --force                Continue each phase regardless of failures
           --dry                  Run all phases except the actual installations
+          --upgrade              Use the highest known matching version candidate
 
           --/tests               Skip the testing phase
           --/depends             Do not fetch runtime dependencies

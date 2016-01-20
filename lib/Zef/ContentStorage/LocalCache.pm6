@@ -46,16 +46,14 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             }
         }
 
-        if %dcache.map({ (.key, .value.IO.absolute).join("\0") }).join("\n") -> $data {
-            self!manifest-file.spurt("{$data}\n");
-        }
-
         @!dists = %dcache.values;
+        self.store(|@!dists);
+        @!dists;
     }
 
     # todo: handle %fields
     method search(:$max-results = 5, *@identities, *%fields) {
-        my $matches := gather DIST: for self!gather-dists -> $dist {
+        my $matches := gather DIST: for |self!gather-dists -> $dist {
             state @wanted = |@identities;
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 my $spec = Zef::Distribution::DependencySpecification.new($wants);
@@ -71,11 +69,9 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # todo: remove lines with paths that don't exist and properly handle a dist
     # saved to multiple paths
     method store(*@dists) {
-        my $lines = self!manifest-file.lines;
-        my $data  = @dists\
-            .grep({ !$lines.first(*.starts-with($_.id)) })\
-            .map({ (.id, .IO.absolute).join("\0") })\
-            .join("\n");
-        self!manifest-file.spurt(:append, "{$data}\n") if $data;
+        my @lines = self!manifest-file.open(:rw).lines;
+        my $data  = @lines.join("\n") ~ (+@lines ?? "\n" !! '')
+            ~ @dists.map({ (.id, .IO.absolute).join("\0") }).unique.join("\n");
+        self!manifest-file.spurt("{$data}\n") if $data;
     }
 }

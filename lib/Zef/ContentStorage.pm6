@@ -5,19 +5,20 @@ class Zef::ContentStorage does DynLoader {
     has $.cache;
 
     # Like search, but meant to return a single result for each specific identity string.
-    method candidates(*@identities) {
-        my %results;
-        IDENTITY:
-        for @identities -> $ident {
+    method candidates(Bool :$upgrade, *@identities) {
+        my @results = gather IDENTITY: for @identities -> $ident {
             STORE:
             for self.plugins -> $storage {
                 if $storage.search($ident, :max-results(1)) -> @candi {
-                    %results{$storage.^name} .= append( @candi[0] );
-                    next IDENTITY;
+                    take ($storage.^name => @candi[0]);
+                    ?$upgrade ?? next(STORE) !! next(IDENTITY)
                 }
             }
         }
-        %results;
+
+        ?$upgrade
+            ?? @results.sort({ Version.new($^b.value.ver) cmp Version.new($^a.value.ver) })
+            !! @results;
     }
 
     # Need to map the given identities to what this returns like:

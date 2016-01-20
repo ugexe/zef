@@ -31,14 +31,14 @@ class Zef::App {
         $!tester    = Zef::Test.new( :backends(@testers) );
     }
 
-    method fetch(Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-                 Bool :$force, Bool :$verbose, *@wants) {
+    method candidates(Bool :$depends, Bool :$test-depends, Bool :$build-depends,
+                 Bool :$force, Bool :$verbose, Bool :$upgrade, *@wants) {
 
         my &stdout = ?$verbose ?? -> $o {$o.say} !! -> $ { };
         # Once metacpan can return results again this will need to be modified so as not to
-        # duplicate an identity that shows up from multiple ContentStorages
-        #
-        # todo: Update ContentStorage::CPAN to use Distribution.name/etc instead of %meta<name>/<etc>
+        # duplicate an identity that shows up from multiple ContentStorages.
+        # XXX: :$update means to *not* take the first matching candidate encountered, but
+        # the highest version that matches from all available storages (break out of ::LocalCache)
         sub get-dists(*@_) {
             state %found;
             my @allowed = |@_.grep(* ~~ none(|@!ignore, |%found.keys)).unique || return;
@@ -48,9 +48,10 @@ class Zef::App {
 
                 # todo: allow sorting `candidates` by version
                 CONTENT:
-                for $!storage.candidates($wanted) -> $cs {
+                for $!storage.candidates($wanted, :$upgrade) -> $cs {
                     my $storage := $cs.key;
                     my $dist    := $cs.value[0];
+
                     unless %found{$wanted}:exists {
                         say "[$storage] found {$dist.name}" if ?$verbose;
                         %found{$wanted} := $cs;
@@ -72,12 +73,25 @@ class Zef::App {
         }
 
         my %found = get-dists(|@wants);
+
         if @wants.grep(* !~~ any(@!ignore)).grep({ not %found{$_}:exists }) -> @wanted {
             say "Could not find distributions matching {@wanted.join(',')}";
             die unless ?$force;
         }
 
-        gather for %found.kv -> $requested-as, $cs {
+        %found;
+    }
+
+    method fetch(Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
+                 Bool :$force, Bool :$verbose, *@wants) {
+
+        my %found = self.candidates(:$depends, :$test-depends, :$build-depends, :$force, :$verbose, |@wants);
+        self!fetch(%found, :$depends, :$test-depends, :$build-depends, :$force, :$verbose)
+    }
+    method !fetch($storage, :$depends, :$test-depends, :$build-depends, Bool :$force, Bool :$verbose) {
+        my &stdout = ?$verbose ?? -> $o {$o.say} !! -> $ { };
+
+        gather for $storage.kv -> $requested-as, $cs {
             my $from = $cs.key;
             my $dist = $cs.value[0];
             my $sanitized-name = $dist.name.subst(':', '-', :g);
@@ -147,37 +161,38 @@ class Zef::App {
 
         self!install(:@target-curs, |%_, |@wants);
     }
+
     method !install(:@target-curs, Bool :$force, Bool :$fetch, Bool :$test, Bool :$dry, Bool :$verbose,
-                    Bool :$depends, Bool :$build-depends, Bool :$test-depends, *@wants, *%_) {
+                    Bool :$depends, Bool :$build-depends, Bool :$test-depends, Bool :$upgrade, *@wants, *%_) {
 
         my &notice = ?$force ?? &say !! &die;
 
-        my @dists = eager gather for @wants -> $want {
+        my @discovered = eager gather for @wants -> $want {
             if $want.starts-with('.' | '/') && $want.IO.e {
                 my $dist = Zef::Distribution::Local.new($want.IO.absolute);
 
-                # Instead of @deps containing basic dependency strings here it should store actual
-                # Distributions so that we can check `.is-installed` before passing them to `.fetch`
                 my @deps = unique(grep *.defined,
                     ($dist.depends       if ?$depends).Slip,
                     ($dist.test-depends  if ?$test-depends).Slip,
                     ($dist.build-depends if ?$build-depends).Slip);
 
-                # ideally we check all of @wants for paths before trying to fetch anything
-                if +@deps  && ?$fetch {
-                    take $_ for |self.fetch(|@deps, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, |%_);
+                if +@deps {
+                    take $_ for |self.candidates(|@deps, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, :$upgrade, |%_);
                 }
 
-                take $dist;
-            }
-            elsif ?$fetch {
-                take $_ for |self.fetch($want, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, |%_);
+                # local paths should probably just use LocalCache
+                take ($want => ('IO::Path' => $dist));
             }
             else {
-                notice "Don't know how to locate '$want'. Did you mean to pass :fetch?";
+                take $_ for |self.candidates($want, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, :$upgrade, |%_);
             }
-
         }
+
+
+        my @dists = eager gather for @discovered -> $store {
+            take $_ for |self!fetch($store, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, |%_);
+        }
+
 
         # todo: put this into its own subroutine or module. just a placeholder example for now
         my @filtered-dists = eager gather DIST: for @dists -> $dist {

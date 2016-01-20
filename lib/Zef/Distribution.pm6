@@ -91,6 +91,11 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
         $ = HASH2IDENTITY({ :name($.name), :ver($.ver), :auth($.auth), :api($.api) });
     }
 
+    method id() {
+        use nqp;
+        return nqp::sha1(self.Str());
+    }
+
     method WHICH(Zef::Distribution:D:) { "{self.^name}|{self.Str()}" }
 }
 

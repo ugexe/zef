@@ -35,8 +35,10 @@ class Zef::App {
                  Bool :$force, Bool :$verbose, Bool :$upgrade, *@wants) {
 
         my &stdout = ?$verbose ?? -> $o {$o.say} !! -> $ { };
+
         # Once metacpan can return results again this will need to be modified so as not to
         # duplicate an identity that shows up from multiple ContentStorages.
+        #
         # XXX: :$update means to *not* take the first matching candidate encountered, but
         # the highest version that matches from all available storages (break out of ::LocalCache)
         sub get-dists(*@_) {
@@ -72,8 +74,15 @@ class Zef::App {
             %found
         }
 
+        # %found ends up with a structure like:
+        # - %found{$requested-identity} = { $content-storage-name => $matching-dist }
+        # - %found{"URI::Escape"} = { "Zef::ContentStorage::P6C" => Distribution.new($.name = "URI") }
+        # This is probably terrible. If a better structure presents itself through a drug induced
+        # epiphany (or other means) it can be replaced.
         my %found = get-dists(|@wants);
 
+        # This is like `.install`s "Filter" phase, so maybe when the "Filter" phase is separated
+        # from `.install` this can be moved there.
         if @wants.grep(* !~~ any(@!ignore)).grep({ not %found{$_}:exists }) -> @wanted {
             say "Could not find distributions matching {@wanted.join(',')}";
             die unless ?$force;
@@ -82,6 +91,19 @@ class Zef::App {
         %found;
     }
 
+
+    # .fetch takes identities for @wants ('CSV::Parser', 'DBIish')
+    # !fetch takes storages like 'DBIish::MySQL' => { "Zef::ContentStorage::P6C" => $dist-obj }
+    # This allows `.install` to `.candidates` to get results, filter those results, and
+    # *then* call !fetch on those. Otherwise it would have to call `.fetch` which may end up
+    # fetching items that would otherwise have been filtered out.
+    # For example:
+    #   - `zef fetch CSV::Parser Acme::Goatse` would call `.fetch` (as we are supplying
+    #      identities that have not been identified in a content storage yet) since it
+    #      still needs to `search` for those identities.
+    #   - `zef install CSV::Parser Acme::Goatse` ends up calling !fetch, because internally
+    #     it does its own search so it can apply its own filters (thus supplying !fetch with
+    #     *exactly* what it wants, not a fuzzy idea / search term)
     method fetch(Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
                  Bool :$force, Bool :$verbose, *@wants) {
 
@@ -117,13 +139,22 @@ class Zef::App {
                 $save-as = $!extractor.extract($save-as, $extract-to);
             }
 
+            # Our `Zef::Distribution $dist` can be upraded to a `Zef::Distribution::Local`
+            # as .fetch/.extract has copied the Distribution to a local path somewhere.
+            # The "upgraded" functionality is generally related to turning relative paths
+            # to the absolute paths on the current file system (in `provides`/`resources` for example)
             $dist does Zef::Distribution::Local($save-as);
+
+            # Calls optional `.store` method on all ContentStorage plugins so they may
+            # choose to cache the dist or simply cache the meta data of what is installed
             $!storage.store($dist);
 
             take $dist;
         }
     }
 
+
+    # xxx: needs some love
     method test(Bool :$force, Bool :$verbose, :@includes, *@paths) {
         % = @paths.classify: -> $path {
             say "Start test phase for: $path";
@@ -145,9 +176,12 @@ class Zef::App {
         }
     }
 
+
+    # xxx: needs some love
     method search(*@identities, *%fields) {
         $!storage.search(|@identities, |%fields);
     }
+
 
     method install(:$install-to = ['site'], *@wants, *%_) {
         state @can-install-ids = $*REPO.repo-chain.unique( :as(*.id) )\
@@ -161,12 +195,20 @@ class Zef::App {
 
         self!install(:@target-curs, |%_, |@wants);
     }
-
     method !install(:@target-curs, Bool :$force, Bool :$fetch, Bool :$test, Bool :$dry, Bool :$verbose,
                     Bool :$depends, Bool :$build-depends, Bool :$test-depends, Bool :$upgrade, *@wants, *%_) {
 
+        # temporary
         my &notice = ?$force ?? &say !! &die;
 
+        # XXX: Each loop block below essentially represents a phase, so they will probably
+        # be moved into their own method/module related directly to their phase. For now
+        # lumping them here allows us to easily move functionality between phases until we
+        # find the perfect balance/structure.
+
+        # Search Phase:
+        # Search ContentStorages to locate/build everything needed to fulfill the
+        # requested identity ($want)
         my @discovered = eager gather for @wants -> $want {
             if $want.starts-with('.' | '/') && $want.IO.e {
                 my $dist = Zef::Distribution::Local.new($want.IO.absolute);
@@ -189,12 +231,19 @@ class Zef::App {
         }
 
 
+        # Fetch Stage:
+        # Use the results from searching ContentStorages and download/fetch the distributions they point at
         my @dists = eager gather for @discovered -> $store {
             take $_ for |self!fetch($store, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, |%_);
         }
 
 
-        # todo: put this into its own subroutine or module. just a placeholder example for now
+        # Filter Stage:
+        # Handle stuff like removing distributions that are already installed, that don't have
+        # an allowable license, etc. It faces the same "fetch an alternative if available on failure"
+        # problem outlined below under `Sort Phase` (a depends on [A, B] where A gets filtered out
+        # below because it has the wrong license means we don't need anything that depends on A but
+        # *do* need to replace those items with things depended on by B [which replaces A])
         my @filtered-dists = eager gather DIST: for @dists -> $dist {
             say "[DEBUG] Filtering {$dist.name}" if ?$verbose;
             if ?$dist.is-installed {
@@ -207,8 +256,7 @@ class Zef::App {
                 say "{$reported-id} is already installed. Continuing anyway with :force";
             }
 
-            # Should `License` be a root option key?
-            # If not, would it go under `Fetch` or `ContentStorage`? a new phase like `Filter`?
+            # todo: Change config.json to `"Filter" : { "License" : "xxx" }`)
             given %CONFIG<License> {
                 CATCH { default {
                     say $_.message;
@@ -226,10 +274,20 @@ class Zef::App {
             take $dist;
         }
 
+
+        # Sort Phase:
+        # This ideally also handles creating alternate build orders when a `depends` includes
+        # alternative dependencies. Then if the first build order fails it can try to fall back
+        # to the next possible build order. However such functionality may not be useful this late
+        # as at this point we expect to have already fetched/filtered the distributions... so either
+        # we fetch all alternatives (most of which would probably would not use) or do this in a way
+        # that allows us to return to a previous state in our plan (xxx: Zef::Plan is planned)
         my @sorted-dists = topological-sort(@filtered-dists, :$depends, :$build-depends, :$test-depends, |%_);
 
-        # attach appropriate metadata so we can do --dry runs using -I/some/dep/path
-        # and can install after we know they pass tests
+
+        # Build Phase:
+        # Attach appropriate metadata so we can do --dry runs using -I/some/dep/path
+        # and can install after we know they pass any required tests
         my @installable-dists = eager gather for @sorted-dists -> $dist {
             say "[DEBUG] Processing {$dist.name}" if ?$verbose;
 
@@ -254,6 +312,9 @@ class Zef::App {
             take $dist if ?$test ?? self.test($dist.path, :includes(|$dist.metainfo<includes>), :$verbose, :force(?$force)) !! True;
         }
 
+        # Install Phase:
+        # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
+        # and contain only the modules needed for this specific run/plan
         for @installable-dists -> $dist {
             for @target-curs -> $cur {
                 if ?$dry {
@@ -268,7 +329,10 @@ class Zef::App {
             }
         }
 
-        # report phase
+        # Report phase:
+        # Handle exit codes for various option permutations like --force
+        # Inform user of what was tested/built/installed and what failed
+        # Optionally report to any cpan testers type service (testers.perl6.org)
         unless $dry {
             if @installable-dists.flatmap(*.scripts.keys).unique -> @bins {
                 say "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$verbose??' ['~@bins~']'!!''} installed to:"
@@ -277,6 +341,7 @@ class Zef::App {
         }
     }
 }
+
 
 # simple topological sort
 # todo: bring back the more advanced sort zef previously used, but use with Distribution objects
@@ -307,6 +372,7 @@ sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True,
 
     return @tree;
 }
+
 
 # todo: write a real hooking implementation to CU::R::I instead of the current practice
 # of writing an installer specific (literally) Build.pm

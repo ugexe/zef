@@ -1,6 +1,15 @@
 use Zef;
 use Zef::Distribution::Local;
 
+# Intended to:
+# 1) Keep track of contents of a directory using a manifest.
+#   a) full update to recursively search location to discover everything
+#   b) .store method to be called after something is fetched, allowing
+#       the single entry to be added to the manifest without having to search
+# 2) If a requested identity matches anything found in the manifest already
+#    then it will return *that* instead of necessarily making net requests
+#    for other ContentStorage like p6c or CPAN (although such choices are
+#    made inside Zef::ContentStorage itself)
 class Zef::ContentStorage::LocalCache does ContentStorage {
     has $.mirrors;
     has $.auto-update;
@@ -8,6 +17,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
 
     has @!dists;
 
+    # Abstraction to handle automatic updating of package list and/or local index
     method !gather-dists {
         once { self.update } if $.auto-update || !self!manifest-file.e;
         @!dists = +@!dists ?? @!dists !! self!manifest-file.lines.map: -> $entry {
@@ -25,6 +35,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         $dir;
     }
 
+    # Rebuild the manifest/index by recursively searching for META files
     method update {
         my @stack = $!cache;
         my %dcache;
@@ -52,6 +63,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     }
 
     # todo: handle %fields
+    # todo: sort $max-results results by version
     method search(:$max-results = 5, *@identities, *%fields) {
         my $matches := gather DIST: for |self!gather-dists -> $dist {
             state @wanted = |@identities;
@@ -66,8 +78,9 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         }
     }
 
-    # todo: remove lines with paths that don't exist and properly handle a dist
-    # saved to multiple paths
+    # After the `fetch` phase an app can call `.store` on any ContentStorage that
+    # provides it, allowing each ContentStorage to do things like keep a simple list of
+    # identities installed, keep a cache of anything installed (how its used here), etc
     method store(*@dists) {
         my @lines = self!manifest-file.open(:rw).lines;
         my $data  = @lines.join("\n") ~ (+@lines ?? "\n" !! '')

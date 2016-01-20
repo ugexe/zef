@@ -17,7 +17,7 @@ class Zef::ContentStorage does DynLoader {
         }
 
         ?$upgrade
-            ?? @results.sort({ Version.new($^b.value.ver) cmp Version.new($^a.value.ver) })
+            ?? @results.sort({ $^b.value cmp $^a.value })
             !! @results;
     }
 

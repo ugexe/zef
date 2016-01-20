@@ -117,3 +117,7 @@ sub IS-INSTALLED($identity) {
     }
     return (not defined $!) ?? True !! False;
 }
+
+multi sub infix:<cmp>(Distribution $lhs, Distribution $rhs) is export {
+    Version.new($lhs.ver) cmp Version.new($rhs.ver)
+}

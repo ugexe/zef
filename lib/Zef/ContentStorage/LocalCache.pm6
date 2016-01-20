@@ -82,9 +82,22 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # provides it, allowing each ContentStorage to do things like keep a simple list of
     # identities installed, keep a cache of anything installed (how its used here), etc
     method store(*@dists) {
-        my @lines = self!manifest-file.open(:rw).lines;
-        my $data  = @lines.join("\n") ~ (+@lines ?? "\n" !! '')
-            ~ @dists.map({ (.id, .IO.absolute).join("\0") }).unique.join("\n");
-        self!manifest-file.spurt("{$data}\n") if $data;
+        state $lock = Lock.new;
+        $lock.protect({
+            my $handle = try self!manifest-file.open(:rw);
+            LEAVE { try {$handle.close} if $handle && $handle.opened }
+
+            my %lookup;
+
+            $handle.lines.map: {
+                my ($id, $path) = .split("\0");
+                %lookup{$id} = $path if $path && $path.IO.d;
+            }
+
+            @dists.map: { %lookup{.id} = .IO.absolute }
+
+            my $manifest-contents = join "\n", %lookup.map: { join "\0", (.key, .value) }
+            try { self!manifest-file.spurt("{$manifest-contents}\n") } if $manifest-contents;
+        })
     }
 }

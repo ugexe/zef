@@ -20,6 +20,6 @@ test_script:
   - perl6 -Ilib bin/zef --verbose install .
   - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%
   - cd %APPVEYOR_BUILD_FOLDER%\..
-  - zef install CSV::Parser
+  - zef -v --force --/test install Zef
 
 shallow_clone: true

@@ -30,7 +30,7 @@ class Zef::Shell::Test is Zef::Shell does Tester {
 
     method find-tests($path) {
         my @stack = $path.IO.child('t').absolute;
-        my $perl-files := gather while ( @stack ) {
+        my $test-files := gather while ( @stack ) {
             my $current = @stack.pop;
             take $current.IO if ($current.IO.f && $current.IO.extension ~~ rx:i/t$/);
             @stack.append(dir($current)>>.path) if $current.IO.d;

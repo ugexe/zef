@@ -62,7 +62,7 @@ class Zef::App {
                         $dist.metainfo<requested-as> = $wanted;
 
                         # todo: alternatives, i.e. not a Str but [Str, Str]
-                        my @wanted-deps = unique(grep *.chars,
+                        my @wanted-deps = unique(grep *.chars, grep *.defined,
                             ($dist.depends       if ?$depends).Slip,
                             ($dist.test-depends  if ?$test-depends).Slip,
                             ($dist.build-depends if ?$build-depends).Slip);
@@ -126,28 +126,28 @@ class Zef::App {
             # todo: abstract this away properly with either a specific file uri
             # fetcher, modifying the source-url field to a path, or create a cacher role
             if $from eq 'Zef::ContentStorage::LocalCache' {
-                say "[$from] cached at $save-as" if ?$verbose;
+                say "[$from] Found in local cache" if ?$verbose;
             }
             else {
                 $!fetcher.fetch($uri, $save-as, :&stdout);
                 say "[$from] {$uri} --> $save-as" if ?$verbose;
+
+                # should probably break this out into its out method
+                if $save-as.lc.ends-with('.tar.gz' | '.zip') {
+                    say "Extracting: {$save-as} to {$extract-to}" if ?$verbose;
+                    $save-as = $!extractor.extract($save-as, $extract-to);
+                }
+
+                # Our `Zef::Distribution $dist` can be upraded to a `Zef::Distribution::Local`
+                # as .fetch/.extract has copied the Distribution to a local path somewhere.
+                # The "upgraded" functionality is generally related to turning relative paths
+                # to the absolute paths on the current file system (in `provides`/`resources` for example)
+                $dist does Zef::Distribution::Local($save-as);
+
+                # Calls optional `.store` method on all ContentStorage plugins so they may
+                # choose to cache the dist or simply cache the meta data of what is installed
+                $!storage.store($dist);
             }
-
-            # should probably break this out into its out method
-            if $save-as.lc.ends-with('.tar.gz' | '.zip') {
-                say "Extracting: {$save-as} to {$extract-to}" if ?$verbose;
-                $save-as = $!extractor.extract($save-as, $extract-to);
-            }
-
-            # Our `Zef::Distribution $dist` can be upraded to a `Zef::Distribution::Local`
-            # as .fetch/.extract has copied the Distribution to a local path somewhere.
-            # The "upgraded" functionality is generally related to turning relative paths
-            # to the absolute paths on the current file system (in `provides`/`resources` for example)
-            $dist does Zef::Distribution::Local($save-as);
-
-            # Calls optional `.store` method on all ContentStorage plugins so they may
-            # choose to cache the dist or simply cache the meta data of what is installed
-            $!storage.store($dist);
 
             take $dist;
         }

@@ -20,11 +20,16 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # Abstraction to handle automatic updating of package list and/or local index
     method !gather-dists {
         once { self.update } if $.auto-update || !self!manifest-file.e;
-        @!dists = +@!dists ?? @!dists !! self!manifest-file.lines.map: -> $entry {
+        return @!dists if +@!dists;
+
+        @!dists = gather for self!manifest-file.lines -> $entry {
             my ($identity, $path) = $entry.split("\0");
-            $ = Zef::Distribution::Local.new($path);
+            next unless $path.IO.e;
+            try {
+                my $dist = Zef::Distribution::Local.new($path);
+                take $dist;
+            }
         }
-        @!dists;
     }
 
     method !manifest-file  { $ = self.IO.child('MANIFEST.zef') }
@@ -52,8 +57,10 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
                 next;
             }
 
-            if Zef::Distribution::Local.new($current) -> $dist {
-                %dcache{$dist.id} //= $dist;
+            try {
+                if Zef::Distribution::Local.new($current) -> $dist {
+                    %dcache{$dist.id} //= $dist;
+                }
             }
         }
 

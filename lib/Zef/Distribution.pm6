@@ -59,19 +59,19 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # make matching dependency names against a dist easier
     # when sorting the install order from the meta hash
     method depends-specs       {
-        eager gather for @.depends {
+        eager gather for @.depends.grep(*.defined) {
             my $ds = Zef::Distribution::DependencySpecification.new($_);
             take $ds;
         }
     }
     method build-depends-specs {
-        eager gather for @.build-depends {
+        eager gather for @.build-depends.grep(*.defined) {
             my $ds = Zef::Distribution::DependencySpecification.new($_);
             take $ds;
         }
     }
     method test-depends-specs  {
-        eager gather for @.test-depends {
+        eager gather for @.test-depends.grep(*.defined) {
             my $ds = Zef::Distribution::DependencySpecification.new($_);
             take $ds;
         }
@@ -100,7 +100,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     }
 
     # use Distribution's .ver but filter off a leading 'v'
-    method ver { callsame.subst(/^v/, '') }
+    method ver { my $v = callsame; $v.subst(/^v/, '') }
 
     # The identity genered by Distribution's Str() does not always parse in `use` statements
     method Str() {

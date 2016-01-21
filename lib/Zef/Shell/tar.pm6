@@ -26,14 +26,15 @@ class Zef::Shell::tar is Zef::Shell does Extractor {
         die "file does not exist: {$archive-file}" unless $archive-file.IO.e && $archive-file.IO.f;
         die "\$save-as folder does not exist and could not be created" unless (($save-as.IO.e && $save-as.IO.d) || mkdir($save-as));
         my $proc = $.zrun('tar', '-zxvf', $archive-file, '-C', $save-as, :out);
-        my $extracted-to = $save-as.IO.child(self.list($archive-file).head);
-        $ = ?$proc ?? $extracted-to !! False;
+        my $stdout = $proc.out.slurp-rest;
+        $proc.out.close;
+        my $extracted-to = $save-as.IO.child(self.list($archive-file)[0]);
+        $ = try { so $proc } ?? $extracted-to !! False;
     }
 
     method list($archive-file) {
-        my $nl   = Buf.new(10).decode;
         my $proc = $.zrun('tar', '--list', '-f', $archive-file, :out);
-        my @extracted-paths <== grep *.defined <== split $nl, $proc.out.slurp-rest;
+        my @extracted-paths = $proc.out.lines.grep(*.defined);
         $proc.out.close;
         @ = @extracted-paths;
     }

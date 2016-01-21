@@ -113,7 +113,7 @@ class Zef::App {
     method !fetch($storage, :$depends, :$test-depends, :$build-depends, Bool :$force, Bool :$verbose) {
         my &stdout = ?$verbose ?? -> $o {$o.say} !! -> $ { };
 
-        gather for $storage.kv -> $requested-as, $cs {
+        my @saved = eager gather for $storage.kv -> $requested-as, $cs {
             my $from = $cs.key;
             my $dist = $cs.value[0];
             my $sanitized-name = $dist.name.subst(':', '-', :g);
@@ -133,7 +133,7 @@ class Zef::App {
                 say "[$from] {$uri} --> $save-as" if ?$verbose;
 
                 # should probably break this out into its out method
-                if $save-as.lc.ends-with('.tar.gz' | '.zip') {
+                if $save-as.lc.ends-with('.tar.gz' || '.zip') {
                     say "Extracting: {$save-as} to {$extract-to}" if ?$verbose;
                     $save-as = $!extractor.extract($save-as, $extract-to);
                 }

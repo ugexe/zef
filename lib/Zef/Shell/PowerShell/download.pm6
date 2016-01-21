@@ -17,6 +17,6 @@ class Zef::Shell::PowerShell::download is Zef::Shell::PowerShell does Fetcher {
     method fetch($url, $save-as) {
         mkdir($save-as.IO.dirname) unless $save-as.IO.dirname.IO.e;
         my $proc = $.zrun-script(DOWNLOAD_SCRIPT, :ZEF_SHELL_URL($url), :ZEF_SHELL_PATH(~$save-as));
-        so $proc ?? $save-as !! False;
+        ?$proc ?? $save-as !! False;
     }
 }

@@ -14,7 +14,7 @@ class Zef::Shell::tar is Zef::Shell does Extractor {
 
             my $proc = zrun('tar', '--help', :out);
             my $nl   = Buf.new(10).decode;
-            my @out <== grep *.defined <== split $nl, $proc.out.slurp-rest;
+            my @out  = $proc.out.lines;
             $proc.out.close;
             $ = $proc.exitcode == 0 ?? @out !! False;
         }

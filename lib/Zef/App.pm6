@@ -322,8 +322,8 @@ class Zef::App {
                 }
                 else {
                     #$!lock.protect({
-                        say "Installing {$dist.name}#{$dist.path} to {$cur.short-id}#{~$cur}";
-                        $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :force(?$force));
+                    say "Installing {$dist.name}#{$dist.path} to {$cur.short-id}#{~$cur}";
+                    $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :force(?$force));
                     #});
                 }
             }

@@ -84,12 +84,12 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     method store(*@dists) {
         state $lock = Lock.new;
         $lock.protect({
-            my $handle = try self!manifest-file.open(:rw);
+            my $handle = try { self!manifest-file.open(:rw) } || return;
             LEAVE { try {$handle.close} if $handle && $handle.opened }
 
             my %lookup;
 
-            $handle.lines.map: {
+            for $handle.lines {
                 my ($id, $path) = .split("\0");
                 %lookup{$id} = $path if $path && $path.IO.d;
             }
@@ -97,7 +97,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             @dists.map: { %lookup{.id} = .IO.absolute }
 
             my $manifest-contents = join "\n", %lookup.map: { join "\0", (.key, .value) }
-            try { self!manifest-file.spurt("{$manifest-contents}\n") } if $manifest-contents;
+            try { $handle.say($manifest-contents) } if $manifest-contents;
         })
     }
 }

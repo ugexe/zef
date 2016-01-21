@@ -3,12 +3,12 @@ class Zef::Shell {
     # The purpose is to setup Procs we can spawn with different shell schematics (PowerShell for instance)
     # while still letting us create helper routines that accept positiona/slurpy parameters that for
     # example could be placed at the *end* of the arguments passed to run
-    has @.invocation;
+    has @.invocation = $*DISTRO.is-win ?? ('cmd', '/c') !! ();
 
     method zrun(:$env, :$cwd = $*CWD, :$out, :$err, *%_, *@_) {
         my %env = ($env ?? $env.hash !! %*ENV.hash);
-        temp @!invocation = ($*DISTRO.is-win ?? ('cmd', '/c', |@!invocation) !! |@!invocation).Slip;
-        $ = run(|@.invocation, |@_, :%env, :$cwd, :$out, :$err);
+        my $proc = run(|@.invocation, |@_, :%env, :$cwd, :$out, :$err);
+        ?$proc ?? $proc !! False;
     }
 
     # Pass in arguments to shell scripts via ENV. Positionals can be accessed at %*ENV<ZEF_SHELL_$POSITION>
@@ -16,7 +16,7 @@ class Zef::Shell {
     method zrun-script($cmd, :%env is copy = %*ENV, :$cwd = $*CWD, *@_, *%_) {
         my %zenv = |@_.map({state $arg++; "ZEF_SHELL_$arg" => $_ }), |%_;
         %zenv.map: {%env{$_.key} = $_.value};
-        $ = self.zrun($cmd, :%env, :$cwd);
+        $ = $.zrun($cmd, :%env, :$cwd);
     }
 }
 

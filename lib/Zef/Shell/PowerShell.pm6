@@ -15,9 +15,8 @@ class Zef::Shell::PowerShell is Zef::Shell does Probeable {
             }
 
             # May only be a type object still, so use normal `run`
-            my $proc = run('powershell', '-help', :out);
-            my $nl   = Buf.new(10).decode;
-            my @out <== grep *.so <== split $nl, $proc.out.slurp-rest;
+            my $proc = zrun('powershell', '-help', :out);
+            my @out  = $proc.out.lines;
             $proc.out.close;
             $ = $proc.exitcode == 0 ?? @out !! False;
         }

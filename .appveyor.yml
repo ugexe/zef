@@ -16,10 +16,19 @@ install:
 build: off
 
 test_script:
+  # Sanity
   - prove -v -e "perl6 -Ilib" t/
+
+  # Can install itself (or anything) without being installed itself
   - perl6 -Ilib bin/zef --verbose install .
+
+  # Setup PATH to give access to the `zef` command (shown in stdout of prev command)
   - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%
   - cd %APPVEYOR_BUILD_FOLDER%\..
-  - zef -v --force --/test install Zef
+
+  # Test that our installed bin/ script works, as well as basic ::ContentStorage::P6C functionality
+  # [--force]: Its reinstalling the same version (or an unversioned) copy; tells CU::R::I this is ok
+  # [--/test]: Disable testing. Already tested twice (see: `prove` and `bin/zef install .`)
+  - zef -v --force --/test install CSV::Parser
 
 shallow_clone: true

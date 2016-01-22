@@ -49,10 +49,9 @@ class Zef::Distribution::DependencySpecification {
 sub IDENTITY2HASH($identity is copy) is export {
     state %ids;
     %ids{$identity} //= do {
-        my $ver  = ~($identity.subst-mutate(/":ver"  ["<" || ["(" ["'" || '"']] (.*?) [">" || [["'" || '"'] ")"]]]/, "")[0] // "*");
-        my $api  = ~($identity.subst-mutate(/":api"  ["<" || ["(" ["'" || '"']] (.*?) [">" || [["'" || '"'] ")"]]]/, "")[0] // "*");
-        my $auth = ~($identity.subst-mutate(/":auth" ["<" || ["(" ["'" || '"']] (.*)  [">" || [["'" || '"'] ")"]]]/, "")[0] // "");
-
+        my $ver  = ~($identity.subst-mutate(/":ver"  ["<" || ["(" $<q>=["'" | '"']]] (.*?) [[$<q> ")"] || ">"]/, "")[0] // "*");
+        my $api  = ~($identity.subst-mutate(/":api"  ["<" || ["(" $<q>=["'" | '"']]] (.*?) [[$<q> ")"] || ">"]/, "")[0] // "*");
+        my $auth = ~($identity.subst-mutate(/":auth" ["<" || ["(" $<q>=["'" | '"']]] (.*)  [[$<q> ")"] || ">"]/, "")[0] // "");
         my $name = $identity;
         %(:$name, :$ver, :$auth, :$api);
     }
@@ -60,7 +59,7 @@ sub IDENTITY2HASH($identity is copy) is export {
 
 sub HASH2IDENTITY(%hash) is export {
     %hash<name>
-        ~ ((%hash<ver>  // '' ) ne ('*' | '') ?? ":ver('"~%hash<ver>~"')"   !! '')
-        ~ ((%hash<auth> // '' ) ne ('*' | '') ?? ":auth('"~%hash<auth>~"')" !! '')
-        ~ ((%hash<api>  // '' ) ne ('*' | '') ?? ":api('"~%hash<api>~"')"   !! '');
+        ~ ((%hash<ver>  // '' ) ne ('*' | '') ?? ":ver('"  ~ %hash<ver>  ~ "')" !! '')
+        ~ ((%hash<auth> // '' ) ne ('*' | '') ?? ":auth('" ~ %hash<auth> ~ "')" !! '')
+        ~ ((%hash<api>  // '' ) ne ('*' | '') ?? ":api('"  ~ %hash<api>  ~ "')" !! '');
 }

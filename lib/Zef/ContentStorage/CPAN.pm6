@@ -18,12 +18,16 @@ class Zef::ContentStorage::CPAN does ContentStorage {
         return () unless @identities || %fields;
 
         my $matches := gather DIST: for |@identities -> $wanted {
-            my $identity = Zef::Distribution::DependencySpecification.new($wanted);
-            temp %fields<distribution> = $identity.name.subst('::', '-', :g);
-            temp %fields<author>       = $identity.auth-matcher.match(/^.*? ':' (.*)$/)[0].Str if ?$identity.auth-matcher;
-            temp %fields<version>      = $identity.version-matcher.subst(/^v?/, '*') if ?$identity.version-matcher;
+            my $wanted-spec = Zef::Distribution::DependencySpecification.new($wanted);
+            temp %fields<distribution> = $wanted-spec.name.subst('::', '-', :g);
+            temp %fields<author>       = $wanted-spec.auth-matcher.match(/^.*? ':' (.*)$/)[0].Str
+                if ?$wanted-spec.auth-matcher;
+            temp %fields<version>      = $wanted-spec.version-matcher.subst(/^v?/, '?')
+                if ?$wanted-spec.version-matcher && $wanted-spec.version-matcher ne '*';
 
-            my $query-string = %fields.map(-> $q { $q.value.map({"{$q.key}:$_"}).join('%20') }).join('%20AND%20');
+            my $query-string = %fields.grep(*.key.defined).map(-> $q {
+                $q.value.map({"{$q.key}:$_"}).join('%20')
+            }).join('%20AND%20');
             my $search-url = $!mirrors[0] ~ '_search?q=' ~ $query-string;
 
             # Query results currently saved to file for now to ease writing shell based

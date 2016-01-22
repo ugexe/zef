@@ -45,12 +45,29 @@ old CLI overlay from the previous version of Zef, so the output is rather bleh.
 
 =head2 More CLI
 
-=head4 B<install>
+=head4 B<install> [identities]
 
 Note: The install process does not install anything until all other phases have completed. So if A requires B,
 and a user has requested to C<install A>, it would download A and B, possibly Build A and B, test A and B,
 and then finally install A and B but only if A and B passed all their tests. For instance: if A failed its
 tests then B will not be installed (even if it passed its own tests) without force.
+
+[C<identities>] can be in the form of URNs or full identities:
+
+    # URN
+    `zef install CSV-Parser`
+    `zef install github:tony-o:CSV-Parser:0.1.21`
+    `zef install CSV-Parser:0.1.2`
+
+    # IDENTITY
+    `zef install CSV::Parser`
+    `zef install "CSV::Parser:auth<tony-o>:ver<0.1.2>"`
+    `zef install "CSV::Parser:ver('0.1.2')"`
+
+    # BOTH
+    `zef install "CSV::Parser:ver<0.1.2>" github:ugexe:Net-HTTP:0.1`
+
+B<Options>
     
     # install the requested modules regardless of: currently installed versions,
     # test results, or failed dependency installations

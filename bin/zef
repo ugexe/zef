@@ -3,11 +3,12 @@ use v6;
 
 use Zef::App;
 use Zef::Utils::SystemInfo;
+use Zef::Distribution::DependencySpecification;
 
 #| Download specific distributions
 multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) {
     my $app = Zef::App.new;
-    $app.fetch(:$depends, :$test-depends, :$build-depends, |@identities);
+    $app.fetch(:$depends, :$test-depends, :$build-depends, |@identities>>.&STR2IDENTITY);
 }
 
 #| Run tests
@@ -24,13 +25,13 @@ multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$
 
     my $app = Zef::App.new;
     $app.install( :$depends, :$test-depends, :$build-depends, :$force, :$verbose,
-                  :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities );
+                  :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities>>.&STR2IDENTITY );
 }
 
 #| Find that shit
 multi MAIN('search', *@identities, *%fields) {
     my $app = Zef::App.new;
-    say $app.search(|@identities, |%fields);
+    say $app.search(|@identities>>.&STR2IDENTITY, |%fields);
 }
 
 #| Update package indexes

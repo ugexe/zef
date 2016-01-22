@@ -9,7 +9,7 @@ class Zef::ContentStorage::CPAN does ContentStorage {
     has $.cache is rw;
 
     method IO {
-        my $dir = $!cache.IO.child('metacpan').IO;
+        my $dir = $!cache.IO.child('metacpan');
         $dir.mkdir unless $dir.e;
         $dir;
     }

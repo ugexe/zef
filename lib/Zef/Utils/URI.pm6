@@ -85,5 +85,6 @@ grammar Zef::Utils::URI {
     token gen-delims  { < : / ? # [ ] @ >         }
     token sub-delims  { < ! $ & ' ( ) * + , ; = > }
 
-
 }
+
+sub uri($str) is export { Zef::Utils::URI.parse($str) }

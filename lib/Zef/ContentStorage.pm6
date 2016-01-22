@@ -1,8 +1,8 @@
 use Zef;
 
 class Zef::ContentStorage does DynLoader {
-    has $.fetcher;
-    has $.cache;
+    has $.fetcher is rw;
+    has $.cache   is rw;
 
     # Like search, but meant to return a single result for each specific identity string.
     method candidates(Bool :$upgrade, *@identities) {

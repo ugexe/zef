@@ -1,20 +1,20 @@
 #! perl6
 use v6;
 
+# use Zef::Utils::SystemInfo; # not used yet
 use Zef::App;
-use Zef::Utils::SystemInfo;
 use Zef::Distribution::DependencySpecification;
 
 #| Download specific distributions
 multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) {
-    my $app = Zef::App.new;
-    $app.fetch(:$depends, :$test-depends, :$build-depends, |@identities>>.&STR2IDENTITY);
+    my $app = Zef::App.new(:$depends, :$test-depends, :$build-depends);
+    $app.fetch(|@identities>>.&STR2IDENTITY);
 }
 
 #| Run tests
 multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
-    my $app = Zef::App.new;
-    my %results = $app.test(:$force, :$verbose, |@paths);
+    my $app = Zef::App.new(:$verbose, :$force, :$verbose);
+    my %results = $app.test(|@paths);
     %results<fail>.elems ?? exit(1) !! exit(0);
 }
 
@@ -23,9 +23,8 @@ multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$
                       Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True,
                       Bool :$dry, Bool :$update, Bool :$upgrade, :$install-to = ['site'], *@identities) {
 
-    my $app = Zef::App.new;
-    $app.install( :$depends, :$test-depends, :$build-depends, :$force, :$verbose,
-                  :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities>>.&STR2IDENTITY );
+    my $app = Zef::App.new(:$force, :$verbose, :$depends, :$test-depends, :$build-depends);
+    $app.install( :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities>>.&STR2IDENTITY );
 }
 
 #| Find that shit

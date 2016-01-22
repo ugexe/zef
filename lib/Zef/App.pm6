@@ -14,27 +14,50 @@ class Zef::App {
     has $.storage;
     has $.extractor;
     has $.tester;
+
     has @!ignore = <Test NativeCall lib MONKEY-TYPING nqp>;
     has $!lock = Lock.new;
 
-    submethod BUILD(
-        :$!cache     = "{%CONFIG<Store>}/store",
-        :@fetchers   = |(%CONFIG<Fetch>),
-        :@storages   = |(%CONFIG<ContentStorage>),
-        :@extractors = |(%CONFIG<Extract>),
-        :@testers    = |(%CONFIG<Test>),
-    ) {
-        mkdir $!cache unless $!cache.IO.e;
-        $!fetcher   = Zef::Fetch.new( :backends(@fetchers) );
-        $!storage   = Zef::ContentStorage.new( :backends(@storages), :$!fetcher, :$!cache );
-        $!extractor = Zef::Extract.new( :backends(@extractors) );
-        $!tester    = Zef::Test.new( :backends(@testers) );
+    has Bool $.verbose       = False;
+    has Bool $.force         = False;
+    has Bool $.depends       = True;
+    has Bool $.build-depends = True;
+    has Bool $.test-depends  = True;
+
+    proto method new(|) {*}
+
+    multi method new(:$extractor where !*.defined, :@extractors = |%CONFIG<Extract>, |c) {
+        samewith( :extractor(Zef::Extract.new( :backends(|@extractors) )), |c );
     }
 
-    method candidates(Bool :$depends, Bool :$test-depends, Bool :$build-depends,
-                 Bool :$force, Bool :$verbose, Bool :$upgrade, *@wants) {
+    multi method new(:$tester where !*.defined, :@testers = |%CONFIG<Test>, |c) {
+        samewith( :tester(Zef::Test.new( :backends(|@testers) )), |c );
+    }
 
-        my &stdout = ?$verbose ?? -> $o {$o.say} !! -> $ { };
+    multi method new(:$cache where !*.defined, |c) {
+        samewith( :cache("{%CONFIG<Store>}/store"), |c)
+    }
+
+    multi method new(:$fetcher where !*.defined, :@fetchers = |%CONFIG<Fetch>, |c) {
+        samewith( :fetcher(Zef::Fetch.new( :backends(|@fetchers) )), |c );
+    }
+
+    multi method new(:$storage where !*.defined, :@storages = |%CONFIG<ContentStorage>, |c) {
+        samewith( :storage(Zef::ContentStorage.new( :backends(|@storages) )), |c );
+    }
+
+    multi method new(:$cache!, :$fetcher!, :$storage!, :$extractor!, :$tester!, *%_) {
+        mkdir $cache unless $cache.IO.e;
+
+        $storage.cache   //= $cache;
+        $storage.fetcher //= $fetcher;
+
+        self.bless(:$cache, :$fetcher, :$storage, :$extractor, :$tester, |%_);
+    }
+
+    method candidates(Bool :$upgrade, *@wants) {
+
+        my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
 
         # Once metacpan can return results again this will need to be modified so as not to
         # duplicate an identity that shows up from multiple ContentStorages.
@@ -44,7 +67,7 @@ class Zef::App {
         sub get-dists(*@_) {
             state %found;
             my @allowed = |@_.grep(* ~~ none(|@!ignore, |%found.keys)).unique || return;
-            say "Searching for {'dependencies ' if state $once++}{@allowed.join(', ')}" if ?$verbose;
+            say "Searching for {'dependencies ' if state $once++}{@allowed.join(', ')}" if ?$!verbose;
             ALLOWED:
             for @allowed -> $wanted {
 
@@ -55,7 +78,7 @@ class Zef::App {
                     my $dist    := $cs.value[0];
 
                     unless %found{$wanted}:exists {
-                        say "[$storage] found {$dist.name}" if ?$verbose;
+                        say "[$storage] found {$dist.name}" if ?$!verbose;
                         %found{$wanted} := $cs;
 
                         # so the user can see if $wanted was discovered as dist or a module
@@ -63,9 +86,9 @@ class Zef::App {
 
                         # todo: alternatives, i.e. not a Str but [Str, Str]
                         my @wanted-deps = unique(grep *.chars, grep *.defined,
-                            ($dist.depends       if ?$depends).Slip,
-                            ($dist.test-depends  if ?$test-depends).Slip,
-                            ($dist.build-depends if ?$build-depends).Slip);
+                            ($dist.depends       if ?$!depends).Slip,
+                            ($dist.test-depends  if ?$!test-depends).Slip,
+                            ($dist.build-depends if ?$!build-depends).Slip);
                         get-dists(|@wanted-deps) if @wanted-deps.elems;
                         next ALLOWED;
                     }
@@ -85,7 +108,7 @@ class Zef::App {
         # from `.install` this can be moved there.
         if @wants.grep(* !~~ any(@!ignore)).grep({ not %found{$_}:exists }) -> @wanted {
             say "Could not find distributions matching {@wanted.join(',')}";
-            die unless ?$force;
+            die unless ?$!force;
         }
 
         %found;
@@ -104,14 +127,12 @@ class Zef::App {
     #   - `zef install CSV::Parser Acme::Goatse` ends up calling !fetch, because internally
     #     it does its own search so it can apply its own filters (thus supplying !fetch with
     #     *exactly* what it wants, not a fuzzy idea / search term)
-    method fetch(Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-                 Bool :$force, Bool :$verbose, *@wants) {
-
-        my %found = self.candidates(:$depends, :$test-depends, :$build-depends, :$force, :$verbose, |@wants);
-        self!fetch(%found, :$depends, :$test-depends, :$build-depends, :$force, :$verbose)
+    method fetch(*@wants) {
+        my %found = self.candidates(|@wants);
+        self!fetch(%found)
     }
-    method !fetch($storage, :$depends, :$test-depends, :$build-depends, Bool :$force, Bool :$verbose) {
-        my &stdout = ?$verbose ?? -> $o {$o.say} !! -> $ { };
+    method !fetch($storage) {
+        my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
 
         my @saved = eager gather for $storage.kv -> $requested-as, $cs {
             my $from = $cs.key;
@@ -126,15 +147,15 @@ class Zef::App {
             # todo: abstract this away properly with either a specific file uri
             # fetcher, modifying the source-url field to a path, or create a cacher role
             if $from eq 'Zef::ContentStorage::LocalCache' {
-                say "[$from] Found in local cache" if ?$verbose;
+                say "[$from] Found in local cache" if ?$!verbose;
             }
             else {
                 $!fetcher.fetch($uri, $save-as, :&stdout);
-                say "[$from] {$uri} --> $save-as" if ?$verbose;
+                say "[$from] {$uri} --> $save-as" if ?$!verbose;
 
                 # should probably break this out into its out method
                 if $save-as.lc.ends-with('.tar.gz' || '.zip') {
-                    say "Extracting: {$save-as} to {$extract-to}" if ?$verbose;
+                    say "Extracting: {$save-as} to {$extract-to}" if ?$!verbose;
                     $save-as = $!extractor.extract($save-as, $extract-to);
                 }
 
@@ -155,16 +176,16 @@ class Zef::App {
 
 
     # xxx: needs some love
-    method test(Bool :$force, Bool :$verbose, :@includes, *@paths) {
+    method test(:@includes, *@paths) {
         % = @paths.classify: -> $path {
             say "Start test phase for: $path";
 
-            my &stdout = ?$verbose ?? -> $o {$o.say} !! -> $ { };
+            my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
 
             my $result = try $!tester.test($path, :includes(@includes.grep(*.so)), :&stdout);
 
             if !$result {
-                die "Aborting due to test failure at: {$path} (use :force to override)" unless ?$force;
+                die "Aborting due to test failure at: {$path} (use :force to override)" unless ?$!force;
                 say "Test failure at: {$path}. Continuing anyway with :force"
             }
             else {
@@ -195,11 +216,9 @@ class Zef::App {
 
         self!install(:@target-curs, |%_, |@wants);
     }
-    method !install(:@target-curs, Bool :$force, Bool :$fetch, Bool :$test, Bool :$dry, Bool :$verbose,
-                    Bool :$depends, Bool :$build-depends, Bool :$test-depends, Bool :$upgrade, *@wants, *%_) {
-
+    method !install(:@target-curs, Bool :$fetch, Bool :$test, Bool :$dry, Bool :$upgrade, *@wants, *%_) {
         # temporary
-        my &notice = ?$force ?? &say !! &die;
+        my &notice = ?$!force ?? &say !! &die;
 
         # XXX: Each loop block below essentially represents a phase, so they will probably
         # be moved into their own method/module related directly to their phase. For now
@@ -214,19 +233,19 @@ class Zef::App {
                 my $dist = Zef::Distribution::Local.new($want.IO.absolute);
 
                 my @deps = unique(grep *.defined,
-                    ($dist.depends       if ?$depends).Slip,
-                    ($dist.test-depends  if ?$test-depends).Slip,
-                    ($dist.build-depends if ?$build-depends).Slip);
+                    ($dist.depends       if ?$!depends).Slip,
+                    ($dist.test-depends  if ?$!test-depends).Slip,
+                    ($dist.build-depends if ?$!build-depends).Slip);
 
                 if +@deps {
-                    take $_ for |self.candidates(|@deps, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, :$upgrade, |%_);
+                    take $_ for |self.candidates(|@deps, :$upgrade, |%_);
                 }
 
                 # local paths should probably just use LocalCache
                 take ($want => ('IO::Path' => $dist));
             }
             else {
-                take $_ for |self.candidates($want, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, :$upgrade, |%_);
+                take $_ for |self.candidates($want, :$upgrade, |%_);
             }
         }
 
@@ -234,7 +253,7 @@ class Zef::App {
         # Fetch Stage:
         # Use the results from searching ContentStorages and download/fetch the distributions they point at
         my @dists = eager gather for @discovered -> $store {
-            take $_ for |self!fetch($store, :$depends, :$build-depends, :$test-depends, :$verbose, :$force, |%_);
+            take $_ for |self!fetch($store, |%_);
         }
 
 
@@ -245,10 +264,10 @@ class Zef::App {
         # below because it has the wrong license means we don't need anything that depends on A but
         # *do* need to replace those items with things depended on by B [which replaces A])
         my @filtered-dists = eager gather DIST: for @dists -> $dist {
-            say "[DEBUG] Filtering {$dist.name}" if ?$verbose;
+            say "[DEBUG] Filtering {$dist.name}" if ?$!verbose;
             if ?$dist.is-installed {
-                my $reported-id = ?$verbose ?? $dist.identity !! $dist.name;
-                unless ?$force {
+                my $reported-id = ?$!verbose ?? $dist.identity !! $dist.name;
+                unless ?$!force {
                     say "{$reported-id} is already installed. Skipping... (use :force to override)";
                     next;
                 }
@@ -282,19 +301,19 @@ class Zef::App {
         # as at this point we expect to have already fetched/filtered the distributions... so either
         # we fetch all alternatives (most of which would probably would not use) or do this in a way
         # that allows us to return to a previous state in our plan (xxx: Zef::Plan is planned)
-        my @sorted-dists = topological-sort(@filtered-dists, :$depends, :$build-depends, :$test-depends, |%_);
+        my @sorted-dists = self.plan-order(@filtered-dists, |%_);
 
 
         # Build Phase:
         # Attach appropriate metadata so we can do --dry runs using -I/some/dep/path
         # and can install after we know they pass any required tests
         my @installable-dists = eager gather for @sorted-dists -> $dist {
-            say "[DEBUG] Processing {$dist.name}" if ?$verbose;
+            say "[DEBUG] Processing {$dist.name}" if ?$!verbose;
 
             my @dep-specs = unique(grep *.defined,
-                ($dist.depends-specs       if ?$depends).Slip,
-                ($dist.test-depends-specs  if ?$test-depends).Slip,
-                ($dist.build-depends-specs if ?$build-depends).Slip);
+                ($dist.depends-specs       if ?$!depends).Slip,
+                ($dist.test-depends-specs  if ?$!test-depends).Slip,
+                ($dist.build-depends-specs if ?$!build-depends).Slip);
 
             # this could probably be done in the topological-sort itself
             $dist.metainfo<includes> = eager gather DEPSPEC: for @dep-specs -> $spec {
@@ -309,7 +328,7 @@ class Zef::App {
 
             notice "Build.pm hook failed" if $dist.IO.child('Build.pm').e && !legacy-hook($dist);
 
-            take $dist if ?$test ?? self.test($dist.path, :includes(|$dist.metainfo<includes>), :$verbose, :force(?$force)) !! True;
+            take $dist if ?$test ?? self.test($dist.path, :includes(|$dist.metainfo<includes>)) !! True;
         }
 
         # Install Phase:
@@ -323,7 +342,7 @@ class Zef::App {
                 else {
                     #$!lock.protect({
                     say "Installing {$dist.name}#{$dist.path} to {$cur.short-id}#{~$cur}";
-                    $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :force(?$force));
+                    $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
                     #});
                 }
             }
@@ -335,42 +354,39 @@ class Zef::App {
         # Optionally report to any cpan testers type service (testers.perl6.org)
         unless $dry {
             if @installable-dists.flatmap(*.scripts.keys).unique -> @bins {
-                say "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$verbose??' ['~@bins~']'!!''} installed to:"
+                say "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
                 ~   "\n\t" ~ @target-curs.map(*.prefix.child('bin')).join("\n");
             }
         }
     }
-}
 
+    method plan-order(@dists, *%_) {
+        my @tree;
+        my $visit = sub ($dist, $from? = '') {
+            return if ($dist.metainfo<marked> // 0) == 1;
+            if ($dist.metainfo<marked> // 0) == 0 {
+                $dist.metainfo<marked> = 1;
 
-# simple topological sort
-# todo: bring back the more advanced sort zef previously used, but use with Distribution objects
-sub topological-sort(@dists, Bool :$depends = True, Bool :$build-depends = True, Bool :$test-depends = True, *%_) {
-    my @tree;
-    my $visit = sub ($dist, $from? = '') {
-        return if ($dist.metainfo<marked> // 0) == 1;
-        if ($dist.metainfo<marked> // 0) == 0 {
-            $dist.metainfo<marked> = 1;
+                my @deps = unique(grep *.defined,
+                    ($dist.depends-specs       if ?$!depends).Slip,
+                    ($dist.test-depends-specs  if ?$!test-depends).Slip,
+                    ($dist.build-depends-specs if ?$!build-depends).Slip);
 
-            my @deps = unique(grep *.defined,
-                ($dist.depends-specs       if ?$depends).Slip,
-                ($dist.test-depends-specs  if ?$test-depends).Slip,
-                ($dist.build-depends-specs if ?$build-depends).Slip);
-
-            for @deps -> $m {
-                for @dists.grep(*.spec-matcher($m)) -> $m2 {
-                    $visit($m2, $dist);
+                for @deps -> $m {
+                    for @dists.grep(*.spec-matcher($m)) -> $m2 {
+                        $visit($m2, $dist);
+                    }
                 }
+                @tree.append($dist);
             }
-            @tree.append($dist);
+        };
+
+        for @dists -> $dist {
+            $visit($dist, 'olaf') if ($dist.metainfo<marked> // 0) == 0;
         }
-    };
 
-    for @dists -> $dist {
-        $visit($dist, 'olaf') if ($dist.metainfo<marked> // 0) == 0;
+        return @tree;
     }
-
-    return @tree;
 }
 
 

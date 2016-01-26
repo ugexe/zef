@@ -56,7 +56,6 @@ class Zef::App {
     }
 
     method candidates(Bool :$upgrade, *@wants) {
-
         my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
 
         # Once metacpan can return results again this will need to be modified so as not to
@@ -70,7 +69,6 @@ class Zef::App {
             say "Searching for {'dependencies ' if state $once++}{@allowed.join(', ')}" if ?$!verbose;
             ALLOWED:
             for @allowed -> $wanted {
-
                 # todo: allow sorting `candidates` by version
                 CONTENT:
                 for $!storage.candidates($wanted, :$upgrade) -> $cs {
@@ -147,23 +145,22 @@ class Zef::App {
             # todo: abstract this away properly with either a specific file uri
             # fetcher, modifying the source-url field to a path, or create a cacher role
             if $from eq 'Zef::ContentStorage::LocalCache' {
-                say "[$from] Found in local cache" if ?$!verbose;
+                say "[$from] Found on local file system" if ?$!verbose;
             }
             else {
-                $!fetcher.fetch($uri, $save-as, :&stdout);
                 say "[$from] {$uri} --> $save-as" if ?$!verbose;
+                my $location = $!fetcher.fetch($uri, $save-as, :&stdout);
 
                 # should probably break this out into its out method
-                if $save-as.lc.ends-with('.tar.gz' || '.zip') {
-                    say "Extracting: {$save-as} to {$extract-to}" if ?$!verbose;
-                    $save-as = $!extractor.extract($save-as, $extract-to);
-                }
+                say "[{$!extractor.^name}] Extracting: {$save-as}" if ?$!verbose;
+                $location = try { $!extractor.extract($location, $extract-to) } || $location;
+                say "Extracted to: {$location}" if ?$!verbose;
 
                 # Our `Zef::Distribution $dist` can be upraded to a `Zef::Distribution::Local`
                 # as .fetch/.extract has copied the Distribution to a local path somewhere.
                 # The "upgraded" functionality is generally related to turning relative paths
                 # to the absolute paths on the current file system (in `provides`/`resources` for example)
-                $dist does Zef::Distribution::Local($save-as);
+                $dist does Zef::Distribution::Local(~$location);
 
                 # Calls optional `.store` method on all ContentStorage plugins so they may
                 # choose to cache the dist or simply cache the meta data of what is installed
@@ -182,7 +179,7 @@ class Zef::App {
 
             my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
 
-            my $result = try $!tester.test($path, :includes(@includes.grep(*.so)), :&stdout);
+            my $result = $!tester.test($path, :includes(@includes.grep(*.so)), :&stdout);
 
             if !$result {
                 die "Aborting due to test failure at: {$path} (use :force to override)" unless ?$!force;
@@ -229,7 +226,7 @@ class Zef::App {
         # Search ContentStorages to locate/build everything needed to fulfill the
         # requested identity ($want)
         my @discovered = eager gather for @wants -> $want {
-            if $want.starts-with('.' | '/') && $want.IO.e {
+            if $want.starts-with('.' | '/') {
                 my $dist = Zef::Distribution::Local.new($want.IO.absolute);
 
                 my @deps = unique(grep *.defined,
@@ -242,13 +239,12 @@ class Zef::App {
                 }
 
                 # local paths should probably just use LocalCache
-                take ($want => ('IO::Path' => $dist));
+                take ($want => ('Zef::ContentStorage::LocalCache' => $dist));
             }
             else {
                 take $_ for |self.candidates($want, :$upgrade, |%_);
             }
         }
-
 
         # Fetch Stage:
         # Use the results from searching ContentStorages and download/fetch the distributions they point at

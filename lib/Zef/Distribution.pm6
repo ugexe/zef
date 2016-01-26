@@ -36,7 +36,6 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # considered not installed)
     method is-installed(*@curlis is copy) {
         return True if IS-INSTALLED(self.identity);
-
         # EVALing a dist name doesn't really tell us if its *not* installed
         # since a dist name doesn't have to match up to any of its modules
         for self.provides.keys -> $provides {
@@ -44,13 +43,13 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
             # then default them to the providing dist's values
             my %hash = IDENTITY2HASH($provides);
             next if self.name eq %hash<name>;
-            %hash<ver>  //= self.ver;
-            %hash<auth> //= self.auth;
-            %hash<api>  //= self.api;
+            %hash<ver>  = %hash<ver>  || self.ver;
+            %hash<auth> = %hash<auth> || self.auth;
+            %hash<api>  = %hash<api>  || self.api;
+
             my $provides-identity = HASH2IDENTITY(%hash);
             return ?IS-INSTALLED($provides-identity);
         }
-
         False
     }
 
@@ -123,10 +122,10 @@ sub IS-INSTALLED($identity) {
     try {
         my $perl6 = $*EXECUTABLE;
         my $cwd   = $*TMPDIR; # change cwd for script below so $*CWD/lib is not accidently considered
-        my $is-installed-script = "use $identity;";
+        my $is-installed-script = "use $identity;"; # -M doesn't work with :auth<xxx>:ver<> yet
         my $proc = zrun($perl6, '-e', $is-installed-script, :$cwd, :out, :err);
-        my $out = $proc.out.slurp-rest;
-        my $err = $proc.err.slurp-rest;
+        my $out = $proc.out.lines;
+        my $err = $proc.err.lines;
         $proc.out.close;
         $proc.err.close;
 

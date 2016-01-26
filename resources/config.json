@@ -54,6 +54,11 @@
     ],
     "Extract" : [
         {
+            "name" : "git",
+            "module" : "Zef::Shell::git",
+            "comment" : "used to checkout (extract) specific tags/sha1/commit/branch from a git repo"
+        },
+        {
             "name" : "unzip",
             "module" : "Zef::Shell::unzip"
         },

@@ -6,7 +6,7 @@ class Zef::Shell::unzip is Zef::Shell does Extractor {
 
     method probe {
         # todo: check without spawning process (slow)
-        state $unzip-help = try {
+        state $unzip-probe = try {
             CATCH {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
@@ -14,12 +14,11 @@ class Zef::Shell::unzip is Zef::Shell does Extractor {
 
             my $proc = zrun('unzip', '--help', :out);
             my $nl   = Buf.new(10).decode;
-            my @out <== grep *.so <== split $nl, $proc.out.slurp-rest;
+            my $out |$proc.out.lines;
             $proc.out.close;
-            $ = $proc.exitcode == 0 ?? @out !! False;
+            $ = ?$proc;
         }
-
-        so $unzip-help;
+        ?$unzip-probe;
     }
 
     method extract($archive-file, $save-as) {
@@ -33,7 +32,7 @@ class Zef::Shell::unzip is Zef::Shell does Extractor {
     method list($archive-file) {
         my $nl   = Buf.new(10).decode;
         my $proc = $.zrun('unzip', '-Z', '-1', $archive-file, :out);
-        my @extracted-paths <== grep *.defined <== split $nl, $proc.out.slurp-rest;
+        my @extracted-paths = |$proc.out.lines;
         $proc.out.close;
         @ = @extracted-paths;
     }

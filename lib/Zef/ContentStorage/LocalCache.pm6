@@ -11,6 +11,7 @@ use Zef::Distribution::Local;
 #    for other ContentStorage like p6c or CPAN (although such choices are
 #    made inside Zef::ContentStorage itself)
 class Zef::ContentStorage::LocalCache does ContentStorage {
+    state $lock = Lock.new;
     has $.mirrors;
     has $.auto-update;
     has $.cache is rw;
@@ -65,6 +66,10 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         }
 
         @!dists = %dcache.values;
+        self!update;
+    }
+
+    method !update(*@dists) {
         self.store(|@!dists);
         @!dists;
     }
@@ -89,9 +94,8 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # provides it, allowing each ContentStorage to do things like keep a simple list of
     # identities installed, keep a cache of anything installed (how its used here), etc
     method store(*@dists) {
-        state $lock = Lock.new;
         $lock.protect({
-            my $handle = try { self!manifest-file.open(:rw) } || return;
+            my $handle = self!manifest-file.open(:rw);
             LEAVE { try {$handle.close} if $handle && $handle.opened }
 
             my %lookup;

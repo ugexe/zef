@@ -6,36 +6,36 @@ class Zef::Shell::tar is Zef::Shell does Extractor {
 
     method probe {
         # todo: check without spawning process (slow)
-        state $untar-help = try {
+        state $tar-probe = try {
             CATCH {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-
             my $proc = zrun('tar', '--help', :out);
             my $nl   = Buf.new(10).decode;
             my @out  = $proc.out.lines;
             $proc.out.close;
-            $ = $proc.exitcode == 0 ?? @out !! False;
+            $ = ?$proc;
         }
-
-        so $untar-help;
+        ?$tar-probe;
     }
 
     method extract($archive-file, $save-as) {
-        die "file does not exist: {$archive-file}" unless $archive-file.IO.e && $archive-file.IO.f;
-        die "\$save-as folder does not exist and could not be created" unless (($save-as.IO.e && $save-as.IO.d) || mkdir($save-as));
+        die "file does not exist: {$archive-file}"
+            unless $archive-file.IO.e && $archive-file.IO.f;
+        die "\$save-as folder does not exist and could not be created"
+            unless (($save-as.IO.e && $save-as.IO.d) || mkdir($save-as));
+        my $extracted-to = $save-as.IO.child(self.list($archive-file).head).absolute;
         my $proc = $.zrun('tar', '-zxvf', $archive-file, '-C', $save-as, :out);
-        my $stdout = $proc.out.slurp-rest;
+        my @out = $_ for $proc.out.lines;
         $proc.out.close;
-        my $extracted-to = $save-as.IO.child(self.list($archive-file)[0]);
-        $ = try { so $proc } ?? $extracted-to !! False;
+        $ = (?$proc && $extracted-to.IO.e) ?? $extracted-to !! False;
     }
 
     method list($archive-file) {
         my $proc = $.zrun('tar', '--list', '-f', $archive-file, :out);
-        my @extracted-paths = $proc.out.lines.grep(*.defined);
+        my @extracted-paths = |$proc.out.lines;
         $proc.out.close;
-        @ = @extracted-paths;
+        @ = ?$proc ?? @extracted-paths.grep(*.defined) !! ();
     }
 }

@@ -15,14 +15,15 @@ class Zef::Shell::PowerShell::unzip is Zef::Shell::PowerShell does Extractor {
     method extract($archive-file, $save-as) {
         die "file does not exist: {$archive-file}" unless $archive-file.IO.e && $archive-file.IO.f;
         die "\$save-as folder does not exist and could not be created" unless (($save-as.IO.e && $save-as.IO.d) || mkdir($save-as));
+        my $extract-to = $save-as.IO.child(self.list($archive-file).head).absolute;
         my $proc = $.run-script(UNZIP_SCRIPT, :ZEF_SHELL_ZIPFILE($archive-file), :ZEF_SHELL_TARGET($save-as));
-        my $extracted-to = $save-as.IO.child(self.list($archive-file).head);
-        so $proc ?? $extracted-to !! False;
+        $ = (?$proc && $extract-to.IO.e) ?? $extract-to !! False;
     }
 
     method list($archive-file) {
-        #my $nl   = Buf.new(10).decode;
-        #my $proc = $.zrun('unzip', '-Z', '-1', $archive-file, :out);
-        #my @extracted-paths <== grep *.defined <== split $nl, $proc.out.slurp-rest;
+        my $proc = $.zrun('unzip', '-Z', '-1', $archive-file, :out);
+        my @extracted-paths = |$proc.out.lines;
+        $proc.out.close;
+        @ = ?$proc ?? @extracted-paths.grep(*.defined) !! ();
     }
 }

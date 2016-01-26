@@ -12,8 +12,7 @@ class Zef::Shell::wget is Zef::Shell does Fetcher does Probeable does Messenger 
             }
 
             my $proc = zrun('wget', '--help', :out);
-            my $nl   = Buf.new(10).decode;
-            my $out  = $|proc.out.lines;
+            my $out  = |$proc.out.lines;
             $proc.out.close;
             $ = ?$proc;
         }

@@ -143,15 +143,15 @@ class Zef::Utils::URI {
                 port        =>  ($auth.<port>         // Int).Int,
                 user-info   => ~($auth.<userinfo>     //  ''),
                 path        => ~($heir.<path-abempty> // '/'),
-                query       => ~($m.<query>           // ''),
-                fragment    => ~($m.<fragment>        // ''),
+                query       => ~($m.<query>           //  ''),
+                fragment    => ~($m.<fragment>        //  ''),
             );
         }
         elsif URI.parse($id, :rule<relative-ref>) -> $m {
             self.bless(
                 match       => $m,
                 is-relative => True,
-                scheme      => ~($m.<scheme>        //  '').lc,
+                scheme      => ~($m.<scheme>        // '').lc,
                 path        => ~($m.<relative-part> || '/'),
                 query       => ~($m.<query>         // ''),
                 fragment    => ~($m.<fragment>      // ''),

@@ -67,20 +67,16 @@ class Zef::App {
             state %found;
             my @allowed = |@_.grep(* ~~ none(|@!ignore, |%found.keys)).unique || return;
             say "Searching for {'dependencies ' if state $once++}{@allowed.join(', ')}" if ?$!verbose;
-            ALLOWED:
-            for @allowed -> $wanted {
-                # todo: allow sorting `candidates` by version
-                CONTENT:
-                for $!storage.candidates($wanted, :$upgrade) -> $cs {
+            for $!storage.candidates(|@allowed, :$upgrade) -> $candis {
+                for $candis -> $cs {
                     my $storage := $cs.key;
                     my $dist    := $cs.value[0];
 
-                    unless %found{$wanted}:exists {
+                    unless %found{$dist.metainfo<requested-as>}:exists {
                         say "[$storage] found {$dist.name}" if ?$!verbose;
-                        %found{$wanted} := $cs;
+                        %found{$dist.metainfo<requested-as>} := $cs;
 
                         # so the user can see if $wanted was discovered as dist or a module
-                        $dist.metainfo<requested-as> = $wanted;
 
                         # todo: alternatives, i.e. not a Str but [Str, Str]
                         my @wanted-deps = unique(grep *.chars, grep *.defined,
@@ -88,7 +84,7 @@ class Zef::App {
                             ($dist.test-depends  if ?$!test-depends).Slip,
                             ($dist.build-depends if ?$!build-depends).Slip);
                         get-dists(|@wanted-deps) if @wanted-deps.elems;
-                        next ALLOWED;
+                        #next ALLOWED;
                     }
                 }
             }
@@ -228,6 +224,7 @@ class Zef::App {
         my @discovered = eager gather for @wants -> $want {
             if $want.starts-with('.' | '/') {
                 my $dist = Zef::Distribution::Local.new($want.IO.absolute);
+                $dist.metainfo<requested-as> = $want;
 
                 my @deps = unique(grep *.defined,
                     ($dist.depends       if ?$!depends).Slip,

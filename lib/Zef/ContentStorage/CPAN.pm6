@@ -44,6 +44,7 @@ class Zef::ContentStorage::CPAN does ContentStorage {
                         $meta6<source-url> = $host ~ $meta6<source-url>;
 
                         my $dist = Zef::Distribution.new(|$meta6);
+                        $dist.metainfo<requested-as> = $wanted;
                         take $dist;
                     }
                 }

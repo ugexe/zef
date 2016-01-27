@@ -82,6 +82,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 my $spec = Zef::Distribution::DependencySpecification.new($wants);
                 if ?$dist.contains-spec($spec) {
+                    $dist.metainfo<requested-as> = $wants;
                     take $dist;
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);
                     last DIST unless +@wanted;

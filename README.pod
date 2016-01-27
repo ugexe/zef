@@ -56,7 +56,7 @@ tests then B will not be installed (even if it passed its own tests) without for
 
     # URN
     `zef install CSV-Parser`
-    `zef install github:tony-o:CSV-Parser:0.1.21`
+    `zef install github:tony-o:CSV-Parser:0.1.2`
     `zef install CSV-Parser:0.1.2`
 
     # IDENTITY

@@ -44,12 +44,12 @@ class Zef::ContentStorage::P6C does ContentStorage {
     # todo: handle %fields
     method search(:$max-results = 5, *@identities, *%fields) {
         return () unless @identities || %fields;
-
+        my @wanted = @identities;
         cache gather DIST: for self!gather-dists -> $dist {
-            state @wanted = |@identities;
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 my $spec = Zef::Distribution::DependencySpecification.new($wants);
                 if ?$dist.contains-spec($spec) {
+                    $dist.metainfo<requested-as> = $wants;
                     take $dist;
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);
                     last DIST unless +@wanted;

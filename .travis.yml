@@ -1,6 +1,9 @@
 language: perl
 perl:
     - '5.20-shrplib'
+os:
+    - linux
+    - osx
 env:
     - BACKEND=moar
     - BACKEND=jvm
@@ -10,10 +13,10 @@ matrix:
     fast_finish: true
 sudo: false
 before_install:
+    - 'if [[ $BACKEND == "moar" ]]; then export VM_OPTS="--gen-moar"; fi'
     - git clone https://github.com/rakudo/rakudo.git $HOME/rakudo
     - cd $HOME/rakudo
-    - 'if [[ $BACKEND == "moar" ]]; then perl Configure.pl --gen-moar --gen-nqp --backends=$BACKEND; fi'
-    - 'if [[ $BACKEND == "jvm" ]]; then perl Configure.pl --gen-nqp --backends=$BACKEND; fi'
+    - perl Configure.pl $VM_OPTS --gen-nqp --backends=$BACKEND
     - make install
     - export PATH=$HOME/rakudo/install/bin:$PATH
     - cd $TRAVIS_BUILD_DIR
@@ -24,5 +27,6 @@ script:
     - perl6 -Ilib bin/zef -v install .
 after_success:
     - export PATH=$HOME/rakudo/install/share/perl6/site/bin:$PATH
-    - 'if [[ $BACKEND == "moar" ]]; then zef -v install Inline::Perl5; fi'
-    - 'if [[ $BACKEND == "moar" ]]; then perl6 -MInline::Perl5 -e "exit 0;"; fi'
+    # perl/perlbrew setup for osx on travis is buggy; not sure how to use shrplib perl without building from source
+    - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then zef -v install Inline::Perl5; fi'
+    - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then perl6 -MInline::Perl5 -e "exit 0;"; fi'

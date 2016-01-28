@@ -17,13 +17,13 @@ class Zef::ContentStorage::CPAN does ContentStorage {
     method search(:$max-results = 5, *@identities, *%fields) {
         return () unless @identities || %fields;
 
-        my $matches := gather DIST: for |@identities -> $wanted {
-            my $wanted-spec = Zef::Distribution::DependencySpecification.new($wanted);
-            temp %fields<distribution> = $wanted-spec.name.subst('::', '-', :g);
-            temp %fields<author>       = $wanted-spec.auth-matcher.match(/^.*? ':' (.*)$/)[0].Str
-                if ?$wanted-spec.auth-matcher;
-            temp %fields<version>      = $wanted-spec.version-matcher.subst(/^v?/, '?')
-                if ?$wanted-spec.version-matcher && $wanted-spec.version-matcher ne '*';
+        my $matches := gather DIST: for |@identities -> $wants {
+            my $wants-spec = Zef::Distribution::DependencySpecification.new($wants);
+            temp %fields<distribution> = $wants-spec.name.subst('::', '-', :g);
+            temp %fields<author>       = $wants-spec.auth-matcher.match(/^.*? ':' (.*)$/)[0].Str
+                if ?$wants-spec.auth-matcher;
+            temp %fields<version>      = $wants-spec.version-matcher.subst(/^v?/, '?')
+                if ?$wants-spec.version-matcher && $wants-spec.version-matcher ne '*';
 
             my $query-string = %fields.grep(*.key.defined).map(-> $q {
                 $q.value.map({"{$q.key}:$_"}).join('%20')
@@ -44,8 +44,7 @@ class Zef::ContentStorage::CPAN does ContentStorage {
                         $meta6<source-url> = $host ~ $meta6<source-url>;
 
                         my $dist = Zef::Distribution.new(|$meta6);
-                        $dist.metainfo<requested-as> = $wanted;
-                        take $dist;
+                        take ($wants => $dist);
                     }
                 }
             }
@@ -58,7 +57,7 @@ class Zef::ContentStorage::CPAN does ContentStorage {
 # perl6 specific API search result
 sub METACPAN2META6(%cpan-meta) {
     my $meta6;
-    $meta6<name>        = (%cpan-meta<distribution> // %cpan-meta<metadata><name> // '').subst('-', '::');
+    $meta6<name>        = (%cpan-meta<distribution> // %cpan-meta<metadata><name> // '').subst('-', '::', :g);
     $meta6<version>     = (%cpan-meta<metadata><version> // %cpan-meta<version_numified> // '*');
     $meta6<author>      = (%cpan-meta<author> // %cpan-meta<metadata><name> // '');
     $meta6<description> = (%cpan-meta<abstract> // '');

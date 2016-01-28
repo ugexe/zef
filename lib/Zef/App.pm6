@@ -57,26 +57,21 @@ class Zef::App {
 
     method candidates(Bool :$upgrade, *@wants) {
         my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
-
         # Once metacpan can return results again this will need to be modified so as not to
         # duplicate an identity that shows up from multiple ContentStorages.
         #
         # XXX: :$update means to *not* take the first matching candidate encountered, but
         # the highest version that matches from all available storages (break out of ::LocalCache)
+        my @candidates;
         sub get-dists(*@_) {
-            state %found;
-            my @allowed = |@_.grep(* ~~ none(|@!ignore, |%found.keys)).unique || return;
+            my @allowed = |@_.grep(* ~~ none(|@!ignore, |@candidates>>.dist.name)).unique || return;
             say "Searching for {'dependencies ' if state $once++}{@allowed.join(', ')}" if ?$!verbose;
             for $!storage.candidates(|@allowed, :$upgrade) -> $candis {
-                for $candis -> $cs {
-                    my $storage := $cs.key;
-                    my $dist    := $cs.value[0];
-
-                    unless %found{$dist.metainfo<requested-as>}:exists {
-                        say "[$storage] found {$dist.name}" if ?$!verbose;
-                        %found{$dist.metainfo<requested-as>} := $cs;
-
-                        # so the user can see if $wanted was discovered as dist or a module
+                for $candis -> $candi {
+                    if $candi.requested-as ~~ none(|@candidates>>.requested-as) {
+                        my $dist := $candi.dist;
+                        say "[{$candi.recommended-by}] found {$dist.name}" if ?$!verbose;
+                        @candidates.push($candi);
 
                         # todo: alternatives, i.e. not a Str but [Str, Str]
                         my @wanted-deps = unique(grep *.chars, grep *.defined,
@@ -84,53 +79,30 @@ class Zef::App {
                             ($dist.test-depends  if ?$!test-depends).Slip,
                             ($dist.build-depends if ?$!build-depends).Slip);
                         get-dists(|@wanted-deps) if @wanted-deps.elems;
-                        #next ALLOWED;
                     }
                 }
             }
-            %found
         }
-
-        # %found ends up with a structure like:
-        # - %found{$requested-identity} = { $content-storage-name => $matching-dist }
-        # - %found{"URI::Escape"} = { "Zef::ContentStorage::P6C" => Distribution.new($.name = "URI") }
-        # This is probably terrible. If a better structure presents itself through a drug induced
-        # epiphany (or other means) it can be replaced.
-        my %found = get-dists(|@wants);
+        &get-dists(|@wants);
 
         # This is like `.install`s "Filter" phase, so maybe when the "Filter" phase is separated
         # from `.install` this can be moved there.
-        if @wants.grep(* !~~ any(@!ignore)).grep({ not %found{$_}:exists }) -> @wanted {
-            say "Could not find distributions matching {@wanted.join(',')}";
+        if @wants.grep(* !~~ any(@!ignore)).grep(* !~~ any(@candidates>>.requested-as)) -> @missing {
+            say "Could not find distributions for the following requests: {@missing.join(',')}";
             die unless ?$!force;
         }
 
-        %found;
+        @candidates;
     }
 
 
-    # .fetch takes identities for @wants ('CSV::Parser', 'DBIish')
-    # !fetch takes storages like 'DBIish::MySQL' => { "Zef::ContentStorage::P6C" => $dist-obj }
-    # This allows `.install` to `.candidates` to get results, filter those results, and
-    # *then* call !fetch on those. Otherwise it would have to call `.fetch` which may end up
-    # fetching items that would otherwise have been filtered out.
-    # For example:
-    #   - `zef fetch CSV::Parser Acme::Goatse` would call `.fetch` (as we are supplying
-    #      identities that have not been identified in a content storage yet) since it
-    #      still needs to `search` for those identities.
-    #   - `zef install CSV::Parser Acme::Goatse` ends up calling !fetch, because internally
-    #     it does its own search so it can apply its own filters (thus supplying !fetch with
-    #     *exactly* what it wants, not a fuzzy idea / search term)
-    method fetch(*@wants) {
-        my %found = self.candidates(|@wants);
-        self!fetch(%found)
-    }
-    method !fetch($storage) {
+    method fetch(*@candidates) {
         my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
+        my @saved = eager gather for @candidates -> $candi {
+            my $from         = $candi.recommended-by;
+            my $dist         = $candi.dist;
+            my $requested-as = $candi.requested-as;
 
-        my @saved = eager gather for $storage.kv -> $requested-as, $cs {
-            my $from = $cs.key;
-            my $dist = $cs.value[0];
             my $sanitized-name = $dist.name.subst(':', '-', :g);
             my $uri = $dist.source-url;
             my $extract-to = $!cache.IO.child($sanitized-name);
@@ -197,7 +169,9 @@ class Zef::App {
     }
 
 
-    method install(:$install-to = ['site'], *@wants, *%_) {
+    method install(:$install-to = ['site'], Bool :$fetch, Bool :$test, Bool :$dry, Bool :$upgrade, *@wants, *%_) {
+        my &notice = ?$!force ?? &say !! &die;
+
         state @can-install-ids = $*REPO.repo-chain.unique( :as(*.id) )\
             .grep(*.?can-install)\
             .map({.id});
@@ -207,12 +181,6 @@ class Zef::App {
             .grep(*.defined)\
             .grep({ .id ~~ any(@can-install-ids) });
 
-        self!install(:@target-curs, |%_, |@wants);
-    }
-    method !install(:@target-curs, Bool :$fetch, Bool :$test, Bool :$dry, Bool :$upgrade, *@wants, *%_) {
-        # temporary
-        my &notice = ?$!force ?? &say !! &die;
-
         # XXX: Each loop block below essentially represents a phase, so they will probably
         # be moved into their own method/module related directly to their phase. For now
         # lumping them here allows us to easily move functionality between phases until we
@@ -221,32 +189,13 @@ class Zef::App {
         # Search Phase:
         # Search ContentStorages to locate/build everything needed to fulfill the
         # requested identity ($want)
-        my @discovered = eager gather for @wants -> $want {
-            if $want.starts-with('.' | '/') {
-                my $dist = Zef::Distribution::Local.new($want.IO.absolute);
-                $dist.metainfo<requested-as> = $want;
+        my @discovered = |self.candidates(|@wants, :$upgrade, |%_);
 
-                my @deps = unique(grep *.defined,
-                    ($dist.depends       if ?$!depends).Slip,
-                    ($dist.test-depends  if ?$!test-depends).Slip,
-                    ($dist.build-depends if ?$!build-depends).Slip);
-
-                if +@deps {
-                    take $_ for |self.candidates(|@deps, :$upgrade, |%_);
-                }
-
-                # local paths should probably just use LocalCache
-                take ($want => ('Zef::ContentStorage::LocalCache' => $dist));
-            }
-            else {
-                take $_ for |self.candidates($want, :$upgrade, |%_);
-            }
-        }
 
         # Fetch Stage:
         # Use the results from searching ContentStorages and download/fetch the distributions they point at
         my @dists = eager gather for @discovered -> $store {
-            take $_ for |self!fetch($store, |%_);
+            take $_ for |self.fetch($store, |%_);
         }
 
 
@@ -295,7 +244,6 @@ class Zef::App {
         # we fetch all alternatives (most of which would probably would not use) or do this in a way
         # that allows us to return to a previous state in our plan (xxx: Zef::Plan is planned)
         my @sorted-dists = self.plan-order(@filtered-dists, |%_);
-
 
         # Build Phase:
         # Attach appropriate metadata so we can do --dry runs using -I/some/dep/path

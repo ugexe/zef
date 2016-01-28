@@ -1,23 +1,31 @@
 use Zef;
 
+# type?
+role Candidate {
+    has $.dist;
+    has $.requested-as;
+    has $.recommended-by;
+}
+
 class Zef::ContentStorage does Pluggable {
     has $.fetcher is rw;
     has $.cache   is rw;
 
     # Like search, but meant to return a single result for each specific identity string.
     method candidates(Bool :$upgrade, *@identities) {
-        my @results = gather IDENTITY: for @identities -> $ident {
-            STORE:
-            for self!plugins -> $storage {
-                if $storage.search($ident, :max-results(1)) -> @candi {
-                    take ($storage.^name => @candi[0]);
-                    ?$upgrade ?? next(STORE) !! next(IDENTITY)
-                }
+        my @results = gather for self!plugins -> $storage {
+            for $storage.search(|@identities) -> $candi {
+                my $c = Candidate.new(
+                    dist           => $candi.value,
+                    requested-as   => $candi.key,
+                    recommended-by => $storage.^name,
+                );
+                take $c;
             }
         }
 
         ?$upgrade
-            ?? @results.sort({ $^b.value cmp $^a.value })
+            ?? @results.sort({ $^b.dist cmp $^a.dist })
             !! @results;
     }
 

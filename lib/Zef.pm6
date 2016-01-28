@@ -68,37 +68,35 @@ role Pluggable {
 
         $!plugins := $!plugins ?? $!plugins !! cache gather for @!backends -> $plugin {
             my $module = $plugin<module>;
+            DEBUG($plugin, "Checking: {$module}");
 
-            DEBUG($plugin, "Trying: {$module}");
-            if ?$plugin<disabled> {
-                DEBUG($plugin, "Disabled. Skipping...");
+            if $plugin<enabled>:exists && !$plugin<enabled> {
+                DEBUG($plugin, "\t(SKIP) Not enabled");
                 next;
             }
 
             if (try require ::($ = ~$module)) ~~ Nil {
-                DEBUG($plugin, "Plugin fails to load. Skipping...");
+                DEBUG($plugin, "\t(SKIP) Plugin could not be loaded");
                 next;
             }
-            else {
-                DEBUG($plugin, "Plugin can be loaded successful");
-            }
+            DEBUG($plugin, "\t(OK) Plugin loaded successful");
 
             if ::($ = $module).^can("probe") {
                 unless ::($ = $module).probe {
-                    DEBUG($plugin, "Probing failed. Skipping...");
+                    DEBUG($plugin, "\t(SKIP) Probing failed");
                     next;
                 }
-                DEBUG($plugin, "Probing successful");
+                DEBUG($plugin, "\t(OK) Probing successful");
             }
 
             my $class = ::($ = $module).new(|($plugin<options> // []));
 
             if ?$class {
-                DEBUG($plugin, "Module {$module} initialized OK");
+                DEBUG($plugin, "(OK) Plugin is now usable: {$module}");
                 take $class;
             }
             else {
-                DEBUG($plugin, "Module {$module} failed to initialize. Skipping...");
+                DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure");
             }
         }
     }

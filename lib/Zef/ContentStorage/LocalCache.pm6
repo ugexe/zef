@@ -77,18 +77,28 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # todo: handle %fields
     # todo: sort $max-results results by version
     method search(:$max-results = 5, *@identities, *%fields) {
-        my $matches := gather DIST: for |self!gather-dists -> $dist {
-            state @wanted = |@identities;
+        my @wanted = |@identities;
+
+        my $local-dists := gather LDIST: for @identities.grep(*.starts-with("." || "/")) -> $wants {
+            my $dist = Zef::Distribution::Local.new($wants);
+            take ($wants => $dist);
+            @wanted.splice(@wanted.first(/$wants/, :k), 1);
+            last LDIST unless +@wanted;
+        }
+
+        my $resolved-dists := +@wanted == 0 ?? [] !! gather RDIST: for |self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 my $spec = Zef::Distribution::DependencySpecification.new($wants);
                 if ?$dist.contains-spec($spec) {
-                    $dist.metainfo<requested-as> = $wants;
-                    take $dist;
+                    take ($wants => $dist);
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);
-                    last DIST unless +@wanted;
+                    last RDIST unless +@wanted;
                 }
             }
         }
+
+
+        slip($local-dists.Slip, $resolved-dists.Slip);
     }
 
     # After the `fetch` phase an app can call `.store` on any ContentStorage that

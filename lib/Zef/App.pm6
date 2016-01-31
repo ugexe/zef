@@ -101,7 +101,10 @@ class Zef::App {
 
         if +@needs !== +@candidates {
             my @missing = @needs.grep(* !~~ any(@candidates>>.requested-as));
-            say "Could not find distributions for the following requests:\n{@missing.join(', ')}";
+            +@missing >= +@needs
+                ?? say("Could not find distributions for the following requests:\n{@missing.sort.join(', ')}")
+                !! say(   "Found too many results :(\n\nFOUND:\n{@candidates.map(*.dist.identity).sort.join(', ')}\n"
+                        ~ "WANTED: {@needs.sort.join(', ')}");
             die unless ?$!force;
         }
 

@@ -88,11 +88,6 @@ B<Options>
     # disable testing
     --/test
 
-    # When multiple content storages are used this will use
-    # the install candidate with the highest matching version
-    # ***option name may change***
-    --upgrade
-
     # disable fetching dependencies
     --/depends
     --/build-depends

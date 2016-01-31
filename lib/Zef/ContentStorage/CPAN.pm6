@@ -37,21 +37,27 @@ class Zef::ContentStorage::CPAN does ContentStorage {
 
             if ($ = $!fetcher.fetch($search-url, $search-save-as)).IO.e {
                 if from-json($search-save-as.IO.slurp) -> %meta {
-                    my @metas = METACPAN2META6(%meta<hits><hits>[$_]<_source>) for ^($max-results [min] %meta<hits><hits>.elems);
-                    for @metas -> $meta6 {
-                        # xxx: temporary
-                        my $host = 'http://hack.p6c.org:5001';
+                    # This should generally return the same distribution but in various versions.
+                    # However we will need to be prepared for when multiple distributions are returned
+                    # and sorting by version may no longer make sense
+                    my @dist-candidates = (^($max-results [min] %meta<hits><hits>.elems)).map: {
+                        my $meta6 = METACPAN2META6(%meta<hits><hits>[$_]<_source>);
+
+                        my $host           = 'http://hack.p6c.org:5001';
                         $meta6<source-url> = $host ~ $meta6<source-url>;
 
-                        my $dist = Zef::Distribution.new(|$meta6);
+                        my $dist      = Zef::Distribution.new(|$meta6);
                         my $candidate = Candidate.new(
                             dist           => $dist,
                             uri            => $dist.source-url,
                             requested-as   => $wants,
                             recommended-by => self.^name,
                         );
-                        take $candidate;
                     }
+
+                    my $newest-candidate = |@dist-candidates.sort({ $^b.dist cmp $^a.dist }).head;
+
+                    take $newest-candidate;
                 }
             }
         }

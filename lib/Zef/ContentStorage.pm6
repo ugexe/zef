@@ -8,16 +8,10 @@ class Zef::ContentStorage does Pluggable {
     # whereas search is meant to search more fields and give many results to choose from
     method candidates(Bool :$upgrade, *@identities) {
         my @results = gather for self!plugins -> $storage {
-            state %cache;
             for $storage.search(|@identities) -> $result {
-                take $result unless %cache{$result.dist.identity}++;
+                take $result;
             }
         }
-
-        # xxx: sux
-        ?$upgrade
-            ?? @results.sort({ $^b.dist cmp $^a.dist })
-            !! @results;
     }
 
     # todo: Find a better way to allow plugins access to other plugins

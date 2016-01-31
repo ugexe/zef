@@ -11,6 +11,7 @@ install:
   - perl Configure.pl --gen-moar=HEAD --gen-nqp
   - nmake install
   - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\bin;%PATH%
+  - SET ZEF_PLUGIN_DEBUG=1
   - cd %APPVEYOR_BUILD_FOLDER%
 
 build: off

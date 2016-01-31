@@ -1,24 +1,26 @@
 use Zef;
 
-class Zef::ContentStorage does DynLoader {
+class Zef::ContentStorage does Pluggable {
     has $.fetcher is rw;
     has $.cache   is rw;
 
-    # Like search, but meant to return a single result for each specific identity string.
+    # Like search, but meant to return a single result for each specific identity string
+    # whereas search is meant to search more fields and give many results to choose from
     method candidates(Bool :$upgrade, *@identities) {
-        my @results = gather IDENTITY: for @identities -> $ident {
-            STORE:
-            for self.plugins -> $storage {
-                if $storage.search($ident, :max-results(1)) -> @candi {
-                    take ($storage.^name => @candi[0]);
-                    ?$upgrade ?? next(STORE) !! next(IDENTITY)
-                }
+        my @results = gather for self!plugins -> $storage {
+            for $storage.search(|@identities) -> $result {
+                take $result;
             }
         }
+    }
 
-        ?$upgrade
-            ?? @results.sort({ $^b.value cmp $^a.value })
-            !! @results;
+    # todo: Find a better way to allow plugins access to other plugins
+    method !plugins {
+        cache gather for self.plugins {
+            .fetcher //= $!fetcher if .^can('fetcher');
+            .cache   //= $!cache   if .^can('cache');
+            take $_;
+        }
     }
 
     # Need to map the given identities to what this returns like:
@@ -30,15 +32,14 @@ class Zef::ContentStorage does DynLoader {
     method search(:$max-results = 5, *@identities, *%fields) {
         return () unless @identities || %fields;
         my %results;
-        for self.plugins -> $storage {
+        for self!plugins -> $storage {
             %results{$storage.^name} = $storage.search(|@identities, |%fields, :$max-results);
         }
         %results;
     }
 
     method store(*@dists) {
-        state @cacheable = self.plugins.grep(*.^can('store'));
-        for @cacheable -> $storage {
+        for self!plugins.grep(*.^can('store')) -> $storage {
             $storage.?store(|@dists);
         }
     }
@@ -48,15 +49,6 @@ class Zef::ContentStorage does DynLoader {
         # +@names
         #    ?? self.plugins.grep(*.<name> ~~ any(@names)).map(*.?update)
         #    !! self.plugins.map(*.?update);
-        self.plugins.map(*.?update);
-    }
-
-    method plugins {
-        state @usable = @!backends.grep({
-                !$_<disabled>
-            &&  ((try require ::($ = $_<module>)) !~~ Nil)
-            &&  (::($ = $_<module>).^can("probe") ?? ::($ = $_<module>).probe !! True)
-            ?? True !! False
-        }).map: { ::($ = $_<module>).new( :$!fetcher, :$!cache, |($_<options> // []) ) }
+        self!plugins.map(*.?update);
     }
 }

@@ -1,25 +1,22 @@
 use Zef;
 use Zef::Shell;
 
-class Zef::Shell::wget is Zef::Shell does Fetcher does Probeable {
+class Zef::Shell::wget is Zef::Shell does Fetcher does Probeable does Messenger {
     method fetch-matcher($url) { $ = $url.lc.starts-with('http://' | 'https://') }
 
     method probe {
-        # todo: check without spawning process (slow)
-        state $wget-help = try {
+        state $wget-probe = try {
             CATCH {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
 
             my $proc = zrun('wget', '--help', :out);
-            my $nl   = Buf.new(10).decode;
-            my @out <== grep *.so <== split $nl, $proc.out.slurp-rest;
+            my $out  = |$proc.out.lines;
             $proc.out.close;
-            $ = $proc.exitcode == 0 ?? @out !! False;
+            $ = ?$proc;
         }
-
-        so $wget-help;
+        ?$wget-probe;
     }
 
     method fetch($url, $save-as) {

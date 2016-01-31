@@ -8,11 +8,16 @@ class Zef::ContentStorage::P6C does ContentStorage {
     has $.fetcher is rw;
     has $.cache is rw;
 
-    has @!dists;           # Cache Distribution objects
-    method !gather-dists { # Handle automatically updating package list, recaching, etc
+    has @!dists;
+
+    method !gather-dists {
         once { self.update } if $.auto-update || !self!package-list-file.e;
-        once { @!dists = self!slurp-package-list.map({ Zef::Distribution.new(|%($_)) }) unless +@!dists }
-        @!dists;
+        return @!dists if +@!dists;
+
+        @!dists = gather for self!slurp-package-list -> $meta {
+            my $dist = Zef::Distribution.new(|%($meta));
+            take $dist;
+        }
     }
 
     method IO {
@@ -39,13 +44,18 @@ class Zef::ContentStorage::P6C does ContentStorage {
     # todo: handle %fields
     method search(:$max-results = 5, *@identities, *%fields) {
         return () unless @identities || %fields;
-
-        my $matches := gather DIST: for self!gather-dists -> $dist {
-            state @wanted = |@identities;
+        my @wanted = @identities;
+        cache gather DIST: for self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 my $spec = Zef::Distribution::DependencySpecification.new($wants);
                 if ?$dist.contains-spec($spec) {
-                    take $dist;
+                    my $candidate = Candidate.new(
+                        dist           => $dist,
+                        uri            => $dist.source-url,
+                        requested-as   => $wants,
+                        recommended-by => self.^name,
+                    );
+                    take $candidate;
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);
                     last DIST unless +@wanted;
                 }

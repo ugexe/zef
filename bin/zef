@@ -8,7 +8,8 @@ use Zef::Distribution::DependencySpecification;
 #| Download specific distributions
 multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) {
     my $app = Zef::App.new(:$depends, :$test-depends, :$build-depends);
-    $app.fetch(|@identities>>.&STR2IDENTITY);
+    my @candidates = |$app.candidates(|@identities>>.&STR2IDENTITY);
+    $app.fetch(|@candidates);
 }
 
 #| Run tests
@@ -65,7 +66,6 @@ multi MAIN(Bool :$help?) {
           --verbose              More detailed output
           --force                Continue each phase regardless of failures
           --dry                  Run all phases except the actual installations
-          --upgrade              Use the highest known matching version candidate
 
           --/tests               Skip the testing phase
           --/depends             Do not fetch runtime dependencies

@@ -7,14 +7,14 @@
     "ContentStorage" : [
         { 
             "name" : "cached",
-            "disabled" : 0,
+            "enabled" : 1,
             "module" : "Zef::ContentStorage::LocalCache",
             "default" : 1,
             "options" : { }
         },
         {
             "name" : "p6c",
-            "disabled" : 0,
+            "enabled" : 1,
             "module" : "Zef::ContentStorage::P6C",
             "default" : 1,
             "options" : {
@@ -27,7 +27,7 @@
         },
         {
             "name" : "cpan",
-            "disabled" : 1,
+            "enabled" : 0,
             "module" : "Zef::ContentStorage::CPAN",
             "options" : {
                 "mirrors" : ["http://hack.p6c.org:5000/v0/release/"]
@@ -53,6 +53,11 @@
         }
     ],
     "Extract" : [
+        {
+            "name" : "git",
+            "module" : "Zef::Shell::git",
+            "comment" : "used to checkout (extract) specific tags/sha1/commit/branch from a git repo"
+        },
         {
             "name" : "unzip",
             "module" : "Zef::Shell::unzip"

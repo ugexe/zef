@@ -5,21 +5,23 @@
     "description" : "It's like [cpanm] wearing high heels with a tracksuit",
     "depends"     : [ ],
     "provides"    : {
-        "Zef"          : "lib/Zef.pm6",
-        "Zef::App"     : "lib/Zef/App.pm6",
-        "Zef::Config"  : "lib/Zef/Config.pm6",
-        "Zef::Extract" : "lib/Zef/Extract.pm6",
-        "Zef::Fetch"   : "lib/Zef/Fetch.pm6",
-        "Zef::Shell"   : "lib/Zef/Shell.pm6",
-        "Zef::Test"    : "lib/Zef/Test.pm6",
+        "Zef"           : "lib/Zef.pm6",
+        "Zef::App"      : "lib/Zef/App.pm6",
+        "Zef::Config"   : "lib/Zef/Config.pm6",
+        "Zef::Extract"  : "lib/Zef/Extract.pm6",
+        "Zef::Fetch"    : "lib/Zef/Fetch.pm6",
+        "Zef::Identity" : "lib/Zef/Identity.pm6",
+        "Zef::Shell"    : "lib/Zef/Shell.pm6",
+        "Zef::Test"     : "lib/Zef/Test.pm6",
 
         "Zef::Distribution"                          : "lib/Zef/Distribution.pm6",
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",
         "Zef::Distribution::Local"                   : "lib/Zef/Distribution/Local.pm6",
 
-        "Zef::ContentStorage"       : "lib/Zef/ContentStorage.pm6",
-        "Zef::ContentStorage::CPAN" : "lib/Zef/ContentStorage/CPAN.pm6",
-        "Zef::ContentStorage::P6C"  : "lib/Zef/ContentStorage/P6C.pm6",
+        "Zef::ContentStorage"             : "lib/Zef/ContentStorage.pm6",
+        "Zef::ContentStorage::CPAN"       : "lib/Zef/ContentStorage/CPAN.pm6",
+        "Zef::ContentStorage::LocalCache" : "lib/Zef/ContentStorage/LocalCache.pm6",
+        "Zef::ContentStorage::P6C"        : "lib/Zef/ContentStorage/P6C.pm6",
 
         "Zef::Shell::Test"   : "lib/Zef/Shell/Test.pm6",
         "Zef::Shell::prove"  : "lib/Zef/Shell/prove.pm6",
@@ -35,6 +37,7 @@
         "Zef::Shell::PowerShell::download" : "lib/Zef/Shell/PowerShell/download.pm6",
         "Zef::Shell::PowerShell::unzip"    : "lib/Zef/Shell/PowerShell/unzip.pm6",
 
+        "Zef::Utils::FileSystem" : "lib/Zef/Utils/FileSystem.pm6",
         "Zef::Utils::SystemInfo" : "lib/Zef/Utils/SystemInfo.pm6",
         "Zef::Utils::URI"        : "lib/Zef/Utils/URI.pm6"
     },

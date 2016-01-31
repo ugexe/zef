@@ -6,19 +6,17 @@ class Zef::Shell::p5tar is Zef::Shell does Extractor {
     method extract-matcher($path) { so $path.lc.ends-with('.tar.gz') }
 
     method probe {
-        state $p5-module-ok = try {
+        state $p5module-probe = try {
             CATCH {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-
             my $proc = zrun('perl', '-MArchive::Tar', '-e', 1, :out);
             my @out = $proc.out.lines;
             $proc.out.close;
             $ = ?$proc;
         }
-
-        so $p5-module-ok;
+        ?$p5module-probe;
     }
 
     method extract($archive-file, $save-as) {
@@ -35,8 +33,8 @@ class Zef::Shell::p5tar is Zef::Shell does Extractor {
     method list($archive-file) {
         my $p5script = 'my $extractor = Archive::Tar->new(); $extractor->read($ARGV[0]); for($extractor->list_files()) { print $_ . qq{\n} };';
         my $proc = $.zrun('perl', '-MArchive::Tar', '-e', $p5script, $archive-file, :out);
-        my @extracted-paths = $proc.out.lines.grep(*.defined);
+        my @extracted-paths = |$proc.out.lines;
         $proc.out.close;
-        $ = ?$proc ?? @extracted-paths !! False;
+        $ = ?$proc ?? @extracted-paths.grep(*.defined) !! False;
     }
 }

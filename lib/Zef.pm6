@@ -13,7 +13,7 @@ role Messenger  {
 }
 
 # Get a resource located at a uri and save it to the local disk
-role Fetcher does Messenger {
+role Fetcher {
     method fetch($uri, $save-as) { ... }
     method fetch-matcher($uri) { ... }
 }
@@ -23,14 +23,14 @@ role Fetcher does Messenger {
 # although we could possibly add `--no-checkout` to `git`s fetch and treat
 # Extract as the action of `--checkout $branch` (allowing us to "extract"
 # a specific version from a commit/tag)
-role Extractor does Messenger {
+role Extractor {
     method extract($archive-file, $target-dir) { ... }
     method list($archive-file) { ... }
     method extract-matcher($path) { ... }
 }
 
 # test a single file OR all the files in a directory (recursive optional)
-role Tester does Messenger {
+role Tester {
     method test($path, :@includes) { ... }
     method test-matcher($path) { ... }
 }
@@ -51,28 +51,62 @@ role ContentStorage {
 
 # Used by the phase's loader (i.e Zef::Fetch) to test that the plugin can
 # be used. for instance, ::Shell wrappers probe via `cmd --help`. Note
-# that the result of .probe is cached by each phase loader (see: `role DynLoader`)
+# that the result of .probe is cached by each phase loader
 role Probeable {
     method probe returns Bool { ... }
 }
 
-# For loading plugins
-role DynLoader {
+role Pluggable {
+    has $!plugins;
     has @.backends;
-    method plugins { ... }
 
-    # EXAMPLE
-    #
-    # method plugins {
-    #    state @usable = @!backends.grep({                   # - Really only want to do this once
-    #            !$_<disabled>                               # - Easy way to disable in config.json
-    #        &&  ((try require ::($ = $_<module>)) !~~ Nil)  # - Can the module even be loaded?
-    #        &&  (::($ = $_<module>).^can("probe")           # - If a `.probe` method is found it will be called
-    #                ?? ::($ = $_<module>).probe             #   so the plugin can decide if it should work
-    #                !! True)
-    #        ?? True !! False                                # Keep only those passing above tests
-    #    }).map: { ::($ = $_<module>).new( :$!fetcher, :$!cache, |($_<options> // []) ) }
-    # }  # - Finally create an instance of the plug passing in the `"options" : { }` from config.json
-    #    #   and possibly other options (::ContentStorage needs $!cache and $!fetcher, but ::Test does not)
-    #    #   although ideally we find a different way to get ::ContentStorage the loaded $!cache and $!fetcher
+    method plugins {
+        my $DEBUG = ?%*ENV<ZEF_PLUGIN_DEBUG>;
+        sub DEBUG($plugin, $message) {
+            say "[Plugin - {$plugin<name> // qq||}] $message" if $DEBUG;
+        }
+
+        $!plugins := $!plugins ?? $!plugins !! cache gather for @!backends -> $plugin {
+            my $module = $plugin<module>;
+            DEBUG($plugin, "Checking: {$module}");
+
+            if $plugin<enabled>:exists && !$plugin<enabled> {
+                DEBUG($plugin, "\t(SKIP) Not enabled");
+                next;
+            }
+
+            if (try require ::($ = ~$module)) ~~ Nil {
+                DEBUG($plugin, "\t(SKIP) Plugin could not be loaded");
+                next;
+            }
+            DEBUG($plugin, "\t(OK) Plugin loaded successful");
+
+            if ::($ = $module).^can("probe") {
+                unless ::($ = $module).probe {
+                    DEBUG($plugin, "\t(SKIP) Probing failed");
+                    next;
+                }
+                DEBUG($plugin, "\t(OK) Probing successful");
+            }
+
+            my $class = ::($ = $module).new(|($plugin<options> // []));
+
+            if ?$class {
+                DEBUG($plugin, "(OK) Plugin is now usable: {$module}");
+                take $class;
+            }
+            else {
+                DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure");
+            }
+        }
+    }
+}
+
+role Candidate {
+    has $.dist;
+    has $.requested-as;
+    has $.recommended-by;
+    has $.uri;  # todo: use this to represnt the actual location to get the dist from.
+                # examples: ::LocalCache may have a dist stored on disk that matches
+                # the requested identity, and source-url
 }

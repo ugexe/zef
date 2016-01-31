@@ -14,7 +14,9 @@ subtest {
     use-ok("Zef::Fetch");
     use-ok("Zef::Shell");
     use-ok("Zef::Test");
+    use-ok("Zef::Utils::FileSystem");
     use-ok("Zef::Utils::SystemInfo");
+    use-ok("Zef::Utils::URI");
 }, 'Core';
 
 subtest {

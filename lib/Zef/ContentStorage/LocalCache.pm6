@@ -28,7 +28,6 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             next unless "{$path}".IO.e;
             try {
                 my $dist = Zef::Distribution::Local.new($path);
-                $dist.metainfo<from-uri> = $dist.IO.absolute;
                 take $dist;
             }
         }
@@ -85,25 +84,38 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # todo: sort $max-results results by version
     method search(:$max-results = 5, *@identities, *%fields) {
         my @wanted = |@identities;
-        # todo: use URI::File to check for a valid windows style path-with-volume or a file-URI
+
+        # local paths
         my $local-dists := gather LDIST: for @identities.grep(*.starts-with("." || "/")) -> $wants {
             my $dist = Zef::Distribution::Local.new($wants);
-            take ($wants => $dist);
+            my $candidate = Candidate.new(
+                dist           => $dist,
+                uri            => $wants.IO.absolute,
+                requested-as   => $wants,
+                recommended-by => self.^name,
+            );
+            take $candidate;
             @wanted.splice(@wanted.first(/$wants/, :k), 1);
             last LDIST unless +@wanted;
         }
 
+        # identities that are cached in the localcache manifest
         my $resolved-dists := +@wanted == 0 ?? [] !! gather RDIST: for |self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 my $spec = Zef::Distribution::DependencySpecification.new($wants);
                 if ?$dist.contains-spec($spec) {
-                    take ($wants => $dist);
+                    my $candidate = Candidate.new(
+                        dist           => $dist,
+                        uri            => $dist.IO.absolute,
+                        requested-as   => $wants,
+                        recommended-by => self.^name,
+                    );
+                    take $candidate;
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);
                     last RDIST unless +@wanted;
                 }
             }
         }
-
 
         slip($local-dists.Slip, $resolved-dists.Slip);
     }

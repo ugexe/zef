@@ -75,19 +75,17 @@ class Zef::App {
         # TODO: just redo this thing such that .candidates returns empty matches for identities it did not find
         # so we don't have to iterate @candidates>>.dist.contains-spec every iteration of while(@wants)
         my @wants = |@identities; # @wants contains the current iteration of identities
-        my @needs;                # @needs contains all the identities we need in total
+        my @needs;                # keeps trac
         my @candidates;
         while ( +@wants ) {
-            my @allowed = @wants.splice(0)\
-                .grep(* ~~ none(|@!ignore))\
-                .grep({ !@candidates.grep(*.defined).first(*.dist.contains-spec($_)) })\
-                .unique.cache;
-            @needs = unique(|@needs, |@allowed);
+            my @wanted = @wants.splice(0);
+            my @todo   = @wanted.grep(* ~~ none(|@!ignore)).unique;
+            @needs     = (|@needs, |@todo).unique;
 
-            say "Searching for {'dependencies ' if state $once++}{@allowed.join(', ')}" if ?$!verbose;
-            for $!storage.candidates(|@allowed, :$upgrade) -> $candis {
+            say "Searching for {'dependencies ' if state $once++}{@todo.join(', ')}" if ?$!verbose;
+            for $!storage.candidates(|@todo, :$upgrade) -> $candis {
                 for $candis -> $candi {
-                    if $candi.requested-as ~~ none(|@candidates>>.requested-as) {
+                    if $candi.dist.identity ~~ none(|@candidates.map(*.dist.identity)) {
                         @candidates.push: $candi;
                         say "[{$candi.recommended-by}] found {$candi.dist.name}" if ?$!verbose;
                         # todo: alternatives, i.e. not a Str but [Str, Str]
@@ -103,7 +101,7 @@ class Zef::App {
 
         if +@needs !== +@candidates {
             my @missing = @needs.grep(* !~~ any(@candidates>>.requested-as));
-            say "Could not find distributions for the following requests:\n{@missing.join(qq|\n|)}";
+            say "Could not find distributions for the following requests:\n{@missing.join(', ')}";
             die unless ?$!force;
         }
 
@@ -129,12 +127,13 @@ class Zef::App {
             # It could be a file or url; $dist.source-url contains where the source was
             # originally located but we may want to use a local copy (while retaining
             # the original source-url for some other purpose like updating)
+
             if ?$uri && $uri.IO.e {
                 # todo: include a FileFetcher that is something like:
                 # `method fetch($to, $from) { Zef::Utils::FileSystem::copy-files($to, $from) }`
                 # so that any hook related behavior can be centralized in Zef::Fetch instead of
                 # also being in this "to fetch or not to fetch?" conditional
-                say "[$from] Found on local file system" if ?$!verbose;
+                say "[$from] Found on local file system at $uri" if ?$!verbose;
             }
             else {
                 say "[$from] {$uri} --> $save-as" if ?$!verbose;

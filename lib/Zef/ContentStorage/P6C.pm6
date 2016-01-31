@@ -49,7 +49,13 @@ class Zef::ContentStorage::P6C does ContentStorage {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 my $spec = Zef::Distribution::DependencySpecification.new($wants);
                 if ?$dist.contains-spec($spec) {
-                    take ($wants => $dist);
+                    my $candidate = Candidate.new(
+                        dist           => $dist,
+                        uri            => $dist.source-url,
+                        requested-as   => $wants,
+                        recommended-by => self.^name,
+                    );
+                    take $candidate;
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);
                     last DIST unless +@wanted;
                 }

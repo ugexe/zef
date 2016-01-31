@@ -8,20 +8,9 @@ class Zef::ContentStorage does Pluggable {
     # whereas search is meant to search more fields and give many results to choose from
     method candidates(Bool :$upgrade, *@identities) {
         my @results = gather for self!plugins -> $storage {
+            state %cache;
             for $storage.search(|@identities) -> $result {
-                my $dist := $result.value;
-                my $c = Candidate.new(
-                    dist           => $dist,
-                    requested-as   => $result.key,
-                    recommended-by => $storage.^name,
-                    # The idea is to leave the original source-url alone and instead use a copy of
-                    # source-url as a default if its not otherwise set. Using the metainfo hash
-                    # (*not* the Distribution hash that gets saved) is a temporary solution
-                    # until its natural location manifests itself. Note `source-url` or `from-uri`
-                    # are not part of the meta spec
-                    uri            => ($dist.metainfo<from-uri> || $dist.source-url),
-                );
-                take $c;
+                take $result unless %cache{$result.dist.identity}++;
             }
         }
 

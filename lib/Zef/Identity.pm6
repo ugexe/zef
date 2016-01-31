@@ -63,6 +63,7 @@ class Zef::Identity {
                 version => ~($urn<version> // ''),
                 auth    => ~($urn<auth>    // ''),
                 api     => ~($urn<api>     // ''),
+                type    => 'dist',
             );
         }
         elsif Module.parse($id) -> $ident {
@@ -71,6 +72,7 @@ class Zef::Identity {
                 version => ~($ident<version> // ''),
                 auth    => ~($ident<auth>    // ''),
                 api     => ~($ident<api>     // ''),
+                type    => 'module',
             );
         }
     }

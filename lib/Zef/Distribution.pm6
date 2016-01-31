@@ -34,7 +34,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # since the is-installed lookup is currently just `use Some::Module;`, so if a dist
     # `Foo` contains just bin scripts then `use Foo;` would always fail (and thus always
     # considered not installed)
-    method is-installed(*@curlis is copy) {
+    method is-installed {
         return True if IS-INSTALLED(self.identity);
         # EVALing a dist name doesn't really tell us if its *not* installed
         # since a dist name doesn't have to match up to any of its modules
@@ -115,7 +115,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
 }
 
 # xxx: temporary until a core solution is available
-sub IS-INSTALLED($identity) {
+sub IS-INSTALLED($identity) is export {
     use MONKEY-SEE-NO-EVAL;
     use Zef::Shell;
 
@@ -124,8 +124,8 @@ sub IS-INSTALLED($identity) {
         my $cwd   = $*TMPDIR; # change cwd for script below so $*CWD/lib is not accidently considered
         my $is-installed-script = "use $identity;"; # -M doesn't work with :auth<xxx>:ver<> yet
         my $proc = zrun($perl6, '-e', $is-installed-script, :$cwd, :out, :err);
-        my $out = $proc.out.lines;
-        my $err = $proc.err.lines;
+        my $out = |$proc.out.lines;
+        my $err = |$proc.err.lines;
         $proc.out.close;
         $proc.err.close;
 

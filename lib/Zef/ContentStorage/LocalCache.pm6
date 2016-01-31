@@ -23,17 +23,24 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         once { self.update } if $.auto-update || !self!manifest-file.e;
         return @!dists if +@!dists;
 
-        @!dists = gather for self!manifest-file.lines -> $entry {
+        @!dists = gather for self!slurp-manifest.lines -> $entry {
             my ($identity, $path) = $entry.split("\0");
-            next unless $path.IO.e;
+            next unless "{$path}".IO.e;
             try {
                 my $dist = Zef::Distribution::Local.new($path);
+                $dist.metainfo<from-uri> = $dist.IO.absolute;
                 take $dist;
             }
         }
     }
 
-    method !manifest-file  { $ = self.IO.child('MANIFEST.zef') }
+    method !manifest-file  {
+        my $path = self.IO.child('MANIFEST.zef');
+        $path.spurt('') unless $path.e;
+        $path;
+    }
+
+    method !slurp-manifest { $ = self!manifest-file.IO.slurp }
 
     method IO {
         my $dir = $!cache.IO;
@@ -78,7 +85,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # todo: sort $max-results results by version
     method search(:$max-results = 5, *@identities, *%fields) {
         my @wanted = |@identities;
-
+        # todo: use URI::File to check for a valid windows style path-with-volume or a file-URI
         my $local-dists := gather LDIST: for @identities.grep(*.starts-with("." || "/")) -> $wants {
             my $dist = Zef::Distribution::Local.new($wants);
             take ($wants => $dist);
@@ -104,22 +111,17 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # After the `fetch` phase an app can call `.store` on any ContentStorage that
     # provides it, allowing each ContentStorage to do things like keep a simple list of
     # identities installed, keep a cache of anything installed (how its used here), etc
-    method store(*@dists) {
+    method store(*@new) {
         $lock.protect({
-            my $handle = self!manifest-file.open(:rw);
-            LEAVE { try {$handle.close} if $handle && $handle.opened }
-
+            # xxx: terribly inefficient
             my %lookup;
-
-            for $handle.lines {
-                my ($id, $path) = .split("\0");
-                %lookup{$id} = $path if $path && $path.IO.d;
+            for self!slurp-manifest.lines -> $line {
+                my ($id, $path) = $line.split("\0");
+                %lookup{$id} = $path;
             }
-
-            @dists.map: { %lookup{.id} = .IO.absolute }
-
-            my $manifest-contents = join "\n", %lookup.map: { join "\0", (.key, .value) }
-            try { $handle.say($manifest-contents) } if $manifest-contents;
+            %lookup{$_.id} = $_.IO.absolute for |@new;
+            my $contents = join "\n", %lookup.map: { join "\0", (.key, .value) }
+            self!manifest-file.spurt($contents ~ "\n") if $contents;
         })
     }
 }

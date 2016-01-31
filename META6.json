@@ -9,8 +9,8 @@
         "Zef::App"      : "lib/Zef/App.pm6",
         "Zef::Config"   : "lib/Zef/Config.pm6",
         "Zef::Extract"  : "lib/Zef/Extract.pm6",
-        "Zef::Identity" : "lib/Zef/Identity.pm6",
         "Zef::Fetch"    : "lib/Zef/Fetch.pm6",
+        "Zef::Identity" : "lib/Zef/Identity.pm6",
         "Zef::Shell"    : "lib/Zef/Shell.pm6",
         "Zef::Test"     : "lib/Zef/Test.pm6",
 
@@ -36,6 +36,7 @@
         "Zef::Shell::PowerShell::download" : "lib/Zef/Shell/PowerShell/download.pm6",
         "Zef::Shell::PowerShell::unzip"    : "lib/Zef/Shell/PowerShell/unzip.pm6",
 
+        "Zef::Utils::FileSystem" : "lib/Zef/Utils/FileSystem.pm6",
         "Zef::Utils::SystemInfo" : "lib/Zef/Utils/SystemInfo.pm6",
         "Zef::Utils::URI"        : "lib/Zef/Utils/URI.pm6"
     },

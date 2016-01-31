@@ -101,3 +101,10 @@ role Pluggable {
         }
     }
 }
+
+role Candidate {
+    has $.dist;
+    has $.requested-as;
+    has $.recommended-by;
+    has $.uri;
+}

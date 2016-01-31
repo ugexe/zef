@@ -17,7 +17,8 @@ role Zef::Distribution::Local {
             default { self.IO // return IO::Path  }
         }
 
-        my $meta-basename = <META6.json META.info>.first({ $path.child($_).e }) // return IO::Path;
+        # META.info and META6.info are not spec, but are still in use
+        my $meta-basename = <META6.json META.info META6.info>.first({ $path.child($_).e }) // return IO::Path;
         $path.child($meta-basename);
     }
 

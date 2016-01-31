@@ -2,42 +2,27 @@ use Zef;
 use Zef::Shell;
 use Zef::Utils::URI;
 
+# todo: have a similar interface for git fetch/extract via `run` but using --archive
 
-
-# todo: proper association with extract phase/role
-class Zef::Shell::git is Zef::Shell does Fetcher does Extractor does Probeable does Messenger {
-    method probe {
-        state $git-probe = try {
-            CATCH {
-                when X::Proc::Unsuccessful { return False }
-                default { return False }
-            }
-            my $proc = zrun('git', '--help', :out);
-            my $nl   = Buf.new(10).decode;
-            my @out <== grep *.so <== split $nl, $proc.out.slurp-rest;
-            $proc.out.close;
-            $ = ?$proc;
-        }
-        ?$git-probe;
-    }
-
-
+my role GitFetcher {
     # FETCH (clone/pull) INTERFACE
     method fetch-matcher($url) {
         if uri($url) -> $uri {
-            return True if $uri.scheme.starts-with('git') || $uri.path.ends-with('.git');
+            return True if $uri.scheme.lc eq 'git';
+            return True if $uri.scheme.lc.starts-with('http') && $uri.path.ends-with('.git' || '.git/');
         }
         False;
     }
 
-    method fetch($url, $save-as) {
-        my $clone-proc := $.zrun('git', 'clone', $url, $save-as, '--quiet', :cwd($save-as.IO.dirname));
-        my $pull-proc  := $.zrun('git', 'pull', '--quiet', :cwd($save-as));
+    multi method fetch($url, $save-as) {
+        my $clone-proc := $.zrun('git', 'clone', $url, $save-as.IO.abspath, '--quiet', :cwd($save-as.IO.dirname));
+        my $pull-proc  := $.zrun('git', 'pull', '--quiet', :cwd($save-as.IO.abspath));
 
         return ?$clone-proc || ?$pull-proc ?? $save-as !! False;
     }
+}
 
-
+my role GitExtractor {
     # EXTRACT (checkout) interface
     method extract-matcher($str) {
         my ($path, $checkout) = $str.match(/^(.+?)['#' (.*)]?$/);
@@ -72,5 +57,22 @@ class Zef::Shell::git is Zef::Shell does Fetcher does Extractor does Probeable d
         my @extracted-paths = $_ for $proc.out.lines;
         $proc.out.close;
         @ = ?$proc ?? @extracted-paths.grep(*.defined) !! ();
+    }
+}
+
+class Zef::Shell::git is Zef::Shell does GitFetcher does GitExtractor does Probeable does Messenger {
+    method probe {
+        state $git-probe = try {
+            CATCH {
+                when X::Proc::Unsuccessful { return False }
+                default { return False }
+            }
+            my $proc = zrun('git', '--help', :out);
+            my $nl   = Buf.new(10).decode;
+            my @out <== grep *.so <== split $nl, $proc.out.slurp-rest;
+            $proc.out.close;
+            $ = ?$proc;
+        }
+        ?$git-probe;
     }
 }

@@ -122,15 +122,15 @@ class Zef::Utils::URI {
 
     method new($id) {
         if URI::File.parse($id, :rule<file-URI>) -> $m {
-            # my $is-relative = ???
-            # Needs to return something that when .IO.parts is called it will retain the proper
-            # volume on windows. So on windows the following should be done:
-            my $ap     = $m.<heir-part><auth-path>;
-            my $path   = ~($ap<windows-path> // $ap.<path-absolute> // die "Could not parse path from: $id");
-            my $host   = ~($ap.<host> // '');
-            my $scheme = ~$m.<scheme>;
-            my $is-relative = ?$path.IO.is-relative;
-            self.bless( :match($m), :$is-relative, :$scheme, :$host, :$path );
+            my $ap             = $m.<heir-part><auth-path>;
+            my $volume         = $ap.<windows-path>.<drive-letter> ~ ':'; # what IO::SPEC::Win32 understands
+            my $path           = ~($ap.<windows-path> // $ap.<path-absolute> // die "Could not parse path from: $id");
+            my $host           = ~($ap.<host> // '');
+            my $scheme         = ~$m.<scheme>;
+            my $is-relative    = ?$path.IO.is-relative;
+            # because `|` is sometimes used as a windows volume separator in a file-URI
+            my $normalized-path = $is-relative ?? $path !! $*SPEC.join($volume // '', $path, '');
+            self.bless( :match($m), :$is-relative, :$scheme, :$host, :path($normalized-path) );
         }
         elsif URI.parse($id, :rule<URI>) -> $m {
             my $heir = $m.<heir-part>;

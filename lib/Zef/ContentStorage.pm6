@@ -1,29 +1,31 @@
 use Zef;
 
-# type?
-role Candidate {
-    has $.dist;
-    has $.requested-as;
-    has $.recommended-by;
-}
-
 class Zef::ContentStorage does Pluggable {
     has $.fetcher is rw;
     has $.cache   is rw;
 
-    # Like search, but meant to return a single result for each specific identity string.
+    # Like search, but meant to return a single result for each specific identity string
+    # whereas search is meant to search more fields and give many results to choose from
     method candidates(Bool :$upgrade, *@identities) {
         my @results = gather for self!plugins -> $storage {
-            for $storage.search(|@identities) -> $candi {
+            for $storage.search(|@identities) -> $result {
+                my $dist := $result.value;
                 my $c = Candidate.new(
-                    dist           => $candi.value,
-                    requested-as   => $candi.key,
+                    dist           => $dist,
+                    requested-as   => $result.key,
                     recommended-by => $storage.^name,
+                    # The idea is to leave the original source-url alone and instead use a copy of
+                    # source-url as a default if its not otherwise set. Using the metainfo hash
+                    # (*not* the Distribution hash that gets saved) is a temporary solution
+                    # until its natural location manifests itself. Note `source-url` or `from-uri`
+                    # are not part of the meta spec
+                    uri            => ($dist.metainfo<from-uri> || $dist.source-url),
                 );
                 take $c;
             }
         }
 
+        # xxx: sux
         ?$upgrade
             ?? @results.sort({ $^b.dist cmp $^a.dist })
             !! @results;

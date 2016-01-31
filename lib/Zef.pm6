@@ -61,7 +61,7 @@ role Pluggable {
     has @.backends;
 
     method plugins {
-        my $DEBUG=1;
+        my $DEBUG = ?%*ENV<ZEF_PLUGIN_DEBUG>;
         sub DEBUG($plugin, $message) {
             say "[Plugin - {$plugin<name> // qq||}] $message" if $DEBUG;
         }
@@ -106,5 +106,7 @@ role Candidate {
     has $.dist;
     has $.requested-as;
     has $.recommended-by;
-    has $.uri;
+    has $.uri;  # todo: use this to represnt the actual location to get the dist from.
+                # examples: ::LocalCache may have a dist stored on disk that matches
+                # the requested identity, and source-url
 }

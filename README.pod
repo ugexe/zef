@@ -28,8 +28,11 @@ To install it via rakudobrew, please use the following command:
     # duh
     zef install CSV::Parser
 
-    # search for module names matching `CSV::Parser`
+    # search for distribution names matching `CSV::Parser`
     zef search CSV::Parser
+
+    # detailed information for a matching distribution
+    zef info CSV::Parser
 
     # test project in current directory    
     zef test .

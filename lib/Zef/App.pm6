@@ -16,8 +16,8 @@ class Zef::App {
     has $.extractor;
     has $.tester;
 
+    has @.exclude;
     has @!ignore = <Test NativeCall lib MONKEY-TYPING nqp>;
-    has $!lock = Lock.new;
 
     has Bool $.verbose       = False;
     has Bool $.force         = False;
@@ -84,7 +84,7 @@ class Zef::App {
 
             say "Searching for {'dependencies ' if state $once++}{@todo.join(', ')}" if ?$!verbose;
             for $!storage.candidates(|@todo, :$upgrade) -> $candis {
-                for $candis -> $candi {
+                for $candis.grep({.dist.identity ~~ none(|@!exclude)}) -> $candi {
                     if $candi.dist.identity ~~ none(|@candidates.map(*.dist.identity)) {
                         @candidates.push: $candi;
                         say "[{$candi.recommended-by}] found {$candi.dist.name}" if ?$!verbose;
@@ -99,7 +99,17 @@ class Zef::App {
             }
         }
 
-        if +@needs !== +@candidates {
+        # For now we use unique on the `requested-as` field so if someone has both p6c and cpan
+        # enabled that they only get 1 result for a specific requested instead of 1 from each.
+        # In the future this won't be neccesary because they *should* match on identities, but
+        # right now metacpan has some of the versions/auths screwy. This means a dist on both
+        # may be exactly the same, but metacpan reports the auth or version slightly different
+        # causing it to be treated as a unique result.
+        my @chosen = @candidates.unique(:as(*.requested-as));
+
+        if +@needs !== +@chosen {
+            # if @needs has more elements than @missing its probably a bug related to:
+            #   1. Searching candidates is retur
             my @missing = @needs.grep(* !~~ any(@candidates>>.requested-as));
             +@missing >= +@needs
                 ?? say("Could not find distributions for the following requests:\n{@missing.sort.join(', ')}")
@@ -108,7 +118,7 @@ class Zef::App {
             die unless ?$!force;
         }
 
-        $ = @candidates;
+        $ = @chosen;
     }
 
 

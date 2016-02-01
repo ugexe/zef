@@ -14,6 +14,8 @@ class Zef::ContentStorage::CPAN does ContentStorage {
         $dir;
     }
 
+    # $max-results is max results *per* search, if max-results = 2 and there are
+    # 2 identities then the max results returned could be 4
     method search(:$max-results = 5, *@identities, *%fields) {
         return () unless @identities || %fields;
 
@@ -40,11 +42,12 @@ class Zef::ContentStorage::CPAN does ContentStorage {
                     # This should generally return the same distribution but in various versions.
                     # However we will need to be prepared for when multiple distributions are returned
                     # and sorting by version may no longer make sense
-                    my @dist-candidates = (^($max-results [min] %meta<hits><hits>.elems)).map: {
+                    my @candidates = (^%meta<hits><hits>.elems).map: {
                         my $meta6 = METACPAN2META6(%meta<hits><hits>[$_]<_source>);
 
+                        # temporary. Some download_urls are absolute, and others are not
                         my $host           = 'http://hack.p6c.org:5001';
-                        $meta6<source-url> = $host ~ $meta6<source-url>;
+                        $meta6<source-url> = ($host ~ $meta6<source-url>) if $meta6<source-url>.starts-with('/');
 
                         my $dist      = Zef::Distribution.new(|$meta6);
                         my $candidate = Candidate.new(
@@ -55,9 +58,9 @@ class Zef::ContentStorage::CPAN does ContentStorage {
                         );
                     }
 
-                    my $newest-candidate = |@dist-candidates.sort({ $^b.dist cmp $^a.dist }).head;
+                    my $sorted = |@candidates.sort({ $^b.dist cmp $^a.dist }).head($max-results [min] @candidates.elems);
 
-                    take $newest-candidate;
+                    take $sorted;
                 }
             }
         }
@@ -71,16 +74,13 @@ sub METACPAN2META6(%cpan-meta) {
     my $meta6;
     $meta6<name>        = (%cpan-meta<distribution> // %cpan-meta<metadata><name> // '').subst('-', '::', :g);
     $meta6<version>     = (%cpan-meta<metadata><version> // %cpan-meta<version_numified> // '*');
-    $meta6<author>      = (%cpan-meta<author> // %cpan-meta<metadata><name> // '');
-    $meta6<description> = (%cpan-meta<abstract> // '');
+    $meta6<author>      = (%cpan-meta<metadata><author> // '');
+    $meta6<description> = (%cpan-meta<abstract> // %cpan-meta<metadata><description> // '');
     $meta6<license>     = (%cpan-meta<license> // '').join(',');
     $meta6<provides>    = (%cpan-meta<metadata><provides>.kv.map: { $^a => $^b<file> } // {});
 
-    # $meta6<depends>     = (%cpan-meta<dependency> // '').map({ .<module> ~ (.<version_numified> ?? ":{.<version_numified>}" !! '') }).join(',');
     $meta6<depends>     = %cpan-meta<metadata><x_depends>;
-
-    $meta6<authority>   = 'cpan';
-    $meta6<auth>        = $meta6<metadata><x_authority> // (?$meta6<author> ?? ($meta6<authority> ~ ':' ~ $meta6<author>) !! '');
+    $meta6<auth>        = %cpan-meta<metadata><x_auth> // %cpan-meta<metadata><x_authority> // $meta6<author> // '';
 
     # not official spec, but it *is* a Distribution attribute
     $meta6<source-url>  = %cpan-meta<download_url>;

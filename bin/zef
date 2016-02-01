@@ -110,6 +110,7 @@ multi MAIN(Bool :$help?) {
             update                  Update package indexes for content storages
             search                  Show a list of possible distribution candidates for the given terms
             info                    Show detailed distribution information
+
             config-file             (temporary) Show the location of the config file that will be used
 
         OPTIONS

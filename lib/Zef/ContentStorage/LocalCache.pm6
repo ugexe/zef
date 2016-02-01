@@ -117,7 +117,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             }
         }
 
-        slip($local-dists.Slip, $resolved-dists.Slip);
+        my $sorted := ($local-dists.Slip, $resolved-dists.Slip).sort({ $^b.dist cmp $^a.dist }).head($max-results);
     }
 
     # After the `fetch` phase an app can call `.store` on any ContentStorage that

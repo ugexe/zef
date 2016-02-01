@@ -8,7 +8,7 @@ sub ZEF-CONFIG  is export {
     %config;
 }
 
-sub find-config {
+sub find-config is export {
     first *.e, (
         "config.json".IO,
         ($*HOME // $*CWD).child('.zef').child('config.json'),

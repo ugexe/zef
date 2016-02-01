@@ -35,10 +35,19 @@ role Tester {
     method test-matcher($path) { ... }
 }
 
+role Candidate {
+    has $.dist;
+    has $.requested-as;
+    has $.recommended-by;
+    has $.uri;  # todo: use this to represnt the actual location to get the dist from.
+                # examples: ::LocalCache may have a dist stored on disk that matches
+                # the requested identity, and source-url
+}
+
 role ContentStorage {
     # max-results is meant so we can :max-results(1) when we are interested in using it like
     # `.candidates` (i.e. 1 match per identity) so we can stop iterating search plugins earlier
-    method search(:$max-results, *@identities, *%fields) { ... }
+    method search(:$max-results, *@identities, *%fields --> Array of Candidate) { ... }
 
     # Optional method currently being called after a search/fetch
     # to assist ::ContentStorage::LocalCache in updating its MANIFEST path cache.
@@ -100,13 +109,4 @@ role Pluggable {
             }
         }
     }
-}
-
-role Candidate {
-    has $.dist;
-    has $.requested-as;
-    has $.recommended-by;
-    has $.uri;  # todo: use this to represnt the actual location to get the dist from.
-                # examples: ::LocalCache may have a dist stored on disk that matches
-                # the requested identity, and source-url
 }

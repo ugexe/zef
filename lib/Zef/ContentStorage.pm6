@@ -8,7 +8,7 @@ class Zef::ContentStorage does Pluggable {
     # whereas search is meant to search more fields and give many results to choose from
     method candidates(Bool :$upgrade, *@identities) {
         my @results = gather for self!plugins -> $storage {
-            for $storage.search(|@identities) -> $result {
+            for $storage.search(|@identities, :max-results(1)) -> $result {
                 take $result;
             }
         }
@@ -23,19 +23,12 @@ class Zef::ContentStorage does Pluggable {
         }
     }
 
-    # Need to map the given identities to what this returns like:
-    # %results<Text::Table*> = [ from => $storage.^name, dists => $storage.search(|) ]
-    # instead of the current:
-    # %results{$storage.^name} = $storage.search(|)
-    # Note that as each $storage is given all identities to search at once that the above will
-    # likely involve a chance to the ContentStorage interfaces/plugins to handle this
     method search(:$max-results = 5, *@identities, *%fields) {
         return () unless @identities || %fields;
-        my %results;
-        for self!plugins -> $storage {
-            %results{$storage.^name} = $storage.search(|@identities, |%fields, :$max-results);
+        my @results = eager gather for self!plugins -> $storage {
+            take $_ for $storage.search(|@identities, |%fields, :$max-results);
         }
-        %results;
+        |@results;
     }
 
     method store(*@dists) {

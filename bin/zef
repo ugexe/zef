@@ -1,9 +1,10 @@
 #! perl6
 use v6;
 
-# use Zef::Utils::SystemInfo; # not used yet
 use Zef::App;
+use Zef::Config;
 use Zef::Distribution::DependencySpecification;
+use Zef::Utils::SystemInfo;
 
 #| Download specific distributions
 multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) {
@@ -14,30 +15,82 @@ multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, B
 
 #| Run tests
 multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
-    my $app = Zef::App.new(:$verbose, :$force, :$verbose);
+    my $app = Zef::App.new(:$verbose, :$force);
     my %results = $app.test(|@paths);
     %results<fail>.elems ?? exit(1) !! exit(0);
 }
 
 #| Install
 multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-                      Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True,
-                      Bool :$dry, Bool :$update, Bool :$upgrade, :$install-to = ['site'], *@identities) {
+            Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :@exclude,
+            Bool :$dry, Bool :$update, Bool :$upgrade, :$install-to = ['site'], *@identities) {
 
     my $app = Zef::App.new(:$force, :$verbose, :$depends, :$test-depends, :$build-depends);
     $app.install( :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities>>.&STR2IDENTITY );
 }
 
-#| Find that shit
-multi MAIN('search', *@identities, *%fields) {
-    my $app = Zef::App.new;
-    say $app.search(|@identities>>.&STR2IDENTITY, |%fields);
+#| Get a list of possible distribution candidates for the given terms
+multi MAIN('search', Bool :v($verbose), *@terms) {
+    my $app = Zef::App.new(:$verbose);
+    my @results = $app.search(|@terms);
+
+    say "===> Found " ~ +@results ~ " results";
+    my @rows = eager gather for @results -> $candi {
+        once { take [<ID From Package Description>] }
+        my $row = [ "{state $id += 1}", $candi.recommended-by, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
+        take $row;
+    }
+
+    my @widths     = _get_column_widths(@rows);
+    my @fixed-rows = @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
+    if @fixed-rows.end {
+        my $width      = [+] _get_column_widths(@fixed-rows);
+        my $sep        = '-' x $width;
+        say "{$sep}\n{@fixed-rows[0]}\n{$sep}";
+        .say for @fixed-rows[1..*];
+        say $sep;
+    }
+}
+
+#| Detailed distribution information
+multi MAIN('info', $identity, Bool :v(:$verbose)) {
+
+    my $app   = Zef::App.new();
+    my $candi = $app.search($identity, :max-results(1))[0]\
+        or die "Found no candidates matching identity: {$identity}";
+    my $dist := $candi.dist;
+
+    say "[{$dist.identity}]";
+    say "Recommended: {$candi.recommended-by}";
+    say "# Author:\t {$dist.author}"           if $dist.author;
+    say "# Description:\t {$dist.description}" if $dist.description;
+    say "# Source-url:\t {$dist.source-url}"   if $dist.source-url;
+
+    my @provides = $dist.provides.keys.sort(*.chars);
+    say "# Provides: {@provides.elems} modules";
+    if $verbose { say "#\t$_" for $dist.provides.keys.sort(*.chars) }
+
+    if $dist.hash<support> {
+        say "# Support:";
+        for $dist.hash<support>.kv -> $k, $v {
+            say "#   $k:\t$v";
+        }
+    }
+
+    my @deps = (|$dist.depends, |$dist.test-depends, |$dist.build-depends).grep(*.defined).unique;
+    say "# Depends: {@deps.elems} items";
+    if $verbose { say "#   {++$})\t{$_}" for |@deps }
+}
+
+#| temporary: Shows the location of the config file that will be used
+multi MAIN('config-file') {
+    say find-config();
 }
 
 #| Update package indexes
-multi MAIN(*@names) {
+multi MAIN(@names) {
     my $app = Zef::App.new;
-    $app.storage.update(|@names)
+    $app.storage.update(|@names);
 }
 
 multi MAIN(Bool :$help?) {
@@ -46,30 +99,53 @@ multi MAIN(Bool :$help?) {
 
         USAGE
 
-          zef [flags|options] command [package]
+            zef [flags|options] command [package]
 
 
         COMMANDS
 
-          install                Install specific dependencies by name or path
-          test                   Run tests on a given module's path
-          fetch                  Fetch and extract module's source
-          update                 Update package indexes for content storages
+            install                 Install specific dependencies by name or path
+            test                    Run tests on a given module's path
+            fetch                   Fetch and extract module's source
+            update                  Update package indexes for content storages
+            search                  Show a list of possible distribution candidates for the given terms
+            info                    Show detailed distribution information
+            config-file             (temporary) Show the location of the config file that will be used
 
         OPTIONS
 
-          --install-to=[name]    Short name of CompUnit::Repository to install to
+            --install-to=[name]     Short name of CompUnit::Repository to install to
 
 
         FLAGS
+            --verbose               More detailed output from all commands
 
-          --verbose              More detailed output
-          --force                Continue each phase regardless of failures
-          --dry                  Run all phases except the actual installations
+            --force                 Continue each phase regardless of failures
+            --dry                   Run all phases except the actual installations
 
-          --/tests               Skip the testing phase
-          --/depends             Do not fetch runtime dependencies
-          --/test-depends        Do not fetch test dependencies
-          --/build-depends       Do not fetch build dependencies
+            --/tests                Skip the testing phase
+            --/depends              Do not fetch runtime dependencies
+            --/test-depends         Do not fetch test dependencies
+            --/build-depends        Do not fetch build dependencies
         END_USAGE
+}
+
+sub _widther($str, :$max-width) is export {
+    return $str unless ?$max-width && $str.chars > $max-width;
+    my $cutoff = $str.substr(0, $max-width);
+    return ($cutoff.substr(0,*-3) ~ '...') if $cutoff.substr(*-3,3) ~~ /\S\S\S/;
+    return ($cutoff.substr(0,*-2) ~ '..')  if $cutoff.substr(*-2,2) ~~ /\S\S/;
+    return ($cutoff.substr(0,*-1) ~ '.')   if $cutoff.substr(*-1,1) ~~ /\S/;
+    return $cutoff;
+}
+
+# returns formatted row
+sub _row2str (@widths, @cells, Int :$max-width) {
+    my $format = @widths.map({"%-{$_}s"}).join('|');
+    return _widther(sprintf( $format, @cells.map({ $_ // '' }) ), :$max-width);
+}
+
+# Iterate over ([1,2,3],[2,3,4,5],[33,4,3,2]) to find the longest string in each column
+sub _get_column_widths ( *@rows ) is export {
+    return @rows[0].keys.map: { @rows>>[$_]>>.chars.max }
 }

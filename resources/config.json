@@ -67,12 +67,12 @@
             "module" : "Zef::Shell::tar"
         },
         {
-            "name" : "psunzip",
-            "module" : "Zef::Shell::PowerShell::unzip"
-        },
-        {
             "name" : "p5tar",
             "module" : "Zef::Shell::p5tar"
+        },
+        {
+            "name" : "psunzip",
+            "module" : "Zef::Shell::PowerShell::unzip"
         }
     ],
     "Test" : [

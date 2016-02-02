@@ -2,7 +2,7 @@ use Zef;
 use Zef::Shell;
 
 # covers untar for some windows users until a better solution is found
-class Zef::Shell::p5tar is Zef::Shell does Extractor {
+class Zef::Shell::p5tar is Zef::Shell does Extractor does Messenger {
     method extract-matcher($path) { so $path.lc.ends-with('.tar.gz') }
 
     method probe {

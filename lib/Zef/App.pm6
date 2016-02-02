@@ -154,7 +154,7 @@ class Zef::App {
 
                 # should probably break this out into its out method
                 say "[{$!extractor.^name}] Extracting: {$save-as}" if ?$!verbose;
-                $location = try { $!extractor.extract($location, $extract-to) } || $location;
+                $location = $!extractor.extract($location, $extract-to) ;#|| $location;
                 say "Extracted to: {$location}" if ?$!verbose;
 
                 # Our `Zef::Distribution $dist` can be upraded to a `Zef::Distribution::Local`

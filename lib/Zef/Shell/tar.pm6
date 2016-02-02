@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Shell;
 
-class Zef::Shell::tar is Zef::Shell does Extractor {
+class Zef::Shell::tar is Zef::Shell does Extractor does Messenger {
     method extract-matcher($path) { so $path.lc.ends-with('.tar.gz') }
 
     method probe {
@@ -26,6 +26,7 @@ class Zef::Shell::tar is Zef::Shell does Extractor {
         die "\$save-as folder does not exist and could not be created"
             unless (($save-as.IO.e && $save-as.IO.d) || mkdir($save-as));
         my $extracted-to = $save-as.IO.child(self.list($archive-file).head).absolute;
+
         my $proc = $.zrun('tar', '-zxvf', $archive-file, '-C', $save-as, :out);
         my @out = $_ for $proc.out.lines;
         $proc.out.close;

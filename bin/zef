@@ -84,7 +84,7 @@ multi MAIN('info', $identity, Bool :v(:$verbose)) {
 
 #| temporary: Shows the location of the config file that will be used
 multi MAIN('config-file') {
-    say find-config();
+    say find-config().IO.absolute;
 }
 
 #| Update package indexes

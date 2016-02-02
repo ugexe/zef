@@ -1,3 +1,4 @@
+use Zef;
 use Zef::Shell;
 use Zef::Shell::PowerShell;
 
@@ -11,7 +12,7 @@ my constant DOWNLOAD_SCRIPT = q:to/END_POWERSHELL_SCRIPT/;
     
     #Invoke-WebRequest -Uri $url -OutFile $file -Proxy $http_proxy
 
-class Zef::Shell::PowerShell::download is Zef::Shell::PowerShell does Fetcher {
+class Zef::Shell::PowerShell::download is Zef::Shell::PowerShell does Fetcher does Messenger {
     method fetch-matcher($url) { $ = $url.lc.starts-with('http://' | 'https://') }
     method probe { nextsame }
     method fetch($url, $save-as) {

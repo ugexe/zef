@@ -84,7 +84,7 @@ role Pluggable {
                 next;
             }
 
-            if (try require ::($ = ~$module)) ~~ Nil {
+            if (try require ::($ = $module)) ~~ Nil {
                 DEBUG($plugin, "\t(SKIP) Plugin could not be loaded");
                 next;
             }

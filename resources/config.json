@@ -59,10 +59,6 @@
             "comment" : "used to checkout (extract) specific tags/sha1/commit/branch from a git repo"
         },
         {
-            "name" : "unzip",
-            "module" : "Zef::Shell::unzip"
-        },
-        {
             "name" : "tar",
             "module" : "Zef::Shell::tar"
         },
@@ -71,18 +67,22 @@
             "module" : "Zef::Shell::p5tar"
         },
         {
+            "name" : "unzip",
+            "module" : "Zef::Shell::unzip"
+        },
+        {
             "name" : "psunzip",
             "module" : "Zef::Shell::PowerShell::unzip"
         }
     ],
     "Test" : [
         {
-            "name" : "prove6",
-            "module" : "Zef::Shell::prove6"
-        },
-        {
             "name" : "prove",
             "module" : "Zef::Shell::prove"
+        },
+        {
+            "name" : "prove6",
+            "module" : "Zef::Shell::prove6"
         },
         {
             "name" : "default",

@@ -10,14 +10,6 @@ class Zef::Shell {
         my $proc = run(|@.invocation, |@_, :%env, :$cwd, :$out, :$err, |%_);
         ?$proc ?? $proc !! False;
     }
-
-    # Pass in arguments to shell scripts via ENV. Positionals can be accessed at %*ENV<ZEF_SHELL_$POSITION>
-    # Named arguments set themselves in %*ENV, overriding any existing values ( i.e. %*ENV{%_.keys} = %_.values )
-    method zrun-script($cmd, :%env is copy = %*ENV, :$cwd = $*CWD, *@_, *%_) {
-        my %zenv = |@_.map({state $arg++; "ZEF_SHELL_$arg" => $_ }), |%_;
-        %zenv.map: {%env{$_.key} = $_.value};
-        $ = $.zrun($cmd, :%env, :$cwd);
-    }
 }
 
 sub zrun(:$env, :$cwd = $*CWD, :$out, :$err, *%_, *@_) is export {

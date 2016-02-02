@@ -11,7 +11,7 @@ class Zef::Shell::p5tar is Zef::Shell does Extractor does Messenger {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-            my $proc = zrun('perl', '-MArchive::Tar', '-e', 1, :out);
+            my $proc = zrun('perl', %?RESOURCES<scripts/perl5tar.pl>, :out);
             my @out = $proc.out.lines;
             $proc.out.close;
             $ = ?$proc;
@@ -19,20 +19,18 @@ class Zef::Shell::p5tar is Zef::Shell does Extractor does Messenger {
         ?$p5module-probe;
     }
 
-    method extract($archive-file, $save-as) {
+    method extract($archive-file, $out) {
         die "file does not exist: {$archive-file}" unless $archive-file.IO.e && $archive-file.IO.f;
-        die "\$save-as folder does not exist and could not be created" unless (($save-as.IO.e && $save-as.IO.d) || mkdir($save-as));
-        my $p5script = 'my $extractor = Archive::Tar->new(); $extractor->read($ARGV[0]); $extractor->extract();';
-        my $proc = $.zrun('perl', '-MArchive::Tar', '-e', qq|$p5script|, $archive-file.IO.absolute, :cwd($save-as), :out);
+        die "\$out folder does not exist and could not be created" unless (($out.IO.e && $out.IO.d) || mkdir($out));
+        my $proc = $.zrun('perl', %?RESOURCES<scripts/perl5tar.pl>, $archive-file.IO.absolute, :cwd($out), :out);
         my @stdout = $proc.out.lines;
         $proc.out.close;
-        my $extracted-to := IO::Path.new(self.list($archive-file)[0].Str, :CWD($save-as));
+        my $extracted-to := IO::Path.new(self.list($archive-file)[0].Str, :CWD($out));
         $ = ?$proc ?? $extracted-to.absolute !! False;
     }
 
     method list($archive-file) {
-        my $p5script = 'my $extractor = Archive::Tar->new(); $extractor->read($ARGV[0]); for($extractor->list_files()) { print $_ . qq{\n} };';
-        my $proc = $.zrun('perl', '-MArchive::Tar', '-e', $p5script, $archive-file, :out);
+        my $proc = $.zrun('perl', %?RESOURCES<scripts/perl5tar.pl>, '--list', $archive-file, :out);
         my @extracted-paths = |$proc.out.lines;
         $proc.out.close;
         $ = ?$proc ?? @extracted-paths.grep(*.defined) !! False;

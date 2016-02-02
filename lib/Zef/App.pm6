@@ -80,21 +80,23 @@ class Zef::App {
         while ( +@wants ) {
             my @wanted = @wants.splice(0);
             my @todo   = @wanted.grep(* ~~ none(|@!ignore)).unique;
-            @needs     = (|@needs, |@todo).unique;
+            @needs     = (|@needs, |@todo).grep(* ~~ none(|@!exclude)).unique;
 
             say "Searching for {'dependencies ' if state $once++}{@todo.join(', ')}" if ?$!verbose;
             for $!storage.candidates(|@todo, :$upgrade) -> $candis {
-                for $candis.grep({.dist.identity ~~ none(|@!exclude)}) -> $candi {
-                    if $candi.dist.identity ~~ none(|@candidates.map(*.dist.identity)) {
-                        @candidates.push: $candi;
+                for $candis.grep({ .dist.identity ~~ none(|@candidates.map(*.dist.identity)) }) -> $candi {
+                    # basically for --depsonly (installing only deps)
+                    if $candi.requested-as ~~ none(@!exclude) {
+                        @candidates.push($candi);
                         say "[{$candi.recommended-by}] found {$candi.dist.name}" if ?$!verbose;
-                        # todo: alternatives, i.e. not a Str but [Str, Str]
-                        # todo: abstract the depends/build-depends/test-depends shit
-                        @wants.append(|unique(grep *.chars, grep *.defined,
-                            ($candi.dist.depends       if ?$!depends).Slip,
-                            ($candi.dist.test-depends  if ?$!test-depends).Slip,
-                            ($candi.dist.build-depends if ?$!build-depends).Slip));
                     }
+
+                    # todo: alternatives, i.e. not a Str but [Str, Str]
+                    # todo: abstract the depends/build-depends/test-depends shit
+                    @wants.append(|unique(grep *.chars, grep *.defined,
+                        ($candi.dist.depends       if ?$!depends).Slip,
+                        ($candi.dist.test-depends  if ?$!test-depends).Slip,
+                        ($candi.dist.build-depends if ?$!build-depends).Slip));
                 }
             }
         }
@@ -154,7 +156,7 @@ class Zef::App {
 
                 # should probably break this out into its out method
                 say "[{$!extractor.^name}] Extracting: {$save-as}" if ?$!verbose;
-                $location = $!extractor.extract($location, $extract-to) ;#|| $location;
+                $location = try { $!extractor.extract($location, $extract-to) } || $location;
                 say "Extracted to: {$location}" if ?$!verbose;
 
                 # Our `Zef::Distribution $dist` can be upraded to a `Zef::Distribution::Local`

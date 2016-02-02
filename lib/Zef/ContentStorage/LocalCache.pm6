@@ -81,7 +81,8 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     }
 
     # todo: handle %fields
-    # todo: sort $max-results results by version
+    # note this doesn't apply the $max-results per identity searched, and always returns a 1 dist
+    # max for a single identity (todo: update to handle $max-results for each @identities)
     method search(:$max-results = 5, *@identities, *%fields) {
         my @wanted = |@identities;
 
@@ -117,7 +118,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             }
         }
 
-        my $sorted := ($local-dists.Slip, $resolved-dists.Slip).sort({ $^b.dist cmp $^a.dist }).head($max-results);
+        my $sorted := ($local-dists.Slip, $resolved-dists.Slip).sort({ $^b.dist cmp $^a.dist });
     }
 
     # After the `fetch` phase an app can call `.store` on any ContentStorage that

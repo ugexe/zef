@@ -22,10 +22,13 @@ multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
 
 #| Install
 multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-            Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :@exclude,
-            Bool :$dry, Bool :$update, Bool :$upgrade, :$install-to = ['site'], *@identities) {
+            Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude,
+            Bool :$dry, Bool :$update, Bool :$upgrade, Bool :$depsonly, :$install-to = ['site'], *@identities) {
 
-    my $app = Zef::App.new(:$force, :$verbose, :$depends, :$test-depends, :$build-depends);
+    my $app = Zef::App.new(:$force, :$verbose, :$depends, :$test-depends, :$build-depends
+        :exclude(grep *.defined, ?$depsonly ?? (|@identities>>.&STR2IDENTITY, |$exclude) !! $exclude)
+    );
+
     $app.install( :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities>>.&STR2IDENTITY );
 }
 
@@ -121,6 +124,7 @@ multi MAIN(Bool :$help?) {
         FLAGS
             --verbose               More detailed output from all commands
 
+            --depsonly              Install only the dependency chains of the requested distributions
             --force                 Continue each phase regardless of failures
             --dry                   Run all phases except the actual installations
 

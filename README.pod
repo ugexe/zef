@@ -75,15 +75,18 @@ tests then B will not be installed (even if it passed its own tests) without for
 
 B<Options>
     
-    # install the requested modules regardless of: currently installed versions,
-    # test results, or failed dependency installations
-    --force
-
     # install to a location determined by short-id
     --install-to=<id> # site/home/vendor/perl
 
+    # Install only the dependency chains of the requested distributions
+    --depsonly
+
     # More detailed output
     --verbose
+
+    # install the requested modules regardless of: currently installed versions,
+    # test results, or failed dependency installations
+    --force
 
     # do everything except the actual installations
     --dry

@@ -42,7 +42,10 @@
         "Zef::Utils::URI"        : "lib/Zef/Utils/URI.pm6"
     },
     "resources" : [
-        "config.json"
+        "config.json",
+        "scripts/perl5tar.pl",
+        "scripts/win32download.ps1",
+        "scripts/win32unzip.ps1"
     ],
     "auth"    : "github:ugexe",
     "authors" : [

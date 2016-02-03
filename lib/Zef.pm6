@@ -79,7 +79,8 @@ role Pluggable {
             my $module = $plugin<module>;
             DEBUG($plugin, "Checking: {$module}");
 
-            if $plugin<enabled>:exists && !$plugin<enabled> {
+            # default to enabled unless `"enabled" : 0`
+            if $plugin<enabled>:exists && (!$plugin<enabled> || $plugin<enabled> eq "0") {
                 DEBUG($plugin, "\t(SKIP) Not enabled");
                 next;
             }

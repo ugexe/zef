@@ -128,7 +128,14 @@ The functionality is mostly there. The API to search and find a specific module 
 a query and takes a matching distribution name with a matching (or newest) version. It can also download, extract, and
 install as well. Other than polishing up the search API access it needs metacpan itself to host Perl6 distributions.
 
-You can enable it by setting I<"enabled" : 1> in the config under the ContentStorage::CPAN plugin
+You can enable it by setting I<"enabled" : 1> in the config under the ContentStorage::CPAN plugin, or temporarily by passing a flag:
+
+    # flag
+    -CContentStorage="cpan.enabled=1"
+
+    # examples
+    `zef -v -CContentStorage="cpan.enabled=1" search CSV::Parser`
+    `zef -v -CContentStorage="cpan.enabled=1" install CSV::Parser`
 
 =head3 Proxy support?
 

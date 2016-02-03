@@ -6,7 +6,7 @@ use Zef::ContentStorage;
 use Zef::Extract;
 use Zef::Test;
 
-our %CONFIG = ZEF-CONFIG();
+our %CONFIG;
 
 class Zef::App {
     has $.cache;
@@ -27,6 +27,18 @@ class Zef::App {
 
     proto method new(|) {*}
 
+    # This bit will probably change, but it provides access to a optional config hash
+    # but it can't be used as an attribute (in this current form) because it needs to 
+    # be used to set some default values (so need to ditch the multi dispatch and handle
+    # more cases with a conditional)
+    multi method new(:$config where !*.defined, |c) {
+        samewith( :config(ZEF-CONFIG()), |c );
+    }
+    multi method new(:$config where {$_.defined && %CONFIG.keys.elems == 0}, |c) {
+        %CONFIG = |$config;
+        callsame;
+    }
+
     multi method new(:$extractor where !*.defined, :@extractors = |%CONFIG<Extract>, |c) {
         samewith( :extractor(Zef::Extract.new( :backends(|@extractors) )), |c );
     }
@@ -36,7 +48,7 @@ class Zef::App {
     }
 
     multi method new(:$cache where !*.defined, |c) {
-        samewith( :cache("{%CONFIG<Store>}/store"), |c)
+        samewith( :cache("{%CONFIG<Store>}/store"), |c);
     }
 
     multi method new(:$fetcher where !*.defined, :@fetchers = |%CONFIG<Fetch>, |c) {

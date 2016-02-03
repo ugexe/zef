@@ -6,16 +6,37 @@ use Zef::Config;
 use Zef::Distribution::DependencySpecification;
 use Zef::Utils::SystemInfo;
 
+# First crack at cli config modification
+# -C<config key>="<name of item>.<field>=<new value>"
+# example: -CContentStorage="cpan.enabled=1"
+# Notice this only works with the plugin configuration structure: `"key" : [{"name":"foo", ...},{"name":"bar", ...}]`
+# For now its really just a way to enable cpan so people can play with it easier.
+our $config;
+BEGIN {
+    $config = ZEF-CONFIG();
+    for @*ARGS -> $conf {
+        if $conf.starts-with('-C') && $conf.contains('=') {
+            my ($key, $value) = $conf.substr(2).split(/'='/, 2);
+            my ($plugin-name, $plugin-option) = $value.split(/'.'/, 2);
+            my ($plugin-key, $plugin-value) = $plugin-option.split(/'='/, 2);
+            for $config{$key}.grep(*.<name> eq $plugin-name) -> $conf is rw {
+                $conf{$plugin-key} = $plugin-value;
+            }
+        }
+    }
+    @*ARGS = @*ARGS.grep(* !~~ /^'-C' .+/);
+}
+
 #| Download specific distributions
 multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) {
-    my $app = Zef::App.new(:$depends, :$test-depends, :$build-depends);
+    my $app = Zef::App.new(:$config, :$depends, :$test-depends, :$build-depends);
     my @candidates = |$app.candidates(|@identities>>.&STR2IDENTITY);
     $app.fetch(|@candidates);
 }
 
 #| Run tests
 multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
-    my $app = Zef::App.new(:$verbose, :$force);
+    my $app = Zef::App.new(:$config, :$verbose, :$force);
     my %results = $app.test(|@paths);
     %results<fail>.elems ?? exit(1) !! exit(0);
 }
@@ -25,7 +46,7 @@ multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$
             Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude,
             Bool :$dry, Bool :$update, Bool :$upgrade, Bool :$depsonly, :$install-to = ['site'], *@identities) {
 
-    my $app = Zef::App.new(:$force, :$verbose, :$depends, :$test-depends, :$build-depends
+    my $app = Zef::App.new(:$config, :$force, :$verbose, :$depends, :$test-depends, :$build-depends
         :exclude(grep *.defined, ?$depsonly ?? (|@identities>>.&STR2IDENTITY, |$exclude) !! $exclude)
     );
 
@@ -34,10 +55,11 @@ multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$
 
 #| Get a list of possible distribution candidates for the given terms
 multi MAIN('search', Bool :v($verbose), *@terms) {
-    my $app = Zef::App.new(:$verbose);
+    my $app = Zef::App.new(:$config, :$verbose);
     my @results = $app.search(|@terms);
 
     say "===> Found " ~ +@results ~ " results";
+
     my @rows = eager gather for @results -> $candi {
         once { take [<ID From Package Description>] }
         my $row = [ "{state $id += 1}", $candi.recommended-by, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
@@ -46,7 +68,7 @@ multi MAIN('search', Bool :v($verbose), *@terms) {
 
     my @widths     = _get_column_widths(@rows);
     my @fixed-rows = @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
-    if @fixed-rows.end {
+    if +@fixed-rows {
         my $width      = [+] _get_column_widths(@fixed-rows);
         my $sep        = '-' x $width;
         say "{$sep}\n{@fixed-rows[0]}\n{$sep}";
@@ -58,7 +80,7 @@ multi MAIN('search', Bool :v($verbose), *@terms) {
 #| Detailed distribution information
 multi MAIN('info', $identity, Bool :v(:$verbose)) {
 
-    my $app   = Zef::App.new();
+    my $app   = Zef::App.new(:$config);
     my $candi = $app.search($identity, :max-results(1))[0]\
         or die "Found no candidates matching identity: {$identity}";
     my $dist := $candi.dist;
@@ -85,19 +107,14 @@ multi MAIN('info', $identity, Bool :v(:$verbose)) {
     if $verbose { say "#   {++$})\t{$_}" for |@deps }
 }
 
-#| temporary: Shows the location of the config file that will be used
-multi MAIN('config-file') {
-    say find-config().IO.absolute;
-}
-
 #| Update package indexes
 multi MAIN(@names) {
-    my $app = Zef::App.new;
+    my $app = Zef::App.new(:$config);
     $app.storage.update(|@names);
 }
 
 multi MAIN(Bool :$help?) {
-    note q:to/END_USAGE/
+    note qq:to/END_USAGE/
         Zef - Perl6 Module Management
 
         USAGE
@@ -114,12 +131,9 @@ multi MAIN(Bool :$help?) {
             search                  Show a list of possible distribution candidates for the given terms
             info                    Show detailed distribution information
 
-            config-file             (temporary) Show the location of the config file that will be used
-
         OPTIONS
 
             --install-to=[name]     Short name of CompUnit::Repository to install to
-
 
         FLAGS
             --verbose               More detailed output from all commands
@@ -132,6 +146,10 @@ multi MAIN(Bool :$help?) {
             --/depends              Do not fetch runtime dependencies
             --/test-depends         Do not fetch test dependencies
             --/build-depends        Do not fetch build dependencies
+
+        CONFIGURATION {find-config().IO.absolute}
+
+            -C[Phase]="[name].[field]=[value]"  # Example: -CContentStorage="cpan.enabled=1"
         END_USAGE
 }
 

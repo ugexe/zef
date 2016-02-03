@@ -9,7 +9,7 @@ function List-ZipFiles {
     $ns = $shell.NameSpace($args[0])
     foreach( $item in $ns.Items() ) {
         if( $item.IsFolder ) {
-            Get-ZipFiles($item)
+            List-ZipFiles($item)
         } else {
             $path = $item | Select -ExpandProperty Path
             Write-Host($path)

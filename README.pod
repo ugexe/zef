@@ -132,8 +132,6 @@ You can enable it by setting I<"enabled" : 1> in the config under the ContentSto
 
 =head3 Proxy support?
 
-All the default fetching plugins support it except for the windows specific `download.pm6` (which only needs a slight change).
-However the git fetcher should support proxies on windows, and a git url is the first mirror tried for fetching package lists
-(for the p6c ecosystem) so for the most part it should Just Work.
+All the default fetching plugins have proxy support
 
 =cut

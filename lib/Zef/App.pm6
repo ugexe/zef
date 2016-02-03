@@ -85,7 +85,7 @@ class Zef::App {
             say "Searching for {'dependencies ' if state $once++}{@todo.join(', ')}" if ?$!verbose;
             for $!storage.candidates(|@todo, :$upgrade) -> $candis {
                 for $candis.grep({ .dist.identity ~~ none(|@candidates.map(*.dist.identity)) }) -> $candi {
-                    # basically for --depsonly (installing only deps)
+                    # conditional is to handle --depsonly (installing only deps)
                     if $candi.requested-as ~~ none(@!exclude) {
                         @candidates.push($candi);
                         say "[{$candi.recommended-by}] found {$candi.dist.name}" if ?$!verbose;
@@ -235,6 +235,8 @@ class Zef::App {
             take $_.dist for |self.fetch($store, |%_);
         }
 
+
+        # todo: continue passing the Candidate object instead of grabbing the distribution in the above code
 
         # Filter Stage:
         # Handle stuff like removing distributions that are already installed, that don't have

@@ -1,3 +1,4 @@
+use Zef::Identity;
 use Zef::Distribution::DependencySpecification;
 
 # "is Distribution" because CU::R::I.install(Distribution $dist) requires it to be the core
@@ -12,7 +13,6 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     has @.build-depends;
     has @.test-depends;
     has @.resources;
-    has @!provides-specs;
 
     # attach arbitrary data, like for topological sort, that won't be saved on install
     has %.metainfo is rw;
@@ -35,25 +35,33 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # `Foo` contains just bin scripts then `use Foo;` would always fail (and thus always
     # considered not installed)
     method is-installed {
-        return True if IS-INSTALLED(self.identity);
-        # EVALing a dist name doesn't really tell us if its *not* installed
-        # since a dist name doesn't have to match up to any of its modules
         for self.provides.keys -> $provides {
             # If a `provides` module name doesn't include a ver/auth/api
             # then default them to the providing dist's values
-            my %hash = IDENTITY2HASH($provides);
-            next if self.name eq %hash<name>;
-            %hash<ver>  = %hash<ver>  || self.ver;
-            %hash<auth> = %hash<auth> || self.auth;
-            %hash<api>  = %hash<api>  || self.api;
+            my $hash = Zef::Identity($provides).?hash;
 
-            my $provides-identity = HASH2IDENTITY(%hash);
-            return ?IS-INSTALLED($provides-identity);
+            $hash<ver>  = ?$hash<ver>.?chars  ?? $hash<ver>  !! (self.ver  // '');
+            $hash<auth> = ?$hash<auth>.?chars ?? $hash<auth> !! (self.auth // '');
+            $hash<api>  = ?$hash<api>.?chars  ?? $hash<api>  !! (self.api  // '');
+            my $provides-identity = Zef::Identity($hash).?identity;
+            return True if ?IS-INSTALLED($provides-identity);
+
+            # the `use XXX:ver<>` seems confused about the final version in certain circumstances
+            # so we'll try to put a `v` in front of it to see if it works since it will already
+            # have been stripped if it was originally there
+            if $hash<ver>.chars {
+                $hash<ver>  = "v{$hash<ver>}";
+                my $provides-identity-v = Zef::Identity($hash).?identity;
+                return ?IS-INSTALLED($provides-identity-v);
+            }
         }
         False
     }
 
-    method identity { $.Str() }
+    method identity {
+        my $parts = %(:name($.name), :ver($.ver), :auth($.auth), :api($.api));
+        $ = hash2identity($parts);
+    }
 
     # make matching dependency names against a dist easier
     # when sorting the install order from the meta hash
@@ -79,7 +87,15 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # make locating a module that is part of a distribution (ex. URI::Escape of URI) easier.
     # it doesn't need to be a hash mapping as its just for matching
     method provides-specs {
-        @!provides-specs = self.hash<provides>.hash.map: { $ = Zef::Distribution::DependencySpecification.new(.key) }
+        cache gather for %(self.hash<provides>) {
+            # if $spec.name is not defined then .key (the module name of the current provides)
+            # is not a valid module name (according to Zef::Identity grammar anyway). I ran into
+            # this problem with `NativeCall::Errno` where one of the provides was: `X:NativeCall::Errorno`
+            # The single colon cannot just be fixed to DWIM because that could just as easily denote
+            # an identity part (identity parts are separated by a *single* colon; double colon is left alone)
+            my $spec = Zef::Distribution::DependencySpecification.new(.key);
+            take $spec if defined($spec.name);
+        }
     }
 
     method provides-spec-matcher($spec) {
@@ -93,18 +109,18 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # Add new entries missing from original Distribution.hash
     method hash {
         my %hash = callsame.append({ :$.api, :@!build-depends, :@!test-depends, :@!resources });
-        %hash<identity> = $.Str;
         %hash<license>  = $.license;
+
+        # debugging stuff
+        %hash<identity> = $.identity;
+        %hash<id>       = $.id;
+        %hash<Str>      = $.Str();
+
         %hash;
     }
 
     # use Distribution's .ver but filter off a leading 'v'
     method ver { my $v = callsame; $v.subst(/^v/, '') }
-
-    # The identity genered by Distribution's Str() does not always parse in `use` statements
-    method Str() {
-        $ = HASH2IDENTITY({ :name($.name), :ver($.ver), :auth($.auth), :api($.api) });
-    }
 
     method id() {
         use nqp;

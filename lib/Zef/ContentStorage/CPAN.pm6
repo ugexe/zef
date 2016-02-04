@@ -22,12 +22,18 @@ class Zef::ContentStorage::CPAN does ContentStorage {
         my $matches := gather DIST: for |@identities -> $wants {
             my $wants-spec = Zef::Distribution::DependencySpecification.new($wants);
             temp %fields<distribution> = $wants-spec.name.subst('::', '-', :g);
-            temp %fields<author>       = $wants-spec.auth-matcher.match(/^.*? ':' (.*)$/)[0].Str
-                if ?$wants-spec.auth-matcher;
             temp %fields<version>      = $wants-spec.version-matcher.subst(/^v?/, '?')
                 if ?$wants-spec.version-matcher && $wants-spec.version-matcher ne '*';
 
-            my $query-string = %fields.grep(*.key.defined).map(-> $q {
+            # auth/author are not usable on metacpan yet. `author` currently always lists
+            # the maintainer of the metacpan fork, and auth is not always available (as x_auth).
+            # Elsewhere we should just construct the auth from the other parts, but that doesn't help
+            # us search if we don't already know what the part names are to begin with to searcn and
+            # find the distribution in the first place
+            # temp %fields<author>       = $wants-spec.auth-matcher.match(/^.*? ':' (.*)$/)[0].Str
+            #    if ?$wants-spec.auth-matcher;
+
+            my $query-string = %fields.grep(*.value.defined).map(-> $q {
                 $q.value.map({"{$q.key}:$_"}).join('%20')
             }).join('%20AND%20');
             my $search-url = $!mirrors[0] ~ '_search?q=' ~ $query-string;
@@ -80,7 +86,9 @@ sub METACPAN2META6(%cpan-meta) {
     $meta6<provides>    = (%cpan-meta<metadata><provides>.kv.map: { $^a => $^b<file> } // {});
 
     $meta6<depends>     = %cpan-meta<metadata><x_depends>;
+
     $meta6<auth>        = %cpan-meta<metadata><x_auth> // %cpan-meta<metadata><x_authority> // $meta6<author> // '';
+    $meta6<auth> = '' if $meta6<auth> eq 'unknown';
 
     # not official spec, but it *is* a Distribution attribute
     $meta6<source-url>  = %cpan-meta<download_url>;

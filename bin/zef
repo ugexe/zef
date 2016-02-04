@@ -3,6 +3,7 @@ use v6;
 
 use Zef::App;
 use Zef::Config;
+use Zef::Identity;
 use Zef::Distribution::DependencySpecification;
 use Zef::Utils::SystemInfo;
 
@@ -30,7 +31,7 @@ BEGIN {
 #| Download specific distributions
 multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) {
     my $app = Zef::App.new(:$config, :$depends, :$test-depends, :$build-depends);
-    my @candidates = |$app.candidates(|@identities>>.&STR2IDENTITY);
+    my @candidates = |$app.candidates(|@identities>>.&str2identity);
     $app.fetch(|@candidates);
 }
 
@@ -47,10 +48,10 @@ multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$
             Bool :$dry, Bool :$update, Bool :$upgrade, Bool :$depsonly, :$install-to = ['site'], *@identities) {
 
     my $app = Zef::App.new(:$config, :$force, :$verbose, :$depends, :$test-depends, :$build-depends
-        :exclude(grep *.defined, ?$depsonly ?? (|@identities>>.&STR2IDENTITY, |$exclude) !! $exclude)
+        :exclude(grep *.defined, ?$depsonly ?? (|@identities>>.&str2identity, |$exclude) !! $exclude)
     );
 
-    $app.install( :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities>>.&STR2IDENTITY );
+    $app.install( :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities>>.&str2identity );
 }
 
 #| Get a list of possible distribution candidates for the given terms

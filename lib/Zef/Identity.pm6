@@ -4,9 +4,9 @@ class Zef::Identity {
     has $.auth;
     has $.api;
 
-    method CALL-ME($id) { try self.new($id) }
+    method CALL-ME($id) { try self.new(|$id) }
 
-    my grammar Distribution {
+    my grammar URN {
         token TOP { <auth> ':' <name> ':' <version> [':' <api>]? }
 
         token name { <token>+ }
@@ -21,72 +21,82 @@ class Zef::Identity {
         token restricted { < : > }
     }
 
-    my grammar Module {
+    my grammar REQUIRE {
         token TOP {
             <name>
             [
-            || [ <auth> [[<ver>  <api>? ] || [ <api> <ver>?  ]?]? ]
-            || [ <ver>  [[<auth> <api>? ] || [ <api> <auth>? ]?]? ]
-            || [ <api>  [[<auth> <ver>? ] || [ <ver> <auth>? ]?]? ]
+            || [ <auth>    [[<version>  <api>? ] || [ <api> <version>?]?]? ]
+            || [ <version> [[<auth> <api>? ]     || [ <api> <auth>? ]?]?   ]
+            || [ <api>     [[<auth> <version>? ] || [ <ver> <auth>? ]?]?   ]
             ]?
         }
 
         token name    { <.token>+ }
 
-        proto token ver {*};
-        token ver:sym(":ver(v") { <.sym> <.token>+? ")"  }
-        token ver:sym(":ver('") { <.sym> <.token>+? "')" }
-        token ver:sym(':ver("') { <.sym> <.token>+? '")' }
-        token ver:sym(":ver<")  { <.sym> <.token>+? '>'  }
+        proto token version {*};
+        token version:sym(":ver(v") { <.sym> $<value>=[<.token>+?] ")"  }
+        token version:sym(":ver('") { <.sym> $<value>=[<.token>+?] "')" }
+        token version:sym(':ver("') { <.sym> $<value>=[<.token>+?] '")' }
+        token version:sym(":ver<")  { <.sym> $<value>=[<.token>+?] '>'  }
+        token version:sym(":version(v") { <.sym> $<value>=[<.token>+?] ")"  }
+        token version:sym(":version('") { <.sym> $<value>=[<.token>+?] "')" }
+        token version:sym(':version("') { <.sym> $<value>=[<.token>+?] '")' }
+        token version:sym(":version<")  { <.sym> $<value>=[<.token>+?] '>'  }
 
         proto token api {*};
-        token api:sym(":api(v") { <.sym> <.token>+? ")"  }
-        token api:sym(":api('") { <.sym> <.token>+? "')" }
-        token api:sym(':api("') { <.sym> <.token>+? '")' }
-        token api:sym(":api<")  { <.sym> <.token>+? '>'  }
+        token api:sym(":api(v") { <.sym> $<value>=[<.token>+?] ")"  }
+        token api:sym(":api('") { <.sym> $<value>=[<.token>+?] "')" }
+        token api:sym(':api("') { <.sym> $<value>=[<.token>+?] '")' }
+        token api:sym(":api<")  { <.sym> $<value>=[<.token>+?] '>'  }
 
         proto token auth {*};
-        token auth:sym(":auth('") { <.sym> $<cs>=<.token>*? ':'? $<owner>=<.token>+? "')" }
-        token auth:sym(':auth("') { <.sym> $<cs>=<.token>*? ':'? $<owner>=<.token>+? '")' }
-        token auth:sym(":auth<")  { <.sym> $<cs>=<.token>*? ':'? $<owner>=<.token>+? '>'  }
+        token auth:sym(":auth('") { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>+?] "')" }
+        token auth:sym(':auth("') { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>+?] '")' }
+        token auth:sym(":auth<")  { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>+?] '>'  }
 
         token token      { <-restricted +name-sep> }
         token restricted { < : > }
         token name-sep   { < :: > }
     }
 
-    # todo: sanitize/clean bad auths
-    method new($id) {
-        if Distribution.parse($id) -> $urn {
-            return self.bless(
-                name    => ~($urn<name>    // ''),
-                version => ~($urn<version> // ''),
-                auth    => ~($urn<auth>    // ''),
-                api     => ~($urn<api>     // ''),
-                type    => 'dist',
-            );
-        }
-        elsif Module.parse($id) -> $ident {
-            return self.bless(
-                name    => ~($ident<name>    // ''),
-                version => ~($ident<version> // ''),
-                auth    => ~($ident<auth>    // ''),
-                api     => ~($ident<api>     // ''),
-                type    => 'module',
-            );
+    proto method new(|) {*}
+    multi method new(Str :$name!, :ver($version), :$auth, :$api) {
+        self.bless(:$name, :$version, :$auth, :$api);
+    }
+    multi method new(Str $id) {
+        state %id-cache;
+        %id-cache{$id} //= do {
+            if URN.parse($id) -> $urn {
+                self.bless(
+                    name    => ~($urn<name>.subst('--','::') // ''),
+                    version => ~($urn<version>               // ''),
+                    auth    => ~($urn<auth>                  // ''),
+                    api     => ~($urn<api>                   // ''),
+                );
+            }
+            elsif REQUIRE.parse($id) -> $ident {
+                self.bless(
+                    name    => ~($ident<name>           // ''),
+                    version => ~($ident<version><value> // ''),
+                    auth    => ~($ident<auth><value>    // ''),
+                    api     => ~($ident<api><value>     // ''),
+                );
+            }
         }
     }
 
-    # cpan:UGEXE:Acme-Foo:1.0
-    method dist-str   {
-        return "{$!auth}:{$!name.subst('::', '-')}:{$!version}{$!api ?? ':$!api' !! ''}"
+    # cpan:UGEXE:Acme--Foo:1.0 # Module/Distrution Acme::Foo
+    # cpan:UGEXE:Acme-Foo:1.0  # Module/Distrution Acme-Foo
+    method urn {
+        return "{$!auth}:{$!name.subst('::', '--')}:{$!version}{$!api ?? ':$!api' !! ''}"
             if ($!auth.?chars && $!name.?chars && $!version.?chars);
     }
 
     # Acme::Foo::SomeModule:auth<cpan:ugexe>:ver('1.0')
-    method module-str {
+    method identity {
+        my $ver-str = $!version.starts-with('v') ?? ":ver({$!version})" !! (":ver('"  ~ $!version  ~ "')");
         $!name
-            ~ (($!version // '' ) ne ('*' | '') ?? ":ver('"  ~ $!version  ~ "')" !! '')
+            ~ (($!version // '' ) ne ('*' | '') ?? $ver-str !! '')
             ~ (($!auth    // '' ) ne ('*' | '') ?? ":auth('" ~ $!auth     ~ "')" !! '')
             ~ (($!api     // '' ) ne ('*' | '') ?? ":api('"  ~ $!api      ~ "')" !! '');
     }
@@ -99,4 +109,17 @@ class Zef::Identity {
         %hash<api>  = $!api     // '';
         %hash;
     }
+}
+
+sub str2identity($str) is export {
+    # todo: when $str is a path
+    $ = Zef::Identity($str).?identity // $str;
+}
+
+sub identity2hash($identity) is export {
+    $ = Zef::Identity($identity).?hash;
+}
+
+sub hash2identity($hash) is export {
+    $ = Zef::Identity($hash).?identity;
 }

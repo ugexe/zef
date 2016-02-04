@@ -66,7 +66,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
 
             try {
                 if Zef::Distribution::Local.new($current) -> $dist {
-                    %dcache{$dist.id} //= $dist;
+                    %dcache{$dist.identity} //= $dist;
                 }
             }
         }
@@ -132,7 +132,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
                 my ($id, $path) = $line.split("\0");
                 %lookup{$id} = $path;
             }
-            %lookup{$_.id} = $_.IO.absolute for |@new;
+            %lookup{$_.identity} = $_.IO.absolute for |@new;
             my $contents = join "\n", %lookup.map: { join "\0", (.key, .value) }
             self!manifest-file.spurt($contents ~ "\n") if $contents;
         })

@@ -123,7 +123,10 @@ sub IS-INSTALLED($identity) is export {
         my $perl6 = $*EXECUTABLE;
         my $cwd   = $*TMPDIR; # change cwd for script below so $*CWD/lib is not accidently considered
         my $is-installed-script = "use $identity;"; # -M doesn't work with :auth<xxx>:ver<> yet
-        my $proc = zrun($perl6, '-e', $is-installed-script, :$cwd, :out, :err);
+
+        # -Ilib/.precomp is a workaround precomp deadlocks when installing from the directory of the dist
+        my $proc = zrun($perl6, '-Ilib/.precomp', '-e', $is-installed-script, :$cwd, :out, :err);
+
         my $out = |$proc.out.lines;
         my $err = |$proc.err.lines;
         $proc.out.close;

@@ -19,6 +19,12 @@ class Zef::ContentStorage::CPAN does ContentStorage {
     method search(:$max-results = 5, *@identities, *%fields) {
         return () unless @identities || %fields;
 
+        # Unlike ::P6C and ::LocalCache we do not have access to a complete package index.
+        # Instead we request meta data with a search term (the identity) and get results back.
+        # TODO: compare results against DependencySpecificiation of $wants to make sure it/they
+        # really match (currently trusts that the metacpan query result will contain the
+        # requested identity) and filter out those that do not instead of assuming metacpan
+        # will always do what we expect
         my $matches := gather DIST: for |@identities -> $wants {
             my $wants-spec = Zef::Distribution::DependencySpecification.new($wants);
             temp %fields<distribution> = $wants-spec.name.subst('::', '-', :g);
@@ -42,15 +48,15 @@ class Zef::ContentStorage::CPAN does ContentStorage {
             # fetchers. Soon those will just print it to stdout, and return the captured raw data,
             # but the Fetcher interface needs to be updated to accommodate this.
             my $search-save-as = self.IO.child('search').IO.child("{time}.{$*THREAD.id}.json");
+            my $response-path = $!fetcher.fetch($search-url, $search-save-as);
 
-            if ($ = $!fetcher.fetch($search-url, $search-save-as)).IO.e {
-                if from-json($search-save-as.IO.slurp) -> %meta {
+            if $!fetcher.fetch($search-url, $search-save-as) -> $reponse-path {
+                if from-json($response-path.IO.slurp) -> %meta {
                     # This should generally return the same distribution but in various versions.
                     # However we will need to be prepared for when multiple distributions are returned
                     # and sorting by version may no longer make sense
                     my @candidates = (^%meta<hits><hits>.elems).map: {
                         my $meta6 = METACPAN2META6(%meta<hits><hits>[$_]<_source>);
-
                         # temporary. Some download_urls are absolute, and others are not
                         my $host           = 'http://hack.p6c.org:5001';
                         $meta6<source-url> = ($host ~ $meta6<source-url>) if $meta6<source-url>.starts-with('/');

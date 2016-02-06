@@ -40,6 +40,10 @@
             "module" : "Zef::Shell::git"
         },
         {
+            "name" : "path",
+            "module" : "Zef::Fetch::Path"
+        },
+        {
             "name" : "wget",
             "module" : "Zef::Shell::wget"
         },
@@ -57,6 +61,11 @@
             "name" : "git",
             "module" : "Zef::Shell::git",
             "comment" : "used to checkout (extract) specific tags/sha1/commit/branch from a git repo"
+        },
+        {
+            "name" : "path",
+            "module" : "Zef::Fetch::Path",
+            "comment" : "if this goes before git then git wont be able to extract/checkout local paths because this reaches it first :("
         },
         {
             "name" : "tar",

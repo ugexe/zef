@@ -8,7 +8,7 @@ install:
   - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
   - git clone https://github.com/rakudo/rakudo.git %APPVEYOR_BUILD_FOLDER%\..\rakudo
   - cd %APPVEYOR_BUILD_FOLDER%\..\rakudo
-  - perl Configure.pl --gen-moar=HEAD --gen-nqp
+  - perl Configure.pl --gen-moar --gen-nqp
   - nmake install
   - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\bin;%PATH%
   - SET ZEF_PLUGIN_DEBUG=1
@@ -17,19 +17,18 @@ install:
 build: off
 
 test_script:
-  # Sanity
-  - prove -v -e "perl6 -Ilib" t/
-
-  # Can install itself (or anything) without being installed itself
+  # test local path install
   - perl6 -Ilib bin/zef --verbose install .
 
   # Setup PATH to give access to the `zef` command (shown in stdout of prev command)
   - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%
+  # change path to make sure next `zef` commands aren't using any files in cwd or lib/
   - cd %APPVEYOR_BUILD_FOLDER%\..
 
-  # Test that our installed bin/ script works, as well as basic ::ContentStorage::P6C functionality
-  # [--force]: Its reinstalling the same version (or an unversioned) copy; tells CU::R::I this is ok
-  # [--/test]: Disable testing. Already tested twice (see: `prove` and `bin/zef install .`)
-  - zef -v --force --/test install CSV::Parser
+  # test identity install
+  - zef -v install Base64
+
+  # test uri install
+  - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
 
 shallow_clone: true

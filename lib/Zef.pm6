@@ -36,7 +36,7 @@ role Tester {
 }
 
 role Candidate {
-    has $.dist;
+    has $.dist is rw;
     has $.requested-as;
     has $.recommended-by;
     has $.uri;  # todo: use this to represnt the actual location to get the dist from.

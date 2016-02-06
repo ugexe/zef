@@ -16,9 +16,16 @@ role Zef::Distribution::Local {
             when Str && $path.chars { $path.IO    }
             default { self.IO // return IO::Path  }
         }
+
         # META.info and META6.info are not spec, but are still in use
-        my $meta-basename = <META6.json META.info META6.info>.first({ $path.child($_).e }) // return IO::Path;
-        $path.child($meta-basename);
+        my $meta-basename = <META6.json META.info META6.info>.first({
+            # the windows path size check is for windows compatability when
+            # for when module authors symlink META.info to META6.json
+            temp $path = $path.child($_);
+            so ($path.e && ($*DISTRO.is-win ?? ((try $path.s) > $path.basename.chars) !! $path.f));
+        }) // return IO::Path;
+
+        $ = $path.child($meta-basename);
     }
 
     method resources {

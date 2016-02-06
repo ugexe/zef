@@ -120,8 +120,8 @@ class Zef::Utils::URI {
         token drive-marker   { ":" || "|" }
     }
 
-    method new($id) {
-        if URI::File.parse($id, :rule<file-URI>) -> $m {
+    method new($id is copy) {
+        if URI::File.parse($id.subst('\\','/',:g), :rule<file-URI>) -> $m {
             my $ap             = $m.<heir-part><auth-path>;
             my $volume         = $ap.<windows-path>.<drive-letter> ~ ':'; # what IO::SPEC::Win32 understands
             my $path           = ~($ap.<windows-path> // $ap.<path-absolute> // die "Could not parse path from: $id");

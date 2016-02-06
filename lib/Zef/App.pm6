@@ -70,12 +70,6 @@ class Zef::App {
 
     method candidates(Bool :$upgrade, *@identities) {
         my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
-        # Once metacpan can return results again this will need to be modified so as not to
-        # duplicate an identity that shows up from multiple ContentStorages.
-        #
-        # XXX: :$update means to *not* take the first matching candidate encountered, but
-        # the highest version that matches from all available storages (break out of ::LocalCache)
-
         # This entire structure sucks as much as the previous recursive one. really want something like
         # a single assignment (like a gather loop) where the body of the block can access whats already been taken
         # which would make it easier to find identities that may have already been found. It also needs to not just
@@ -89,12 +83,43 @@ class Zef::App {
         my @wants = |@identities; # @wants contains the current iteration of identities
         my @needs;                # keeps trac
         my @candidates;
+
+        # First we resolve local paths and URIs, because these refer to a specific distribution, but we won't know
+        # what that distribution's identity is until we fetch it and examine the META6. By knowing the identity of
+        # these distributions before the ContentStorage.candidate search loop (after this block of code) we can
+        # skip fetching any dependencies by name that these paths or URIs fulfill
+        my @path-search = @wants.grep({.starts-with('.' | '/')}, :p);
+        @wants.splice($_) for @path-search.map(*.key).sort.reverse;
+        @needs.push($_) for @path-search.map(*.value).map: { Candidate.new(:uri(~$_.IO.absolute), :requested-as(~$_)) }
+
+        my @uri-search  = |@wants.grep(* ~~ none(|@path-search>>.value)).grep({
+            my $uri = Zef::Utils::URI($_);
+            ?$uri ?? !$uri.is-relative ?? True !! False !! False
+        }, :p);
+        @wants.splice($_) for @uri-search.map(*.key).sort.reverse;
+        @needs.push($_) for @uri-search.map(*.value).map: { Candidate.new(:uri(~$_), :requested-as(~$_)) }
+
+        for self.fetch(|@needs) -> $candi {
+            @candidates.push($candi);
+            @wants.append(|unique(grep *.chars, grep *.defined,
+                ($candi.dist.depends       if ?$!depends).Slip,
+                ($candi.dist.test-depends  if ?$!test-depends).Slip,
+                ($candi.dist.build-depends if ?$!build-depends).Slip));
+        }
+
+        # ContentStorage.candidate search loop
+        # The above chunk of code is for "finding" a distribution that we know the exact location of. This is for
+        # finding identities (like you would type on the command line, `use` in your code, or put in your `depends`)
         while ( +@wants ) {
             my @wanted = @wants.splice(0);
-            my @todo   = @wanted.grep(* ~~ none(|@!ignore)).unique;
+            my @todo   = @wanted.grep(* ~~ none(|@!ignore)).grep(-> $id { 
+                my $spec = Zef::Distribution::DependencySpecification.new($id);
+                so !@candidates.first(*.dist.contains-spec($spec))
+            }).unique;
             @needs     = (|@needs, |@todo).grep(* ~~ none(|@!exclude)).unique;
 
             say "Searching for {'dependencies ' if state $once++}{@todo.join(', ')}" if ?$!verbose;
+
             for $!storage.candidates(|@todo, :$upgrade) -> $candis {
                 for $candis.grep({ .dist.identity ~~ none(|@candidates.map(*.dist.identity)) }) -> $candi {
                     # conditional is to handle --depsonly (installing only deps)
@@ -120,7 +145,6 @@ class Zef::App {
         # may be exactly the same, but metacpan reports the auth or version slightly different
         # causing it to be treated as a unique result.
         my @chosen = @candidates.unique(:as(*.requested-as));
-
         if +@needs !== +@chosen {
             # if @needs has more elements than @missing its probably a bug related to:
             #   1. Searching candidates is retur
@@ -139,44 +163,39 @@ class Zef::App {
     method fetch(*@candidates) {
         my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
         my @saved = eager gather for @candidates -> $candi {
-            my $dist         = $candi.dist;
             my $from         = $candi.recommended-by;
             my $requested-as = $candi.requested-as;
             my $uri          = $candi.uri;
-
-            my $sanitized-name = $dist.name.subst(':', '-', :g);
-            my $extract-to = $!cache.IO.child($sanitized-name);
-            my $save-as    = $!cache.IO.child($uri.IO.basename);
-
-            say "Fetching `{$requested-as}` as {$dist.identity}";
+            my $tmp         := %CONFIG<Store>.IO.child('tmp');
+            my $stage-at    := $tmp.child($uri.IO.basename);
+            die "failed to create directory: {$tmp.absolute}"
+                unless ($tmp.IO.e || mkdir($tmp));
 
             # $candi.uri will always point to where $candi.dist should be copied from.
             # It could be a file or url; $dist.source-url contains where the source was
             # originally located but we may want to use a local copy (while retaining
             # the original source-url for some other purpose like updating)
 
-            if ?$uri && $uri.IO.e {
-                # todo: include a FileFetcher that is something like:
-                # `method fetch($to, $from) { Zef::Utils::FileSystem::copy-files($to, $from) }`
-                # so that any hook related behavior can be centralized in Zef::Fetch instead of
-                # also being in this "to fetch or not to fetch?" conditional
-                say "[$from] Found on local file system at $uri" if ?$!verbose;
-            }
-            else {
-                say "[$from] {$uri} --> $save-as" if ?$!verbose;
-                my $location = $!fetcher.fetch($uri, $save-as, :&stdout);
+            say "{?$from??qq|[$from] |!!''}{$uri} staging at: $stage-at" if ?$!verbose;
 
-                # should probably break this out into its out method
-                say "[{$!extractor.^name}] Extracting: {$save-as}" if ?$!verbose;
-                $location = try { $!extractor.extract($location, $extract-to) } || $location;
-                say "Extracted to: {$location}" if ?$!verbose;
+            my $save-to    = $!fetcher.fetch($uri, $stage-at, :&stdout);
+            my $relpath    = $stage-at.relative($tmp);
+            my $extract-to = $!cache.IO.child($relpath);
 
-                # Our `Zef::Distribution $dist` can be upraded to a `Zef::Distribution::Local`
-                # as .fetch/.extract has copied the Distribution to a local path somewhere.
-                # The "upgraded" functionality is generally related to turning relative paths
-                # to the absolute paths on the current file system (in `provides`/`resources` for example)
-                $candi.dist does Zef::Distribution::Local(~$location);
-            }
+            say "$uri saved to $save-to";
+
+            # should probably break this out into its out method
+            say "[{$!extractor.^name}] Extracting: {$save-to} to {$extract-to}" if ?$!verbose;
+            my $dist-dir = try { $!extractor.extract($save-to, $extract-to) } || $save-to;
+            say "Extracted to: {$dist-dir}" if ?$!verbose;
+
+            # $candi.dist may already contain a distribution object, but we reassign it as a
+            # Zef::Distribution::Local so that it has .path/.IO methods. These could be
+            # applied via a role, but this way also allows us to use the distribution's
+            # meta data instead of the (possibly out-of-date) meta data content storage found
+            $candi.dist = Zef::Distribution::Local.new(~$dist-dir);
+
+            say "{$candi.dist.identity} fulfills the request for {$candi.requested-as}";
 
             take $candi;
         }
@@ -243,10 +262,12 @@ class Zef::App {
 
         # Fetch Stage:
         # Use the results from searching ContentStorages and download/fetch the distributions they point at
-        my @dists = eager gather for @candidates -> $store {
-            take $_.dist for |self.fetch($store, |%_);
+        my @dist-candidates = eager gather for @candidates -> $store {
+            # xxx: paths and uris we already fetched (saves us from copying 1 extra time)
+            take $store and next if $store.dist.^name.contains('Zef::Distribution::Local');
+            # todo: send |@candidates to fetch instead of each $store one at a time
+            take $_ for |self.fetch($store, |%_);
         }
-
 
         # todo: continue passing the Candidate object instead of grabbing the distribution in the above code
 
@@ -256,24 +277,26 @@ class Zef::App {
         # problem outlined below under `Sort Phase` (a depends on [A, B] where A gets filtered out
         # below because it has the wrong license means we don't need anything that depends on A but
         # *do* need to replace those items with things depended on by B [which replaces A])
-        my @filtered-dists = eager gather DIST: for @dists -> $dist {
+        my @filtered-candidates = eager gather DIST: for @dist-candidates -> $candi {
+            my $dist := $candi.dist;
             say "[DEBUG] Filtering {$dist.name}" if ?$!verbose;
             if ?$dist.is-installed {
-                my $reported-id = ?$!verbose ?? $dist.identity !! $dist.name;
                 unless ?$!force {
-                    say "{$reported-id} is already installed. Skipping... (use :force to override)";
+                    say "{$!verbose??'['~$candi.requested-as~'] '!!''}{$dist.identity} "
+                    ~   "is already installed. Skipping... (use :force to override)";
                     next;
                 }
 
-                say "{$reported-id} is already installed. Continuing anyway with :force";
+                say "{$!verbose??'['~$candi.requested-as~'] '!!''}{$dist.identity} is already installed. "
+                ~   "Continuing anyway with :force";
             }
 
             # todo: Change config.json to `"Filter" : { "License" : "xxx" }`)
             given %CONFIG<License> {
                 CATCH { default {
                     say $_.message;
-                    die    "Allowed licenses: {%CONFIG<License>.<whitelist>.join(',')    || 'n/a'}\n"
-                        ~  "Disallowed licenses: {%CONFIG<License>.<blacklist>.join(',') || 'n/a'}";
+                    die "Allowed licenses: {%CONFIG<License>.<whitelist>.join(',')    || 'n/a'}\n"
+                    ~   "Disallowed licenses: {%CONFIG<License>.<blacklist>.join(',') || 'n/a'}";
                 } }
                 when .<blacklist>.?chars && any(|.<blacklist>) ~~ any('*', $dist.license // '') {
                     notice "License blacklist configuration exists and matches {$dist.license // 'n/a'} for {$dist.name}";
@@ -283,7 +306,7 @@ class Zef::App {
                 }
             }
 
-            take $dist;
+            take $candi;
         }
 
 
@@ -294,12 +317,13 @@ class Zef::App {
         # as at this point we expect to have already fetched/filtered the distributions... so either
         # we fetch all alternatives (most of which would probably would not use) or do this in a way
         # that allows us to return to a previous state in our plan (xxx: Zef::Plan is planned)
-        my @sorted-dists = self.plan-order(@filtered-dists, |%_);
+        my @sorted-candidates = self.sort-candidates(@filtered-candidates, |%_);
 
         # Build Phase:
         # Attach appropriate metadata so we can do --dry runs using -I/some/dep/path
         # and can install after we know they pass any required tests
-        my @installable-dists = eager gather for @sorted-dists -> $dist {
+        my @installable-candidates = eager gather for @sorted-candidates -> $candi {
+            my $dist := $candi.dist;
             say "[DEBUG] Processing {$dist.name}" if ?$!verbose;
 
             my @dep-specs = unique(grep *.defined,
@@ -309,10 +333,11 @@ class Zef::App {
 
             # this could probably be done in the topological-sort itself
             $dist.metainfo<includes> = eager gather DEPSPEC: for @dep-specs -> $spec {
-                for @filtered-dists -> $fd {
-                    if $fd.contains-spec($spec) {
-                        take $fd.IO.child('lib').absolute;
-                        take $_ for |$fd.metainfo<includes>;
+                for @filtered-candidates -> $fcandi {
+                    my $fdist := $fcandi.dist;
+                    if $fdist.contains-spec($spec) {
+                        take $fdist.IO.child('lib').absolute;
+                        take $_ for |$fdist.metainfo<includes>;
                         next DEPSPEC;
                     }
                 }
@@ -320,20 +345,23 @@ class Zef::App {
 
             notice "Build.pm hook failed" if $dist.IO.child('Build.pm').e && !legacy-hook($dist);
 
-            take $dist if ?$test ?? self.test($dist.path, :includes(|$dist.metainfo<includes>)) !! True;
+            take $candi if ?$test ?? self.test($dist.path, :includes(|$dist.metainfo<includes>)) !! True;
         }
 
         # Install Phase:
         # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
         # and contain only the modules needed for this specific run/plan
-        for @installable-dists -> $dist {
+        for @installable-candidates -> $candi {
+            my $dist := $candi.dist;
             for @target-curs -> $cur {
                 if ?$dry {
-                    say "{$dist.name}#{$dist.path} processed successfully";
+                    say "{$dist.identity}{$!verbose??q|#|~$dist.path!!''} processed successfully";
                 }
                 else {
                     #$!lock.protect({
-                    say "Installing {$dist.name}#{$dist.path} to {$cur.short-id}#{~$cur}";
+                    say "Installing {$dist.identity}{$!verbose??q|#|~$dist.path!!''}"
+                    ~   " to {$!verbose??$cur.short-id~q|#|!!''}{~$cur}";
+
                     $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
                     #});
                 }
@@ -345,39 +373,39 @@ class Zef::App {
         # Inform user of what was tested/built/installed and what failed
         # Optionally report to any cpan testers type service (testers.perl6.org)
         unless $dry {
-            if @installable-dists.flatmap(*.scripts.keys).unique -> @bins {
+            if @installable-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
                 say "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
                 ~   "\n\t" ~ @target-curs.map(*.prefix.child('bin')).join("\n");
             }
         }
     }
 
-    method plan-order(@dists, *%_) {
+    method sort-candidates(@candis, *%_) {
         my @tree;
-        my $visit = sub ($dist, $from? = '') {
-            return if ($dist.metainfo<marked> // 0) == 1;
-            if ($dist.metainfo<marked> // 0) == 0 {
-                $dist.metainfo<marked> = 1;
+        my $visit = sub ($candi, $from? = '') {
+            return if ($candi.dist.metainfo<marked> // 0) == 1;
+            if ($candi.dist.metainfo<marked> // 0) == 0 {
+                $candi.dist.metainfo<marked> = 1;
 
                 my @deps = unique(grep *.defined,
-                    ($dist.depends-specs       if ?$!depends).Slip,
-                    ($dist.test-depends-specs  if ?$!test-depends).Slip,
-                    ($dist.build-depends-specs if ?$!build-depends).Slip);
+                    ($candi.dist.depends-specs       if ?$!depends).Slip,
+                    ($candi.dist.test-depends-specs  if ?$!test-depends).Slip,
+                    ($candi.dist.build-depends-specs if ?$!build-depends).Slip);
 
                 for @deps -> $m {
-                    for @dists.grep(*.spec-matcher($m)) -> $m2 {
-                        $visit($m2, $dist);
+                    for @candis.grep(*.dist.spec-matcher($m)) -> $m2 {
+                        $visit($m2, $candi);
                     }
                 }
-                @tree.append($dist);
+                @tree.append($candi);
             }
         };
 
-        for @dists -> $dist {
-            $visit($dist, 'olaf') if ($dist.metainfo<marked> // 0) == 0;
+        for @candis -> $candi {
+            $visit($candi, 'olaf') if ($candi.dist.metainfo<marked> // 0) == 0;
         }
 
-        $ = @tree>>.metainfo<marked>:delete;
+        $ = @tree.map(*.dist)>>.metainfo<marked>:delete;
         return @tree;
     }
 }

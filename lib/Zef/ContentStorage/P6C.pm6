@@ -42,13 +42,15 @@ class Zef::ContentStorage::P6C does ContentStorage {
     }
 
     # todo: handle %fields
+    # todo: search for up to $max-results number of candidates for each *dist* (currently only 1 candidate per identity)
     method search(:$max-results = 5, *@identities, *%fields) {
         return () unless @identities || %fields;
         my @wanted = @identities;
+        my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
+
         cache gather DIST: for self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
-                my $spec = Zef::Distribution::DependencySpecification.new($wants);
-                if ?$dist.contains-spec($spec) {
+                if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(
                         dist           => $dist,
                         uri            => $dist.source-url,

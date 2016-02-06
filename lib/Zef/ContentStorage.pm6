@@ -8,7 +8,7 @@ class Zef::ContentStorage does Pluggable {
     # whereas search is meant to search more fields and give many results to choose from
     method candidates(Bool :$upgrade, *@identities) {
         # todo: have a `file` identity in Zef::Identity
-        my @searchable = @identities.grep(!*.starts-with("." || "/"));
+        my @searchable = @identities.grep(!*.starts-with("." | "/"));
         my @results = gather for self!plugins -> $storage {
             # todo: (cont. from above): Each ContentStorage should just filter this themselves
             my $searchable := $storage.^name eq 'Zef::ContentStorage::LocalCache' ?? @identities !! @searchable;

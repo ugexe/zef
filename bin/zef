@@ -109,7 +109,7 @@ multi MAIN('info', $identity, Bool :v(:$verbose)) {
 }
 
 #| Update package indexes
-multi MAIN(@names) {
+multi MAIN('update', *@names) {
     my $app = Zef::App.new(:$config);
     $app.storage.update(|@names);
 }

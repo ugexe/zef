@@ -85,26 +85,12 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # max for a single identity (todo: update to handle $max-results for each @identities)
     method search(:$max-results = 5, *@identities, *%fields) {
         my @wanted = |@identities;
-
-        # local paths
-        my $local-dists := gather LDIST: for @identities.grep(*.starts-with("." || "/")) -> $wants {
-            my $dist = Zef::Distribution::Local.new($wants);
-            my $candidate = Candidate.new(
-                dist           => $dist,
-                uri            => $wants.IO.absolute,
-                requested-as   => $wants,
-                recommended-by => self.^name,
-            );
-            take $candidate;
-            @wanted.splice(@wanted.first(/$wants/, :k), 1);
-            last LDIST unless +@wanted;
-        }
+        my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
 
         # identities that are cached in the localcache manifest
         my $resolved-dists := +@wanted == 0 ?? [] !! gather RDIST: for |self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
-                my $spec = Zef::Distribution::DependencySpecification.new($wants);
-                if ?$dist.contains-spec($spec) {
+                if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(
                         dist           => $dist,
                         uri            => $dist.IO.absolute,
@@ -118,7 +104,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             }
         }
 
-        my $sorted := ($local-dists.Slip, $resolved-dists.Slip).sort({ $^b.dist cmp $^a.dist });
+        my $sorted := $resolved-dists.sort({ $^b.dist cmp $^a.dist });
     }
 
     # After the `fetch` phase an app can call `.store` on any ContentStorage that

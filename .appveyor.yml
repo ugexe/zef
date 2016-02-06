@@ -8,7 +8,7 @@ install:
   - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
   - git clone https://github.com/rakudo/rakudo.git %APPVEYOR_BUILD_FOLDER%\..\rakudo
   - cd %APPVEYOR_BUILD_FOLDER%\..\rakudo
-  - perl Configure.pl --gen-moar=HEAD --gen-nqp
+  - perl Configure.pl --gen-moar --gen-nqp
   - nmake install
   - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\bin;%PATH%
   - SET ZEF_PLUGIN_DEBUG=1

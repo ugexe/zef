@@ -147,13 +147,12 @@ class Zef::App {
         my @chosen = @candidates.unique(:as(*.requested-as));
         if +@needs !== +@chosen {
             # if @needs has more elements than @missing its probably a bug related to:
-            #   1. Searching candidates is retur
             my @missing = @needs.grep(* !~~ any(@candidates>>.requested-as));
             +@missing >= +@needs
                 ?? say("Could not find distributions for the following requests:\n{@missing.sort.join(', ')}")
-                !! say(   "Found too many results :(\n\nFOUND:\n{@candidates.map(*.dist.identity).sort.join(', ')}\n"
-                        ~ "WANTED: {@needs.sort.join(', ')}");
-            die unless ?$!force;
+                !! say(   "Found too many results :(\n\nGot:\n{@candidates.map(*.dist.name).sort.join(', ')}\n"
+                        ~ "Expected: {@needs.sort.join(', ')}");
+            die "use --force to continue" unless ?$!force;
         }
 
         $ = @chosen;

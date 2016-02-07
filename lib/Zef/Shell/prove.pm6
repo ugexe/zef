@@ -12,9 +12,8 @@ class Zef::Shell::prove is Zef::Shell does Tester does Messenger {
 
             try {
                 my $proc = zrun('prove', '--help', :out, :err);
-                my $nl   = Buf.new(10).decode;
-                my @out <== grep *.so <== split $nl, $proc.out.slurp-rest;
-                my @err <== grep *.so <== split $nl, $proc.err.slurp-rest;
+                my @out  = $proc.out.lines;
+                my @err  = $proc.err.lines;
                 $proc.out.close;
                 $proc.err.close;
                 CATCH {

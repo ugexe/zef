@@ -116,6 +116,59 @@ How these are handled depends on the `ContentStorage` engine used, which by defa
 metacpan. Note that metacpan search is not likely to produce any useful results yet. More documentation will
 be available when I have a better idea how to integrate results from these 2 services.
 
+    # with cpan enabled...
+    zef -v search URI
+    ===> Found 4 results
+    -------------------------------------------------------------------------------
+    ID|From                           |Package             |Description
+    -------------------------------------------------------------------------------
+    1 |Zef::ContentStorage::LocalCache|URI:ver('0.1.1')    |A URI implementation...
+    2 |Zef::ContentStorage::P6C       |URI:ver('0.1.1')    |A URI implementation...
+    3 |Zef::ContentStorage::CPAN      |URI:ver('0.1.1')    |A URI implementation...
+    4 |Zef::ContentStorage::CPAN      |URI:ver('0.000.001')|A URI implementation...
+    -------------------------------------------------------------------------------
+
+=head4 B<info>
+
+View meta information of a distribution
+
+    $ zef -v info HTTP::UserAgent
+    - Info for: HTTP::UserAgent
+    - Identity: HTTP::UserAgent:ver('1.1.16'):auth('github:sergot')
+    - Recommended By: Zef::ContentStorage::LocalCache
+    Author:  github:sergot
+    Description:     Web user agent
+    Source-url:      git://github.com/sergot/http-useragent.git
+    Provides: 11 modules
+    #       HTTP::Cookie
+    #       HTTP::Header
+    #       HTTP::Cookies
+    #       HTTP::Message
+    #       HTTP::Request
+    #       HTTP::Response
+    #       HTTP::MediaType
+    #       HTTP::UserAgent
+    #       HTTP::Header::Field
+    #       HTTP::Request::Common
+    #       HTTP::UserAgent::Common
+    Depends: 7 items
+    ---------------------------------
+    ID|Identity           |Installed?
+    ---------------------------------
+    1 |HTTP::Status       |✓
+    2 |File::Temp         |✓
+    3 |DateTime::Parse    |✓
+    4 |Encode             |✓
+    5 |MIME::Base64       |✓
+    6 |URI                |✓
+    7 |IO::Capture::Simple|✓
+    ---------------------------------
+
+B<Options>
+
+    # Extra details (ex: list dependencies and if its currently installed)
+    -v
+
 =head2 Plugins and Configuration
 
 See the root zef directory for config.json. Each phase module will attempt to load/use each plugin in order.

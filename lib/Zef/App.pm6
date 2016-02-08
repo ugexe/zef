@@ -48,7 +48,7 @@ class Zef::App {
     }
 
     multi method new(:$cache where !*.defined, |c) {
-        samewith( :cache("{%CONFIG<Store>}/store"), |c);
+        samewith( :cache(%CONFIG<StoreDir>), |c);
     }
 
     multi method new(:$fetcher where !*.defined, :@fetchers = |%CONFIG<Fetch>, |c) {
@@ -165,7 +165,7 @@ class Zef::App {
             my $from         = $candi.recommended-by;
             my $requested-as = $candi.requested-as;
             my $uri          = $candi.uri;
-            my $tmp         := %CONFIG<Store>.IO.child('tmp');
+            my $tmp         := %CONFIG<TempDir>.IO;
             my $stage-at    := $tmp.child($uri.IO.basename);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));

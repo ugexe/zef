@@ -4,7 +4,10 @@ unit module Zef::Config;
 # and merge them as appropriate (like NuGet). For now it just loads the first one it finds.
 sub ZEF-CONFIG is export {
     state %config = %(from-json( find-config().slurp ));
-    once %config<Store>.subst-mutate(/'{$*HOME}' || '$*HOME'/, $*HOME // $*TMP, :g);
+    once {
+        %config{$_.key} = $_.value.subst(/'{$*HOME}' || '$*HOME'/, $*HOME // $*TMP, :g)\
+            for %config.grep(*.key.ends-with('Dir'));
+    }
     %config;
 }
 

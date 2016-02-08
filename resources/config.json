@@ -1,5 +1,8 @@
 {
-    "Store" : "$*HOME/.zef",
+    "ConfigVersion" : "1",
+    "RootDir"  : "$*HOME/.zef",
+    "StoreDir" : "$*HOME/.zef/store",
+    "TempDir"  : "$*HOME/.zef/tmp",
     "License" : {
         "whitelist" : "*",
         "blacklist" : []

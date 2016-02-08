@@ -185,7 +185,7 @@ class Zef::App {
 
             # should probably break this out into its out method
             say "[{$!extractor.^name}] Extracting: {$save-to} to {$extract-to}" if ?$!verbose;
-            my $dist-dir = try { $!extractor.extract($save-to, $extract-to) } || $save-to;
+            my $dist-dir = $!extractor.extract($save-to, $extract-to);
             say "Extracted to: {$dist-dir}" if ?$!verbose;
 
             # $candi.dist may already contain a distribution object, but we reassign it as a

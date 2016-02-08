@@ -4,6 +4,7 @@ use v6;
 use Zef::App;
 use Zef::Config;
 use Zef::Identity;
+use Zef::Distribution;
 use Zef::Distribution::DependencySpecification;
 use Zef::Utils::SystemInfo;
 
@@ -66,16 +67,7 @@ multi MAIN('search', Bool :v($verbose), *@terms) {
         my $row = [ "{state $id += 1}", $candi.recommended-by, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
         take $row;
     }
-
-    my @widths     = _get_column_widths(@rows);
-    my @fixed-rows = @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
-    if +@fixed-rows {
-        my $width      = [+] _get_column_widths(@fixed-rows);
-        my $sep        = '-' x $width;
-        say "{$sep}\n{@fixed-rows[0]}\n{$sep}";
-        .say for @fixed-rows[1..*];
-        say $sep;
-    }
+    print-table(@rows);
 }
 
 #| Detailed distribution information
@@ -86,26 +78,34 @@ multi MAIN('info', $identity, Bool :v(:$verbose)) {
         or die "Found no candidates matching identity: {$identity}";
     my $dist := $candi.dist;
 
-    say "[{$dist.identity}]";
-    say "Recommended: {$candi.recommended-by}";
-    say "# Author:\t {$dist.author}"           if $dist.author;
-    say "# Description:\t {$dist.description}" if $dist.description;
-    say "# Source-url:\t {$dist.source-url}"   if $dist.source-url;
+    say "- Info for: $identity";
+    say "- Identity: {$dist.identity}";
+    say "- Recommended By: {$candi.recommended-by}";
+    say "Author:\t {$dist.author}"           if $dist.author;
+    say "Description:\t {$dist.description}" if $dist.description;
+    say "Source-url:\t {$dist.source-url}"   if $dist.source-url;
 
     my @provides = $dist.provides.keys.sort(*.chars);
-    say "# Provides: {@provides.elems} modules";
+    say "Provides: {@provides.elems} modules";
     if $verbose { say "#\t$_" for $dist.provides.keys.sort(*.chars) }
 
     if $dist.hash<support> {
-        say "# Support:";
+        say "Support:";
         for $dist.hash<support>.kv -> $k, $v {
             say "#   $k:\t$v";
         }
     }
 
     my @deps = (|$dist.depends, |$dist.test-depends, |$dist.build-depends).grep(*.defined).unique;
-    say "# Depends: {@deps.elems} items";
-    if $verbose { say "#   {++$})\t{$_}" for |@deps }
+    say "Depends: {@deps.elems} items";
+    if $verbose {
+        my @rows = eager gather for @deps -> $dep {
+            once { take [<ID Identity Installed?>] }
+            my $row = [ "{state $id += 1}", $dep, (IS-INSTALLED($dep) ?? '✓' !! '')];
+            take $row;
+        }
+        print-table(@rows);
+    }
 }
 
 #| Update package indexes
@@ -152,6 +152,18 @@ multi MAIN(Bool :$help?) {
 
             -C[Phase]="[name].[field]=[value]"  # Example: -CContentStorage="cpan.enabled=1"
         END_USAGE
+}
+
+sub print-table(@rows) {
+    my @widths     = _get_column_widths(@rows);
+    my @fixed-rows = @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
+    if +@fixed-rows {
+        my $width      = [+] _get_column_widths(@fixed-rows);
+        my $sep        = '-' x $width;
+        say "{$sep}\n{@fixed-rows[0]}\n{$sep}";
+        .say for @fixed-rows[1..*];
+        say $sep;
+    }
 }
 
 sub _widther($str, :$max-width) is export {

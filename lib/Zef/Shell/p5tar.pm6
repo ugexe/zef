@@ -11,10 +11,7 @@ class Zef::Shell::p5tar is Zef::Shell does Extractor does Messenger {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-            my $proc = zrun('perl', %?RESOURCES<scripts/perl5tar.pl>, :out);
-            my @out = $proc.out.lines;
-            $proc.out.close;
-            $ = ?$proc;
+            so zrun('perl', %?RESOURCES<scripts/perl5tar.pl>);
         }
         ?$p5module-probe;
     }

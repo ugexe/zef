@@ -10,11 +10,7 @@ class Zef::Shell::wget is Zef::Shell does Fetcher does Probeable does Messenger 
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-
-            my $proc = zrun('wget', '--help', :out);
-            my $out  = |$proc.out.lines;
-            $proc.out.close;
-            $ = ?$proc;
+            so zrun('wget', '--help');
         }
         ?$wget-probe;
     }

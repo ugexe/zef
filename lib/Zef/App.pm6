@@ -256,12 +256,12 @@ class Zef::App {
 
         # Search Phase:
         # Search ContentStorages to locate each Candidate needed to fulfill the requested identities
-        my @candidates = |self.candidates(|@wants, :$upgrade, |%_).unique;
+        my @found-candidates = |self.candidates(|@wants, :$upgrade, |%_).unique;
 
 
         # Fetch Stage:
         # Use the results from searching ContentStorages and download/fetch the distributions they point at
-        my @dist-candidates = eager gather for @candidates -> $store {
+        my @fetched-candidates = eager gather for @found-candidates -> $store {
             # xxx: paths and uris we already fetched (saves us from copying 1 extra time)
             take $store and next if $store.dist.^name.contains('Zef::Distribution::Local');
             # todo: send |@candidates to fetch instead of each $store one at a time
@@ -276,7 +276,7 @@ class Zef::App {
         # problem outlined below under `Sort Phase` (a depends on [A, B] where A gets filtered out
         # below because it has the wrong license means we don't need anything that depends on A but
         # *do* need to replace those items with things depended on by B [which replaces A])
-        my @filtered-candidates = eager gather DIST: for @dist-candidates -> $candi {
+        my @filtered-candidates = eager gather DIST: for @fetched-candidates -> $candi {
             my $dist := $candi.dist;
             say "[DEBUG] Filtering {$dist.name}" if ?$!verbose;
             if ?$dist.is-installed {

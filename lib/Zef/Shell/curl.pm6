@@ -10,12 +10,7 @@ class Zef::Shell::curl is Zef::Shell does Fetcher does Probeable does Messenger 
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-
-            my $proc = zrun('curl', '--help', :out);
-            my $nl   = Buf.new(10).decode;
-            my $out  = |$proc.out.lines;
-            $proc.out.close;
-            $ = ?$proc;
+            so zrun('curl', '--help');
         }
         ?$curl-probe;
     }

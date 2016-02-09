@@ -28,7 +28,6 @@ sub GET-TERM-COLUMNS is export {
         if $tput.out.get ~~ /$<cols>=<.digit>+/ {
             my $cols = ~$/<cols>.comb(/\d/).join;
             return +$cols - 1 if try { +$cols }
-
         }
         return $default;
     }

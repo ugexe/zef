@@ -11,12 +11,7 @@ class Zef::Shell::unzip is Zef::Shell does Extractor does Messenger {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-
-            my $proc = zrun('unzip', '--help', :out);
-            my $nl   = Buf.new(10).decode;
-            my $out |$proc.out.lines;
-            $proc.out.close;
-            $ = ?$proc;
+            so zrun('unzip', '--help');
         }
         ?$unzip-probe;
     }
@@ -30,9 +25,8 @@ class Zef::Shell::unzip is Zef::Shell does Extractor does Messenger {
     }
 
     method list($archive-file) {
-        my $nl   = Buf.new(10).decode;
         my $proc = $.zrun('unzip', '-Z', '-1', $archive-file, :out);
-        my @extracted-paths = |$proc.out.lines;
+        my @extracted-paths = $proc.out.lines;
         $proc.out.close;
         @ = @extracted-paths;
     }

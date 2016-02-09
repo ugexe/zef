@@ -26,8 +26,8 @@ my role GitExtractor {
     # EXTRACT (checkout) interface
     method extract-matcher($str) {
         my ($path, $checkout) = $str.match(/^(.+?)['#' (.*)]?$/);
-        return False unless $path.IO.d && $path.IO.child('.git').d;
-        True;
+        return False unless $path.IO.d;
+        ?$.zrun('git', 'status', :cwd($path));
     }
 
     method extract($path, $work-tree) {
@@ -42,19 +42,22 @@ my role GitExtractor {
 
         my $sha-proc = $.zrun('git', 'rev-parse', $checkout, :cwd($repo), :out, :err);
         my @out      = $sha-proc.out.lines;
+        my @err      = $sha-proc.out.lines;
         $sha-proc.out.close;
+        $sha-proc.err.close;
+
         my $sha      = @out[0];
         my $sha-dir  = $work-tree.IO.child($sha);
         die "Failed to checkout to directory: {$sha-dir}"
             unless ($sha-dir.IO.d || mkdir($sha-dir));
 
         my $co-proc  = $.zrun('git', '--work-tree', $sha-dir, 'checkout', $sha, '.', :cwd($repo));
-        (?$sha-proc && ?$co-proc) ?? $sha-dir.absolute !! False;
+        ?(?$sha-proc && ?$co-proc) ?? $sha-dir.absolute !! False;
     }
 
     method list($repo) {
         my $proc = $.zrun('git', 'ls-files', :cwd($repo), :out);
-        my @extracted-paths = $_ for $proc.out.lines;
+        my @extracted-paths = $proc.out.lines;
         $proc.out.close;
         @ = ?$proc ?? @extracted-paths.grep(*.defined) !! ();
     }
@@ -67,11 +70,7 @@ class Zef::Shell::git is Zef::Shell does GitFetcher does GitExtractor does Probe
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-            my $proc = zrun('git', '--help', :out);
-            my $nl   = Buf.new(10).decode;
-            my @out <== grep *.so <== split $nl, $proc.out.slurp-rest;
-            $proc.out.close;
-            $ = ?$proc;
+            so zrun('git', '--help');
         }
         ?$git-probe;
     }

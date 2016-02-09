@@ -32,10 +32,8 @@ class Zef::ContentStorage::P6C does ContentStorage {
     method update {
         die "Failed to update p6c" unless $!mirrors.first: -> $uri {
             my $save-as = $!cache.IO.child($uri.IO.basename);
-            my $path    = $!fetcher.fetch($uri, $save-as);
-            if $path.IO.d {
-                $path = $path.IO.child('p6c.json');
-            }
+            my $path    = try { $!fetcher.fetch($uri, $save-as) } || next;
+            $path = $path.IO.child('p6c.json') if $path.IO.d;
             try { copy($path, self!package-list-file) } || next;
         }
         @!dists = self!slurp-package-list.map({ Zef::Distribution.new(|%($_)) })

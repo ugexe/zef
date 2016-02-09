@@ -10,11 +10,7 @@ class Zef::Shell::prove6 is Zef::Shell does Tester does Messenger {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-            my $proc = zrun('prove6', '--help', :out);
-            my $nl   = Buf.new(10).decode;
-            my @out <== grep *.so <== split $nl, $proc.out.slurp-rest;
-            $proc.out.close;
-            $ = ?$proc;
+            so zrun('prove6', '--help');
         }
         ?$prove6-probe;
     }

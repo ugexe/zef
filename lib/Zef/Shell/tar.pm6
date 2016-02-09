@@ -15,13 +15,7 @@ class Zef::Shell::tar is Zef::Shell does Extractor does Messenger {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-            my $proc = zrun('tar', '--help', :out, :err);
-            my @out  = $proc.out.lines;
-            my @err  = $proc.err.lines;
-            $proc.out.close;
-            $proc.err.close;
-
-            $ = ?$proc;
+            so zrun('tar', '--help');
         }
         ?$tar-probe;
     }

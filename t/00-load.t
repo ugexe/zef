@@ -5,15 +5,24 @@ plan 2;
 subtest {
     use-ok("Zef");
     use-ok("Zef::App");
+    use-ok("Zef::Config");
+    use-ok("Zef::Extract");
+    use-ok("Zef::Identity");
+    use-ok("Zef::Shell");
+    use-ok("Zef::Test");
+
+    use-ok("Zef::ContentStorage");
+    use-ok("Zef::ContentStorage::CPAN");
+    use-ok("Zef::ContentStorage::LocalCache");
+    use-ok("Zef::ContentStorage::P6C");
+
     use-ok("Zef::Distribution");
     use-ok("Zef::Distribution::DependencySpecification");
     use-ok("Zef::Distribution::Local");
-    use-ok("Zef::Config");
-    use-ok("Zef::ContentStorage");
-    use-ok("Zef::Extract");
+
     use-ok("Zef::Fetch");
-    use-ok("Zef::Shell");
-    use-ok("Zef::Test");
+    use-ok("Zef::Fetch::Path");
+
     use-ok("Zef::Utils::FileSystem");
     use-ok("Zef::Utils::SystemInfo");
     use-ok("Zef::Utils::URI");

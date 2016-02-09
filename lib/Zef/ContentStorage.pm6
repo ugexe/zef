@@ -41,6 +41,16 @@ class Zef::ContentStorage does Pluggable {
         }
     }
 
+    method available {
+        my %dists;
+        for self!plugins.grep(*.^can('available')) -> $storage {
+            for |$storage.available -> $dist {
+                %dists{$storage.^name}{$dist.identity} = %( :name($dist.name), :modules($dist.provides.keys) );
+            }
+        }
+        %dists;
+    }
+
     method update(*@names) {
         # todo: tag on `name` from config to plugins to enable filter by name
         # +@names

@@ -41,6 +41,8 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
 
     method !slurp-manifest { $ = self!manifest-file.IO.slurp }
 
+    method available { self!gather-dists }
+
     method IO {
         my $dir = $!cache.IO;
         $dir.mkdir unless $dir.e;

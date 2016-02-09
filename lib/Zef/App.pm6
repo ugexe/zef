@@ -379,6 +379,28 @@ class Zef::App {
         }
     }
 
+    method available {
+        % = $!storage.available;
+    }
+
+    # XXX: an idea is to make CURI install locations a ContentStorage as well. then this method
+    # would be grouped into the above `available` method
+    method installed {
+        my @curs       = $*REPO.repo-chain.grep(*.?prefix.?e);
+        my @repo-dirs  = @curs>>.prefix;
+        my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
+        my @dist-files = |@dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
+
+        my %dists;
+        for @dist-files -> $file {
+            if try { Zef::Distribution::Local.new($file) } -> $dist {
+                my $cur = @curs.first: {.prefix eq $file.parent.parent}
+                %dists{$cur}{$dist.identity} = %( :name($dist.name), :modules($dist.provides.keys) );
+            }
+        }
+        %dists;
+    }
+
     method sort-candidates(@candis, *%_) {
         my @tree;
         my $visit = sub ($candi, $from? = '') {
@@ -420,7 +442,7 @@ sub legacy-hook($dist) {
     unless $dist.depends.first(/'panda' | 'Panda::'/)
         || $dist.build-depends.first(/'panda' | 'Panda::'/)
         || $dist.test-depends.first(/'panda' | 'Panda::'/)
-        || IS-INSTALLED('Panda::Builder') {
+        || IS-USEABLE('Panda::Builder') {
 
         my $legacy-fixer-code = q:to/END_LEGACY_FIX/;
             class Build {

@@ -20,6 +20,8 @@ class Zef::ContentStorage::P6C does ContentStorage {
         }
     }
 
+    method available { self!gather-dists }
+
     method IO {
         my $dir = $!cache.IO.child('p6c').IO;
         $dir.mkdir unless $dir.e;

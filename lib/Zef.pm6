@@ -56,6 +56,12 @@ role ContentStorage {
     # ::LocalCache to update MANIFEST so we don't *have* to do a recursive folder search
     #
     # method store(*@dists) { }
+
+    # Optional method for listing available packages. For p6c style storages
+    # where we have an index file this is easy. For metacpan style where we
+    # make a remote query not so much (maybe it could list the most recent X
+    # modules... or maybe it just doesn't implement it at all)
+    # method available { }
 }
 
 # Used by the phase's loader (i.e Zef::Fetch) to test that the plugin can

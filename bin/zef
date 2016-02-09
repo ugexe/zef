@@ -56,7 +56,7 @@ multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$
 }
 
 #| Get a list of possible distribution candidates for the given terms
-multi MAIN('search', Bool :v($verbose), *@terms) {
+multi MAIN('search', Bool :v(:$verbose), *@terms) {
     my $app = Zef::App.new(:$config, :$verbose);
     my @results = $app.search(|@terms);
 
@@ -70,15 +70,18 @@ multi MAIN('search', Bool :v($verbose), *@terms) {
     print-table(@rows);
 }
 
-multi MAIN('list') {
-    my @repo-dirs  = $*REPO.repo-chain.map(*.?prefix).grep(*.e);
-    my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
-    my @dist-files = |@dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
-    my @dists      = unique gather for @dist-files -> $file {
-        my $json = try from-json($file.IO.slurp) || next;
-        take $json<name>;
+multi MAIN('list', Bool :v(:$verbose), Bool :i(:$installed)) {
+    my $app = Zef::App.new(:$config, :$verbose);
+
+    my %found = ?$installed ?? $app.installed !! $app.available;
+
+    for %found.kv -> $from, $ids {
+        say "===> Found via {$from}";
+        for $ids.kv -> $identity, $meta {
+            say "{$identity}";
+            say "#\t{$_}" for @($meta<modules>.sort if ?$verbose);
+        }
     }
-    say @dists.sort.join(', ');
 }
 
 #| Detailed distribution information
@@ -112,7 +115,7 @@ multi MAIN('info', $identity, Bool :v(:$verbose)) {
     if $verbose {
         my @rows = eager gather for @deps -> $dep {
             once { take [<ID Identity Installed?>] }
-            my $row = [ "{state $id += 1}", $dep, (IS-INSTALLED($dep) ?? '✓' !! '')];
+            my $row = [ "{state $id += 1}", $dep, (IS-USEABLE($dep) ?? '✓' !! '')];
             take $row;
         }
         print-table(@rows);
@@ -126,6 +129,8 @@ multi MAIN('update', *@names) {
 }
 
 multi MAIN(Bool :$help?) {
+    my @install-to-names = $*REPO.repo-chain.map(*.?short-id).grep(*.defined);
+    die @install-to-names;
     note qq:to/END_USAGE/
         Zef - Perl6 Module Management
 
@@ -142,7 +147,7 @@ multi MAIN(Bool :$help?) {
             update                  Update package indexes for content storages
             search                  Show a list of possible distribution candidates for the given terms
             info                    Show detailed distribution information
-            list                    Show installed distributions
+            list                    Show known available distributions, or installed distributions with `--installed`
 
         OPTIONS
 

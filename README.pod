@@ -34,7 +34,7 @@ To install it via rakudobrew, please use the following command:
     # detailed information for a matching distribution
     zef info CSV::Parser
 
-    # list installed modules
+    # list known available distributions
     zef list
 
     # test project in current directory    
@@ -170,6 +170,30 @@ View meta information of a distribution
 B<Options>
 
     # Extra details (ex: list dependencies and which ones are installed)
+    -v
+
+=head4 B<list>
+
+List known available distributions
+
+    $ zef --installed list
+    ===> Found via /home/nickl/.rakudobrew/moar-nom/install/share/perl6/site
+    CSV::Parser:ver('0.1.2'):auth('github:tony-o')
+    Zef:auth('github:ugexe')
+    ===> Found via /home/nickl/.rakudobrew/moar-nom/install/share/perl6
+    CORE:ver('6.c'):auth('perl')
+
+Note that not every `ContentStorage` will provide such a list. An example is we
+don't have a way to get a list of every distribution stored on metacpan (however
+we *do* have access to the latest $count releases, so maybe it would be acceptable
+for such storages to list just those)
+
+B<Options>
+
+    # Only list installed distributions
+    --installed
+
+    # Additionally list the modules of discovered distributions
     -v
 
 =head2 Plugins and Configuration

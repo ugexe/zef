@@ -6,7 +6,8 @@ role Zef::Distribution::Local {
 
     method new($path) {
         my $meta-path = self.find-meta($path) // die "No meta file? Path: {$path}";
-        my %meta = from-json($meta-path.IO.slurp);
+        my $json      = try { from-json($meta-path.IO.slurp) } || die "Invalid json? {$meta-path}";
+        my %meta      = %($json);
         $ = Zef::Distribution.new(|%(%meta.grep(?*.value.elems))) but Zef::Distribution::Local($path);
     }
 
@@ -16,13 +17,17 @@ role Zef::Distribution::Local {
             when Str && $path.chars { $path.IO    }
             default { self.IO // return IO::Path  }
         }
+        return $path if $path.IO.f;
 
         # META.info and META6.info are not spec, but are still in use
         my $meta-basename = <META6.json META.info META6.info>.first(-> $basename {
             # the windows path size check is for windows compatability when
             # for when module authors symlink META.info to META6.json
+            # "12" is the minimum size required for a valid meta that
+            # rakudos internal json parser can understand (and is longer than
+            # what the symlink issue noted above usually involves)
             temp $path = $path.child($basename);
-            so ($path.e && ($*DISTRO.is-win ?? ((try $path.s) > $basename.chars) !! $path.f));
+            so ($path.e && ($*DISTRO.is-win ?? ((try $path.s) > 12) !! $path.f));
         }) // return IO::Path;
 
         $ = $path.child($meta-basename);

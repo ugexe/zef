@@ -138,10 +138,10 @@ sub IS-USEABLE($identity) is export {
     try {
         my $perl6 = $*EXECUTABLE;
         my $cwd   = $*TMPDIR; # change cwd for script below so $*CWD/lib is not accidently considered
-        my $IS-USEABLE-script = "use $identity;"; # -M doesn't work with :auth<xxx>:ver<> yet
+        my $is-useable-script = "use $identity;"; # -M doesn't work with :auth<xxx>:ver<> yet
 
         # -Ilib/.precomp is a workaround precomp deadlocks when installing from the directory of the dist
-        my $proc = zrun($perl6, '-Ilib/.precomp', '-e', $IS-USEABLE-script, :$cwd, :out, :err);
+        my $proc = zrun($perl6, '-Ilib/.precomp', '-e', $is-useable-script, :$cwd, :out, :err);
 
         my $out = |$proc.out.lines;
         my $err = |$proc.err.lines;

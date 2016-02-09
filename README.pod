@@ -19,9 +19,9 @@ To install it via rakudobrew, please use the following command:
 
 =head4 Manual
 
-    git clone https://github.com/ugexe/zef.git
-    cd zef
-    perl6 -Ilib bin/zef install .
+    $ git clone https://github.com/ugexe/zef.git
+    $ cd zef
+    $ perl6 -Ilib bin/zef install .
 
 =head1 USAGE
 
@@ -33,6 +33,9 @@ To install it via rakudobrew, please use the following command:
 
     # detailed information for a matching distribution
     zef info CSV::Parser
+
+    # list installed modules
+    zef list
 
     # test project in current directory    
     zef test .
@@ -117,7 +120,7 @@ metacpan. Note that metacpan search is not likely to produce any useful results 
 be available when I have a better idea how to integrate results from these 2 services.
 
     # with cpan enabled...
-    zef -v search URI
+    $ zef -v search URI
     ===> Found 4 results
     -------------------------------------------------------------------------------
     ID|From                           |Package             |Description
@@ -166,7 +169,7 @@ View meta information of a distribution
 
 B<Options>
 
-    # Extra details (ex: list dependencies and if its currently installed)
+    # Extra details (ex: list dependencies and which ones are installed)
     -v
 
 =head2 Plugins and Configuration

@@ -70,6 +70,17 @@ multi MAIN('search', Bool :v($verbose), *@terms) {
     print-table(@rows);
 }
 
+multi MAIN('list') {
+    my @repo-dirs  = $*REPO.repo-chain.map(*.?prefix).grep(*.e);
+    my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
+    my @dist-files = |@dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
+    my @dists      = unique gather for @dist-files -> $file {
+        my $json = try from-json($file.IO.slurp) || next;
+        take $json<name>;
+    }
+    say @dists.sort.join(', ');
+}
+
 #| Detailed distribution information
 multi MAIN('info', $identity, Bool :v(:$verbose)) {
 
@@ -131,12 +142,14 @@ multi MAIN(Bool :$help?) {
             update                  Update package indexes for content storages
             search                  Show a list of possible distribution candidates for the given terms
             info                    Show detailed distribution information
+            list                    Show installed distributions
 
         OPTIONS
 
             --install-to=[name]     Short name of CompUnit::Repository to install to
 
         FLAGS
+
             --verbose               More detailed output from all commands
 
             --depsonly              Install only the dependency chains of the requested distributions

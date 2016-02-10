@@ -144,6 +144,7 @@ class Zef::App {
         # right now metacpan has some of the versions/auths screwy. This means a dist on both
         # may be exactly the same, but metacpan reports the auth or version slightly different
         # causing it to be treated as a unique result.
+        # XXX: this check (and anything that dies really) should be moved to `.install`
         my @chosen = @candidates.unique(:as(*.requested-as));
         if +@needs !== +@chosen {
             # if @needs has more elements than @missing its probably a bug related to:
@@ -192,11 +193,13 @@ class Zef::App {
             # Zef::Distribution::Local so that it has .path/.IO methods. These could be
             # applied via a role, but this way also allows us to use the distribution's
             # meta data instead of the (possibly out-of-date) meta data content storage found
-            $candi.dist = Zef::Distribution::Local.new(~$dist-dir);
+            my $dist        = Zef::Distribution::Local.new(~$dist-dir);
+            my $local-candi = $candi.clone(:$dist);
+            # XXX: the above used to just be `$candi.dist = $dist` where dist is rw
 
-            say "{$candi.dist.identity} fulfills the request for {$candi.requested-as}";
+            say "{$local-candi.dist.identity} fulfills the request for {$local-candi.requested-as}";
 
-            take $candi;
+            take $local-candi;
         }
 
         # Calls optional `.store` method on all ContentStorage plugins so they may
@@ -240,24 +243,30 @@ class Zef::App {
     method install(:$install-to = ['site'], Bool :$fetch, Bool :$test, Bool :$dry, Bool :$upgrade, *@wants, *%_) {
         my &notice = ?$!force ?? &say !! &die;
 
-        state @can-install-ids = $*REPO.repo-chain.unique( :as(*.id) )\
-            .grep(*.?can-install)\
-            .map({.id});
+        my @target-curs = grep *.defined, $install-to.map: -> $target {
+            do given $target {
+                when CompUnit::Repository { $ = $_ }
+                when Str { $ = CompUnit::RepositoryRegistry.repository-for-name($_) || proceed }
+                default  { $ = CompUnit::RepositoryRegistry.repository-for-spec(~$_, :next-repo($*REPO)) }
+            }
+        }
 
-        my @target-curs = $install-to\
-            .map({ ($_ ~~ CompUnit::Repository) ?? $_ !! CompUnit::RepositoryRegistry.repository-for-name($_) })\
-            .grep(*.defined)\
-            .grep({ .id ~~ any(@can-install-ids) });
+        my @cant-install = @target-curs.grep(!*.?can-install);
+        say "You specified the following CompUnit::Repository install targets that don't appear writeable/installable:\n"
+            ~ "\t{@cant-install.join(', ')}" if +@cant-install;
+        die "Need a valid installation target to continue" unless ?$dry || (+@target-curs - +@cant-install);
 
         # XXX: Each loop block below essentially represents a phase, so they will probably
         # be moved into their own method/module related directly to their phase. For now
         # lumping them here allows us to easily move functionality between phases until we
         # find the perfect balance/structure.
 
+        die "Must specify something to install" unless +@wants;
+
         # Search Phase:
         # Search ContentStorages to locate each Candidate needed to fulfill the requested identities
         my @found-candidates = |self.candidates(|@wants, :$upgrade, |%_).unique;
-
+        die "Failed to resolve any candidates. No reason to proceed" unless +@found-candidates;
 
         # Fetch Stage:
         # Use the results from searching ContentStorages and download/fetch the distributions they point at
@@ -267,8 +276,7 @@ class Zef::App {
             # todo: send |@candidates to fetch instead of each $store one at a time
             take $_ for |self.fetch($store, |%_);
         }
-
-        # todo: continue passing the Candidate object instead of grabbing the distribution in the above code
+        die "Failed to fetch any candidates. No reason to proceed" unless +@fetched-candidates;
 
         # Filter Stage:
         # Handle stuff like removing distributions that are already installed, that don't have
@@ -307,7 +315,7 @@ class Zef::App {
 
             take $candi;
         }
-
+        die "All candidates have been filtered out. No reason to proceed" unless +@filtered-candidates;
 
         # Sort Phase:
         # This ideally also handles creating alternate build orders when a `depends` includes
@@ -317,6 +325,7 @@ class Zef::App {
         # we fetch all alternatives (most of which would probably would not use) or do this in a way
         # that allows us to return to a previous state in our plan (xxx: Zef::Plan is planned)
         my @sorted-candidates = self.sort-candidates(@filtered-candidates, |%_);
+        die "Something went terribly wrong determining the build order" unless +@sorted-candidates;
 
         # Build Phase:
         # Attach appropriate metadata so we can do --dry runs using -I/some/dep/path
@@ -346,6 +355,8 @@ class Zef::App {
 
             take $candi if ?$test ?? self.test($dist.path, :includes(|$dist.metainfo<includes>)) !! True;
         }
+        # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
+        die "All candidates failed building and/or testing. No reason to proceed" unless +@installable-candidates;
 
         # Install Phase:
         # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
@@ -475,6 +486,7 @@ sub legacy-hook($dist) {
         CATCH { default { say "[Build] Something went wrong: $_" if ?$DEBUG; $result = False; } }
         my @includes = $dist.metainfo<includes>.map: { "-I{$_}" }
         my @exec = |($*EXECUTABLE, '-Ilib/.precomp', '-I.', '-Ilib', |@includes, '-e', "$cmd");
+        say "[Build] cwd: {$dist.IO.absolute}" if ?$DEBUG;
         say "[Build] exec: {@exec.join(' ')}" if ?$DEBUG;
         my $proc = zrun(|@exec, :cwd($dist.path), :out, :err);
         my @out = $proc.out.lines;

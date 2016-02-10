@@ -35,6 +35,8 @@ class Zef::ContentStorage::P6C does ContentStorage {
         die "Failed to update p6c" unless $!mirrors.first: -> $uri {
             my $save-as = $!cache.IO.child($uri.IO.basename);
             my $path    = try { $!fetcher.fetch($uri, $save-as) } || next;
+            # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
+            # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)
             $path = $path.IO.child('p6c.json') if $path.IO.d;
             try { copy($path, self!package-list-file) } || next;
         }

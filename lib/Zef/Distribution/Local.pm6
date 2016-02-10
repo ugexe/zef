@@ -1,41 +1,42 @@
 use Zef::Distribution;
 
-role Zef::Distribution::Local {
+class Zef::Distribution::Local is Zef::Distribution {
     has $.path;
-    has $!IO;
+    has $.IO;
 
+    # if $path = dir/meta6.json, $.path is set to dir
+    # if $path = dir/, $.path is set to the first meta file (if any) thats found
     method new($path) {
-        my $meta-path = self.find-meta($path) // die "No meta file? Path: {$path}";
-        my $json      = try { from-json($meta-path.IO.slurp) } || die "Invalid json? {$meta-path}";
-        my %meta      = %($json);
-        $ = Zef::Distribution.new(|%(%meta.grep(?*.value.elems))) but Zef::Distribution::Local($path);
+        die "Cannot create a Zef::Distribution from non-existant path: {$path}" unless $path.IO.e;
+        my $meta-path = self.find-meta($path)                  || die "No meta file? Path: {$path}";
+        my $abspath   = $meta-path.parent.absolute;
+        my %meta      = try { %(from-json($meta-path.slurp)) } || die "Invalid json? File: {$meta-path} Error: $_";
+        my $IO        = IO::Path.new-from-absolute-path($abspath);
+        self.bless(:path($abspath), :$IO, |%(%meta.grep(?*.value.elems)));
     }
 
     method find-meta(Zef::Distribution::Local: $path? is copy) {
-        temp $path = do given $path {
-            when IO::Path           { $path       }
-            when Str && $path.chars { $path.IO    }
-            default { self.IO // return IO::Path  }
-        }
-        return $path if $path.IO.f;
+        my $dir = $path ~~ IO::Path
+            ?? $path
+            !! $path.?chars
+                ?? $path.IO
+                !! self.IO;
+        return $dir if !$dir || $dir.IO.f;
 
-        # META.info and META6.info are not spec, but are still in use
-        my $meta-basename = <META6.json META.info META6.info>.first(-> $basename {
-            # the windows path size check is for windows compatability when
-            # for when module authors symlink META.info to META6.json
-            # "12" is the minimum size required for a valid meta that
-            # rakudos internal json parser can understand (and is longer than
-            # what the symlink issue noted above usually involves)
-            temp $path = $path.child($basename);
-            so ($path.e && ($*DISTRO.is-win ?? ((try $path.s) > 12) !! $path.f));
-        }) // return IO::Path;
-
-        $ = $path.child($meta-basename);
+        # META.info and META6.info are not spec, but are still in use.
+        # The windows path size check is for windows symlink wonkiness.
+        # "12" is the minimum size required for a valid meta that
+        # rakudos internal json parser can understand (and is longer than
+        # what the symlink issue noted above usually involves)
+        my $meta-variants = <META6.json META.info META6.info>.map: { $ = $dir.child($_) }
+        my $chosen-meta   = $meta-variants.grep(*.IO.e).first: -> $file {
+            so ($file.e && ($*DISTRO.is-win ?? ((try $file.s) > 12) !! $file.f));
+        } || IO::Path;
     }
 
     method resources {
-        my $res-path := $!IO.child('resources');
-        my $lib-path := $res-path.child('libraries');
+        my $res-path = self.IO.child('resources');
+        my $lib-path = $res-path.child('libraries');
 
         % = self.hash<resources>.map: -> $resource {
             $resource => $resource ~~ m/^libraries\/(.*)/
@@ -45,16 +46,14 @@ role Zef::Distribution::Local {
     }
 
     method sources(Bool :$absolute) {
-        % = self.hash<provides>.grep(*.so).map({
+        % = self.hash<provides>.grep(*.so).map: {
             .key => .value.IO.is-relative
                 ?? ( ?$absolute ?? .value.IO.absolute($!path) !! .value )
                 !! ( !$absolute ?? .value.IO.relative($!path) !! .value );
-        }).hash;
+        }
     }
 
     method scripts {
         % = do with $.IO.child('bin') -> $bin { $bin.dir.grep(*.IO.f).map({ .IO.basename => $_ }).hash if $bin.IO.d };
     }
-
-    method IO { $!IO //= $!path.IO }
 }

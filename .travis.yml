@@ -20,6 +20,7 @@ before_install:
     - make install
     - export PATH=$HOME/rakudo/install/bin:$PATH
     - export ZEF_PLUGIN_DEBUG=1
+    - export ZEF_BUILDPM_DEBUG=1
     - cd $TRAVIS_BUILD_DIR
 install:
     # need at least 1 statement in 'install'

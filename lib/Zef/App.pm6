@@ -218,7 +218,7 @@ class Zef::App {
 
             my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
 
-            my $result = $!tester.test($path, :includes(@includes.grep(*.so)), :&stdout);
+            my $result = try $!tester.test($path, :includes(@includes.grep(*.so)), :&stdout);
 
             if !$result {
                 die "Aborting due to test failure at: {$path} (use :force to override)" unless ?$!force;
@@ -278,26 +278,36 @@ class Zef::App {
         }
         die "Failed to fetch any candidates. No reason to proceed" unless +@fetched-candidates;
 
-        # Filter Stage:
-        # Handle stuff like removing distributions that are already installed, that don't have
-        # an allowable license, etc. It faces the same "fetch an alternative if available on failure"
-        # problem outlined below under `Sort Phase` (a depends on [A, B] where A gets filtered out
-        # below because it has the wrong license means we don't need anything that depends on A but
-        # *do* need to replace those items with things depended on by B [which replaces A])
-        my @filtered-candidates = eager gather DIST: for @fetched-candidates -> $candi {
+
+        # This could really go in the filter stage (thats where it got moved from!) but
+        # this lets us give a better error message if all candidates are installed. We can
+        # also put logic related to checking if its installed in *specific* CURs
+        my @needed-candidates = eager gather for @fetched-candidates -> $candi {
             my $dist := $candi.dist;
-            say "[DEBUG] Filtering {$dist.name}" if ?$!verbose;
+            say "[DEBUG] Probing for {$dist.name}" if ?$!verbose;
             if ?$dist.is-installed {
                 unless ?$!force {
                     say "{$!verbose??'['~$candi.requested-as~'] '!!''}{$dist.identity} "
                     ~   "is already installed. Skipping... (use :force to override)";
                     next;
                 }
-
                 say "{$!verbose??'['~$candi.requested-as~'] '!!''}{$dist.identity} is already installed. "
                 ~   "Continuing anyway with :force";
             }
+            take $candi;
+        }
+        die "All candidates appear to be installed already. Aborting!" unless $!force || +@needed-candidates;
 
+
+        # Filter Stage:
+        # Handle stuff like removing distributions that are already installed, that don't have
+        # an allowable license, etc. It faces the same "fetch an alternative if available on failure"
+        # problem outlined below under `Sort Phase` (a depends on [A, B] where A gets filtered out
+        # below because it has the wrong license means we don't need anything that depends on A but
+        # *do* need to replace those items with things depended on by B [which replaces A])
+        my @filtered-candidates = eager gather for @needed-candidates -> $candi {
+            my $dist := $candi.dist;
+            say "[DEBUG] Filtering {$dist.name}" if ?$!verbose;
             # todo: Change config.json to `"Filter" : { "License" : "xxx" }`)
             given %CONFIG<License> {
                 CATCH { default {
@@ -475,9 +485,8 @@ sub legacy-hook($dist) {
         try { $builder-path.spurt($legacy-code) } || $builder-path.subst-mutate(/'.zef'$/, '');
     }
 
-    my $cmd = "require <{$builder-path.basename}>; "
-            ~ "try ::('Build').new.build('{$dist.IO.absolute}'); "
-            ~ '$!.defined ?? exit(1) !! exit(0)';
+
+    my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
     say "[Build] Command: `$cmd`" if ?$DEBUG;
 
     my $result;
@@ -487,19 +496,19 @@ sub legacy-hook($dist) {
         my @includes = $dist.metainfo<includes>.map: { "-I{$_}" }
         my @exec = |($*EXECUTABLE, '-Ilib/.precomp', '-I.', '-Ilib', |@includes, '-e', "$cmd");
         say "[Build] cwd: {$dist.IO.absolute}" if ?$DEBUG;
-        say "[Build] exec: {@exec.join(' ')}" if ?$DEBUG;
+        say "[Build] exec: {@exec.join(' ')}"  if ?$DEBUG;
         my $proc = zrun(|@exec, :cwd($dist.path), :out, :err);
-        my @out = $proc.out.lines;
         my @err = $proc.err.lines;
+        my @out = $proc.out.lines;
         if ?$DEBUG {
-            say "[Build] stdout:\t$_" for @out;
-            say "[Build] stderr:\t$_" for @err;
+            say "[Build] > $_" for @out;
+            say "[Build] ! $_" for @err;
         }
-        $ = $proc.out.close;
+        $ = $proc.out.close unless +@err;
         $ = $proc.err.close;
         $result = ?$proc;
     }
     $builder-path.IO.unlink if $builder-path.ends-with('.zef') && "{$builder-path}".IO.e;
-    say "[Build] {?$result??'Success'!!'Failure'}" if ?$DEBUG;
+    say "[Build] Result: {?$result??'Success'!!'Failure'}" if ?$DEBUG;
     $ = $result;
 }

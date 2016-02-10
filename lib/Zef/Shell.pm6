@@ -8,7 +8,6 @@ class Zef::Shell {
     method zrun(:$env, :$cwd = $*CWD, :$out, :$err, *%_, *@_) {
         my %env = ($env ?? $env.hash !! %*ENV.hash);
         my $proc = run(|@.invocation, |@_, :%env, :$cwd, :$out, :$err, |%_);
-        ?$proc ?? $proc !! False;
     }
 }
 

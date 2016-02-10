@@ -435,7 +435,10 @@ class Zef::App {
 # todo: write a real hooking implementation to CU::R::I instead of the current practice
 # of writing an installer specific (literally) Build.pm
 sub legacy-hook($dist) {
+    my $DEBUG = ?%*ENV<ZEF_BUILDPM_DEBUG>;
+
     my $builder-path = $dist.IO.child('Build.pm');
+    say "[Build] Attempting to build via {$builder-path}" if ?$DEBUG;
 
     # if panda is declared as a dependency then there is no need to fix the code, although
     # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
@@ -443,6 +446,8 @@ sub legacy-hook($dist) {
         || $dist.build-depends.first(/'panda' | 'Panda::'/)
         || $dist.test-depends.first(/'panda' | 'Panda::'/)
         || IS-USEABLE('Panda::Builder') {
+
+        say "[Build] `build-depends` is missing entries. Attemping to mimick missing dependencies..." if ?$DEBUG;
 
         my $legacy-fixer-code = q:to/END_LEGACY_FIX/;
             class Build {
@@ -462,19 +467,27 @@ sub legacy-hook($dist) {
     my $cmd = "require <{$builder-path.basename}>; "
             ~ "try ::('Build').new.build('{$dist.IO.absolute}'); "
             ~ '$!.defined ?? exit(1) !! exit(0)';
+    say "[Build] Command: `$cmd`" if ?$DEBUG;
 
     my $result;
     try {
         use Zef::Shell;
-        CATCH { default { $result = False; } }
+        CATCH { default { say "[Build] Something went wrong: $_" if ?$DEBUG; $result = False; } }
         my @includes = $dist.metainfo<includes>.map: { "-I{$_}" }
-        my $proc = zrun($*EXECUTABLE, '-Ilib/.precomp', '-I.', '-Ilib', |@includes, '-e', "$cmd", :cwd($dist.path), :out, :err);
+        my @exec = |($*EXECUTABLE, '-Ilib/.precomp', '-I.', '-Ilib', |@includes, '-e', "$cmd");
+        say "[Build] exec: {@exec.join(' ')}" if ?$DEBUG;
+        my $proc = zrun(|@exec, :cwd($dist.path), :out, :err);
         my @out = $proc.out.lines;
         my @err = $proc.err.lines;
+        if ?$DEBUG {
+            say "[Build] stdout:\t$_" for @out;
+            say "[Build] stderr:\t$_" for @err;
+        }
         $ = $proc.out.close;
         $ = $proc.err.close;
         $result = ?$proc;
     }
     $builder-path.IO.unlink if $builder-path.ends-with('.zef') && "{$builder-path}".IO.e;
+    say "[Build] {?$result??'Success'!!'Failure'}" if ?$DEBUG;
     $ = $result;
 }

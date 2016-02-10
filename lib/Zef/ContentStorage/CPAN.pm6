@@ -8,6 +8,12 @@ class Zef::ContentStorage::CPAN does ContentStorage {
     has $.fetcher is rw;
     has $.cache is rw;
 
+    # only recent, not *all*
+    method available {
+        my $max-results = 100;
+        $ = self.search(:$max-results, params => {:size($max-results), :sort<date:desc>}, '*').map(*.dist);
+    }
+
     method IO {
         my $dir = $!cache.IO.child('metacpan');
         $dir.mkdir unless $dir.e;
@@ -16,9 +22,12 @@ class Zef::ContentStorage::CPAN does ContentStorage {
 
     # $max-results is max results *per* search, if max-results = 2 and there are
     # 2 identities then the max results returned could be 4
-    method search(:$max-results = 5, *@identities, *%fields) {
+    method search(:$max-results = 5, :%params is copy, *@identities, *%fields) {
         return () unless @identities || %fields;
-
+        %params<size> //= $max-results;
+        my $params-string = %params.grep(*.value.defined).map(-> $p {
+            $p.value.map({"{$p.key}=$_"}).join('&');
+        }).join('&');
         # Unlike ::P6C and ::LocalCache we do not have access to a complete package index.
         # Instead we request meta data with a search term (the identity) and get results back.
         # TODO: compare results against DependencySpecificiation of $wants to make sure it/they
@@ -30,7 +39,6 @@ class Zef::ContentStorage::CPAN does ContentStorage {
             temp %fields<distribution> = $wants-spec.name.subst('::', '-', :g);
             temp %fields<version>      = $wants-spec.version-matcher.subst(/^v?/, '?')
                 if ?$wants-spec.version-matcher && $wants-spec.version-matcher ne '*';
-
             # auth/author are not usable on metacpan yet. `author` currently always lists
             # the maintainer of the metacpan fork, and auth is not always available (as x_auth).
             # Elsewhere we should just construct the auth from the other parts, but that doesn't help
@@ -41,8 +49,8 @@ class Zef::ContentStorage::CPAN does ContentStorage {
 
             my $query-string = %fields.grep(*.value.defined).map(-> $q {
                 $q.value.map({"{$q.key}:$_"}).join('%20')
-            }).join('%20AND%20');
-            my $search-url = $!mirrors[0] ~ '_search?q=' ~ $query-string;
+            }).join('%20AND%20') // '';
+            my $search-url = "{$!mirrors[0]}_search?{$params-string??qq|$params-string&|!!''}q={$query-string}";
 
             # Query results currently saved to file for now to ease writing shell based
             # fetchers. Soon those will just print it to stdout, and return the captured raw data,

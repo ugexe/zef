@@ -183,10 +183,9 @@ List known available distributions
     ===> Found via /home/nickl/.rakudobrew/moar-nom/install/share/perl6
     CORE:ver('6.c'):auth('perl')
 
-Note that not every `ContentStorage` will provide such a list. An example is we
-don't have a way to get a list of every distribution stored on metacpan (however
-we *do* have access to the latest $count releases, so maybe it would be acceptable
-for such storages to list just those)
+Note that not every `ContentStorage` may provide such a list, and such lists may only
+be a subset. For example: we don't have a way to get a list of every distribution stored
+on metacpan, but we *can* get the $x most recent additions (we use 100 for now)
 
 B<Options>
 

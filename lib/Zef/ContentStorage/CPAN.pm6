@@ -10,8 +10,9 @@ class Zef::ContentStorage::CPAN does ContentStorage {
 
     # only recent, not *all*
     method available {
+        # currently 351 indexed on jdvs metacpan matching status:latest
         my $max-results = 100;
-        $ = self.search(:$max-results, params => {:size($max-results), :sort<date:desc>}, '*').map(*.dist);
+        $ = self.search(:$max-results, '*').map(*.dist);
     }
 
     method IO {
@@ -24,10 +25,12 @@ class Zef::ContentStorage::CPAN does ContentStorage {
     # 2 identities then the max results returned could be 4
     method search(:$max-results = 5, :%params is copy, *@identities, *%fields) {
         return () unless @identities || %fields;
+
         %params<size> //= $max-results;
         my $params-string = %params.grep(*.value.defined).map(-> $p {
             $p.value.map({"{$p.key}=$_"}).join('&');
         }).join('&');
+
         # Unlike ::P6C and ::LocalCache we do not have access to a complete package index.
         # Instead we request meta data with a search term (the identity) and get results back.
         # TODO: compare results against DependencySpecificiation of $wants to make sure it/they
@@ -35,10 +38,17 @@ class Zef::ContentStorage::CPAN does ContentStorage {
         # requested identity) and filter out those that do not instead of assuming metacpan
         # will always do what we expect
         my $matches := gather DIST: for |@identities -> $wants {
-            my $wants-spec = Zef::Distribution::DependencySpecification.new($wants);
-            temp %fields<distribution> = $wants-spec.name.subst('::', '-', :g);
-            temp %fields<version>      = $wants-spec.version-matcher.subst(/^v?/, '?')
-                if ?$wants-spec.version-matcher && $wants-spec.version-matcher ne '*';
+            my $spec = Zef::Distribution::DependencySpecification.new($wants);
+
+            temp %fields<distribution> = $spec.name.subst('::', '-', :g)
+                if ?$spec && $spec.name ne '*';
+            temp %fields<version> = $spec.version-matcher.subst(/^v?/, '?')
+                if ?$spec && ?$spec.version-matcher && $spec.version-matcher ne '*';
+            # not all dist have a `status` field with value `latest` yet, but we don't want
+            # to exclude them from being searched for explicitly so only search for status:latest
+            # if we have nothing to go on (like `zef list`)
+            temp %fields<status> = 'latest'
+                unless %fields<distribution>.?chars || %fields<version>.?chars;
             # auth/author are not usable on metacpan yet. `author` currently always lists
             # the maintainer of the metacpan fork, and auth is not always available (as x_auth).
             # Elsewhere we should just construct the auth from the other parts, but that doesn't help
@@ -50,7 +60,10 @@ class Zef::ContentStorage::CPAN does ContentStorage {
             my $query-string = %fields.grep(*.value.defined).map(-> $q {
                 $q.value.map({"{$q.key}:$_"}).join('%20')
             }).join('%20AND%20') // '';
-            my $search-url = "{$!mirrors[0]}_search?{$params-string??qq|$params-string&|!!''}q={$query-string}";
+
+            my $search-url = "{$!mirrors[0]}_search?"
+                ~ ($params-string ?? "$params-string&" !! '')
+                ~ ($query-string  ?? "q=$query-string" !! '');
 
             # Query results currently saved to file for now to ease writing shell based
             # fetchers. Soon those will just print it to stdout, and return the captured raw data,
@@ -60,11 +73,8 @@ class Zef::ContentStorage::CPAN does ContentStorage {
 
             if $!fetcher.fetch($search-url, $search-save-as) -> $reponse-path {
                 if from-json($response-path.IO.slurp) -> %meta {
-                    # This should generally return the same distribution but in various versions.
-                    # However we will need to be prepared for when multiple distributions are returned
-                    # and sorting by version may no longer make sense
-                    my @candidates = (^%meta<hits><hits>.elems).map: {
-                        my $meta6 = METACPAN2META6(%meta<hits><hits>[$_]<_source>);
+                    for (^%meta<hits><hits>.elems) -> $i {
+                        my $meta6 = METACPAN2META6(%meta<hits><hits>[$i]<_source>);
                         # temporary. Some download_urls are absolute, and others are not
                         my $host           = 'http://hack.p6c.org:5001';
                         $meta6<source-url> = ($host ~ $meta6<source-url>) if $meta6<source-url>.starts-with('/');
@@ -76,13 +86,12 @@ class Zef::ContentStorage::CPAN does ContentStorage {
                             requested-as   => $wants,
                             recommended-by => self.^name,
                         );
+
+                        take $candidate;
                     }
-
-                    my $sorted = |@candidates.sort({ $^b.dist cmp $^a.dist }).head($max-results [min] @candidates.elems);
-
-                    take $sorted;
                 }
             }
+            try { $response-path.unlink } if $response-path.IO.e;
         }
     }
 }

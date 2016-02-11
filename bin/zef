@@ -129,8 +129,6 @@ multi MAIN('update', *@names) {
 }
 
 multi MAIN(Bool :$help?) {
-    my @install-to-names = $*REPO.repo-chain.map(*.?short-id).grep(*.defined);
-    die @install-to-names;
     note qq:to/END_USAGE/
         Zef - Perl6 Module Management
 

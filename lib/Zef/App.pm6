@@ -372,8 +372,13 @@ class Zef::App {
         # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
         # and contain only the modules needed for this specific run/plan
         for @installable-candidates -> $candi {
-            my $dist := $candi.dist;
             for @target-curs -> $cur {
+                my $dist = $candi.dist;
+                # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
+                # any subsequent .install as the fuck up involves changing the data structures
+                temp $dist.provides = $dist.provides;
+                temp $dist.files    = $dist.files;
+
                 if ?$dry {
                     say "{$dist.identity}{$!verbose??q|#|~$dist.path!!''} processed successfully";
                 }
@@ -381,7 +386,6 @@ class Zef::App {
                     #$!lock.protect({
                     say "Installing {$dist.identity}{$!verbose??q|#|~$dist.path!!''}"
                     ~   " to {$!verbose??$cur.short-id~q|#|!!''}{~$cur}";
-
                     $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
                     #});
                 }

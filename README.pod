@@ -43,6 +43,9 @@ To install it via rakudobrew, please use the following command:
     # fetch a specific module only
     zef get CSV::Parser
 
+    # fetch a module, then shell into its local path
+    zef look CSV::Parser
+
 =head2 Notice
 
 Still Beta level software. The process of implementing all of the previous features, test suite, and documentation is
@@ -194,6 +197,19 @@ B<Options>
 
     # Additionally list the modules of discovered distributions
     -v
+
+=head4 B<fetch>
+
+Fetches candidates for given identities, including any dependencies (if requested)
+
+=head4 B<look>
+
+Fetches the requested distribution and any dependencies (if requested), changes the directory to that of the fetched
+distribution, and then stops program execution. This allows you modify or look at the source code before manually
+continuing the installs via `zef install .`
+
+Note that the path to any dependencies that needed to be fetched will be set in env at B<PERL6LIB>, so you should
+be able to run any build scripts, tests, or complete a manual install without having to specify their locations.
 
 =head2 Plugins and Configuration
 

@@ -8,7 +8,7 @@ use Zef::Test;
 
 our %CONFIG;
 
-class Zef::App {
+class Zef::Client {
     has $.cache;
     has $.indexer;
     has $.fetcher;
@@ -28,7 +28,7 @@ class Zef::App {
     proto method new(|) {*}
 
     # This bit will probably change, but it provides access to a optional config hash
-    # but it can't be used as an attribute (in this current form) because it needs to 
+    # but it can't be used as an attribute (in this current form) because it needs to
     # be used to set some default values (so need to ditch the multi dispatch and handle
     # more cases with a conditional)
     multi method new(:$config where !*.defined, |c) {
@@ -112,7 +112,7 @@ class Zef::App {
         # finding identities (like you would type on the command line, `use` in your code, or put in your `depends`)
         while ( +@wants ) {
             my @wanted = @wants.splice(0);
-            my @todo   = @wanted.grep(* ~~ none(|@!ignore)).grep(-> $id { 
+            my @todo   = @wanted.grep(* ~~ none(|@!ignore)).grep(-> $id {
                 my $spec = Zef::Distribution::DependencySpecification.new($id);
                 so !@candidates.first(*.dist.contains-spec($spec))
             }).unique;

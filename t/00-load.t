@@ -4,7 +4,9 @@ plan 2;
 
 subtest {
     use-ok("Zef");
-    use-ok("Zef::App");
+    # Just `use Zef::CLI` will make it output usage
+    # use-ok("Zef::CLI");
+    use-ok("Zef::Client");
     use-ok("Zef::Config");
     use-ok("Zef::Extract");
     use-ok("Zef::Identity");

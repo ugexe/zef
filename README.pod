@@ -57,14 +57,14 @@ old CLI overlay from the previous version of Zef, so the output is rather bleh.
 
 =head2 More CLI
 
-=head4 B<install> [identities]
+=head4 B<install> [*@identities]
 
 Note: The install process does not install anything until all other phases have completed. So if A requires B,
 and a user has requested to C<install A>, it would download A and B, possibly Build A and B, test A and B,
 and then finally install A and B but only if A and B passed all their tests. For instance: if A failed its
 tests then B will not be installed (even if it passed its own tests) without force.
 
-[C<identities>] can be in the form of a file path (starting with B<.> or B</>), URNs, URLs, paths, or identities:
+[C<@identities>] can be in the form of a file path (starting with B<.> or B</>), URNs, URLs, paths, or identities:
 
     # URN
     `zef install CSV-Parser`
@@ -119,7 +119,7 @@ B<Options>
 
 Update the package indexes for all `ContentStorage` backends
 
-=head4 B<search>
+=head4 B<search> [$identity]
 
 How these are handled depends on the `ContentStorage` engine used, which by default is the p6c ecosystem and
 metacpan. Note that metacpan search is not likely to produce any useful results yet. More documentation will
@@ -137,7 +137,7 @@ be available when I have a better idea how to integrate results from these 2 ser
     4 |Zef::ContentStorage::CPAN      |URI:ver('0.000.001')|A URI implementation...
     -------------------------------------------------------------------------------
 
-=head4 B<info>
+=head4 B<info> [$identity]
 
 View meta information of a distribution
 
@@ -178,7 +178,7 @@ B<Options>
     # Extra details (ex: list dependencies and which ones are installed)
     -v
 
-=head4 B<list>
+=head4 B<list> [*@from]
 
 List known available distributions
 
@@ -193,6 +193,16 @@ Note that not every `ContentStorage` may provide such a list, and such lists may
 be a subset. For example: we don't have a way to get a list of every distribution stored
 on metacpan, but we *can* get the $x most recent additions (we use 100 for now)
 
+[C<@from>] allows you to show results from specific storages only:
+
+    zef --installed list perl   # Only list modules installed by rakudo itself
+
+    zef list cpan               # Only show available modules from the content storage
+                                # with a name field of `cpan` in the configuration
+                                # (plugin must not be set to `"enabled" : 0`)
+
+Otherwise results from all enabled content storages will be returned.
+
 B<Options>
 
     # Only list installed distributions
@@ -201,11 +211,11 @@ B<Options>
     # Additionally list the modules of discovered distributions
     -v
 
-=head4 B<fetch>
+=head4 B<fetch> [*@identities]
 
 Fetches candidates for given identities, including any dependencies (if requested)
 
-=head4 B<look>
+=head4 B<look> [$identity]
 
 Fetches the requested distribution and any dependencies (if requested), changes the directory to that of the fetched
 distribution, and then stops program execution. This allows you modify or look at the source code before manually

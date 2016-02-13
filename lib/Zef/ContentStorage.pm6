@@ -41,9 +41,10 @@ class Zef::ContentStorage does Pluggable {
         }
     }
 
-    method available {
+    method available(*@from) {
         my %dists;
-        for self!plugins.grep(*.^can('available')) -> $storage {
+        my $check-plugins := +@from ?? self!plugins.grep({$_.plugin-id ~~ any(@from)}) !! self!plugins;
+        for $check-plugins.grep(*.^can('available')) -> $storage {
             for |$storage.available -> $dist {
                 %dists{$storage.^name}{$dist.identity} = %( :name($dist.name), :modules($dist.provides.keys) );
             }

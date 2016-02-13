@@ -84,7 +84,7 @@ class Zef::ContentStorage::CPAN does ContentStorage {
                             dist           => $dist,
                             uri            => $dist.source-url,
                             requested-as   => $wants,
-                            recommended-by => self.^name,
+                            recommended-by => $?CLASS.^name,
                         );
 
                         take $candidate;

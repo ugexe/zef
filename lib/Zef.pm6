@@ -105,7 +105,10 @@ role Pluggable {
                 DEBUG($plugin, "\t(OK) Probing successful");
             }
 
-            my $class = ::($ = $module).new(|($plugin<options> // []));
+            # add attribute `plugin-id` here to make filtering by name slightly easier
+            # until a more elegant solution can be integrated into plugins themselves
+            my $class = ::($ = $module).new(|($plugin<options> // []))\
+                but role :: { has $.plugin-id = $plugin<name> // '' };
 
             if ?$class {
                 DEBUG($plugin, "(OK) Plugin is now usable: {$module}");

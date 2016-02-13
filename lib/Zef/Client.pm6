@@ -244,21 +244,21 @@ class Zef::Client {
     }
 
 
-    method install(:$install-to = ['site'], Bool :$fetch, Bool :$test, Bool :$dry, Bool :$upgrade, *@wants, *%_) {
+    method install(
+        CompUnit::Repository :@to!, # target CompUnit::Repository
+        Bool :$fetch,               # try fetching whats missing
+        Bool :$test,                # run tests
+        Bool :$dry,                 # do everything *but* actually install
+        Bool :$upgrade,             # NYI
+        *@wants,
+        *%_
+        ) {
         my &notice = ?$!force ?? &say !! &die;
-
-        my @target-curs = grep *.defined, $install-to.map: -> $target {
-            do given $target {
-                when CompUnit::Repository { $ = $_ }
-                when Str { $ = CompUnit::RepositoryRegistry.repository-for-name($_) || proceed }
-                default  { $ = CompUnit::RepositoryRegistry.repository-for-spec(~$_, :next-repo($*REPO)) }
-            }
-        }
-
-        my @cant-install = @target-curs.grep(!*.?can-install);
+        my (@curs, @cant-install);
+        @to.map: { my $group := $_.?can-install ?? @curs !! @cant-install; $group.push($_) }
         say "You specified the following CompUnit::Repository install targets that don't appear writeable/installable:\n"
             ~ "\t{@cant-install.join(', ')}" if +@cant-install;
-        die "Need a valid installation target to continue" unless ?$dry || (+@target-curs - +@cant-install);
+        die "Need a valid installation target to continue" unless ?$dry || (+@curs - +@cant-install);
 
         # XXX: Each loop block below essentially represents a phase, so they will probably
         # be moved into their own method/module related directly to their phase. For now
@@ -376,7 +376,7 @@ class Zef::Client {
         # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
         # and contain only the modules needed for this specific run/plan
         my @installed-candidates = gather for @installable-candidates -> $candi {
-            take $candi if @target-curs.grep: -> $cur {
+            take $candi if @curs.grep: -> $cur {
                 my $dist = $candi.dist;
                 # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
                 # any subsequent .install as the fuck up involves changing the data structures
@@ -403,21 +403,21 @@ class Zef::Client {
         unless $dry {
             if @installed-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
                 say "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
-                ~   "\n\t" ~ @target-curs.map(*.prefix.child('bin')).join("\n");
+                ~   "\n\t" ~ @curs.map(*.prefix.child('bin')).join("\n");
             }
         }
 
         @installed-candidates;
     }
 
-    method available {
-        % = $!storage.available;
+    method available(*@storage-names) {
+        % = $!storage.available(|@storage-names);
     }
 
     # XXX: an idea is to make CURI install locations a ContentStorage as well. then this method
     # would be grouped into the above `available` method
-    method installed {
-        my @curs       = $*REPO.repo-chain.grep(*.?prefix.?e);
+    method installed(*@curis) {
+        my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
         my @repo-dirs  = @curs>>.prefix;
         my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
         my @dist-files = |@dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);

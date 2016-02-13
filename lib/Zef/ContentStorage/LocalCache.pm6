@@ -97,7 +97,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
                         dist           => $dist,
                         uri            => $dist.IO.absolute,
                         requested-as   => $wants,
-                        recommended-by => self.^name,
+                        recommended-by => $?CLASS.^name,
                     );
                     take $candidate;
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);

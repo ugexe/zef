@@ -57,7 +57,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
                         dist           => $dist,
                         uri            => ($dist.source-url || $dist.hash<support><source>),
                         requested-as   => $wants,
-                        recommended-by => self.^name,
+                        recommended-by => $?CLASS.^name,
                     );
                     take $candidate;
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);

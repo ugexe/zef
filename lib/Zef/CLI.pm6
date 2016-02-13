@@ -38,21 +38,20 @@ package Zef::CLI {
 
     #| Run tests
     multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
-        my $client = Zef::Client.new(:$config, :$verbose, :$force);
+        my $client  = Zef::Client.new(:$config, :$verbose, :$force);
         my %results = $client.test(|@paths);
         %results<fail>.elems ?? exit(1) !! exit(0);
     }
 
     #| Install
     multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-                Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude,
-                Bool :$dry, Bool :$update, Bool :$upgrade, Bool :$depsonly, :$install-to = ['site'], *@identities) is export {
+                Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude is copy,
+                Bool :$dry, Bool :$update, Bool :$upgrade, Bool :$depsonly, :to(:$install-to) = ['site'], *@identities) is export {
 
-        my $client = Zef::Client.new(:$config, :$force, :$verbose, :$depends, :$test-depends, :$build-depends
-            :exclude(grep *.defined, ?$depsonly ?? (|@identities>>.&str2identity, |$exclude) !! $exclude)
-        );
-
-        $client.install( :$fetch, :$install-to, :$test, :$update, :$upgrade, :$dry, |@identities>>.&str2identity );
+        $exclude = grep *.defined, ?$depsonly ?? (|@identities>>.&str2identity, |$exclude) !! $exclude;
+        my $client = Zef::Client.new(:$config, :$force, :$verbose, :$depends, :$test-depends, :$build-depends);
+        my CompUnit::Repository @to = $install-to.map(*.&str2cur);
+        $client.install( :@to, :$fetch, :$test, :$dry, :$upgrade, :$update, :$dry, |@identities>>.&str2identity );
     }
 
     #| Get a list of possible distribution candidates for the given terms
@@ -63,7 +62,7 @@ package Zef::CLI {
         say "===> Found " ~ +@results ~ " results";
 
         my @rows = eager gather for @results -> $candi {
-            once { take [<ID From Package Description>] }
+            FIRST { take [<ID From Package Description>] }
             my $row = [ "{state $id += 1}", $candi.recommended-by, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
             take $row;
         }
@@ -71,10 +70,12 @@ package Zef::CLI {
     }
 
     #| A list of available modules from enabled content storages
-    multi MAIN('list', Bool :v(:$verbose), Bool :i(:$installed)) is export {
+    multi MAIN('list', Bool :v(:$verbose), Bool :i(:$installed), *@at) is export {
         my $client = Zef::Client.new(:$config, :$verbose);
 
-        my %found = ?$installed ?? $client.installed !! $client.available;
+        my %found = ?$installed
+            ?? $client.installed(|@at.map(*.&str2cur))
+            !! $client.available(|@at);
 
         for %found.kv -> $from, $ids {
             say "===> Found via {$from}";
@@ -115,7 +116,7 @@ package Zef::CLI {
         say "Depends: {@deps.elems} items";
         if $verbose {
             my @rows = eager gather for @deps -> $dep {
-                once { take [<ID Identity Installed?>] }
+                FIRST { take [<ID Identity Installed?>] }
                 my $row = [ "{state $id += 1}", $dep, (IS-USEABLE($dep) ?? '✓' !! '')];
                 take $row;
             }
@@ -142,16 +143,17 @@ package Zef::CLI {
     }
 
     #| Smoke test
-    multi MAIN('smoke', Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude, :$install-to = ['site']) is export {
-        my $client = Zef::Client.new(:$config, :$force, :$verbose);
-        my @identities = $client.available.values.flatmap(*.keys).unique;
+    multi MAIN('smoke', Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude, :to(:$install-to) = ['site']) is export {
+        my $client                  = Zef::Client.new(:$config, :$force, :$verbose);
+        my @identities              = $client.available.values.flatmap(*.keys).unique;
+        my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         say "===> Smoke testing with {+@identities} distributions...";
 
-        my @installed;
         for @identities -> $identity {
-            next if $identity ~~ any(@installed);
-            my @all = try { $client.install( :$fetch, :$install-to, :$test, $identity ) } || next;
-            @installed = unique(|@all |@installed);
+            state %skip;
+            next if %skip{$identity}++;
+            my @installed = try $client.install( :@to, :$fetch, :$test, $identity );
+            %skip{$_.dist.identity}++ for @installed;
         }
     }
 
@@ -167,7 +169,7 @@ package Zef::CLI {
 
             USAGE
 
-                zef [flags|options] command [package]
+                zef [flags|options] command [args]
 
 
             COMMANDS
@@ -184,7 +186,7 @@ package Zef::CLI {
 
             OPTIONS
 
-                --install-to=[name]     Short name of CompUnit::Repository to install to
+                --install-to=[name]     Short name or spec of CompUnit::Repository to install to
 
             FLAGS
 
@@ -203,6 +205,12 @@ package Zef::CLI {
 
                 -C[Phase]="[name].[field]=[value]"  # Example: -CContentStorage="cpan.enabled=1"
             END_USAGE
+    }
+
+    # maybe its a name, maybe its a spec/path
+    sub str2cur($target) {
+        $ = CompUnit::RepositoryRegistry.repository-for-name($target)
+        || CompUnit::RepositoryRegistry.repository-for-spec(~$target, :next-repo($*REPO));
     }
 
     sub print-table(@rows) {

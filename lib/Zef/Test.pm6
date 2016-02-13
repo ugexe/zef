@@ -9,7 +9,7 @@ class Zef::Test does Pluggable {
         $tester.stdout.Supply.act(&stdout);
         $tester.stderr.Supply.act(&stderr);
 
-        my $got = $tester.test($path, :@includes);
+        my $got = try $tester.test($path, :@includes);
 
         $tester.stdout.done;
         $tester.stderr.done;

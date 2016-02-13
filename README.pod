@@ -41,10 +41,13 @@ To install it via rakudobrew, please use the following command:
     zef test .
 
     # fetch a specific module only
-    zef get CSV::Parser
+    zef fetch CSV::Parser
 
     # fetch a module, then shell into its local path
     zef look CSV::Parser
+
+    # smoke test modules from all content storages
+    zef smoke
 
 =head2 Notice
 

@@ -92,13 +92,16 @@ class Zef::Client {
         @wants.splice($_) for @path-search.map(*.key).sort.reverse;
         @needs.push($_) for @path-search.map(*.value).map: { Candidate.new(:uri(~$_.IO.absolute), :requested-as(~$_)) }
 
-        my @uri-search  = |@wants.grep(* ~~ none(|@path-search>>.value)).grep({
+        # Note that URNs like Foo-Bar:ver('1.2.3') also matches as a URI.
+        # So if something is a URN, assume its not a URI (for our purposes)
+        my @uri-search  = |@wants.grep(* ~~ none(|@path-search>>.value)).grep({!Zef::Identity($_)}).grep({
             my $uri = Zef::Utils::URI($_);
             ?$uri ?? !$uri.is-relative ?? True !! False !! False
         }, :p);
         @wants.splice($_) for @uri-search.map(*.key).sort.reverse;
         @needs.push($_) for @uri-search.map(*.value).map: { Candidate.new(:uri(~$_), :requested-as(~$_)) }
 
+        # fetch dependencies for URIs and Paths (which will be identities)
         for self.fetch(|@needs) -> $candi {
             @candidates.push($candi);
             @wants.append(|unique(grep *.chars, grep *.defined,
@@ -110,6 +113,7 @@ class Zef::Client {
         # ContentStorage.candidate search loop
         # The above chunk of code is for "finding" a distribution that we know the exact location of. This is for
         # finding identities (like you would type on the command line, `use` in your code, or put in your `depends`)
+        my $is-dependency = 0;
         while ( +@wants ) {
             my @wanted = @wants.splice(0);
             my @todo   = @wanted.grep(* ~~ none(|@!ignore)).grep(-> $id {
@@ -118,7 +122,7 @@ class Zef::Client {
             }).unique;
             @needs     = (|@needs, |@todo).grep(* ~~ none(|@!exclude)).unique;
 
-            say "Searching for {'dependencies ' if state $once++}{@todo.join(', ')}" if ?$!verbose;
+            say "Searching for {'dependencies ' if $is-dependency++}{@todo.join(', ')}" if ?$!verbose;
 
             for $!storage.candidates(|@todo, :$upgrade) -> $candis {
                 for $candis.grep({ .dist.identity ~~ none(|@candidates.map(*.dist.identity)) }) -> $candi {
@@ -371,8 +375,8 @@ class Zef::Client {
         # Install Phase:
         # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
         # and contain only the modules needed for this specific run/plan
-        for @installable-candidates -> $candi {
-            for @target-curs -> $cur {
+        my @installed-candidates = gather for @installable-candidates -> $candi {
+            take $candi if @target-curs.grep: -> $cur {
                 my $dist = $candi.dist;
                 # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
                 # any subsequent .install as the fuck up involves changing the data structures
@@ -397,11 +401,13 @@ class Zef::Client {
         # Inform user of what was tested/built/installed and what failed
         # Optionally report to any cpan testers type service (testers.perl6.org)
         unless $dry {
-            if @installable-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
+            if @installed-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
                 say "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
                 ~   "\n\t" ~ @target-curs.map(*.prefix.child('bin')).join("\n");
             }
         }
+
+        @installed-candidates;
     }
 
     method available {

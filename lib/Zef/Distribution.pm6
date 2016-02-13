@@ -13,6 +13,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     has @.build-depends;
     has @.test-depends;
     has @.resources;
+    has %.support;
 
     # attach arbitrary data, like for topological sort, that won't be saved on install
     has %.metainfo is rw;
@@ -110,6 +111,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     method hash {
         my %hash = callsame.append({ :$.api, :@!build-depends, :@!test-depends, :@!resources });
         %hash<license>  = $.license;
+        %hash<support>  = %.support;
 
         # debugging stuff
         %hash<identity> = $.identity;

@@ -88,10 +88,10 @@ package Zef::CLI {
     #| Detailed distribution information
     multi MAIN('info', $identity, Bool :v(:$verbose)) is export {
 
-        my $client   = Zef::Client.new(:$config, :$verbose);
-        my $candi = $client.search($identity, :max-results(1))[0]\
+        my $client = Zef::Client.new(:$config, :$verbose);
+        my $candi  = $client.search($identity, :max-results(1))[0]\
             or die "Found no candidates matching identity: {$identity}";
-        my $dist := $candi.dist;
+        my $dist  := $candi.dist;
 
         say "- Info for: $identity";
         say "- Identity: {$dist.identity}";
@@ -125,7 +125,7 @@ package Zef::CLI {
 
     #| Download a single module and change into its directory
     multi MAIN('look', $identity, Bool :v(:$verbose), Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True) is export {
-        my $client        = Zef::Client.new(:$config, :$verbose, :$depends, :$test-depends, :$build-depends);
+        my $client     = Zef::Client.new(:$config, :$verbose, :$depends, :$test-depends, :$build-depends);
         my @candidates = |$client.candidates( str2identity($identity) );
         die "Failed to find any candidates to fetch for: $identity" unless +@candidates;
         my @candis     = $client.fetch(|@candidates);
@@ -139,6 +139,20 @@ package Zef::CLI {
         # todo: handle dependencies; only shell into the requested distribution's directory, but
         # fetch all dependencies and add their paths to %*ENV<PERL6LIB> for the shell below
         so shell(%*ENV<SHELL> // %*ENV<ComSpec>, :$env, :cwd($requested.uri));
+    }
+
+    #| Smoke test
+    multi MAIN('smoke', Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude, :$install-to = ['site']) is export {
+        my $client = Zef::Client.new(:$config, :$force, :$verbose);
+        my @identities = $client.available.values.flatmap(*.keys).unique;
+        say "===> Smoke testing with {+@identities} distributions...";
+
+        my @installed;
+        for @identities -> $identity {
+            next if $identity ~~ any(@installed);
+            my @all = try { $client.install( :$fetch, :$install-to, :$test, $identity ) } || next;
+            @installed = unique(|@all |@installed);
+        }
     }
 
     #| Update package indexes
@@ -166,6 +180,7 @@ package Zef::CLI {
                 search                  Show a list of possible distribution candidates for the given terms
                 info                    Show detailed distribution information
                 list                    Show known available distributions, or installed distributions with `--installed`
+                smoke                   Run smoke testing on available modules
 
             OPTIONS
 

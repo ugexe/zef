@@ -37,8 +37,6 @@ class Zef::Distribution::DependencySpecification {
             return False unless ?$.version-matcher
                 && $.version-matcher ne '*'
                 && Version.new($spec.version-matcher) ~~ Version.new($.version-matcher);
-            say $spec.perl;
-            say self.perl;
         }
         if $spec.auth-matcher.chars {
             return False unless $.auth-matcher.chars && $spec.auth-matcher eq $.auth-matcher;

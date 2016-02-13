@@ -55,7 +55,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
                 if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(
                         dist           => $dist,
-                        uri            => $dist.source-url,
+                        uri            => ($dist.source-url || $dist.hash<support><source>),
                         requested-as   => $wants,
                         recommended-by => self.^name,
                     );

@@ -13,21 +13,18 @@ package Zef::CLI {
     # example: -CContentStorage="cpan.enabled=1"
     # Notice this only works with the plugin configuration structure: `"key" : [{"name":"foo", ...},{"name":"bar", ...}]`
     # For now its really just a way to enable cpan so people can play with it easier.
-    our $config;
-    BEGIN {
-        $config = ZEF-CONFIG();
-        for @*ARGS -> $conf {
-            if $conf.starts-with('-C') && $conf.contains('=') {
-                my ($key, $value) = $conf.substr(2).split(/'='/, 2);
-                my ($plugin-name, $plugin-option) = $value.split(/'.'/, 2);
-                my ($plugin-key, $plugin-value) = $plugin-option.split(/'='/, 2);
-                for $config{$key}.grep(*.<name> eq $plugin-name) -> $conf is rw {
-                    $conf{$plugin-key} = $plugin-value;
-                }
+    our $config = ZEF-CONFIG();
+    for @*ARGS -> $conf {
+        if $conf.starts-with('-C') && $conf.contains('=') {
+            my ($key, $value) = $conf.substr(2).split(/'='/, 2);
+            my ($plugin-name, $plugin-option) = $value.split(/'.'/, 2);
+            my ($plugin-key, $plugin-value) = $plugin-option.split(/'='/, 2);
+            for $config{$key}.grep(*.<name> eq $plugin-name) -> $conf is rw {
+                $conf{$plugin-key} = $plugin-value;
             }
         }
-        @*ARGS = @*ARGS.grep(* !~~ /^'-C' .+/);
     }
+    @*ARGS = @*ARGS.grep(* !~~ /^'-C' .+/);
 
     #| Download specific distributions
     multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) is export {

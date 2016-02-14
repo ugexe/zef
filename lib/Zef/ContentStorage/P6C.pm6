@@ -20,7 +20,15 @@ class Zef::ContentStorage::P6C does ContentStorage {
         }
     }
 
-    method available { self!gather-dists }
+    method available {
+        my $candidates := gather for self!gather-dists -> $dist {
+            take Candidate.new(
+                dist           => $dist,
+                uri            => ($dist.source-url || $dist.hash<support><source>),
+                recommended-by => $?CLASS.^name,
+            );
+        }
+    }
 
     method IO {
         my $dir = $!cache.IO.child('p6c').IO;

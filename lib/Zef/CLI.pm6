@@ -73,15 +73,16 @@ package Zef::CLI {
     multi MAIN('list', Bool :v(:$verbose), Bool :i(:$installed), *@at) is export {
         my $client = Zef::Client.new(:$config, :$verbose);
 
-        my %found = ?$installed
+        my $found = ?$installed
             ?? $client.installed(|@at.map(*.&str2cur))
             !! $client.available(|@at);
 
-        for %found.kv -> $from, $ids {
+        my %locations = $found.classify: -> $candi { $candi.recommended-by }
+        for %locations.kv -> $from, $candis {
             say "===> Found via {$from}";
-            for $ids.kv -> $identity, $meta {
-                say "{$identity}";
-                say "#\t{$_}" for @($meta<modules>.sort if ?$verbose);
+            for |$candis -> $candi {
+                say "{$candi.dist.identity}";
+                say "#\t{$_}" for @($candi.dist.provides.keys.sort if ?$verbose);
             }
         }
     }

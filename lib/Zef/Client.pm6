@@ -410,13 +410,35 @@ class Zef::Client {
         @installed-candidates;
     }
 
+    method uninstall(CompUnit::Repository :@from!, *@identities) {
+        self.installed(|@from)
+    }
+
     method available(*@storage-names) {
-        % = $!storage.available(|@storage-names);
+        $ = $!storage.available(|@storage-names);
     }
 
     # XXX: an idea is to make CURI install locations a ContentStorage as well. then this method
     # would be grouped into the above `available` method
     method installed(*@curis) {
+        my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
+        my @repo-dirs  = @curs>>.prefix;
+        my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
+        my @dist-files = |@dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
+
+        my $dists := gather for @dist-files -> $file {
+            if try { Zef::Distribution.new( |%(from-json($file.IO.slurp)) ) } -> $dist {
+                my $cur = @curs.first: {.prefix eq $file.parent.parent}
+                take Candidate.new( :$dist, :recommended-by($cur) );
+            }
+        }
+    }
+
+
+
+    # XXX: an idea is to make CURI install locations a ContentStorage as well. then this method
+    # would be grouped into the above `available` method
+    method installed2(*@curis) {
         my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
         my @repo-dirs  = @curs>>.prefix;
         my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);

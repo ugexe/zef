@@ -12,7 +12,7 @@ class Zef::ContentStorage::CPAN does ContentStorage {
     method available {
         # currently 351 indexed on jdvs metacpan matching status:latest
         my $max-results = 100;
-        $ = self.search(:$max-results, '*').map(*.dist);
+        $ = self.search(:$max-results, '*');
     }
 
     method IO {

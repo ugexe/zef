@@ -59,29 +59,23 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
         False
     }
 
-    method identity {
-        my $parts = %(:name($.name), :ver($.ver), :auth($.auth), :api($.api));
-        $ = hash2identity($parts);
-    }
+    method identity { $ = hash2identity( %(:$.name, :$.ver, :$.auth, :$.api) ) }
 
     # make matching dependency names against a dist easier
     # when sorting the install order from the meta hash
     method depends-specs       {
-        eager gather for @.depends.grep(*.defined) {
-            my $ds = Zef::Distribution::DependencySpecification.new($_);
-            take $ds;
+        gather for @.depends.grep(*.defined) {
+            take Zef::Distribution::DependencySpecification.new($_);
         }
     }
     method build-depends-specs {
-        eager gather for @.build-depends.grep(*.defined) {
-            my $ds = Zef::Distribution::DependencySpecification.new($_);
-            take $ds;
+        gather for @.build-depends.grep(*.defined) {
+            take Zef::Distribution::DependencySpecification.new($_);
         }
     }
     method test-depends-specs  {
-        eager gather for @.test-depends.grep(*.defined) {
-            my $ds = Zef::Distribution::DependencySpecification.new($_);
-            take $ds;
+        gather for @.test-depends.grep(*.defined) {
+            take Zef::Distribution::DependencySpecification.new($_);
         }
     }
 
@@ -99,13 +93,9 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
         }
     }
 
-    method provides-spec-matcher($spec) {
-        so self.provides-specs.grep({ ?$_.spec-matcher($spec) }).elems;
-    }
+    method provides-spec-matcher($spec) { $ = self.provides-specs.first({ ?$_.spec-matcher($spec) })       }
 
-    method contains-spec($spec) {
-        so self.spec-matcher($spec) || self.provides-spec-matcher($spec)
-    }
+    method contains-spec($spec)         { so self.spec-matcher($spec) || self.provides-spec-matcher($spec) }
 
     # Add new entries missing from original Distribution.hash
     method hash {
@@ -124,24 +114,18 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # use Distribution's .ver but filter off a leading 'v'
     method ver { my $v = callsame; $v.subst(/^v/, '') }
 
-    method id() {
-        use nqp;
-        return nqp::sha1(self.Str());
-    }
+    method id() { use nqp; $ = nqp::sha1(self.Str()) }
 
     method WHICH(Zef::Distribution:D:) { "{self.^name}|{self.Str()}" }
 }
 
 # xxx: temporary until a core solution is available
 sub IS-USEABLE($identity) is export {
-    use MONKEY-SEE-NO-EVAL;
     use Zef::Shell;
-
     try {
         my $perl6 = $*EXECUTABLE;
         my $cwd   = $*TMPDIR; # change cwd for script below so $*CWD/lib is not accidently considered
-        my $is-useable-script = "use $identity;"; # -M doesn't work with :auth<xxx>:ver<> yet
-
+        my $is-useable-script = "use $identity; exit(0);"; # -M doesn't work with :auth<xxx>:ver<> yet
         # -Ilib/.precomp is a workaround precomp deadlocks when installing from the directory of the dist
         my $proc = zrun($perl6, '-Ilib/.precomp', '-e', $is-useable-script, :$cwd, :out, :err);
 
@@ -149,7 +133,6 @@ sub IS-USEABLE($identity) is export {
         my $err = |$proc.err.lines;
         $proc.out.close;
         $proc.err.close;
-
         ?$proc
     }
     return (not defined $!) ?? True !! False;

@@ -246,8 +246,8 @@ class Zef::Client {
 
     method install(
         CompUnit::Repository :@to!, # target CompUnit::Repository
-        Bool :$fetch,               # try fetching whats missing
-        Bool :$test,                # run tests
+        Bool :$fetch = True,        # try fetching whats missing
+        Bool :$test  = True,        # run tests
         Bool :$dry,                 # do everything *but* actually install
         Bool :$upgrade,             # NYI
         *@wants,

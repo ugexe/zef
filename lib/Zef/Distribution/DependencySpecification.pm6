@@ -14,21 +14,13 @@ class Zef::Distribution::DependencySpecification {
         $!ident.?hash;
     }
 
-    method name {
-        my $name = callsame() // self.spec-parts<name>;
-    }
+    method name { $ = callsame() // self.spec-parts<name> }
 
-    method version-matcher {
-        my $ver = self.spec-parts<ver>;
-    }
+    method version-matcher { $ = self.spec-parts<ver>  }
 
-    method auth-matcher {
-        my $auth = self.spec-parts<auth>;
-    }
+    method auth-matcher    { $ = self.spec-parts<auth> }
 
-    method api-matcher {
-        my $api = self.spec-parts<api>;
-    }
+    method api-matcher     { $ = self.spec-parts<api>  }
 
 
     method spec-matcher($spec) {

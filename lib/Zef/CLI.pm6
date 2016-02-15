@@ -16,9 +16,9 @@ package Zef::CLI {
     our $config = ZEF-CONFIG();
     for @*ARGS -> $conf {
         if $conf.starts-with('-C') && $conf.contains('=') {
-            my ($key, $value) = $conf.substr(2).split(/'='/, 2);
+            my ($key, $value)                 = $conf.substr(2).split(/'='/, 2);
             my ($plugin-name, $plugin-option) = $value.split(/'.'/, 2);
-            my ($plugin-key, $plugin-value) = $plugin-option.split(/'='/, 2);
+            my ($plugin-key, $plugin-value)   = $plugin-option.split(/'='/, 2);
             for $config{$key}.grep(*.<name> eq $plugin-name) -> $conf is rw {
                 $conf{$plugin-key} = $plugin-value;
             }
@@ -28,7 +28,7 @@ package Zef::CLI {
 
     #| Download specific distributions
     multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) is export {
-        my $client = Zef::Client.new(:$config, :$verbose, :$depends, :$test-depends, :$build-depends);
+        my $client     = Zef::Client.new(:$config, :$verbose, :$depends, :$test-depends, :$build-depends);
         my @candidates = |$client.candidates(|@identities>>.&str2identity);
         $client.fetch(|@candidates);
     }
@@ -53,15 +53,14 @@ package Zef::CLI {
 
     #| Get a list of possible distribution candidates for the given terms
     multi MAIN('search', Bool :v(:$verbose), *@terms) is export {
-        my $client = Zef::Client.new(:$config, :$verbose);
+        my $client  = Zef::Client.new(:$config, :$verbose);
         my @results = $client.search(|@terms);
 
         say "===> Found " ~ +@results ~ " results";
 
         my @rows = eager gather for @results -> $candi {
             FIRST { take [<ID From Package Description>] }
-            my $row = [ "{state $id += 1}", $candi.recommended-by, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
-            take $row;
+            take [ "{state $id += 1}", $candi.recommended-by, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
         }
         print-table(@rows);
     }
@@ -86,7 +85,6 @@ package Zef::CLI {
 
     #| Detailed distribution information
     multi MAIN('info', $identity, Bool :v(:$verbose)) is export {
-
         my $client = Zef::Client.new(:$config, :$verbose);
         my $candi  = $client.search($identity, :max-results(1))[0]\
             or die "Found no candidates matching identity: {$identity}";
@@ -127,26 +125,32 @@ package Zef::CLI {
         my $client     = Zef::Client.new(:$config, :$verbose, :$depends, :$test-depends, :$build-depends);
         my @candidates = |$client.candidates( str2identity($identity) );
         die "Failed to find any candidates to fetch for: $identity" unless +@candidates;
-        my @candis     = $client.fetch(|@candidates);
-        my $requested  = @candis[0];
+        my @local-candidates = $client.fetch(|@candidates);
+        my $requested        = @local-candidates[0] || die "Failed to fetch candidate: $identity";
 
-        my $env = %*ENV;
-        $env<PERL6LIB> = (|@candis.map(*.uri.IO.child('lib')), $env<PERL6LIB>).join($*DISTRO.cur-sep);
+        # We don't install the dependencies first. Instead we set all their paths in
+        # the PERL6LIB ENV of the shell that gets spawned, allowing tests to find the
+        # libs of any ***declared*** dependencies
+        my $env = %*ENV andthen $env<PERL6LIB> = join $*DISTRO.cur-sep, grep *.?chars,
+            |@local-candidates.map(*.uri.IO.child('lib')), $env<PERL6LIB>;
 
         say "===> Shell-ing into directory: {$requested.uri}";
-        say "Note: Dependencies that were fetched are in env at: `PERL6LIB`" if +@candis > 1;
+        say "Note: Dependencies that were fetched are in env at: `PERL6LIB`" if +@local-candidates > 1;
         # todo: handle dependencies; only shell into the requested distribution's directory, but
         # fetch all dependencies and add their paths to %*ENV<PERL6LIB> for the shell below
         so shell(%*ENV<SHELL> // %*ENV<ComSpec>, :$env, :cwd($requested.uri));
     }
 
     #| Smoke test
-    multi MAIN('smoke', Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude, :to(:$install-to) = ['site']) is export {
+    multi MAIN('smoke', Bool :v(:$verbose), Bool :$force, Bool :$test = True,Bool :$fetch = True, :$exclude, :to(:$install-to) = ['site']) is export {
         my $client                  = Zef::Client.new(:$config, :$force, :$verbose);
         my @identities              = $client.available.values.flatmap(*.keys).unique;
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         say "===> Smoke testing with {+@identities} distributions...";
 
+        # We only need to test a specific identity once. `.install` returns the installed
+        # candidates so each iteration we can add any new dists to %skip for when we encounter
+        # them through the for loop. XXX: should probably pass in :excludes(%skip>>.values)
         for @identities -> $identity {
             state %skip;
             next if %skip{$identity}++;
@@ -205,24 +209,28 @@ package Zef::CLI {
             END_USAGE
     }
 
-    # maybe its a name, maybe its a spec/path
+    # maybe its a name, maybe its a spec/path. either way  Zef::App methods take a CURs, not strings
     sub str2cur($target) {
         $ = CompUnit::RepositoryRegistry.repository-for-name($target)
         || CompUnit::RepositoryRegistry.repository-for-spec(~$target, :next-repo($*REPO));
     }
 
+    # prints a table with rows and columns. expects a header row.
+    # automatically adjusts column widths, as well as `yada`ing
+    # any characters on a line past $max-width
     sub print-table(@rows) {
         my @widths     = _get_column_widths(@rows);
         my @fixed-rows = @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
         if +@fixed-rows {
-            my $width      = [+] _get_column_widths(@fixed-rows);
-            my $sep        = '-' x $width;
+            my $width = [+] _get_column_widths(@fixed-rows);
+            my $sep   = '-' x $width;
             say "{$sep}\n{@fixed-rows[0]}\n{$sep}";
             .say for @fixed-rows[1..*];
             say $sep;
         }
     }
 
+    # handle max width + yada
     sub _widther($str, :$max-width) is export {
         return $str unless ?$max-width && $str.chars > $max-width;
         my $cutoff = $str.substr(0, $max-width);

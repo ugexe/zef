@@ -186,6 +186,7 @@ package Zef::CLI {
             COMMANDS
 
                 install                 Install specific dependencies by name or path
+                uninstall               Uninstall specified distributions
                 test                    Run tests on a given module's path
                 fetch                   Fetch and extract module's source
                 look                    `fetch` followed by shelling into the module's path (dependencies in \%*ENV<PERL6LIB>)

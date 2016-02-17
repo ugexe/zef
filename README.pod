@@ -115,6 +115,12 @@ B<Options>
     --/build-depends
     --/test-depends
 
+=head4 B<uninstall> [*@identities]
+
+Uninstall the specified distributions
+
+Note: Requires a a bleeding edge rakudo (not available in 6.c)
+
 =head4 B<update>
 
 Update the package indexes for all `ContentStorage` backends

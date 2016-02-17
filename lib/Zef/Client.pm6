@@ -411,7 +411,16 @@ class Zef::Client {
     }
 
     method uninstall(CompUnit::Repository :@from!, *@identities) {
-        self.installed(|@from)
+        my @installed = self.installed(|@from);
+
+        for @identities -> $identity {
+            my $spec = Zef::Distribution::DependencySpecification.new($identity);
+            for @installed.grep(*.dist.spec-matcher($spec)) -> $candi {
+                my $dist := $candi.dist;
+                my $cur   = $*REPO.repo-chain.first(*.Str eq $candi.recommended-by);
+                $cur.uninstall($dist);
+            }
+        }
     }
 
     method available(*@storage-names) {
@@ -429,29 +438,9 @@ class Zef::Client {
         my $dists := gather for @dist-files -> $file {
             if try { Zef::Distribution.new( |%(from-json($file.IO.slurp)) ) } -> $dist {
                 my $cur = @curs.first: {.prefix eq $file.parent.parent}
-                take Candidate.new( :$dist, :recommended-by($cur) );
+                take Candidate.new( :$dist, :recommended-by($cur), :uri($file) );
             }
         }
-    }
-
-
-
-    # XXX: an idea is to make CURI install locations a ContentStorage as well. then this method
-    # would be grouped into the above `available` method
-    method installed2(*@curis) {
-        my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
-        my @repo-dirs  = @curs>>.prefix;
-        my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
-        my @dist-files = |@dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
-
-        my %dists;
-        for @dist-files -> $file {
-            if try { Zef::Distribution::Local.new($file) } -> $dist {
-                my $cur = @curs.first: {.prefix eq $file.parent.parent}
-                %dists{$cur}{$dist.identity} = %( :name($dist.name), :modules($dist.provides.keys) );
-            }
-        }
-        %dists;
     }
 
     method sort-candidates(@candis, *%_) {

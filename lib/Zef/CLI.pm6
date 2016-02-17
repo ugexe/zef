@@ -48,8 +48,17 @@ package Zef::CLI {
         $exclude = grep *.defined, ?$depsonly ?? (|@identities>>.&str2identity, |$exclude) !! $exclude;
         my $client = Zef::Client.new(:$config, :$force, :$verbose, :$depends, :$test-depends, :$build-depends);
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
-        $client.install( :@to, :$fetch, :$test, :$dry, :$upgrade, :$update, :$dry, |@identities>>.&str2identity );
+        $client.install( :@to, :$fetch, :$test, :$upgrade, :$update, :$dry, |@identities>>.&str2identity );
     }
+
+    #| Uninstall
+    multi MAIN('uninstall', Bool :v(:$verbose), Bool :$force, :from(:$uninstall-from) = ['site'], *@identities) is export {
+        my $client = Zef::Client.new(:$config, :$force, :$verbose);
+        my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
+        die "`uninstall` command currently requires a bleeding edge version of rakudo" unless any(@from>>.can('uninstall'));
+        $client.uninstall( :@from, |@identities>>.&str2identity );
+    }
+
 
     #| Get a list of possible distribution candidates for the given terms
     multi MAIN('search', Bool :v(:$verbose), *@terms) is export {

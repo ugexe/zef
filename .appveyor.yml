@@ -18,18 +18,26 @@ install:
 build: off
 
 test_script:
-  # test local path install
-  - perl6 -Ilib bin/zef --verbose install .
+    # test local path install
+    - perl6 -Ilib bin/zef --verbose install .
 
-  # Setup PATH to give access to the `zef` command (shown in stdout of prev command)
-  - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%
-  # change path to make sure next `zef` commands aren't using any files in cwd or lib/
-  - cd %APPVEYOR_BUILD_FOLDER%\..
+    # Setup PATH to give access to the `zef` command (shown in stdout of prev command)
+    - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%
 
-  # test identity install
-  - zef -v install Base64
+    # change path to make sure next `zef` commands aren't using any files in cwd or lib/
+    - cd %APPVEYOR_BUILD_FOLDER%\..
 
-  # test uri install
-  - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
+    # test identity install
+    - zef -v install Base64
+
+    # test bells and whistles
+    - zef -v list
+    - zef -v --installed list
+    - zef -v search Base64
+    - zef -v info Base64
+
+on_success:
+    # test uri install; may fail due to server issues
+    - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
 
 shallow_clone: true

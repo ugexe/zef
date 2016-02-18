@@ -81,10 +81,10 @@ class Zef::ContentStorage::CPAN does ContentStorage {
 
                         my $dist      = Zef::Distribution.new(|$meta6);
                         my $candidate = Candidate.new(
-                            dist           => $dist,
-                            uri            => $dist.source-url,
-                            requested-as   => $wants,
-                            recommended-by => $?CLASS.^name,
+                            dist  => $dist,
+                            uri   => $dist.source-url,
+                            as    => $wants,
+                            from  => $?CLASS.^name,
                         );
 
                         take $candidate;

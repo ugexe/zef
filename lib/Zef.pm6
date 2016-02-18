@@ -37,11 +37,9 @@ role Tester {
 
 role Candidate {
     has $.dist;
-    has $.requested-as;
-    has $.recommended-by;
-    has $.uri;  # todo: use this to represnt the actual location to get the dist from.
-                # examples: ::LocalCache may have a dist stored on disk that matches
-                # the requested identity, and source-url
+    has $.as;   # Requested as
+    has $.from; # Recommended from
+    has $.uri;  # url, file path, etc
 }
 
 role ContentStorage {

@@ -56,7 +56,12 @@ package Zef::CLI {
         my $client = Zef::Client.new(:$config, :$force, :$verbose);
         my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
         die "`uninstall` command currently requires a bleeding edge version of rakudo" unless any(@from>>.can('uninstall'));
-        $client.uninstall( :@from, |@identities>>.&str2identity );
+
+        my %uninstalled = $client.uninstall( :@from, |@identities>>.&str2identity ).classify(*.from);
+        for %uninstalled.kv -> $from, $candidates {
+            say "===> Uninstalled from $from";
+            say "$_" for |$candidates>>.dist>>.identity;
+        }
     }
 
 
@@ -69,7 +74,7 @@ package Zef::CLI {
 
         my @rows = eager gather for @results -> $candi {
             FIRST { take [<ID From Package Description>] }
-            take [ "{state $id += 1}", $candi.recommended-by, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
+            take [ "{state $id += 1}", $candi.from, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
         }
         print-table(@rows);
     }
@@ -79,10 +84,10 @@ package Zef::CLI {
         my $client = Zef::Client.new(:$config, :$verbose);
 
         my $found = ?$installed
-            ?? $client.installed(|@at.map(*.&str2cur))
-            !! $client.available(|@at);
+            ?? $client.list-installed(|@at.map(*.&str2cur))
+            !! $client.list-available(|@at);
 
-        my %locations = $found.classify: -> $candi { $candi.recommended-by }
+        my %locations = $found.classify: -> $candi { $candi.from }
         for %locations.kv -> $from, $candis {
             say "===> Found via {$from}";
             for |$candis -> $candi {
@@ -101,7 +106,7 @@ package Zef::CLI {
 
         say "- Info for: $identity";
         say "- Identity: {$dist.identity}";
-        say "- Recommended By: {$candi.recommended-by}";
+        say "- Recommended By: {$candi.from}";
         say "Author:\t {$dist.author}"           if $dist.author;
         say "Description:\t {$dist.description}" if $dist.description;
         say "Source-url:\t {$dist.source-url}"   if $dist.source-url;

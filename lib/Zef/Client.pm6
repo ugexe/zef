@@ -90,7 +90,7 @@ class Zef::Client {
         # skip fetching any dependencies by name that these paths or URIs fulfill
         my @path-search = @wants.grep({.starts-with('.' | '/')}, :p);
         @wants.splice($_) for @path-search.map(*.key).sort.reverse;
-        @needs.push($_) for @path-search.map(*.value).map: { Candidate.new(:uri(~$_.IO.absolute), :requested-as(~$_)) }
+        @needs.push($_)   for @path-search.map(*.value).map: { Candidate.new(:uri(~$_.IO.absolute), :as(~$_)) }
 
         # Note that URNs like Foo-Bar:ver('1.2.3') also matches as a URI.
         # So if something is a URN, assume its not a URI (for our purposes)
@@ -99,7 +99,7 @@ class Zef::Client {
             ?$uri ?? !$uri.is-relative ?? True !! False !! False
         }, :p);
         @wants.splice($_) for @uri-search.map(*.key).sort.reverse;
-        @needs.push($_) for @uri-search.map(*.value).map: { Candidate.new(:uri(~$_), :requested-as(~$_)) }
+        @needs.push($_)   for @uri-search.map(*.value).map: { Candidate.new(:uri(~$_), :as(~$_)) }
 
         # fetch dependencies for URIs and Paths (which will be identities)
         for self.fetch(|@needs) -> $candi {
@@ -122,14 +122,14 @@ class Zef::Client {
             }).unique;
             @needs     = (|@needs, |@todo).grep(* ~~ none(|@!exclude)).unique;
 
-            say "Searching for {'dependencies ' if $is-dependency++}{@todo.join(', ')}" if ?$!verbose;
+            say "Searching for {'dependencies ' if $is-dependency++}{@todo.join(', ')}";
 
             for $!storage.candidates(|@todo, :$upgrade) -> $candis {
                 for $candis.grep({ .dist.identity ~~ none(|@candidates.map(*.dist.identity)) }) -> $candi {
                     # conditional is to handle --depsonly (installing only deps)
-                    if $candi.requested-as ~~ none(@!exclude) {
+                    if $candi.as ~~ none(@!exclude) {
                         @candidates.push($candi);
-                        say "[{$candi.recommended-by}] found {$candi.dist.name}" if ?$!verbose;
+                        say "[{$candi.from}] found {$candi.dist.name}" if ?$!verbose;
                     }
 
                     # todo: alternatives, i.e. not a Str but [Str, Str]
@@ -142,17 +142,17 @@ class Zef::Client {
             }
         }
 
-        # For now we use unique on the `requested-as` field so if someone has both p6c and cpan
+        # For now we use unique on the `as` field so if someone has both p6c and cpan
         # enabled that they only get 1 result for a specific requested instead of 1 from each.
         # In the future this won't be neccesary because they *should* match on identities, but
         # right now metacpan has some of the versions/auths screwy. This means a dist on both
         # may be exactly the same, but metacpan reports the auth or version slightly different
         # causing it to be treated as a unique result.
         # XXX: this check (and anything that dies really) should be moved to `.install`
-        my @chosen = @candidates.unique(:as(*.requested-as));
+        my @chosen = @candidates.unique(:as(*.as));
         if +@needs !== +@chosen {
             # if @needs has more elements than @missing its probably a bug related to:
-            my @missing = @needs.grep(* !~~ any(@candidates>>.requested-as));
+            my @missing = @needs.grep(* !~~ any(@candidates>>.as));
             +@missing >= +@needs
                 ?? say("Could not find distributions for the following requests:\n{@missing.sort.join(', ')}")
                 !! say(   "Found too many results :(\n\nGot:\n{@candidates.map(*.dist.name).sort.join(', ')}\n"
@@ -167,11 +167,11 @@ class Zef::Client {
     method fetch(*@candidates) {
         my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
         my @saved = eager gather for @candidates -> $candi {
-            my $from         = $candi.recommended-by;
-            my $requested-as = $candi.requested-as;
-            my $uri          = $candi.uri;
-            my $tmp         := %CONFIG<TempDir>.IO;
-            my $stage-at    := $tmp.child($uri.IO.basename);
+            my $from      = $candi.from;
+            my $as        = $candi.as;
+            my $uri       = $candi.uri;
+            my $tmp      := %CONFIG<TempDir>.IO;
+            my $stage-at := $tmp.child($uri.IO.basename);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
 
@@ -201,7 +201,7 @@ class Zef::Client {
             my $local-candi = $candi.clone(:$dist);
             # XXX: the above used to just be `$candi.dist = $dist` where dist is rw
 
-            say "{$local-candi.dist.identity} fulfills the request for {$local-candi.requested-as}";
+            say "{$local-candi.dist.identity} fulfills the request for {$local-candi.as}";
 
             take $local-candi;
         }
@@ -291,11 +291,11 @@ class Zef::Client {
             say "[DEBUG] Probing for {$dist.name}" if ?$!verbose;
             if ?$dist.is-installed {
                 unless ?$!force {
-                    say "{$!verbose??'['~$candi.requested-as~'] '!!''}{$dist.identity} "
+                    say "{$!verbose??'['~$candi.as~'] '!!''}{$dist.identity} "
                     ~   "is already installed. Skipping... (use :force to override)";
                     next;
                 }
-                say "{$!verbose??'['~$candi.requested-as~'] '!!''}{$dist.identity} is already installed. "
+                say "{$!verbose??'['~$candi.as~'] '!!''}{$dist.identity} is already installed. "
                 ~   "Continuing anyway with :force";
             }
             take $candi;
@@ -411,25 +411,24 @@ class Zef::Client {
     }
 
     method uninstall(CompUnit::Repository :@from!, *@identities) {
-        my @installed = self.installed(|@from);
-
-        for @identities -> $identity {
-            my $spec = Zef::Distribution::DependencySpecification.new($identity);
-            for @installed.grep(*.dist.spec-matcher($spec)) -> $candi {
-                my $dist := $candi.dist;
-                my $cur   = $*REPO.repo-chain.first(*.Str eq $candi.recommended-by);
+        my @specs = @identities.map: { Zef::Distribution::DependencySpecification.new($_) }
+        eager gather for self.list-installed(|@from) -> $candi {
+            my $dist = $candi.dist;
+            if @specs.first({ $dist.spec-matcher($_) }) {
+                my $cur  = $*REPO.repo-chain.first(*.Str eq $candi.from);
                 $cur.uninstall($dist);
+                take $candi;
             }
         }
     }
 
-    method available(*@storage-names) {
+    method list-available(*@storage-names) {
         $ = $!storage.available(|@storage-names);
     }
 
     # XXX: an idea is to make CURI install locations a ContentStorage as well. then this method
-    # would be grouped into the above `available` method
-    method installed(*@curis) {
+    # would be grouped into the above `list-available` method
+    method list-installed(*@curis) {
         my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
         my @repo-dirs  = @curs>>.prefix;
         my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
@@ -438,7 +437,7 @@ class Zef::Client {
         my $dists := gather for @dist-files -> $file {
             if try { Zef::Distribution.new( |%(from-json($file.IO.slurp)) ) } -> $dist {
                 my $cur = @curs.first: {.prefix eq $file.parent.parent}
-                take Candidate.new( :$dist, :recommended-by($cur), :uri($file) );
+                take Candidate.new( :$dist, :from($cur), :uri($file) );
             }
         }
     }

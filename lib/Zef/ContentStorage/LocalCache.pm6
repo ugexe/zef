@@ -44,9 +44,9 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     method available {
         my $candidates := gather for self!gather-dists -> $dist {
             take Candidate.new(
-                dist           => $dist,
-                uri            => ($dist.source-url || $dist.hash<support><source>),
-                recommended-by => $?CLASS.^name,
+                dist => $dist,
+                uri  => ($dist.source-url || $dist.hash<support><source>),
+                from => $?CLASS.^name,
             );
         }
     }
@@ -102,10 +102,10 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(
-                        dist           => $dist,
-                        uri            => $dist.IO.absolute,
-                        requested-as   => $wants,
-                        recommended-by => $?CLASS.^name,
+                        dist => $dist,
+                        uri  => $dist.IO.absolute,
+                        as   => $wants,
+                        from => $?CLASS.^name,
                     );
                     take $candidate;
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);

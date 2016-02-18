@@ -38,6 +38,6 @@ test_script:
 
 on_success:
     # test uri install; may fail due to server issues
-    - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
+    - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz; echo 0
 
 shallow_clone: true

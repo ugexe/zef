@@ -88,18 +88,22 @@ class Zef::Client {
         # what that distribution's identity is until we fetch it and examine the META6. By knowing the identity of
         # these distributions before the ContentStorage.candidate search loop (after this block of code) we can
         # skip fetching any dependencies by name that these paths or URIs fulfill
-        my @path-search = @wants.grep({.starts-with('.' | '/')}, :p);
-        @wants.splice($_) for @path-search.map(*.key).sort.reverse;
-        @needs.push($_)   for @path-search.map(*.value).map: { Candidate.new(:uri(~$_.IO.absolute), :as(~$_)) }
 
+        # - LOCAL PATHS
+        for @wants.grep({.starts-with('.' | '/')}, :p) {
+            @wants[.key]:delete;
+            @needs.push: Candidate.new(:uri(.value.IO.absolute), :as(.value));
+        }
+
+        # - URNs
         # Note that URNs like Foo-Bar:ver('1.2.3') also matches as a URI.
         # So if something is a URN, assume its not a URI (for our purposes)
-        my @uri-search  = |@wants.grep(* ~~ none(|@path-search>>.value)).grep({!Zef::Identity($_)}).grep({
-            my $uri = Zef::Utils::URI($_);
-            ?$uri ?? !$uri.is-relative ?? True !! False !! False
-        }, :p);
-        @wants.splice($_) for @uri-search.map(*.key).sort.reverse;
-        @needs.push($_)   for @uri-search.map(*.value).map: { Candidate.new(:uri(~$_), :as(~$_)) }
+        for |@wants.grep({!Zef::Identity($_)}, :p) -> $kv {
+            if my $uri = Zef::Utils::URI($kv.value) andthen !$uri.is-relative {
+                @wants[$kv.key]:delete;
+                @needs.push: Candidate.new(:uri($kv.value), :as($kv.value));
+            }
+        }
 
         # fetch dependencies for URIs and Paths (which will be identities)
         for self.fetch(|@needs) -> $candi {
@@ -110,17 +114,18 @@ class Zef::Client {
                 ($candi.dist.build-depends if ?$!build-depends).Slip));
         }
 
+        # - IDENTITIES
         # ContentStorage.candidate search loop
         # The above chunk of code is for "finding" a distribution that we know the exact location of. This is for
         # finding identities (like you would type on the command line, `use` in your code, or put in your `depends`)
         my $is-dependency = 0;
-        while ( +@wants ) {
-            my @wanted = @wants.splice(0);
-            my @todo   = @wanted.grep(* ~~ none(|@!ignore)).grep(-> $id {
+        while @wants.splice.grep(*.defined) -> @wanted {
+            my @todo = @wanted.grep(* ~~ none(|@!ignore)).grep(-> $id {
                 my $spec = Zef::Distribution::DependencySpecification.new($id);
                 so !@candidates.first(*.dist.contains-spec($spec))
             }).unique;
-            @needs     = (|@needs, |@todo).grep(* ~~ none(|@!exclude)).unique;
+
+            @needs = (|@needs, |@todo).grep(* ~~ none(|@!exclude)).unique;
 
             say "Searching for {'dependencies ' if $is-dependency++}{@todo.join(', ')}";
 

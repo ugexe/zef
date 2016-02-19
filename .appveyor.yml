@@ -38,7 +38,6 @@ test_script:
 
 on_success:
     # test uri install; may fail due to server issues
-    #- zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz && exit 0
-    # don't know how to make app veyor force this command as not required for pass
+    - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz && exit 0
 
 shallow_clone: true

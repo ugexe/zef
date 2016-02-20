@@ -46,7 +46,7 @@ package Zef::CLI {
                 Bool :$dry, Bool :$update, Bool :$upgrade, Bool :$depsonly, :to(:$install-to) = ['site'], *@identities) is export {
 
         $exclude = grep *.defined, ?$depsonly ?? (|@identities>>.&str2identity, |$exclude) !! $exclude;
-        my $client = Zef::Client.new(:$config, :$force, :$verbose, :$depends, :$test-depends, :$build-depends);
+        my $client = Zef::Client.new(:$config, :$exclude, :$force, :$verbose, :$depends, :$test-depends, :$build-depends);
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         $client.install( :@to, :$fetch, :$test, :$upgrade, :$update, :$dry, |@identities>>.&str2identity );
     }
@@ -95,6 +95,11 @@ package Zef::CLI {
                 say "#\t{$_}" for @($candi.dist.provides.keys.sort if ?$verbose);
             }
         }
+    }
+
+    multi MAIN('rdepends', $identity) {
+        my $client = Zef::Client.new(:$config);
+        .dist.identity.say for $client.list-rev-depends($identity);
     }
 
     #| Detailed distribution information
@@ -164,7 +169,7 @@ package Zef::CLI {
 
         # We only need to test a specific identity once. `.install` returns the installed
         # candidates so each iteration we can add any new dists to %skip for when we encounter
-        # them through the for loop. XXX: should probably pass in :excludes(%skip>>.values)
+        # them through the for loop. XXX: should probably pass in :exclude(%skip>>.values)
         for @identities -> $identity {
             state %skip;
             next if %skip{$identity}++;
@@ -198,7 +203,8 @@ package Zef::CLI {
                 update                  Update package indexes for content storages
                 search                  Show a list of possible distribution candidates for the given terms
                 info                    Show detailed distribution information
-                list                    Show known available distributions, or installed distributions with `--installed`
+                list                    List known available distributions, or installed distributions with `--installed`
+                rdepends                List all distributions directly depending on a given identity
                 smoke                   Run smoke testing on available modules
 
             OPTIONS

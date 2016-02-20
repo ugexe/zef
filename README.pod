@@ -37,6 +37,9 @@ To install it via rakudobrew, please use the following command:
     # list known available distributions
     zef list
 
+    # list direct dependencies of a distribution
+    zef rdepends HTTP::UserAgent
+
     # test project in current directory    
     zef test .
 
@@ -216,6 +219,14 @@ B<Options>
 
     # Additionally list the modules of discovered distributions
     -v
+
+=head4 B<rdepends> [$identity]
+
+List available distributions that directly depend on C<$identity>
+
+    $ zef rdepends Net::HTTP
+    Minecraft-Tools:ver('0.1.0')
+    LendingClub:ver('0.1.0')
 
 =head4 B<fetch> [*@identities]
 

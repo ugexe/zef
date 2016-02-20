@@ -118,6 +118,7 @@ class Zef::Client {
         # ContentStorage.candidate search loop
         # The above chunk of code is for "finding" a distribution that we know the exact location of. This is for
         # finding identities (like you would type on the command line, `use` in your code, or put in your `depends`)
+        my $exclude = any(|@!exclude);
         my $is-dependency = 0;
         while @wants.splice.grep(*.defined) -> @wanted {
             my @todo = @wanted.grep(* ~~ none(|@!ignore)).grep(-> $id {
@@ -125,14 +126,14 @@ class Zef::Client {
                 so !@candidates.first(*.dist.contains-spec($spec))
             }).unique;
 
-            @needs = (|@needs, |@todo).grep(* ~~ none(|@!exclude)).unique;
+            @needs = (|@needs, |@todo).grep(* !~~ $exclude).unique;
 
             say "Searching for {'dependencies ' if $is-dependency++}{@todo.join(', ')}";
 
             for $!storage.candidates(|@todo, :$upgrade) -> $candis {
                 for $candis.grep({ .dist.identity ~~ none(|@candidates.map(*.dist.identity)) }) -> $candi {
                     # conditional is to handle --depsonly (installing only deps)
-                    if $candi.as ~~ none(@!exclude) {
+                    if $candi.as !~~ $exclude {
                         @candidates.push($candi);
                         say "[{$candi.from}] found {$candi.dist.name}" if ?$!verbose;
                     }
@@ -427,8 +428,20 @@ class Zef::Client {
         }
     }
 
+    method list-rev-depends($identity, Bool :$indirect) {
+        my $spec  = Zef::Distribution::DependencySpecification.new($identity);
+        my $dist  = self.list-available.first(*.dist.contains-spec($spec)).?dist || return [];
+
+        my $rev-deps := gather for self.list-available -> $candidate {
+            my $specs = $candidate.dist.depends-specs,
+                        $candidate.dist.build-depends-specs,
+                        $candidate.dist.test-depends-specs;
+            take $candidate if $specs.first({ $dist.contains-spec($_) });
+        }
+    }
+
     method list-available(*@storage-names) {
-        $ = $!storage.available(|@storage-names);
+        my $available := $!storage.available(|@storage-names);
     }
 
     # XXX: an idea is to make CURI install locations a ContentStorage as well. then this method

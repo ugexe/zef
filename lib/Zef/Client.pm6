@@ -90,18 +90,18 @@ class Zef::Client {
         # skip fetching any dependencies by name that these paths or URIs fulfill
 
         # - LOCAL PATHS
-        for @wants.grep({.starts-with('.' | '/')}, :p) {
-            @wants[.key]:delete;
+        for @wants.grep({.starts-with('.' | '/')}, :p).reverse {
             @needs.push: Candidate.new(:uri(.value.IO.absolute), :as(.value));
+            @wants[.key]:delete;
         }
 
         # - URNs
         # Note that URNs like Foo-Bar:ver('1.2.3') also matches as a URI.
         # So if something is a URN, assume its not a URI (for our purposes)
-        for |@wants.grep({!Zef::Identity($_)}, :p) -> $kv {
+        for @wants.grep({!Zef::Identity($_)}, :p).reverse -> $kv {
             if my $uri = Zef::Utils::URI($kv.value) andthen !$uri.is-relative {
-                @wants[$kv.key]:delete;
                 @needs.push: Candidate.new(:uri($kv.value), :as($kv.value));
+                @wants[$kv.key]:delete;
             }
         }
 

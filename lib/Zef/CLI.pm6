@@ -66,7 +66,7 @@ package Zef::CLI {
 
 
     #| Get a list of possible distribution candidates for the given terms
-    multi MAIN('search', Bool :v(:$verbose), *@terms) is export {
+    multi MAIN('search', Int :$wrap = False, Bool :v(:$verbose), *@terms) is export {
         my $client  = Zef::Client.new(:$config, :$verbose);
         my @results = $client.search(|@terms);
 
@@ -76,7 +76,7 @@ package Zef::CLI {
             FIRST { take [<ID From Package Description>] }
             take [ "{state $id += 1}", $candi.from, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
         }
-        print-table(@rows);
+        print-table(@rows, :$wrap);
     }
 
     #| A list of available modules from enabled content storages
@@ -98,7 +98,7 @@ package Zef::CLI {
     }
 
     #| Detailed distribution information
-    multi MAIN('info', $identity, Bool :v(:$verbose)) is export {
+    multi MAIN('info', $identity, Int :$wrap = False, Bool :v(:$verbose)) is export {
         my $client = Zef::Client.new(:$config, :$verbose);
         my $candi  = $client.search($identity, :max-results(1))[0]\
             or die "Found no candidates matching identity: {$identity}";
@@ -130,7 +130,7 @@ package Zef::CLI {
                 my $row = [ "{state $id += 1}", $dep, (IS-USEABLE($dep) ?? '✓' !! '')];
                 take $row;
             }
-            print-table(@rows);
+            print-table(@rows, :$wrap);
         }
     }
 
@@ -233,9 +233,15 @@ package Zef::CLI {
     # prints a table with rows and columns. expects a header row.
     # automatically adjusts column widths, as well as `yada`ing
     # any characters on a line past $max-width
-    sub print-table(@rows) {
+    sub print-table(@rows, Int :$wrap) {
+        # this ugly thing is so users can pass in Bool or Int as a MAIN argument
+        my $max-width = $wrap.perl eq 'Bool::False'
+            ?? $MAX-TERM-COLS 
+            !! $wrap.perl eq 'Bool::True'
+                ?? 0 
+                !! $wrap;
         my @widths     = _get_column_widths(@rows);
-        my @fixed-rows = @rows.map({ _row2str(@widths, @$_, max-width => $MAX-TERM-COLS) });
+        my @fixed-rows = @rows.map: { _row2str(@widths, @$_, :max($max-width)) }
         if +@fixed-rows {
             my $width = [+] _get_column_widths(@fixed-rows);
             my $sep   = '-' x $width;
@@ -246,9 +252,10 @@ package Zef::CLI {
     }
 
     # handle max width + yada
-    sub _widther($str, :$max-width) is export {
-        return $str unless ?$max-width && $str.chars > $max-width;
-        my $cutoff = $str.substr(0, $max-width);
+    sub _widther($str, int :$max) is export {
+        return $str unless ?$max && $str.chars > $max;
+        my $cutoff = $str.substr(0, $max || $str.chars);
+        return $cutoff unless $cutoff.chars > 3;
         return ($cutoff.substr(0,*-3) ~ '...') if $cutoff.substr(*-3,3) ~~ /\S\S\S/;
         return ($cutoff.substr(0,*-2) ~ '..')  if $cutoff.substr(*-2,2) ~~ /\S\S/;
         return ($cutoff.substr(0,*-1) ~ '.')   if $cutoff.substr(*-1,1) ~~ /\S/;
@@ -256,9 +263,9 @@ package Zef::CLI {
     }
 
     # returns formatted row
-    sub _row2str (@widths, @cells, Int :$max-width) {
+    sub _row2str (@widths, @cells, Int :$max) {
         my $format = @widths.map({"%-{$_}s"}).join('|');
-        return _widther(sprintf( $format, @cells.map({ $_ // '' }) ), :$max-width);
+        return _widther(sprintf( $format, @cells.map({ $_ // '' }) ), :$max);
     }
 
     # Iterate over ([1,2,3],[2,3,4,5],[33,4,3,2]) to find the longest string in each column

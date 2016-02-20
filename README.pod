@@ -37,7 +37,7 @@ To install it via rakudobrew, please use the following command:
     # list known available distributions
     zef list
 
-    # list direct dependencies of a distribution
+    # list reverse dependencies of an identity
     zef rdepends HTTP::UserAgent
 
     # test project in current directory    

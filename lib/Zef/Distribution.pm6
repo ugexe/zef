@@ -128,12 +128,11 @@ sub IS-USEABLE($identity) is export {
         my $is-useable-script = "use $identity; exit(0);"; # -M doesn't work with :auth<xxx>:ver<> yet
         # -Ilib/.precomp is a workaround precomp deadlocks when installing from the directory of the dist
         my $proc = zrun($perl6, '-Ilib/.precomp', '-e', $is-useable-script, :$cwd, :out, :err);
-
-        my $out = |$proc.out.lines;
-        my $err = |$proc.err.lines;
+        my @out = |$proc.out.lines;
+        my @err = |$proc.err.lines;
         $proc.out.close;
         $proc.err.close;
-        ?$proc
+        ?$proc;
     }
     return (not defined $!) ?? True !! False;
 }

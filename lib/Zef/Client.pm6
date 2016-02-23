@@ -521,10 +521,10 @@ sub legacy-hook($dist) {
 
     # if panda is declared as a dependency then there is no need to fix the code, although
     # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
-    unless ?$legacy-code.contains('use Panda')
-        && ($dist.depends.first(/'panda' | 'Panda::'/)
-        || $dist.build-depends.first(/'panda' | 'Panda::'/)
-        || $dist.test-depends.first(/'panda' | 'Panda::'/)) {
+    if ?$legacy-code.contains('use Panda')
+        && !$dist.depends\      .first(/'panda' | 'Panda::'/)
+        && !$dist.build-depends\.first(/'panda' | 'Panda::'/)
+        && !$dist.test-depends\ .first(/'panda' | 'Panda::'/) {
 
         say "[Build] `build-depends` is missing entries. Attemping to mimick missing dependencies..." if ?$DEBUG;
 

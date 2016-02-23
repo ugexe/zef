@@ -241,8 +241,8 @@ package Zef::CLI {
     # any characters on a line past $max-width
     sub print-table(@rows, Int :$wrap) {
         # this ugly thing is so users can pass in Bool or Int as a MAIN argument
-        my $max-width = $wrap.perl eq 'Bool::False'
-            ?? $MAX-TERM-COLS 
+        my $max-width = ($*OUT.t && $wrap.perl eq 'Bool::False')
+            ?? GET-TERM-COLUMNS()
             !! $wrap.perl eq 'Bool::True'
                 ?? 0 
                 !! $wrap;

@@ -295,7 +295,8 @@ class Zef::Client {
         my @needed-candidates = eager gather for @fetched-candidates -> $candi {
             my $dist := $candi.dist;
             say "[DEBUG] Probing for {$dist.name}" if ?$!verbose;
-            if ?$dist.is-installed {
+            #die ?self.is-installed($candi.dist);
+            if ?self.is-installed($candi.dist) {
                 unless ?$!force {
                     say "{$!verbose??'['~$candi.as~'] '!!''}{$dist.identity} "
                     ~   "is already installed. Skipping... (use :force to override)";
@@ -460,6 +461,24 @@ class Zef::Client {
         }
     }
 
+    method list-leaves {
+        my @installed = self.list-installed;
+        my @dep-specs = gather for @installed {
+            take $_ for .dist.depends-specs;
+            take $_ for .dist.build-depends-specs;
+            take $_ for .dist.test-depends-specs;
+        }
+
+        my $leaves := gather for @installed -> $candi {
+            my $dist := $candi.dist;
+            take $candi unless @dep-specs.first: { $dist.contains-spec($_) }
+        }
+    }
+
+    method is-installed($dist) {
+        $ = ?self.list-installed.first(*.dist.contains-spec($dist))
+    }
+
     method sort-candidates(@candis, *%_) {
         my @tree;
         my $visit = sub ($candi, $from? = '') {
@@ -497,14 +516,15 @@ sub legacy-hook($dist) {
     my $DEBUG = ?%*ENV<ZEF_BUILDPM_DEBUG>;
 
     my $builder-path = $dist.IO.child('Build.pm');
+    my $legacy-code  = $builder-path.IO.slurp;
     say "[Build] Attempting to build via {$builder-path}" if ?$DEBUG;
 
     # if panda is declared as a dependency then there is no need to fix the code, although
     # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
-    unless $dist.depends.first(/'panda' | 'Panda::'/)
+    unless ?$legacy-code.contains('use Panda')
+        && ($dist.depends.first(/'panda' | 'Panda::'/)
         || $dist.build-depends.first(/'panda' | 'Panda::'/)
-        || $dist.test-depends.first(/'panda' | 'Panda::'/)
-        || IS-USEABLE('Panda::Builder') {
+        || $dist.test-depends.first(/'panda' | 'Panda::'/)) {
 
         say "[Build] `build-depends` is missing entries. Attemping to mimick missing dependencies..." if ?$DEBUG;
 
@@ -516,7 +536,6 @@ sub legacy-hook($dist) {
                 }
             END_LEGACY_FIX
 
-        my $legacy-code = $builder-path.IO.slurp;
         $legacy-code.subst-mutate(/'use Panda::' \w+ ';'/, '', :g);
         $legacy-code.subst-mutate('class Build is Panda::Builder {', "{$legacy-fixer-code}\n");
         $builder-path = "{$builder-path.absolute}.zef".IO;

@@ -127,12 +127,12 @@ package Zef::CLI {
             }
         }
 
-        my @deps = (|$dist.depends, |$dist.test-depends, |$dist.build-depends).grep(*.defined).unique;
+        my @deps = (|$dist.depends-specs, |$dist.test-depends-specs, |$dist.build-depends-specs).grep(*.defined).unique;
         say "Depends: {@deps.elems} items";
         if $verbose {
-            my @rows = eager gather for @deps -> $dep {
+            my @rows = eager gather for @deps -> $spec {
                 FIRST { take [<ID Identity Installed?>] }
-                my $row = [ "{state $id += 1}", $dep, (IS-USEABLE($dep) ?? '✓' !! '')];
+                my $row = [ "{state $id += 1}", $spec.name, ($client.is-installed($spec) ?? '✓' !! '')];
                 take $row;
             }
             print-table(@rows, :$wrap);

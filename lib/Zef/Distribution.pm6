@@ -31,34 +31,6 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
         $self;
     }
 
-    # Note: current hacky implementation will not work on a dist that has no `provides`
-    # since the IS-USEABLE lookup is currently just `use Some::Module;`, so if a dist
-    # `Foo` contains just bin scripts then `use Foo;` would always fail (and thus always
-    # considered not installed)
-    method is-installed {
-        for self.provides.keys -> $provides {
-            # If a `provides` module name doesn't include a ver/auth/api
-            # then default them to the providing dist's values
-            my $hash = Zef::Identity($provides).?hash;
-
-            $hash<ver>  = ?$hash<ver>.?chars  ?? $hash<ver>  !! (self.ver  // '');
-            $hash<auth> = ?$hash<auth>.?chars ?? $hash<auth> !! (self.auth // '');
-            $hash<api>  = ?$hash<api>.?chars  ?? $hash<api>  !! (self.api  // '');
-            my $provides-identity = Zef::Identity($hash).?identity;
-            return True if ?IS-USEABLE($provides-identity);
-
-            # the `use XXX:ver<>` seems confused about the final version in certain circumstances
-            # so we'll try to put a `v` in front of it to see if it works since it will already
-            # have been stripped if it was originally there
-            if $hash<ver>.chars {
-                $hash<ver>  = "v{$hash<ver>}";
-                my $provides-identity-v = Zef::Identity($hash).?identity;
-                return ?IS-USEABLE($provides-identity-v);
-            }
-        }
-        False
-    }
-
     method identity { $ = hash2identity( %(:$.name, :$.ver, :$.auth, :$.api) ) }
 
     # make matching dependency names against a dist easier
@@ -117,24 +89,6 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     method id() { use nqp; $ = nqp::sha1(self.Str()) }
 
     method WHICH(Zef::Distribution:D:) { "{self.^name}|{self.Str()}" }
-}
-
-# xxx: temporary until a core solution is available
-sub IS-USEABLE($identity) is export {
-    use Zef::Shell;
-    try {
-        my $perl6 = $*EXECUTABLE;
-        my $cwd   = $*TMPDIR; # change cwd for script below so $*CWD/lib is not accidently considered
-        my $is-useable-script = "use $identity; exit(0);"; # -M doesn't work with :auth<xxx>:ver<> yet
-        # -Ilib/.precomp is a workaround precomp deadlocks when installing from the directory of the dist
-        my $proc = zrun($perl6, '-Ilib/.precomp', '-e', $is-useable-script, :$cwd, :out, :err);
-        my @out = |$proc.out.lines;
-        my @err = |$proc.err.lines;
-        $proc.out.close;
-        $proc.err.close;
-        ?$proc;
-    }
-    return (not defined $!) ?? True !! False;
 }
 
 # allow easier sorting of an array of Distribution objects by version

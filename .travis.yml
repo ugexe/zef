@@ -39,10 +39,13 @@ script:
     - perl6 -Ilib bin/zef -v install .
 
     # test bells and whistles
-    - zef -v list
-    - zef -v --installed list
+    - zef -v test .
     - zef -v search Base64
     - zef -v info Base64
+    - zef -v fetch Base64
+    - zef -v install Base64
+    - zef -v list
+    - zef -v --installed list
 
 after_success:
     # test fetching via an identity (Inline::Perl5)
@@ -51,3 +54,5 @@ after_success:
     - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then perl6 -MInline::Perl5 -e "exit 0;"; fi'
     # test uri install
     - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
+    - zef nuke TempDir StoreDir RootDir
+    - zef nuke site home # no more `zef` command

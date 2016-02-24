@@ -14,17 +14,17 @@ class Zef::Fetch::Path does Fetcher does Messenger does Extractor {
         return $from    if $from.IO.absolute eq $to.IO.absolute; # fakes a fetch
         my $dest-path = $from.IO.d ?? $to.IO.child("{$from.IO.absolute.IO.basename}_{time}") !! $to;
         mkdir($dest-path) if $from.IO.d && !$to.IO.e;
-        return $dest-path if copy-files($from, $dest-path).elems;
+        return $dest-path if copy-paths($from, $dest-path).elems;
         False;
     }
 
     method extract($path, $save-as) {
         my $extracted-to = $save-as.IO.child($path.IO.basename).absolute;
-        my @extracted = copy-files($path, $extracted-to);
+        my @extracted = copy-paths($path, $extracted-to);
         +@extracted ?? $extracted-to !! False;
     }
 
     method list($path) {
-        $ = ls-files($path);
+        $ = list-paths($path, :f, :!d, :r);
     }
 }

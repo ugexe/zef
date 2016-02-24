@@ -1,5 +1,6 @@
 use Zef::Client;
 use Zef::Config;
+use Zef::Utils::FileSystem;
 use Zef::Identity;
 use Zef::Distribution;
 use Zef::Utils::SystemInfo;
@@ -30,14 +31,16 @@ package Zef::CLI {
     multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) is export {
         my $client     = Zef::Client.new(:$config, :$verbose, :$depends, :$test-depends, :$build-depends);
         my @candidates = |$client.candidates(|@identities>>.&str2identity);
-        $client.fetch(|@candidates);
+        my @fetched-candidates = $client.fetch(|@candidates);
+        say "===> Fetched: {.as}\n{.uri.IO.absolute}" for @fetched-candidates;
+        exit +@candidates && +@fetched-candidates == +@candidates ?? 0 !! 1;
     }
 
     #| Run tests
     multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
         my $client  = Zef::Client.new(:$config, :$verbose, :$force);
         my %results = $client.test(|@paths);
-        %results<fail>.elems ?? exit(1) !! exit(0);
+        exit %results.values.flatmap(*.flat).grep(*.not).elems;
     }
 
     #| Install
@@ -48,7 +51,7 @@ package Zef::CLI {
         $exclude = grep *.defined, ?$depsonly ?? (|@identities>>.&str2identity, |$exclude) !! $exclude;
         my $client = Zef::Client.new(:$config, :$exclude, :$force, :$verbose, :$depends, :$test-depends, :$build-depends);
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
-        $client.install( :@to, :$fetch, :$test, :$upgrade, :$update, :$dry, |@identities>>.&str2identity );
+        exit ?$client.install( :@to, :$fetch, :$test, :$upgrade, :$update, :$dry, |@identities>>.&str2identity ) ?? 0 !! 1;
     }
 
     #| Uninstall
@@ -62,8 +65,9 @@ package Zef::CLI {
             say "===> Uninstalled from $from";
             say "$_" for |$candidates>>.dist>>.identity;
         }
-    }
 
+        exit %uninstalled.keys ?? 0 !! 1;
+    }
 
     #| Get a list of possible distribution candidates for the given terms
     multi MAIN('search', Int :$wrap = False, Bool :v(:$verbose), *@terms) is export {
@@ -77,6 +81,8 @@ package Zef::CLI {
             take [ "{state $id += 1}", $candi.from, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
         }
         print-table(@rows, :$wrap);
+
+        exit 0;
     }
 
     #| A list of available modules from enabled content storages
@@ -95,11 +101,14 @@ package Zef::CLI {
                 say "#\t{$_}" for @($candi.dist.provides.keys.sort if ?$verbose);
             }
         }
+
+        exit 0;
     }
 
     multi MAIN('rdepends', $identity) {
         my $client = Zef::Client.new(:$config);
         .dist.identity.say for $client.list-rev-depends($identity);
+        exit 0;
     }
 
     #| Detailed distribution information
@@ -137,6 +146,8 @@ package Zef::CLI {
             }
             print-table(@rows, :$wrap);
         }
+
+        exit 0;
     }
 
     #| Download a single module and change into its directory
@@ -157,7 +168,7 @@ package Zef::CLI {
         say "Note: Dependencies that were fetched are in env at: `PERL6LIB`" if +@local-candidates > 1;
         # todo: handle dependencies; only shell into the requested distribution's directory, but
         # fetch all dependencies and add their paths to %*ENV<PERL6LIB> for the shell below
-        so shell(%*ENV<SHELL> // %*ENV<ComSpec>, :$env, :cwd($requested.uri));
+        exit so shell(%*ENV<SHELL> // %*ENV<ComSpec>, :$env, :cwd($requested.uri)) ?? 0 !! 1;
     }
 
     #| Smoke test
@@ -176,6 +187,8 @@ package Zef::CLI {
             my @installed = try $client.install( :@to, :$fetch, :$test, $identity );
             %skip{$_.dist.identity}++ for @installed;
         }
+
+        exit 0;
     }
 
     #| Update package indexes
@@ -183,6 +196,23 @@ package Zef::CLI {
         my $client = Zef::Client.new(:$config);
         $client.storage.update(|@names);
     }
+
+    #| Delete all modules for a specific CompUnit::Repository name (site, home, etc)
+    multi MAIN('nuke', *@curli-names) {
+        my CompUnit::Repository @curlis = @curli-names\
+            .map(*.&str2cur)\
+            .grep(*.can('can-install'))\
+            .grep(*.can-install);
+        delete-paths($_) for @curlis.map(*.prefix.absolute);
+
+        exit 0;
+    }
+    #| Delete RootDir from config
+    multi MAIN('nuke', 'RootDir')   { delete-paths($config<RootDir>)  && exit(0) }
+    #| Delete StoreDir from config
+    multi MAIN('nuke', 'StoreDir')  { delete-paths($config<StoreDir>) && exit(0) }
+    #| Delete TempDir from config
+    multi MAIN('nuke', 'TempDir')   { delete-paths($config<TempDir>)  && exit(0) }
 
     multi MAIN(Bool :$help?) {
         note qq:to/END_USAGE/
@@ -206,6 +236,7 @@ package Zef::CLI {
                 list                    List known available distributions, or installed distributions with `--installed`
                 rdepends                List all distributions directly depending on a given identity
                 smoke                   Run smoke testing on available modules
+                nuke                    Delete directory/prefix containing matching configuration path or CURLI name
 
             OPTIONS
 

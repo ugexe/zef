@@ -241,6 +241,17 @@ continuing the install via `zef install .`
 Note that the path to any dependencies that needed to be fetched will be set in env at B<PERL6LIB>, so you should
 be able to run any build scripts, tests, or complete a manual install without having to specify their locations.
 
+=head4 B<nuke> [RootDir | TempDir | StoreDir]
+
+Deletes all paths in the specific configuration directory
+
+=head4 B<nuke> [site | home]
+
+Deletes all paths that are rooted in the prefix of the matching CompUnit::Repository name
+
+    # uninstall all modules
+    $ zef nuke site home
+
 =head2 Plugins and Configuration
 
 See the root zef directory for config.json. Each phase module will attempt to load/use each plugin in order.

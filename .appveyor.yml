@@ -27,17 +27,16 @@ test_script:
     # change path to make sure next `zef` commands aren't using any files in cwd or lib/
     - cd %APPVEYOR_BUILD_FOLDER%\..
 
-    # test identity install
-    - zef -v install Base64
-
     # test bells and whistles
-    - zef -v list
-    - zef -v --installed list
+    - zef -v test .
     - zef -v search Base64
     - zef -v info Base64
+    - zef -v fetch Base64
+    - zef -v list
+    - zef -v --installed list
 
-on_success:
-    # test uri install; may fail due to server issues
     - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
+    - zef nuke TempDir StoreDir RootDir
+    - zef nuke site home # no more `zef` command
 
 shallow_clone: true

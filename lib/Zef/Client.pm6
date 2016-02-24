@@ -192,7 +192,7 @@ class Zef::Client {
             my $relpath    = $stage-at.relative($tmp);
             my $extract-to = $!cache.IO.child($relpath);
 
-            say "$uri saved to $save-to";
+            say "$uri saved to $save-to" if ?$!verbose;
 
             # should probably break this out into its out method
             say "[{$!extractor.^name}] Extracting: {$save-to} to {$extract-to}" if ?$!verbose;
@@ -223,7 +223,7 @@ class Zef::Client {
 
     # xxx: needs some love
     method test(:@includes, *@paths) {
-        % = @paths.classify: -> $path {
+        % = @paths.map: -> $path {
             say "Start test phase for: $path";
 
             my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
@@ -238,8 +238,7 @@ class Zef::Client {
                 say "Testing passed for {$path}";
             }
 
-            # should really return a hash of passes and failures
-            ?$result
+            $path => ?$result
         }
     }
 
@@ -374,7 +373,9 @@ class Zef::Client {
 
             notice "Build.pm hook failed" if $dist.IO.child('Build.pm').e && !legacy-hook($dist);
 
-            take $candi if ?$test ?? self.test($dist.path, :includes(|$dist.metainfo<includes>)) !! True;
+            take $candi if ?$test
+                ?? !self.test($dist.path, :includes(|$dist.metainfo<includes>)).values.flatmap(*.flat).grep(*.not)
+                !! True;
         }
         # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
         die "All candidates failed building and/or testing. No reason to proceed" unless +@installable-candidates;

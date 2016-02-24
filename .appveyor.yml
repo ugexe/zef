@@ -32,6 +32,7 @@ test_script:
     - zef -v search Base64
     - zef -v info Base64
     - zef -v fetch Base64
+    - zef -v install Base64
     - zef -v list
     - zef -v --installed list
 

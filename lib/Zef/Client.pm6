@@ -19,11 +19,11 @@ class Zef::Client {
     has @.exclude;
     has @!ignore = <Test NativeCall lib MONKEY-TYPING nqp>;
 
-    has Bool $.verbose       = False;
-    has Bool $.force         = False;
-    has Bool $.depends       = True;
-    has Bool $.build-depends = True;
-    has Bool $.test-depends  = True;
+    has Bool $.verbose       is rw = False;
+    has Bool $.force         is rw = False;
+    has Bool $.depends       is rw = True;
+    has Bool $.build-depends is rw = True;
+    has Bool $.test-depends  is rw = True;
 
     proto method new(|) {*}
 
@@ -294,8 +294,7 @@ class Zef::Client {
         my @needed-candidates = eager gather for @fetched-candidates -> $candi {
             my $dist := $candi.dist;
             say "[DEBUG] Probing for {$dist.name}" if ?$!verbose;
-            #die ?self.is-installed($candi.dist);
-            if ?self.is-installed($candi.dist) {
+            if ?self.is-installed($candi.dist, at => @to) {
                 unless ?$!force {
                     say "{$!verbose??'['~$candi.as~'] '!!''}{$dist.identity} "
                     ~   "is already installed. Skipping... (use :force to override)";
@@ -423,7 +422,7 @@ class Zef::Client {
         eager gather for self.list-installed(|@from) -> $candi {
             my $dist = $candi.dist;
             if @specs.first({ $dist.spec-matcher($_) }) {
-                my $cur  = $*REPO.repo-chain.first(*.Str eq $candi.from);
+                my $cur = CompUnit::RepositoryRegistry.repository-for-spec("inst#{$candi.from}", :next-repo($*REPO));
                 $cur.uninstall($dist);
                 take $candi;
             }
@@ -476,8 +475,8 @@ class Zef::Client {
         }
     }
 
-    method is-installed($dist) {
-        $ = ?self.list-installed.first(*.dist.contains-spec($dist))
+    method is-installed($dist, :@at) {
+        $ = ?self.list-installed(|@at).first(*.dist.contains-spec($dist))
     }
 
     method sort-candidates(@candis, *%_) {

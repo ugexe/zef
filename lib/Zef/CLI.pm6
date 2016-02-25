@@ -105,8 +105,8 @@ package Zef::CLI {
         exit 0;
     }
 
-    multi MAIN('rdepends', $identity) {
-        my $client = Zef::Client.new(:$config);
+    multi MAIN('rdepends', $identity, Bool :v(:$verbose)) {
+        my $client = Zef::Client.new(:$config, :$verbose);
         .dist.identity.say for $client.list-rev-depends($identity);
         exit 0;
     }
@@ -192,9 +192,10 @@ package Zef::CLI {
     }
 
     #| Update package indexes
-    multi MAIN('update', *@names) is export {
+    multi MAIN('update', Bool :v(:$verbose), *@names) is export {
         my $client = Zef::Client.new(:$config);
         $client.storage.update(|@names);
+        exit 0;
     }
 
     #| Delete all modules for a specific CompUnit::Repository name (site, home, etc)

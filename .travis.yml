@@ -40,8 +40,10 @@ script:
 
     # test bells and whistles
     - zef -v test .
+    - zef -v update
     - zef -v search Base64
     - zef -v info Base64
+    - zef -v rdepends Base64
     - zef -v fetch Base64
     - zef -v install Base64
     - zef -v list

@@ -3,17 +3,17 @@ os: Visual Studio 2015
 platform: x64
 
 install:
-  - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
-  - choco install strawberryperl
-  - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
-  - git clone https://github.com/rakudo/rakudo.git %APPVEYOR_BUILD_FOLDER%\..\rakudo
-  - cd %APPVEYOR_BUILD_FOLDER%\..\rakudo
-  - perl Configure.pl --gen-moar --gen-nqp
-  - nmake install
-  - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\bin;%PATH%
-  - SET ZEF_PLUGIN_DEBUG=1
-  - SET ZEF_BUILDPM_DEBUG=1
-  - cd %APPVEYOR_BUILD_FOLDER%
+    - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
+    - choco install strawberryperl
+    - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
+    - git clone https://github.com/rakudo/rakudo.git %APPVEYOR_BUILD_FOLDER%\..\rakudo
+    - cd %APPVEYOR_BUILD_FOLDER%\..\rakudo
+    - perl Configure.pl --gen-moar --gen-nqp
+    - nmake install
+    - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\bin;%PATH%
+    - SET ZEF_PLUGIN_DEBUG=1
+    - SET ZEF_BUILDPM_DEBUG=1
+    - cd %APPVEYOR_BUILD_FOLDER%
 
 build: off
 

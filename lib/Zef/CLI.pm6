@@ -32,7 +32,7 @@ package Zef::CLI {
         my $client     = Zef::Client.new(:$config, :$verbose, :$depends, :$test-depends, :$build-depends);
         my @candidates = |$client.candidates(|@identities>>.&str2identity);
         my @fetched-candidates = $client.fetch(|@candidates);
-        say "===> Fetched: {.as}\n{.uri.IO.absolute}" for @fetched-candidates;
+        say "===> Fetched: {.as}\n{.dist.path}" for @fetched-candidates;
         exit +@candidates && +@fetched-candidates == +@candidates ?? 0 !! 1;
     }
 

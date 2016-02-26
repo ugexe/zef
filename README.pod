@@ -289,7 +289,7 @@ All the default fetching plugins have proxy support
 
 Pass a path to the I<-to> / I<--install-to> option and prefix the path with `inst#` (unless you know what you're doing)
 
-    $ perl6 -Ilib bin/zef -to="inst#/home/perl6/custom" install Text::Table::Simple
+    $ zef -to="inst#/home/perl6/custom" install Text::Table::Simple
     Searching for Text::Table::Simple
     Start test phase for: /home/perl6/.zef/store/Perl6-Text--Table--Simple.git/09abf9d5d59e9dfdc1be24319db0dcd76b764ede
     Testing passed for /home/perl6/.zef/store/Perl6-Text--Table--Simple.git/09abf9d5d59e9dfdc1be24319db0dcd76b764ede

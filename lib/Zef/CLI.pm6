@@ -202,8 +202,7 @@ package Zef::CLI {
     multi MAIN('nuke', *@curli-names) {
         my CompUnit::Repository @curlis = @curli-names\
             .map(*.&str2cur)\
-            .grep(*.can('can-install'))\
-            .grep(*.can-install);
+            .grep(*.?can-install);
         delete-paths($_) for @curlis.map(*.prefix.absolute);
 
         exit 0;

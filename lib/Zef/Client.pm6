@@ -263,7 +263,7 @@ class Zef::Client {
         @to.map: { my $group := $_.?can-install ?? @curs !! @cant-install; $group.push($_) }
         say "You specified the following CompUnit::Repository install targets that don't appear writeable/installable:\n"
             ~ "\t{@cant-install.join(', ')}" if +@cant-install;
-        die "Need a valid installation target to continue" unless ?$dry || (+@curs - +@cant-install);
+        die "Need a valid installation target to continue" unless ?$dry || (+@curs - +@cant-install) > 0;
 
         # XXX: Each loop block below essentially represents a phase, so they will probably
         # be moved into their own method/module related directly to their phase. For now

@@ -94,8 +94,9 @@ as part of their name. I<--> is probably valid too, but this makes my life a lot
 
 B<Options>
     
-    # install to a location determined by short-id
-    --install-to=<id> # site/home/vendor/perl
+    # install to a custom locations
+    --install-to=<id> # site/home/vendor/perl, or
+    -to=<id>          # inst#/home/some/path/custom
 
     # Install only the dependency chains of the requested distributions
     --depsonly
@@ -277,11 +278,31 @@ You can enable it by setting I<"enabled" : 1> in the config under the ContentSto
     -CContentStorage="cpan.enabled=1"
 
     # examples
-    `zef -v -CContentStorage="cpan.enabled=1" search CSV::Parser`
-    `zef -v -CContentStorage="cpan.enabled=1" install CSV::Parser`
+    $ zef -v -CContentStorage="cpan.enabled=1" search CSV::Parser
+    $ zef -v -CContentStorage="cpan.enabled=1" install CSV::Parser
 
 =head3 Proxy support?
 
 All the default fetching plugins have proxy support
+
+=head3 Custom installation locations?
+
+Pass a path to the I<-to> / I<--install-to> option and prefix the path with `inst#` (unless you know what you're doing)
+
+    $ perl6 -Ilib bin/zef -to="inst#/home/perl6/custom" install Text::Table::Simple
+    Searching for Text::Table::Simple
+    Start test phase for: /home/perl6/.zef/store/Perl6-Text--Table--Simple.git/09abf9d5d59e9dfdc1be24319db0dcd76b764ede
+    Testing passed for /home/perl6/.zef/store/Perl6-Text--Table--Simple.git/09abf9d5d59e9dfdc1be24319db0dcd76b764ede
+    Installing Text::Table::Simple:ver('0.0.3'):auth('github:ugexe') to /home/perl6/custom
+
+To make the custom location discoverable:
+
+    # Set the PERL6LIB env:
+    $ PERL6LIB="inst#/home/perl6/custom" perl6 -e "use Text::Table::Simple; say 'ok'"
+    ok
+
+    # or simply include it as needed
+    $ perl6 -Iinst#/home/perl6/custom -e "use Text::Table::Simple; say 'ok'"
+    ok
 
 =cut

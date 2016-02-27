@@ -73,34 +73,33 @@ role Pluggable {
     has $!plugins;
     has @.backends;
 
-    method plugins {
-        my $DEBUG = ?%*ENV<ZEF_PLUGIN_DEBUG>;
-        sub DEBUG($plugin, $message) {
-            say "[Plugin - {$plugin<name> // qq||}] $message" if $DEBUG;
-        }
+    sub DEBUG($plugin, $message) {
+        say "[Plugin - {$plugin<name> // qq||}] $message"\
+            if ?%*ENV<ZEF_PLUGIN_DEBUG>;
+    }
 
+    method plugins(*@names) {
+        +@names ?? self!list-plugins.grep({@names.contains(.plugin-id)}) !! self!list-plugins;
+    }
+
+    method !list-plugins {
         $!plugins := $!plugins ?? $!plugins !! cache gather for @!backends -> $plugin {
             my $module = $plugin<module>;
             DEBUG($plugin, "Checking: {$module}");
 
             # default to enabled unless `"enabled" : 0`
-            if $plugin<enabled>:exists && (!$plugin<enabled> || $plugin<enabled> eq "0") {
-                DEBUG($plugin, "\t(SKIP) Not enabled");
-                next;
-            }
+            next() R, DEBUG($plugin, "\t(SKIP) Not enabled")\
+                if $plugin<enabled>:exists && (!$plugin<enabled> || $plugin<enabled> eq "0");
 
-            if (try require ::($ = $module)) ~~ Nil {
-                DEBUG($plugin, "\t(SKIP) Plugin could not be loaded");
-                next;
-            }
+            next() R, DEBUG($plugin, "\t(SKIP) Plugin could not be loaded")\
+                if (try require ::($ = $module)) ~~ Nil;
+
             DEBUG($plugin, "\t(OK) Plugin loaded successful");
 
             if ::($ = $module).^can("probe") {
-                unless ::($ = $module).probe {
-                    DEBUG($plugin, "\t(SKIP) Probing failed");
-                    next;
-                }
-                DEBUG($plugin, "\t(OK) Probing successful");
+                ::($ = $module).probe
+                    ?? DEBUG($plugin, "\t(OK) Probing successful")
+                    !! (next() R, DEBUG($plugin, "\t(SKIP) Probing failed"))
             }
 
             # add attribute `plugin-id` here to make filtering by name slightly easier
@@ -108,13 +107,11 @@ role Pluggable {
             my $class = ::($ = $module).new(|($plugin<options> // []))\
                 but role :: { has $.plugin-id = $plugin<name> // '' };
 
-            if ?$class {
-                DEBUG($plugin, "(OK) Plugin is now usable: {$module}");
-                take $class;
-            }
-            else {
-                DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure");
-            }
+            next() R, DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure")\
+                unless ?$class;
+
+            DEBUG($plugin, "(OK) Plugin is now usable: {$module}");
+            take $class;
         }
     }
 }

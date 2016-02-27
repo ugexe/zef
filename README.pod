@@ -262,6 +262,8 @@ in a file named `Build.pm` at the root of your distribution:
         }
     }
 
+Set the env variable B<ZEF_BUILDPM_DEBUG=1> for additional debugging information
+
 I<Note: In the future a more appropriate hooking solution will replace this>
 
 =head4 B<look> [$identity]

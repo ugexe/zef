@@ -200,8 +200,13 @@ package Zef::CLI {
 
     #| Update package indexes
     multi MAIN('update', Bool :v(:$verbose), *@names) is export {
-        my $client = Zef::Client.new(:$config);
-        $client.storage.update(|@names);
+        my $client  = Zef::Client.new(:$config);
+        my %results = $client.storage.update(|@names);
+        my $rows    = |%results.map: {[.key, .value]};
+        die "An unknown plugin name used" if +@names && (+@names > +$rows);
+
+        print-table( [["Content Storage", "Distribution Count"], |$rows], wrap => True );
+
         exit 0;
     }
 
@@ -297,7 +302,7 @@ package Zef::CLI {
     }
 
     # handle max width + yada
-    sub _widther($str, int :$max) is export {
+    sub _widther($str, Int :$max) is export {
         return $str unless ?$max && $str.chars > $max;
         my $cutoff = $str.substr(0, $max || $str.chars);
         return $cutoff unless $cutoff.chars > 3;

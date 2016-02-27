@@ -19,8 +19,8 @@ class Zef::ContentStorage does Pluggable {
     }
 
     # todo: Find a better way to allow plugins access to other plugins
-    method !plugins {
-        cache gather for self.plugins {
+    method !plugins(*@names) {
+        cache gather for self.plugins(|@names) {
             .fetcher //= $!fetcher if .^can('fetcher');
             .cache   //= $!cache   if .^can('cache');
             take $_;
@@ -50,10 +50,11 @@ class Zef::ContentStorage does Pluggable {
     }
 
     method update(*@names) {
-        # todo: tag on `name` from config to plugins to enable filter by name
-        # +@names
-        #    ?? self.plugins.grep(*.<name> ~~ any(@names)).map(*.?update)
-        #    !! self.plugins.map(*.?update);
-        self!plugins.map(*.?update);
+        eager gather for self!plugins(|@names) -> $plugin {
+            next() R, warn "Specified plugin by name {$plugin.plugin-id} doesn't support `.update`"\
+                if +@names && !$plugin.can('update'); # `.update` is an optional interface requirement
+
+            take $plugin.^name.split('+', 2)[0] => $plugin.update.elems;
+        }
     }
 }

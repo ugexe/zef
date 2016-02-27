@@ -233,6 +233,32 @@ List available distributions that directly depend on C<$identity>
 
 Fetches candidates for given identities, including any dependencies (if requested)
 
+=head4 B<test> [*@paths]
+
+Run tests on each distribution located at [C<@paths>]
+
+=head4 B<build> [*@paths]
+
+Run the Build.pm file located in the given [C<@paths>]
+
+If you currently want to create a build hook, put the following dependency-free boilerplate
+in a file named `Build.pm` at the root of your distribution:
+
+    class Builder {
+        method build($dist-path) {
+            # do build stuff to your module
+            # which is located at $dist-path
+        }
+
+        # Only needed for panda compatability
+        method isa($what) {
+            return True if $what.^name eq 'Panda::Builder';
+            callsame;
+        }
+    }
+
+I<Note: In the future a more appropriate hooking solution will replace this>
+
 =head4 B<look> [$identity]
 
 Fetches the requested distribution and any dependencies (if requested), changes the directory to that of the fetched

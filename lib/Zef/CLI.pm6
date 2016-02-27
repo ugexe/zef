@@ -43,6 +43,13 @@ package Zef::CLI {
         exit %results.values.flatmap(*.flat).grep(*.not).elems;
     }
 
+    #| Run Build.pm
+    multi MAIN('build', Bool :$force, Bool :v(:$verbose), *@paths) {
+        my $client  = Zef::Client.new(:$config, :$verbose, :$force);
+        my @results = $client.build: |@paths.map({ try Zef::Distribution::Local.new($_) }).grep(*.so);
+        exit +@paths - +@results;
+    }
+
     #| Install
     multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
                 Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude is copy,
@@ -229,6 +236,7 @@ package Zef::CLI {
                 uninstall               Uninstall specified distributions
                 test                    Run tests on a given module's path
                 fetch                   Fetch and extract module's source
+                build                   Run the Build.pm in a given module's path
                 look                    `fetch` followed by shelling into the module's path (dependencies in \%*ENV<PERL6LIB>)
                 update                  Update package indexes for content storages
                 search                  Show a list of possible distribution candidates for the given terms

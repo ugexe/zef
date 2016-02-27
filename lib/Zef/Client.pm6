@@ -220,6 +220,10 @@ class Zef::Client {
         @saved;
     }
 
+    # xxx: needs some love. also an entire specification
+    method build(*@dists) {
+        |@dists.map(*.&legacy-hook)
+    }
 
     # xxx: needs some love
     method test(:@includes, *@paths) {
@@ -269,13 +273,14 @@ class Zef::Client {
         # be moved into their own method/module related directly to their phase. For now
         # lumping them here allows us to easily move functionality between phases until we
         # find the perfect balance/structure.
-
         die "Must specify something to install" unless +@wants;
+
 
         # Search Phase:
         # Search ContentStorages to locate each Candidate needed to fulfill the requested identities
         my @found-candidates = |self.candidates(|@wants, :$upgrade, |%_).unique;
         die "Failed to resolve any candidates. No reason to proceed" unless +@found-candidates;
+
 
         # Fetch Stage:
         # Use the results from searching ContentStorages and download/fetch the distributions they point at
@@ -336,6 +341,7 @@ class Zef::Client {
         }
         die "All candidates have been filtered out. No reason to proceed" unless +@filtered-candidates;
 
+
         # Sort Phase:
         # This ideally also handles creating alternate build orders when a `depends` includes
         # alternative dependencies. Then if the first build order fails it can try to fall back
@@ -346,32 +352,29 @@ class Zef::Client {
         my @sorted-candidates = self.sort-candidates(@filtered-candidates, |%_);
         die "Something went terribly wrong determining the build order" unless +@sorted-candidates;
 
-        # Build Phase:
+
+        # Setup(?) Phase:
         # Attach appropriate metadata so we can do --dry runs using -I/some/dep/path
         # and can install after we know they pass any required tests
-        my @installable-candidates = eager gather for @sorted-candidates -> $candi {
+        my @linked-candidates = self.link-candidates(|@sorted-candidates);
+        die "Something went terribly wrong linking the distributions" unless +@linked-candidates;
+
+
+        # Build Phase:
+        my @testable-candidates = gather for @linked-candidates -> $candi {
             my $dist := $candi.dist;
-            say "[DEBUG] Processing {$dist.name}" if ?$!verbose;
-
-            my @dep-specs = unique(grep *.defined,
-                ($dist.depends-specs       if ?$!depends).Slip,
-                ($dist.test-depends-specs  if ?$!test-depends).Slip,
-                ($dist.build-depends-specs if ?$!build-depends).Slip);
-
-            # this could probably be done in the topological-sort itself
-            $dist.metainfo<includes> = eager gather DEPSPEC: for @dep-specs -> $spec {
-                for @filtered-candidates -> $fcandi {
-                    my $fdist := $fcandi.dist;
-                    if $fdist.contains-spec($spec) {
-                        take $fdist.IO.child('lib').absolute;
-                        take $_ for |$fdist.metainfo<includes>;
-                        next DEPSPEC;
-                    }
-                }
+            unless $dist.IO.child('Build.pm').e {
+                take $candi;
+                next;
             }
+            self.build($dist) ?? take($candi) !! notice("Build.pm hook failed for {$dist.path}");
+        }
+        die "No installable candidates remain after `build` failures" unless +@testable-candidates;
 
-            notice "Build.pm hook failed" if $dist.IO.child('Build.pm').e && !legacy-hook($dist);
 
+        # Test Phase:
+        my @installable-candidates = gather for @testable-candidates -> $candi {
+            my $dist := $candi.dist;
             take $candi if ?$test
                 ?? !self.test($dist.path, :includes(|$dist.metainfo<includes>)).values.flatmap(*.flat).grep(*.not)
                 !! True;
@@ -507,6 +510,32 @@ class Zef::Client {
         $ = @tree.map(*.dist)>>.metainfo<marked>:delete;
         return @tree;
     }
+
+    # add appropriate include (-I / PERL6LIB) paths for dependencies
+    method link-candidates(*@candidates) {
+         @ = @candidates.map: -> $candi {
+            my $dist := $candi.dist;
+
+            my @dep-specs = unique(grep *.defined,
+                ($dist.depends-specs       if ?$!depends).Slip,
+                ($dist.test-depends-specs  if ?$!test-depends).Slip,
+                ($dist.build-depends-specs if ?$!build-depends).Slip);
+
+            # this could probably be done in the topological-sort itself
+            $dist.metainfo<includes> = eager gather DEPSPEC: for @dep-specs -> $spec {
+                for @candidates -> $fcandi {
+                    my $fdist := $fcandi.dist;
+                    if $fdist.contains-spec($spec) {
+                        take $fdist.IO.child('lib').absolute;
+                        take $_ for |$fdist.metainfo<includes>;
+                        next DEPSPEC;
+                    }
+                }
+            }
+
+            $candi;
+        }
+    }
 }
 
 
@@ -550,7 +579,7 @@ sub legacy-hook($dist) {
     try {
         use Zef::Shell;
         CATCH { default { say "[Build] Something went wrong: $_" if ?$DEBUG; $result = False; } }
-        my @includes = $dist.metainfo<includes>.map: { "-I{$_}" }
+        my @includes = $dist.metainfo<includes>.grep(*.defined).map: { "-I{$_}" }
         my @exec = |($*EXECUTABLE, '-Ilib/.precomp', '-I.', '-Ilib', |@includes, '-e', "$cmd");
         say "[Build] cwd: {$dist.IO.absolute}" if ?$DEBUG;
         say "[Build] exec: {@exec.join(' ')}"  if ?$DEBUG;

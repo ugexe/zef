@@ -25,6 +25,8 @@ To install it via rakudobrew, please use the following command:
 
 =head1 USAGE
 
+    zef --help
+
     # duh
     zef install CSV::Parser
 
@@ -51,6 +53,9 @@ To install it via rakudobrew, please use the following command:
 
     # smoke test modules from all content storages
     zef smoke
+
+    # run Build.pm if one exists in given path
+    zef build .
 
 =head2 Notice
 

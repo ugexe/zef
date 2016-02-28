@@ -210,21 +210,32 @@ package Zef::CLI {
         exit 0;
     }
 
-    #| Delete all modules for a specific CompUnit::Repository name (site, home, etc)
-    multi MAIN('nuke', *@curli-names) {
-        my CompUnit::Repository @curlis = @curli-names\
+    #| Nuke module installations (site, home) and storages from config (RootDir, StoreDir, TempDir)
+    multi MAIN('nuke', *@names) {
+        my sub confirm-delete(*@dirs) {
+            for @dirs -> $dir {
+                next unless $dir.IO.e;
+                given prompt("Delete {$dir.path}/* [y/n]: ") {
+                    when any(<y Y>) { say "Deleted " ~ +delete-paths($dir, :f, :d, :r) ~ " paths" }
+                    when any(<n N>) { say "Skipping..." }
+                    default { say "Invalid entry (enter Y or N)"; redo }
+                }
+            }
+        }
+
+        my @config-keys = <RootDir StoreDir TempDir>;
+        my @config-dirs = $config<<{@names (&) @config-keys}>>.map(*.IO.absolute).sort;
+
+        my @curli-dirs = @names\
+            .grep(* !~~ any(@config-keys))\
             .map(*.&str2cur)\
-            .grep(*.?can-install);
-        delete-paths($_) for @curlis.map(*.prefix.absolute);
+            .grep(*.?can-install)\
+            .map(*.prefix.absolute);
+
+        confirm-delete( |@curli-dirs, |@config-dirs );
 
         exit 0;
     }
-    #| Delete RootDir from config
-    multi MAIN('nuke', 'RootDir')   { delete-paths($config<RootDir>)  && exit(0) }
-    #| Delete StoreDir from config
-    multi MAIN('nuke', 'StoreDir')  { delete-paths($config<StoreDir>) && exit(0) }
-    #| Delete TempDir from config
-    multi MAIN('nuke', 'TempDir')   { delete-paths($config<TempDir>)  && exit(0) }
 
     multi MAIN(Bool :$help?) {
         note qq:to/END_USAGE/

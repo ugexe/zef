@@ -9,8 +9,8 @@ class Zef::Distribution::DependencySpecification {
 
     method spec { $ = self.?identity // $!spec }
 
-    method spec-parts(Zef::Distribution::DependencySpecification:_: $spec?) {
-        $!ident //= Zef::Identity($spec // self.spec);
+    method spec-parts(Zef::Distribution::DependencySpecification:_: $spec = self.spec) {
+        $!ident //= Zef::Identity($spec);
         $!ident.?hash;
     }
 

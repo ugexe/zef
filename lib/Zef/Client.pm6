@@ -98,7 +98,7 @@ class Zef::Client {
         # Note that URNs like Foo-Bar:ver('1.2.3') also matches as a URI.
         # So if something is a URN, assume its not a URI (for our purposes)
         for @wants.grep({!Zef::Identity($_)}, :p).reverse -> $kv {
-            if my $uri = Zef::Utils::URI($kv.value) andthen !$uri.is-relative {
+            if my $uri = Zef::Utils::URI($kv.value) and !$uri.is-relative {
                 @needs.push: Candidate.new(:uri($kv.value), :as($kv.value));
                 @wants[$kv.key]:delete;
             }

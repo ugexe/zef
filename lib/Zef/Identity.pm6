@@ -60,12 +60,12 @@ class Zef::Identity {
     }
 
     proto method new(|) {*}
-    multi method new(Str :$name!, :ver($version), :$auth, :$api) {
+    multi method new(Str :$name!, :ver(:$version), :$auth, :$api) {
         self.bless(:$name, :$version, :$auth, :$api);
     }
     multi method new(Str $id) {
         state %id-cache;
-        %id-cache{$id} //= do {
+        %id-cache{$id} := %id-cache{$id}:exists ?? %id-cache{$id} !! do {
             if URN.parse($id) -> $urn {
                 self.bless(
                     name    => ~($urn<name>.subst('--','::') // ''),

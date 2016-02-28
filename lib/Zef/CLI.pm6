@@ -93,14 +93,15 @@ package Zef::CLI {
     }
 
     #| A list of available modules from enabled content storages
-    multi MAIN('list', Bool :v(:$verbose), Bool :i(:$installed), *@at) is export {
+    multi MAIN('list', Int :$max?, Bool :v(:$verbose), Bool :i(:$installed), *@at) is export {
         my $client = Zef::Client.new(:$config, :$verbose);
 
-        my $found = ?$installed
+        my $found := ?$installed
             ?? $client.list-installed(|@at.map(*.&str2cur))
             !! $client.list-available(|@at);
 
-        my %locations = $found.classify: -> $candi { $candi.from }
+        my $range := defined($max) ?? 0..+$max !! *;
+        my %locations = $found[$range].classify: -> $candi { $candi.from }
         for %locations.kv -> $from, $candis {
             say "===> Found via {$from}";
             for |$candis -> $candi {

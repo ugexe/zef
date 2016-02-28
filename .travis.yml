@@ -46,7 +46,7 @@ script:
     - zef -v rdepends Base64
     - zef -v fetch Base64
     - zef -v install Base64
-    - zef -v list
+    - zef -v --max=10 list
     - zef -v --installed list
 
 after_success:

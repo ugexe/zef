@@ -35,7 +35,7 @@ test_script:
     - zef -v rdepends Base64
     - zef -v fetch Base64
     - zef -v install Base64
-    - zef -v list
+    - zef -v --max=10 list
     - zef -v --installed list
 
     - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz

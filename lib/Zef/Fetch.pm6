@@ -4,24 +4,18 @@ use Zef::Utils::URI;
 class Zef::Fetch does Pluggable {
     method ACCEPTS($uri) { $ = $uri ~~ @$.plugins }
 
-    method fetch($uri, $save-as, :&stdout = -> $o {$o.say}, :&stderr = -> $e {$e.say}) {
-        # .zef/tmp/zef
-        #my $dist-repo = $save-as.IO.child(Zef::Utils::URI($uri).path.IO.basename);
-        #mkdir($dist-repo) unless $dist-repo.e;
-        # .zef/tmp/zef/{time stamp}
-        #my $dist-path = $dist-repo.child(time);
-        #mkdir($dist-path) unless $dist-path.e;
-        my $fetchers = self.plugins.grep(*.fetch-matcher($uri));
+    method fetch($uri, $save-as, Supplier :$stdout, Supplier :$stderr) {
+        my $fetcher = self.plugins.first(*.fetch-matcher($uri));
 
-        die "No fetching backend available" unless ?$fetchers;
+        die "No fetching backend available" unless ?$fetcher;
 
-        $fetchers[0].stdout.Supply.act(&stdout);
-        $fetchers[0].stderr.Supply.act(&stderr);
+        $fetcher.stdout.Supply.act: -> $out { ?$stdout ?? $stdout.emit($out) !! $*OUT.say($out) }
+        $fetcher.stderr.Supply.act: -> $err { ?$stderr ?? $stderr.emit($err) !! $*ERR.say($err) }
 
-        my $got = $fetchers[0].fetch($uri, $save-as);
+        my $got = $fetcher.fetch($uri, $save-as);
 
-        $fetchers[0].stdout.done;
-        $fetchers[0].stderr.done;
+        $fetcher.stdout.done;
+        $fetcher.stderr.done;
 
         return $got;
     }

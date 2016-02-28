@@ -69,7 +69,6 @@ class Zef::Client {
     }
 
     method candidates(Bool :$upgrade, *@identities) {
-        my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
         # This entire structure sucks as much as the previous recursive one. really want something like
         # a single assignment (like a gather loop) where the body of the block can access whats already been taken
         # which would make it easier to find identities that may have already been found. It also needs to not just
@@ -171,7 +170,14 @@ class Zef::Client {
 
 
     method fetch(*@candidates) {
-        my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
+        my $stdout = Supplier.new;
+        my &out = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
+        $stdout.Supply.tap(&out);
+
+        my $stderr = Supplier.new;
+        my &err = ?$!verbose ?? -> $e {$e.say} !! -> $ { };
+        $stderr.Supply.tap(&err);
+
         my @saved = eager gather for @candidates -> $candi {
             my $from      = $candi.from;
             my $as        = $candi.as;
@@ -188,7 +194,7 @@ class Zef::Client {
 
             say "{?$from??qq|[$from] |!!''}{$uri} staging at: $stage-at" if ?$!verbose;
 
-            my $save-to    = $!fetcher.fetch($uri, $stage-at, :&stdout);
+            my $save-to    = $!fetcher.fetch($uri, $stage-at, :$stdout, :$stderr);
             my $relpath    = $stage-at.relative($tmp);
             my $extract-to = $!cache.IO.child($relpath);
 
@@ -212,6 +218,9 @@ class Zef::Client {
             take $local-candi;
         }
 
+        $stdout.done;
+        $stderr.done;
+
         # Calls optional `.store` method on all ContentStorage plugins so they may
         # choose to cache the dist or simply cache the meta data of what is installed.
         # Should go in its own phase/lifecycle event
@@ -227,12 +236,21 @@ class Zef::Client {
 
     # xxx: needs some love
     method test(:@includes, *@paths) {
-        % = @paths.map: -> $path {
+        my $stdout = Supplier.new;
+        my &out = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
+        $stdout.Supply.tap(&out);
+
+        my $stderr = Supplier.new;
+        my &err = ?$!verbose ?? -> $e {$e.say} !! -> $ { };
+        $stderr.Supply.tap(&err);
+
+        my %results = eager @paths.map: -> $path {
             say "Start test phase for: $path";
 
-            my &stdout = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
+            my $result = $!tester.test($path, :includes(@includes.grep(*.so)), :$stdout, :$stderr);
 
-            my $result = try $!tester.test($path, :includes(@includes.grep(*.so)), :&stdout);
+            $stdout.done;
+            $stderr.done;
 
             if !$result {
                 die "Aborting due to test failure at: {$path} (use :force to override)" unless ?$!force;
@@ -244,6 +262,11 @@ class Zef::Client {
 
             $path => ?$result
         }
+
+        $stdout.done;
+        $stderr.done;
+
+        %results
     }
 
 

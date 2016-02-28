@@ -1,7 +1,8 @@
 unit module Zef::Utils::FileSystem;
 
 sub list-paths($path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot) is export {
-    die "{$path} is not a valid path" unless ?$path && $path.?chars && $path.IO.e;
+    die "{$path} is not a valid path" unless ?$path && +$path.?chars;
+    die "{$path} does not exists" unless $path.IO.e;
     my @stack = $path.IO.absolute;
     my $paths := gather while ( @stack ) {
         my $current = @stack.pop;
@@ -12,7 +13,8 @@ sub list-paths($path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot) is
 }
 
 sub copy-paths($from-path, $to-path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot) is export {
-    die "{$from-path} is not a valid path" unless ?$from-path && $from-path.?chars && $from-path.IO.e;
+    die "{$from-path} is not a valid path" unless ?$from-path && +$from-path.?chars;
+    die "{$from-path} does not exists" unless $from-path.IO.e;
     mkdir($to-path) unless $to-path.IO.e;
     my @files  = list-paths($from-path, :$d, :$f, :$r, :$dot).sort;
     my @copied = gather for @files -> $from-file {

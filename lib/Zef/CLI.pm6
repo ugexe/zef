@@ -212,12 +212,16 @@ package Zef::CLI {
     }
 
     #| Nuke module installations (site, home) and storages from config (RootDir, StoreDir, TempDir)
-    multi MAIN('nuke', *@names) {
+    multi MAIN('nuke', Bool :$confirm, *@names) {
+        my sub dir-delete($dir) {
+            my @deleted = grep *.defined, try delete-paths($dir, :f, :d, :r);
+            say "Deleted " ~ +@deleted ~ " paths from $dir/*";
+        }
         my sub confirm-delete(*@dirs) {
             for @dirs -> $dir {
-                next unless $dir.IO.e;
+                next() R, say "$dir does not exist. Skipping..." unless $dir.IO.e;
                 given prompt("Delete {$dir.path}/* [y/n]: ") {
-                    when any(<y Y>) { say "Deleted " ~ +delete-paths($dir, :f, :d, :r) ~ " paths" }
+                    when any(<y Y>) { dir-delete($dir)   }
                     when any(<n N>) { say "Skipping..." }
                     default { say "Invalid entry (enter Y or N)"; redo }
                 }
@@ -233,7 +237,8 @@ package Zef::CLI {
             .grep(*.?can-install)\
             .map(*.prefix.absolute);
 
-        confirm-delete( |@curli-dirs, |@config-dirs );
+        my @delete = |@curli-dirs, |@config-dirs;
+        $confirm === False ?? @delete.map(*.&dir-delete) !! confirm-delete( |@delete );
 
         exit 0;
     }

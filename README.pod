@@ -57,12 +57,6 @@ To install it via rakudobrew, please use the following command:
     # run Build.pm if one exists in given path
     zef build .
 
-=head2 Notice
-
-Still Beta level software. The process of implementing all of the previous features, test suite, and documentation is
-still in the works (see an older readme to see expected full feature set). No real work has been done porting over the
-old CLI overlay from the previous version of Zef, so the output is rather bleh.
-
 =head2 More CLI
 
 =head4 B<install> [*@identities]

@@ -243,7 +243,7 @@ package Zef::CLI {
         exit 0;
     }
 
-    multi MAIN(Bool :$help?) {
+    multi MAIN(Bool :h(:$help)?) {
         note qq:to/END_USAGE/
             Zef - Perl6 Module Management
 

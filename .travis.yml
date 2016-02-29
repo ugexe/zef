@@ -38,8 +38,11 @@ script:
     # test install from local path
     - perl6 -Ilib bin/zef -v install .
 
+    # change path to make sure next `zef` commands aren't using any files in cwd or lib/
+    - cd $TRAVIS_BUILD_DIR/..
+
     # test bells and whistles
-    - zef -v test .
+    - zef -v test ./zef
     - zef -v update
     - zef -v search Base64
     - zef -v info Base64
@@ -49,7 +52,6 @@ script:
     - zef -v --max=10 list
     - zef -v --installed list
 
-after_success:
     # test fetching via an identity (Inline::Perl5)
     # perl/perlbrew setup for osx on travis is buggy; not sure how to use shrplib perl without building from source
     - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then zef -v install Inline::Perl5; fi'

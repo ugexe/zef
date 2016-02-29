@@ -9,13 +9,11 @@ class Zef::Test does Pluggable {
         $tester.stdout.Supply.act: -> $out { ?$stdout ?? $stdout.emit($out) !! $*OUT.say($out) }
         $tester.stderr.Supply.act: -> $err { ?$stderr ?? $stderr.emit($err) !! $*ERR.say($err) }
 
-        my $got = $tester.test($path, :@includes);
+        my @got = try $tester.test($path, :@includes);
 
         $tester.stdout.done;
         $tester.stderr.done;
 
-        die "something went wrong testing {$path} with {$tester}" unless ?$got;
-
-        return True;
+        @got;
     }
 }

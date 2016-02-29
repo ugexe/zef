@@ -38,9 +38,11 @@ package Zef::CLI {
 
     #| Run tests
     multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
-        my $client  = Zef::Client.new(:$config, :$verbose, :$force);
-        my %results = $client.test(|@paths);
-        exit %results.values.flatmap(*.flat).grep(*.not).elems;
+        my $client     = Zef::Client.new(:$config, :$verbose, :$force);
+        my @candidates = |$client.candidates(|@paths>>.&str2identity);
+        my @tested     = |$client.test(|@candidates);
+        my %results    = |@tested.classify: -> $candi { $candi.test-results.grep(*.not).elems == 0 ?? 'pass' !! 'fail' }
+        exit ?%results<fail> ?? 1 !! ?%results<pass> ?? 0 !! 255;
     }
 
     #| Run Build.pm

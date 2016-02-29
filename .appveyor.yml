@@ -13,6 +13,7 @@ install:
     - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\bin;%PATH%
     - SET ZEF_PLUGIN_DEBUG=1
     - SET ZEF_BUILDPM_DEBUG=1
+    - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%
     - cd %APPVEYOR_BUILD_FOLDER%
 
 build: off
@@ -21,14 +22,11 @@ test_script:
     # test local path install
     - perl6 -Ilib bin/zef --verbose install .
 
-    # Setup PATH to give access to the `zef` command (shown in stdout of prev command)
-    - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%
-
     # change path to make sure next `zef` commands aren't using any files in cwd or lib/
     - cd %APPVEYOR_BUILD_FOLDER%\..
 
     # test bells and whistles
-    - zef -v test .
+    - zef -v test ./zef
     - zef -v update
     - zef -v search Base64
     - zef -v info Base64

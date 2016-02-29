@@ -124,7 +124,7 @@ class Zef::Client {
                 my $spec = Zef::Distribution::DependencySpecification.new($id);
                 so !@candidates.first(*.dist.contains-spec($spec))
             }).unique;
-
+            next unless +@todo;
             @needs = (|@needs, |@todo).grep(* !~~ $exclude).unique;
 
             say "Searching for {'dependencies ' if $is-dependency++}{@todo.join(', ')}";
@@ -179,11 +179,11 @@ class Zef::Client {
         $stderr.Supply.tap(&err);
 
         my @saved = eager gather for @candidates -> $candi {
-            my $from      = $candi.from;
-            my $as        = $candi.as;
-            my $uri       = $candi.uri;
-            my $tmp      := %CONFIG<TempDir>.IO;
-            my $stage-at := $tmp.child($uri.IO.basename);
+            my $from     = $candi.from;
+            my $as       = $candi.as;
+            my $uri      = $candi.uri;
+            my $tmp      = %CONFIG<TempDir>.IO;
+            my $stage-at = $tmp.child($uri.IO.basename);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
 
@@ -235,7 +235,7 @@ class Zef::Client {
     }
 
     # xxx: needs some love
-    method test(:@includes, *@paths) {
+    method test(:@includes, *@candidates) {
         my $stdout = Supplier.new;
         my &out = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
         $stdout.Supply.tap(&out);
@@ -244,29 +244,32 @@ class Zef::Client {
         my &err = ?$!verbose ?? -> $e {$e.say} !! -> $ { };
         $stderr.Supply.tap(&err);
 
-        my %results = eager @paths.map: -> $path {
-            say "Start test phase for: $path";
+        my @tested = eager gather for @candidates -> $candi {
+            say "Start test phase for: {$candi.dist.?identity // $candi.uri}";
 
-            my $result = $!tester.test($path, :includes(@includes.grep(*.so)), :$stdout, :$stderr);
+            my @result = $!tester.test($candi.dist.path, :includes(@includes.grep(*.so)), :$stdout, :$stderr);
 
-            $stdout.done;
-            $stderr.done;
-
-            if !$result {
-                die "Aborting due to test failure at: {$path} (use :force to override)" unless ?$!force;
-                say "Test failure at: {$path}. Continuing anyway with :force"
+            if @result.grep(*.not).elems {
+                die "Aborting due to test failure: {$candi.dist.?identity // $candi.uri} "
+                ~   "(use --force to override)" unless ?$!force;
+                say "Test failure: {$candi.dist.?identity // $candi.uri}. "
+                ~   "Continuing anyway with --force"
             }
             else {
-                say "Testing passed for {$path}";
+                say "Testing passed for {$candi.dist.?identity // $candi.uri}";
             }
 
-            $path => ?$result
+            # This method of attaching meta information will eventually be replaced
+            # with a `Plan`/`Result` class, but its great for fleshing out a design now
+            $candi does role :: { has $.test-results = |@result };
+
+            take $candi;
         }
 
         $stdout.done;
         $stderr.done;
 
-        %results
+        @tested
     }
 
 
@@ -384,31 +387,30 @@ class Zef::Client {
 
 
         # Build Phase:
-        my @testable-candidates = gather for @linked-candidates -> $candi {
+        my @built-candidates = gather for @linked-candidates -> $candi {
             my $dist := $candi.dist;
-            unless $dist.IO.child('Build.pm').e {
-                take $candi;
-                next;
-            }
+            next() R, take($candi) unless $dist.IO.child('Build.pm').e;
             self.build($dist) ?? take($candi) !! notice("Build.pm hook failed for {$dist.path}");
         }
-        die "No installable candidates remain after `build` failures" unless +@testable-candidates;
+        die "No installable candidates remain after `build` failures" unless +@built-candidates;
 
 
         # Test Phase:
-        my @installable-candidates = gather for @testable-candidates -> $candi {
-            my $dist := $candi.dist;
-            take $candi if ?$test
-                ?? !self.test($dist.path, :includes(|$dist.metainfo<includes>)).values.flatmap(*.flat).grep(*.not)
-                !! True;
+        my @tested-candidates = gather for @built-candidates -> $candi {
+            next() R, take($candi) unless ?$test;
+
+            my $tested = self.test($candi, :includes(|$candi.dist.metainfo<includes>));
+            my $failed = $tested.map(*.test-results.grep(!*.so).elems).sum;
+
+            take $candi unless ?$failed && !$!force;
         }
         # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
-        die "All candidates failed building and/or testing. No reason to proceed" unless +@installable-candidates;
+        die "All candidates failed building and/or testing. No reason to proceed" unless +@tested-candidates;
 
         # Install Phase:
         # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
         # and contain only the modules needed for this specific run/plan
-        my @installed-candidates = gather for @installable-candidates -> $candi {
+        my @installed-candidates = gather for @tested-candidates -> $candi {
             take $candi if @curs.grep: -> $cur {
                 my $dist = $candi.dist;
                 # CURI.install is bugged; $dist.provides/files will both get modified and fuck up

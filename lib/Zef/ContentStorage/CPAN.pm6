@@ -108,7 +108,9 @@ sub METACPAN2META6(%cpan-meta) {
     $meta6<license>     = (%cpan-meta<license> // '').join(',');
     $meta6<provides>    = (%cpan-meta<metadata><provides>.kv.map: { $^a => $^b<file> } // {});
 
-    $meta6<depends>     = %cpan-meta<metadata><x_depends>;
+    $meta6<depends>       = %cpan-meta<metadata><x_depends>;
+    $meta6<build-depends> = %cpan-meta<metadata><x_build-depends>;
+    $meta6<test-depends>  = %cpan-meta<metadata><x_test-depends>;
 
     $meta6<auth>        = %cpan-meta<metadata><x_auth> // %cpan-meta<metadata><x_authority> // $meta6<author> // '';
     $meta6<auth> = '' if $meta6<auth> eq 'unknown';

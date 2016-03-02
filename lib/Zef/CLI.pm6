@@ -9,23 +9,19 @@ use Zef::Utils::SystemInfo;
 # This allows the bin/zef original code to be precompiled, halving bare start up time.
 # Ideally this all ends up back in bin/zef once/if precompilation of scripts is handled in CURI
 package Zef::CLI {
-    # First crack at cli config modification
-    # -C<config key>="<name of item>.<field>=<new value>"
-    # example: -CContentStorage="cpan.enabled=1"
-    # Notice this only works with the plugin configuration structure: `"key" : [{"name":"foo", ...},{"name":"bar", ...}]`
-    # For now its really just a way to enable cpan so people can play with it easier.
-    our $config = ZEF-CONFIG();
-    for @*ARGS -> $conf {
-        if $conf.starts-with('-C') && $conf.contains('=') {
-            my ($key, $value)                 = $conf.substr(2).split(/'='/, 2);
-            my ($plugin-name, $plugin-option) = $value.split(/'.'/, 2);
-            my ($plugin-key, $plugin-value)   = $plugin-option.split(/'='/, 2);
-            for $config{$key}.grep(*.<name> eq $plugin-name) -> $conf is rw {
-                $conf{$plugin-key} = $plugin-value;
-            }
+    # Second crack at cli config modification
+    # Currently only uses Bools `--name` and `--/name` to enable and disable a plugin
+    # Note that `name` can match the config plugin key `short-name` or `module`
+    # TODO: accept --name="key.subkey=xxx" format for setting explicit parameters
+    our $config = ZEF-CONFIG() andthen do {
+        my $plugin-lookup := config-plugin-lookup($config);
+        @*ARGS = eager gather for @*ARGS -> $arg {
+            my $arg-as = $arg.subst(/^ ["--" | "--\/"]/, '');
+            $arg-as ~~ any($plugin-lookup.keys)
+                ?? ($plugin-lookup{$arg-as}<enabled> = ?$arg.starts-with('--/') ?? 0 !! 1)
+                !! take($arg);
         }
     }
-    @*ARGS = @*ARGS.grep(* !~~ /^'-C' .+/);
 
     #| Download specific distributions
     multi MAIN('fetch', Bool :$depends, Bool :$test-depends, Bool :$build-depends, Bool :v(:$verbose), *@identities) is export {
@@ -288,8 +284,11 @@ package Zef::CLI {
                 --/build-depends        Do not fetch build dependencies
 
             CONFIGURATION {find-config().IO.absolute}
+                Enable or disable plugins that match the configuration that has field `short-name` that matches <short-name>
 
-                -C[Phase]="[name].[field]=[value]"  # Example: -CContentStorage="cpan.enabled=1"
+                --<short-name>  # `--cpan`  Enable plugin with short-name `cpan`
+                --/<short-name> # `--/cpan` Disable plugin with short-name `cpan`
+
             END_USAGE
     }
 

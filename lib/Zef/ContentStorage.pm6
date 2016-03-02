@@ -43,7 +43,7 @@ class Zef::ContentStorage does Pluggable {
 
     method available(*@from) {
         my %dists;
-        my $check-plugins := +@from ?? self!plugins.grep({$_.plugin-id ~~ any(@from)}) !! self!plugins;
+        my $check-plugins := +@from ?? self!plugins.grep({.short-name ~~ any(@from)}) !! self!plugins;
         my $candis := gather for $check-plugins.grep(*.^can('available')) -> $storage {
             take $_ for |$storage.available;
         }
@@ -51,9 +51,8 @@ class Zef::ContentStorage does Pluggable {
 
     method update(*@names) {
         eager gather for self!plugins(|@names) -> $plugin {
-            next() R, warn "Specified plugin by name {$plugin.plugin-id} doesn't support `.update`"\
+            next() R, warn "Specified plugin by name {$plugin.short-name} doesn't support `.update`"\
                 if +@names && !$plugin.can('update'); # `.update` is an optional interface requirement
-
             take $plugin.^name.split('+', 2)[0] => $plugin.update.elems;
         }
     }

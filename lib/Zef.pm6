@@ -74,12 +74,12 @@ role Pluggable {
     has @.backends;
 
     sub DEBUG($plugin, $message) {
-        say "[Plugin - {$plugin<name> // qq||}] $message"\
+        say "[Plugin - {$plugin<short-name> // $plugin<module> // qq||}] $message"\
             if ?%*ENV<ZEF_PLUGIN_DEBUG>;
     }
 
     method plugins(*@names) {
-        +@names ?? self!list-plugins.grep({@names.contains(.plugin-id)}) !! self!list-plugins;
+        +@names ?? self!list-plugins.grep({@names.contains(.short-name)}) !! self!list-plugins;
     }
 
     method !list-plugins {
@@ -102,10 +102,10 @@ role Pluggable {
                     !! (next() R, DEBUG($plugin, "\t(SKIP) Probing failed"))
             }
 
-            # add attribute `plugin-id` here to make filtering by name slightly easier
+            # add attribute `short-name` here to make filtering by name slightly easier
             # until a more elegant solution can be integrated into plugins themselves
             my $class = ::($ = $module).new(|($plugin<options> // []))\
-                but role :: { has $.plugin-id = $plugin<name> // '' };
+                but role :: { has $.short-name = $plugin<short-name> // '' };
 
             next() R, DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure")\
                 unless ?$class;

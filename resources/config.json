@@ -9,14 +9,14 @@
     },
     "ContentStorage" : [
         { 
-            "name" : "cached",
+            "short-name" : "cached",
             "enabled" : 1,
             "module" : "Zef::ContentStorage::LocalCache",
             "default" : 1,
             "options" : { }
         },
         {
-            "name" : "p6c",
+            "short-name" : "p6c",
             "enabled" : 1,
             "module" : "Zef::ContentStorage::P6C",
             "default" : 1,
@@ -29,7 +29,7 @@
             }
         },
         {
-            "name" : "cpan",
+            "short-name" : "cpan",
             "enabled" : 0,
             "module" : "Zef::ContentStorage::CPAN",
             "options" : {
@@ -39,65 +39,65 @@
     ],
     "Fetch" : [
         {
-            "name" : "git",
+            "short-name" : "git",
             "module" : "Zef::Shell::git"
         },
         {
-            "name" : "path",
+            "short-name" : "path",
             "module" : "Zef::Fetch::Path"
         },
         {
-            "name" : "wget",
+            "short-name" : "wget",
             "module" : "Zef::Shell::wget"
         },
         {
-            "name" : "curl",
+            "short-name" : "curl",
             "module" : "Zef::Shell::curl"
         },
         {
-            "name" : "pswebrequest",
+            "short-name" : "pswebrequest",
             "module" : "Zef::Shell::PowerShell::download"
         }
     ],
     "Extract" : [
         {
-            "name" : "git",
+            "short-name" : "git",
             "module" : "Zef::Shell::git",
             "comment" : "used to checkout (extract) specific tags/sha1/commit/branch from a git repo"
         },
         {
-            "name" : "path",
+            "short-name" : "path",
             "module" : "Zef::Fetch::Path",
             "comment" : "if this goes before git then git wont be able to extract/checkout local paths because this reaches it first :("
         },
         {
-            "name" : "tar",
+            "short-name" : "tar",
             "module" : "Zef::Shell::tar"
         },
         {
-            "name" : "p5tar",
+            "short-name" : "p5tar",
             "module" : "Zef::Shell::p5tar"
         },
         {
-            "name" : "unzip",
+            "short-name" : "unzip",
             "module" : "Zef::Shell::unzip"
         },
         {
-            "name" : "psunzip",
+            "short-name" : "psunzip",
             "module" : "Zef::Shell::PowerShell::unzip"
         }
     ],
     "Test" : [
         {
-            "name" : "prove",
+            "short-name" : "prove",
             "module" : "Zef::Shell::prove"
         },
         {
-            "name" : "prove6",
+            "short-name" : "prove6",
             "module" : "Zef::Shell::prove6"
         },
         {
-            "name" : "default",
+            "short-name" : "default-tester",
             "module" : "Zef::Shell::Test"
         }
     ]

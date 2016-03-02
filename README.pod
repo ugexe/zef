@@ -134,8 +134,7 @@ How these are handled depends on the `ContentStorage` engine used, which by defa
 metacpan. Note that metacpan search is not likely to produce any useful results yet. More documentation will
 be available when I have a better idea how to integrate results from these 2 services.
 
-    # with cpan enabled...
-    $ zef -v search URI
+    $ zef -v --cpan search URI
     ===> Found 4 results
     -------------------------------------------------------------------------------
     ID|From                           |Package             |Description
@@ -286,6 +285,10 @@ See the root zef directory for config.json. Each phase module will attempt to lo
 More details to be made available in time, but they are fairly simple and the code itself should provide enough
 insight to get something done.
 
+Plugins can be enabled and disabled from the command line. The flags to do this are based on the configuration
+values for each plugin. So I<--cpan> (field `short-name`) and I<--Zef::ContentStorage::CPAN> (field `module`) would
+each set I<"enabled" : 1>.  Conversely I<--/cpan> and I<--/Zef::ContentStorage::CPAN> would set I<"enabled" : 0>
+
 See the configuration file in L<resources/config.json|https://github.com/ugexe/zef/blob/master/resources/config.json> for a
 little more information on how plugins are invoked.
 
@@ -299,14 +302,14 @@ The functionality is mostly there. The API to search and find a specific module 
 a query and takes a matching distribution name with a matching (or newest) version. It can also download, extract, and
 install as well. Other than polishing up the search API access it needs metacpan itself to host Perl6 distributions.
 
-You can enable it by setting I<"enabled" : 1> in the config under the ContentStorage::CPAN plugin, or temporarily by passing a flag:
+You can enable it by setting I<"enabled" : 1> in the config under the ContentStorage::CPAN plugin, or temporarily
+by passing the flag I<--cpan>
 
-    # flag
-    -CContentStorage="cpan.enabled=1"
+    # Search metacpan in addition to other configuration defaults
+    $ zef -v --cpan search CSV::Parser
 
-    # examples
-    $ zef -v -CContentStorage="cpan.enabled=1" search CSV::Parser
-    $ zef -v -CContentStorage="cpan.enabled=1" install CSV::Parser
+    # Same as above, but disables the default ecosystem `p6c`
+    $ zef -v --cpan --/p6c search CSV::Parser
 
 =head3 Proxy support?
 

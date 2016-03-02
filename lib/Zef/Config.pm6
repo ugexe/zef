@@ -18,3 +18,23 @@ sub find-config is export {
         %?RESOURCES<config.json>,
     )
 }
+
+sub config-plugin-lookup($config is copy) is export {
+    my $lookup;
+    my sub do-lookup($node) {
+        if $node ~~ Hash {
+            for @$node -> $sub-node {
+                if $sub-node.value ~~ Str | Int && $sub-node.key eq any(<short-name module>) {
+                    $lookup{$sub-node.value} := $node;
+                    next;
+                }
+                do-lookup($sub-node.value);
+            }
+        }
+        elsif $node ~~ Array {
+            do-lookup($_) for $node.cache;
+        }
+    }
+    do-lookup($config);
+    $lookup;
+}

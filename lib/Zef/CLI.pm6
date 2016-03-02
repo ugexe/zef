@@ -178,7 +178,7 @@ package Zef::CLI {
         say "Note: Dependencies that were fetched are in env at: `PERL6LIB`" if +@local-candidates > 1;
         # todo: handle dependencies; only shell into the requested distribution's directory, but
         # fetch all dependencies and add their paths to %*ENV<PERL6LIB> for the shell below
-        exit so shell(%*ENV<SHELL> // %*ENV<ComSpec>, :$env, :cwd($requested.uri)) ?? 0 !! 1;
+        exit so shell(%*ENV<SHELL> // %*ENV<ComSpec> // %*ENV<COMSPEC>, :$env, :cwd($requested.uri)) ?? 0 !! 1;
     }
 
     #| Smoke test

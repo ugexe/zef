@@ -36,9 +36,12 @@ package Zef::CLI {
     multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
         my $client     = Zef::Client.new(:$config, :$verbose, :$force);
         my @candidates = |$client.candidates(|@paths>>.&str2identity);
-        my @tested     = |$client.test(|@candidates);
-        my %results    = |@tested.classify: -> $candi { $candi.test-results.grep(*.not).elems == 0 ?? 'pass' !! 'fail' }
-        exit ?%results<fail> ?? 1 !! ?%results<pass> ?? 0 !! 255;
+        my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
+
+        my @have    = |$client.fetch(@remote), |@local;
+        my @tested  = |$client.test(|@have);
+        my (:@pass, :@fail) := @tested.classify: {.test-results.grep(*.not) ?? <fail> !! <pass> }
+        exit ?@fail ?? 1 !! ?@pass ?? 0 !! 255;
     }
 
     #| Run Build.pm

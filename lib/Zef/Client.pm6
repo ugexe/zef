@@ -6,8 +6,6 @@ use Zef::ContentStorage;
 use Zef::Extract;
 use Zef::Test;
 
-our %CONFIG;
-
 class Zef::Client {
     has $.cache;
     has $.indexer;
@@ -15,6 +13,8 @@ class Zef::Client {
     has $.storage;
     has $.extractor;
     has $.tester;
+
+    has $.config;
 
     has @.exclude;
     has @!ignore = <Test NativeCall lib MONKEY-TYPING nqp>;
@@ -25,47 +25,37 @@ class Zef::Client {
     has Bool $.build-depends is rw = True;
     has Bool $.test-depends  is rw = True;
 
-    proto method new(|) {*}
+    method new(
+        :cache(:$zcache),
+        :fetcher(:$zfetcher),
+        :storage(:$zstorage),
+        :extractor(:$zextractor),
+        :tester(:$ztester),
+        :$config,
+        *%_
+        ) {
+        my $cache := ?$zcache ?? $zcache !! ?$config<StoreDir>
+            ?? $config<StoreDir>
+            !! die "Zef::Client requires a cache parameter";
+        my $fetcher := ?$zfetcher ?? $zfetcher !! ?$config<Fetch>
+            ?? Zef::Fetch.new(:backends(|$config<Fetch>))
+            !! die "Zef::Client requires a fetcher parameter";
+        my $extractor := ?$zextractor ?? $zextractor !! ?$config<Extract>
+            ?? Zef::Extract.new(:backends(|$config<Extract>))
+            !! die "Zef::Client requires an extractor parameter";
+        my $tester := ?$ztester ?? $ztester !! ?$config<Test>
+            ?? Zef::Test.new(:backends(|$config<Test>))
+            !! die "Zef::Client requires a tester parameter";
+        my $storage := ?$zstorage ?? $zstorage !! ?$config<ContentStorage>
+            ?? Zef::ContentStorage.new(:backends(|$config<ContentStorage>))
+            !! die "Zef::Client requires a storage parameter";
 
-    # This bit will probably change, but it provides access to a optional config hash
-    # but it can't be used as an attribute (in this current form) because it needs to
-    # be used to set some default values (so need to ditch the multi dispatch and handle
-    # more cases with a conditional)
-    multi method new(:$config where !*.defined, |c) {
-        samewith( :config(ZEF-CONFIG()), |c );
-    }
-    multi method new(:$config where {$_.defined && %CONFIG.keys.elems == 0}, |c) {
-        %CONFIG = |$config;
-        callsame;
-    }
-
-    multi method new(:$extractor where !*.defined, :@extractors = |%CONFIG<Extract>, |c) {
-        samewith( :extractor(Zef::Extract.new( :backends(|@extractors) )), |c );
-    }
-
-    multi method new(:$tester where !*.defined, :@testers = |%CONFIG<Test>, |c) {
-        samewith( :tester(Zef::Test.new( :backends(|@testers) )), |c );
-    }
-
-    multi method new(:$cache where !*.defined, |c) {
-        samewith( :cache(%CONFIG<StoreDir>), |c);
-    }
-
-    multi method new(:$fetcher where !*.defined, :@fetchers = |%CONFIG<Fetch>, |c) {
-        samewith( :fetcher(Zef::Fetch.new( :backends(|@fetchers) )), |c );
-    }
-
-    multi method new(:$storage where !*.defined, :@storages = |%CONFIG<ContentStorage>, |c) {
-        samewith( :storage(Zef::ContentStorage.new( :backends(|@storages) )), |c );
-    }
-
-    multi method new(:$cache!, :$fetcher!, :$storage!, :$extractor!, :$tester!, *%_) {
         mkdir $cache unless $cache.IO.e;
 
         $storage.cache   //= $cache;
         $storage.fetcher //= $fetcher;
 
-        self.bless(:$cache, :$fetcher, :$storage, :$extractor, :$tester, |%_);
+        self.bless(:$cache, :$fetcher, :$storage, :$extractor, :$tester, :$config, |%_);
     }
 
     method candidates(Bool :$upgrade, *@identities) {
@@ -182,7 +172,7 @@ class Zef::Client {
             my $from     = $candi.from;
             my $as       = $candi.as;
             my $uri      = $candi.uri;
-            my $tmp      = %CONFIG<TempDir>.IO;
+            my $tmp      = $!config<TempDir>.IO;
             my $stage-at = $tmp.child($uri.IO.basename);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
@@ -230,8 +220,27 @@ class Zef::Client {
     }
 
     # xxx: needs some love. also an entire specification
-    method build(*@dists) {
-        |@dists.map(*.&legacy-hook)
+    method build(*@candidates) {
+        my @built = eager gather for @candidates -> $candi {
+            my $dist := $candi.dist;
+            take($candi) && next() unless $dist.IO.child('Build.pm').e;
+
+            my $result = legacy-hook($candi);
+
+            if !$result {
+                die "Aborting due to build failure: {$candi.dist.?identity // $candi.uri}"
+                ~   "(use --force to override)" unless ?$!force;
+                say "build failure: {$candi.dist.?identity // $candi.uri}. "
+                ~   "Continuing anyway with --force"
+            }
+            else {
+                say "Build passed for {$candi.dist.?identity // $candi.uri}";
+            }
+
+            $candi does role :: { has $.build-results = ?$result };
+
+            take $candi;
+        }
     }
 
     # xxx: needs some love
@@ -349,11 +358,11 @@ class Zef::Client {
             my $dist := $candi.dist;
             say "[DEBUG] Filtering {$dist.name}" if ?$!verbose;
             # todo: Change config.json to `"Filter" : { "License" : "xxx" }`)
-            given %CONFIG<License> {
+            given $!config<License> {
                 CATCH { default {
                     say $_.message;
-                    die "Allowed licenses: {%CONFIG<License>.<whitelist>.join(',')    || 'n/a'}\n"
-                    ~   "Disallowed licenses: {%CONFIG<License>.<blacklist>.join(',') || 'n/a'}";
+                    die "Allowed licenses: {$!config<License>.<whitelist>.join(',')    || 'n/a'}\n"
+                    ~   "Disallowed licenses: {$!config<License>.<blacklist>.join(',') || 'n/a'}";
                 } }
                 when .<blacklist>.?chars && any(|.<blacklist>) ~~ any('*', $dist.license // '') {
                     notice "License blacklist configuration exists and matches {$dist.license // 'n/a'} for {$dist.name}";
@@ -387,11 +396,7 @@ class Zef::Client {
 
 
         # Build Phase:
-        my @built-candidates = gather for @linked-candidates -> $candi {
-            my $dist := $candi.dist;
-            next() R, take($candi) unless $dist.IO.child('Build.pm').e;
-            self.build($dist) ?? take($candi) !! notice("Build.pm hook failed for {$dist.path}");
-        }
+        my @built-candidates = self.build(|@linked-candidates);
         die "No installable candidates remain after `build` failures" unless +@built-candidates;
 
 
@@ -566,7 +571,8 @@ class Zef::Client {
 
 # todo: write a real hooking implementation to CU::R::I instead of the current practice
 # of writing an installer specific (literally) Build.pm
-sub legacy-hook($dist) {
+sub legacy-hook($candi) {
+    my $dist := $candi.dist;
     my $DEBUG = ?%*ENV<ZEF_BUILDPM_DEBUG>;
 
     my $builder-path = $dist.IO.child('Build.pm');

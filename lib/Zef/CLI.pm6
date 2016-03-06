@@ -13,12 +13,13 @@ package Zef::CLI {
     # Currently only uses Bools `--name` and `--/name` to enable and disable a plugin
     # Note that `name` can match the config plugin key `short-name` or `module`
     # TODO: accept --name="key.subkey=xxx" format for setting explicit parameters
-    our $config = ZEF-CONFIG() andthen do {
+    my $config = ZEF-CONFIG() andthen do {
         my $plugin-lookup := config-plugin-lookup($config);
         @*ARGS = eager gather for @*ARGS -> $arg {
-            my $arg-as = $arg.subst(/^ ["--" | "--\/"]/, '');
+            my $arg-as  = $arg.subst(/^ ["--" | "--\/"]/, '');
+            my $enabled = $arg.starts-with('--/') ?? 0 !! 1;
             $arg-as ~~ any($plugin-lookup.keys)
-                ?? ($plugin-lookup{$arg-as}<enabled> = ?$arg.starts-with('--/') ?? 0 !! 1)
+                ?? (for |$plugin-lookup{$arg-as} -> $p { $p<enabled> = $enabled })
                 !! take($arg);
         }
     }
@@ -33,22 +34,29 @@ package Zef::CLI {
     }
 
     #| Run tests
-    multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths) {
+    multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@identities) {
         my $client     = Zef::Client.new(:$config, :$verbose, :$force);
-        my @candidates = |$client.candidates(|@paths>>.&str2identity);
+        my @candidates = |$client.candidates(|@identities>>.&str2identity);
         my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
 
         my @have    = |$client.fetch(@remote), |@local;
         my @tested  = |$client.test(|@have);
-        my (:@pass, :@fail) := @tested.classify: {.test-results.grep(*.not) ?? <fail> !! <pass> }
+        my (:@pass, :@fail) := @tested.classify: {.test-results.grep(*.so) ?? <pass> !! <fail> }
+
         exit ?@fail ?? 1 !! ?@pass ?? 0 !! 255;
     }
 
     #| Run Build.pm
-    multi MAIN('build', Bool :$force, Bool :v(:$verbose), *@paths) {
+    multi MAIN('build', Bool :$force, Bool :v(:$verbose), *@identities) {
         my $client  = Zef::Client.new(:$config, :$verbose, :$force);
-        my @results = $client.build: |@paths.map({ try Zef::Distribution::Local.new($_) }).grep(*.so);
-        exit +@paths - +@results;
+        my @candidates = |$client.candidates(|@identities>>.&str2identity);
+        my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
+
+        my @have  = |$client.fetch(@remote), |@local;
+        my @built = |$client.build(|@have);
+        my (:@pass, :@fail) := @built.classify: {$_.?build-results !=== False ?? <pass> !! <fail> }
+
+        exit ?@fail ?? 1 !! ?@pass ?? 0 !! 255;
     }
 
     #| Install

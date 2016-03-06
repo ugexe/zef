@@ -25,7 +25,7 @@ sub config-plugin-lookup($config is copy) is export {
         if $node ~~ Hash {
             for @$node -> $sub-node {
                 if $sub-node.value ~~ Str | Int && $sub-node.key eq any(<short-name module>) {
-                    $lookup{$sub-node.value} := $node;
+                    $lookup{$sub-node.value}.push($node);
                     next;
                 }
                 do-lookup($sub-node.value);

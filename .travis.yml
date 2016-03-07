@@ -57,8 +57,9 @@ script:
     - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then zef -v install Inline::Perl5; fi'
     - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then perl6 -MInline::Perl5 -e "exit 0;"; fi'
 
-    # test uri install
-    - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
+    # Currently down :(
+    #- zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
+
     - zef --/confirm nuke TempDir StoreDir RootDir
     - zef update cached # test single storage update; should be 0 after previous nuke
     - zef --/confirm nuke site home # no more `zef` command

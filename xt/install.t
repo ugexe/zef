@@ -4,7 +4,8 @@ plan 3;
 
 use Zef::Client;
 use Zef::Utils::FileSystem;
-
+use Zef::Identity;
+use Zef::Config;
 
 my $path = $*TMPDIR.child("zef").child("{time}.{$*PID}");
 my $bin-dir     = $path.child('bin');
@@ -14,10 +15,15 @@ my CompUnit::Repository @cur = CompUnit::RepositoryRegistry\
     .repository-for-spec("inst#{$path.absolute}", :next-repo($*REPO));
 END { try delete-paths($path, :r, :d, :f, :dot) }
 
+my $config = ZEF-CONFIG();
+$config<RootDir>  = "$path/.cache";
+$config<StoreDir> = "$path/.cache/store";
+$config<TempDir>  = "$path/.cache/tmp";
+
 my @installed; # keep track of what gets installed for the optional uninstall test at the end
 
 
-my $client = Zef::Client.new();
+my $client = Zef::Client.new(:$config);
 # Keeps every $client.install from printing to stdout
 sub test-install($path = $?FILE.IO.parent.parent) {
     # Need to remove all stdout/stderr output from Zef::Client, or at least complete
@@ -25,7 +31,13 @@ sub test-install($path = $?FILE.IO.parent.parent) {
     # turn off stdout for this test as it will output details to stdout even when !$verbose)
     temp $*OUT = class :: { method print(|) {}; method flush(|) {}; };
     # No test distribution to install yet, so test install zef itself
-    my @got = $client.install( :to(@cur), :!test, :!fetch, $path );
+    my $candidate = Candidate.new(
+        dist => Zef::Distribution::Local.new($path),
+        uri  => $path.IO.absolute,
+        as   => ~$path,
+        from => ~$?FILE,
+    );
+    my @got = $client.install( :to(@cur), :!test, :!fetch, $candidate );
     @installed = unique(|@installed, |@got, :as(*.dist.identity));
 }
 
@@ -64,17 +76,20 @@ subtest {
 
         is +@installed, 1, 'Install count remains 1';
         is +$dist-dir.dir.grep(*.f), 1, 'Only a single distribution file should still exist';
-        my $filename  = $sources-dir.dir.first(*.f).basename;
-        my $dist-info = $dist-dir.dir.first(*.f).slurp;
+        my $filename  = ~$sources-dir.dir.first(*.f).basename;
+        my $dist-info = ~$dist-dir.dir.first(*.f).slurp;
         ok $dist-info.contains($filename), 'Verify reinstall appears valid';
     }, 'With force';
 }, 'reinstall';
 
 
-skip("Need a newer rakudo for uninstall") unless +@cur.grep(*.can('uninstall'));
 subtest {
-    my @uninstalled = Zef::Client.new.uninstall( :from(@cur), |@installed>>.dist>>.identity );
-    is +@uninstalled,     1, 'Uninstalled a single module';
-    is +$sources-dir.dir, 0, 'No source files should remain';
-    is +$dist-dir.dir,    0, 'No distribution files should remain';
+    +@cur.grep(*.can('uninstall')) == 0
+        ?? skip("Need a newer rakudo for uninstall")
+        !! do {
+            my @uninstalled = Zef::Client.new(:$config).uninstall( :from(@cur), |@installed>>.dist>>.identity );
+            is +@uninstalled,     1, 'Uninstalled a single module';
+            is +$sources-dir.dir, 0, 'No source files should remain';
+            is +$dist-dir.dir,    0, 'No distribution files should remain';
+        }
 }, 'uninstall';

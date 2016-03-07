@@ -256,7 +256,7 @@ class Zef::Client {
         my @tested = eager gather for @candidates -> $candi {
             say "Start test phase for: {$candi.dist.?identity // $candi.uri}";
 
-            my @result = $!tester.test($candi.dist.path, :includes(@includes.grep(*.so)), :$stdout, :$stderr);
+            my @result = $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes>), :$stdout, :$stderr);
 
             if @result.grep(*.not).elems {
                 die "Aborting due to test failure: {$candi.dist.?identity // $candi.uri} "
@@ -294,7 +294,7 @@ class Zef::Client {
         Bool :$test  = True,        # run tests
         Bool :$dry,                 # do everything *but* actually install
         Bool :$upgrade,             # NYI
-        *@wants,
+        *@candidates,
         *%_
         ) {
         my &notice = ?$!force ?? &say !! &die;
@@ -308,18 +308,11 @@ class Zef::Client {
         # be moved into their own method/module related directly to their phase. For now
         # lumping them here allows us to easily move functionality between phases until we
         # find the perfect balance/structure.
-        die "Must specify something to install" unless +@wants;
-
-
-        # Search Phase:
-        # Search ContentStorages to locate each Candidate needed to fulfill the requested identities
-        my @found-candidates = |self.candidates(|@wants, :$upgrade, |%_).unique;
-        die "Failed to resolve any candidates. No reason to proceed" unless +@found-candidates;
-
+        die "Must specify something to install" unless +@candidates;
 
         # Fetch Stage:
         # Use the results from searching ContentStorages and download/fetch the distributions they point at
-        my @fetched-candidates = eager gather for @found-candidates -> $store {
+        my @fetched-candidates = eager gather for @candidates -> $store {
             # xxx: paths and uris we already fetched (saves us from copying 1 extra time)
             take $store and next if $store.dist.^name.contains('Zef::Distribution::Local');
             # todo: send |@candidates to fetch instead of each $store one at a time
@@ -333,7 +326,7 @@ class Zef::Client {
         # also put logic related to checking if its installed in *specific* CURs
         my @needed-candidates = eager gather for @fetched-candidates -> $candi {
             my $dist := $candi.dist;
-            say "[DEBUG] Probing for {$dist.name}" if ?$!verbose;
+            say "===> Probing for {$dist.name}" if ?$!verbose;
             if ?self.is-installed($candi.dist, at => @to) {
                 unless ?$!force {
                     say "{$!verbose??'['~$candi.as~'] '!!''}{$dist.identity} "
@@ -356,7 +349,7 @@ class Zef::Client {
         # *do* need to replace those items with things depended on by B [which replaces A])
         my @filtered-candidates = eager gather for @needed-candidates -> $candi {
             my $dist := $candi.dist;
-            say "[DEBUG] Filtering {$dist.name}" if ?$!verbose;
+            say "===> Filtering {$dist.name}" if ?$!verbose;
             # todo: Change config.json to `"Filter" : { "License" : "xxx" }`)
             given $!config<License> {
                 CATCH { default {
@@ -404,7 +397,7 @@ class Zef::Client {
         my @tested-candidates = gather for @built-candidates -> $candi {
             next() R, take($candi) unless ?$test;
 
-            my $tested = self.test($candi, :includes(|$candi.dist.metainfo<includes>));
+            my $tested = self.test($candi);
             my $failed = $tested.map(*.test-results.grep(!*.so).elems).sum;
 
             take $candi unless ?$failed && !$!force;
@@ -428,9 +421,8 @@ class Zef::Client {
                 }
                 else {
                     #$!lock.protect({
-                    say "Installing {$dist.identity}{$!verbose??q|#|~$dist.path!!''}"
-                    ~   " to {$!verbose??$cur.short-id~q|#|!!''}{~$cur}";
-                    $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+                    say "Installing {$dist.identity}{?$!verbose??qq| to $cur|!!''}";
+                    try $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
                     #});
                 }
             }
@@ -541,9 +533,47 @@ class Zef::Client {
         return @tree;
     }
 
-    # add appropriate include (-I / PERL6LIB) paths for dependencies
-    method link-candidates(*@candidates) {
-         @ = @candidates.map: -> $candi {
+    # Adds appropriate include (-I / PERL6LIB) paths for dependencies
+    # This should probably be handled by the Candidate class... one day...
+    proto method link-candidates(|) {*}
+    multi method link-candidates(Bool :$recursive! where *.so, *@candidates) {
+        # :recursive
+        # Given Foo::XXX that depends on Bar::YYY that depends on Baz::ZZZ
+        #   - Foo::XXX -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
+        #   - Bar::YYY -> -I/Bar/YYY/lib -I/Baz/ZZZ/lib
+        #   - Baz::ZZZ -> -I/Baz/ZZZ/lib
+
+        # XXX: Need to change this so it only add indirect dependencies
+        # instead of just recursing the array in order. Otherwise there
+        # can be distributions that are part of a different dependency
+        # chain will end up with some extra includes
+
+        my @linked = self.link-candidates(|@candidates);
+        @ = @linked.map: -> $candi { # can probably use rotor instead of doing the `@a[$index + 1..*]` dance
+            my @direct-includes    = |$candi.dist.metainfo<includes>.grep(*.so);
+            my @recursive-includes = try |@linked[(state $i += 1)..*]\
+                .map(*.dist.metainfo<includes>).flatmap(*.flat);
+            my @unique-includes    = |unique(|@direct-includes, |@recursive-includes);
+            $candi.dist.metainfo<includes> = |@unique-includes.grep(*.so);
+            $candi;
+        }
+    }
+    multi method link-candidates(Bool :$inclusive! where *.so, *@candidates) {
+        # :inclusive
+        # Given Foo::XXX that depends on Bar::YYY that depends on Baz::ZZZ
+        #   - Foo::XXX -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
+        #   - Bar::YYY -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
+        #   - Baz::ZZZ -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
+        my @linked = self.link-candidates(|@candidates);
+        @ = @linked.map(*.dist.metainfo<includes>).flatmap(*.flat).unique;
+    }
+    multi method link-candidates(*@candidates) {
+        # Default
+        # Given Foo::XXX that depends on Bar::YYY that depends on Baz::ZZZ
+        #   - Foo::XXX -> -I/Foo/XXX/lib -I/Bar/YYY/lib
+        #   - Bar::YYY -> -I/Bar/YYY/lib -I/Baz/ZZZ/lib
+        #   - Baz::ZZZ -> -I/Baz/ZZZ/lib
+        @ = @candidates.map: -> $candi {
             my $dist := $candi.dist;
 
             my @dep-specs = unique(grep *.defined,
@@ -557,7 +587,7 @@ class Zef::Client {
                     my $fdist := $fcandi.dist;
                     if $fdist.contains-spec($spec) {
                         take $fdist.IO.child('lib').absolute;
-                        take $_ for |$fdist.metainfo<includes>;
+                        take $_ for |$fdist.metainfo<includes>.grep(*.so);
                         next DEPSPEC;
                     }
                 }

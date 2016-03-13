@@ -37,7 +37,7 @@ sub test-install($path = $?FILE.IO.parent.parent) {
         as   => ~$path,
         from => ~$?FILE,
     );
-    my @got = $client.install( :to(@cur), :!test, :!fetch, $candidate );
+    my @got = |$client.install( :to(@cur), :!test, :!fetch, $candidate );
     @installed = unique(|@installed, |@got, :as(*.dist.identity));
 }
 
@@ -62,7 +62,8 @@ subtest {
 
 subtest {
     subtest {
-        dies-ok { test-install() }, 'Reinstall fails without :force';
+
+        dies-ok { $ = test-install() }, 'Reinstall fails without :force';
         is +@installed, 1, 'Installed nothing new';
         is +$dist-dir.dir.grep(*.f), 1, 'Only a single distribution file should still exist';
         my $filename  = $sources-dir.dir.first(*.f).basename;

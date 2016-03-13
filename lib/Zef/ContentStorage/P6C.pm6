@@ -26,6 +26,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
                 dist => $dist,
                 uri  => ($dist.source-url || $dist.hash<support><source>),
                 from => $?CLASS.^name,
+                as   => $dist.identity,
             );
         }
     }
@@ -60,6 +61,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
 
         cache gather DIST: for self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
+                KEEP { last DIST unless +@wanted }
                 if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(
                         dist => $dist,
@@ -67,9 +69,8 @@ class Zef::ContentStorage::P6C does ContentStorage {
                         as   => $wants,
                         from => $?CLASS.^name,
                     );
-                    take $candidate;
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);
-                    last DIST unless +@wanted;
+                    take $candidate;
                 }
             }
         }

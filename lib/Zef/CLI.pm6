@@ -25,9 +25,9 @@ package Zef::CLI {
     }
 
     #| Download specific distributions
-    multi MAIN('fetch', Bool :$force, Bool :v(:$verbose), Bool :$depends, Bool :$test-depends, Bool :$build-depends, *@identities) is export {
-        my $client     = Zef::Client.new(:$config, :$verbose, :$force, :$depends, :$test-depends, :$build-depends);
-        my @candidates = |$client.candidates(|@identities>>.&str2identity);
+    multi MAIN('fetch', Bool :$force, Bool :v(:$verbose), *@identities ($, *@)) is export {
+        my $client     = Zef::Client.new(:$config, :$verbose, :$force);
+        my @candidates = |$client.find-candidates(|@identities>>.&str2identity);
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @fetched    = |$client.fetch(|@candidates);
         my @fail       = |@candidates.grep: {.as !~~ any(@fetched>>.as)}
@@ -39,21 +39,11 @@ package Zef::CLI {
     }
 
     #| Run tests
-    multi MAIN('test', Bool :$force, Bool :v(:$verbose), Bool :$depends, Bool :$test-depends, Bool :$build-depends, *@identities) is export {
-        my $client     = Zef::Client.new(:$config, :$verbose, :$force, :$depends, :$test-depends, :$build-depends);
-        my @candidates = |$client.candidates(|@identities>>.&str2identity);
+    multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths ($, *@)) is export {
+        my $client     = Zef::Client.new(:$config, :$verbose, :$force);
+        my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
-        my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
-
-        my @fetched = |$client.fetch(@remote), |@local;
-        my @linked  = |$client.link-candidates(:recursive, |@fetched);
-        my @built   = |$client.build(|@linked);
-        my (:@build-pass, :@build-fail) := @built.classify: {$_.?build-results !=== False ?? <build-pass> !! <build-fail> }
-
-        say "===> Built: {.as}{?$verbose??' at '~.dist.path!!''}" for @build-pass.grep(*.?build-results);
-        say "!!!> Build failure: {.as}{?$verbose??' at '~.dist.path!!''}" for @build-fail;
-
-        my @tested  = |$client.test(|@build-pass.grep(*.as eq any(@identities)));
+        my @tested = |$client.test(|@candidates);
         my (:@test-pass, :@test-fail) := @tested.classify: {.test-results.grep(*.so) ?? <test-pass> !! <test-fail> }
 
         say "===> Testing passed: {.as}{?$verbose??' at '~.dist.path!!''}" for @test-pass;
@@ -63,18 +53,15 @@ package Zef::CLI {
     }
 
     #| Run Build.pm
-    multi MAIN('build', Bool :$force, Bool :v(:$verbose), Bool :$depends, Bool :$test-depends, Bool :$build-depends, *@identities) is export {
-        my $client  = Zef::Client.new(:$config, :$verbose, :$force, :$depends, :$test-depends, :$build-depends);
-        my @candidates = |$client.candidates(|@identities>>.&str2identity);
+    multi MAIN('build', Bool :$force, Bool :v(:$verbose), *@paths ($, *@)) is export {
+        my $client = Zef::Client.new(:$config, :$verbose, :$force);
+        my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
-        my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
 
-        my @fetched = |$client.fetch(@remote), |@local;
-        my @linked  = |$client.link-candidates(:recursive, |@fetched);
-        my @built   = |$client.build(|@linked);
+        my @built = |$client.build(|@candidates);
         my (:@pass, :@fail) := @built.classify: {$_.?build-results !=== False ?? <pass> !! <fail> }
 
-        say "===> Built: {.as}{?$verbose??' at '~.dist.path!!''}" for @pass.grep(*.?build-results);
+        say "===> Built: {.as}{?$verbose??' at '~.dist.path!!''}"         for @pass.grep(*.?build-results);
         say "!!!> Build failure: {.as}{?$verbose??' at '~.dist.path!!''}" for @fail;
 
         exit ?@fail ?? 1 !! ?@pass ?? 0 !! 255;
@@ -83,26 +70,51 @@ package Zef::CLI {
     #| Install
     multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
                 Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude is copy,
-                Bool :$dry, Bool :$update, Bool :$upgrade, Bool :$depsonly, :to(:$install-to) = ['site'], *@identities) is export {
+                Bool :$dry, Bool :$update, Bool :$upgrade, Bool :$depsonly, :to(:$install-to) = ['site'], *@wants ($, *@)) is export {
 
-        my @excluded = grep *.defined, ?$depsonly ?? (|@identities>>.&str2identity, |$exclude) !! $exclude;
+        @wants .= map: *.&str2identity;
+        my (:@paths, :@urls, :@identities) := @wants.classify: -> $wanted {
+            $wanted ~~ /^[\. | \/]/                                           ?? <paths>
+                !! ?Zef::Identity($wanted)                                    ?? <identities>
+                !! (my $uri = Zef::Utils::URI($wanted) and !$uri.is-relative) ?? <urls>
+                !! die("Don't understand identity: {$wanted}");
+        }
+
+        my @excluded   = grep *.defined, ?$depsonly ?? (|@identities, |$exclude) !! $exclude;
 
         my $client     = Zef::Client.new(:$config, :exclude(|@excluded), :$force, :$verbose, :$depends, :$test-depends, :$build-depends);
-        my @candidates = |$client.candidates(:$upgrade, |@identities>>.&str2identity);
-        die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
-        my @fetched    = |$client.fetch(|@candidates);
+
+        my @all-installed-identities = |$client.list-installed.map(*.dist.identity);
+        my (:@wanted-identities, :@skip-identities) := @identities\
+            .classify: {$_ ~~ none(@all-installed-identities) ?? <wanted-identities> !! <skip-identities>}
+        say "The following candidates are already installed: {@skip-identities.join(', ')}"\
+            if $verbose && +@skip-identities;
+
+        my @path-candidates = @paths.map(*.&path2candidate);
+        my @url-candidates  = $client.fetch( |@urls.map({ Candidate.new(:as($_), :uri($_)) }) ) if +@urls;
+        my @requested-identities = (?$force ?? @identities !! @wanted-identities)\
+            .grep: { $_ ~~ none(@url-candidates.map(*.dist.identity)) }
+        my @requested  = |$client.find-candidates(:$upgrade, |@requested-identities) if +@requested-identities;
+        my @prereqs    = |$client.find-prereq-candidates(|@path-candidates, |@url-candidates, |@requested)\
+            if +@path-candidates || +@url-candidates || +@requested;
+        my @candidates = grep *.defined, |@path-candidates, |@url-candidates, |@requested, |@prereqs;
+        die "All candidates are currently installed. No reason to proceed (use --force to continue anyway)"\
+            unless +@candidates || ?$force;
+
+        my (:@local, :@remote) := @candidates.classify: {.dist ~~ Zef::Distribution::Local ?? <local> !! <remote>}
+        my @fetched = grep *.so, |@local, ($client.fetch(|@remote).Slip if +@remote);
 
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         my @installed  = |$client.install( :@to, :$test, :$upgrade, :$update, :$dry, |@fetched );
         my @fail       = |@candidates.grep: {.as !~~ any(@installed>>.as)}
 
-        say "===> Installed: {.as}{?$verbose??' at '~.dist.path!!''}" for @installed;
-        say "!!!> Install failure: {.as}" for @fail;
+        say "===> Installed: {@installed.map(*.dist.identity).join(', ')}"   if +@installed;
+        say "!!!> Install failures: {@fail.map(*.dist.identity).join(', ')}" if +@fail;
         exit +@installed && +@installed == +@candidates && +@fail == 0 ?? 0 !! 1;
     }
 
     #| Uninstall
-    multi MAIN('uninstall', Bool :v(:$verbose), Bool :$force, :from(:$uninstall-from) = ['site'], *@identities) is export {
+    multi MAIN('uninstall', Bool :v(:$verbose), Bool :$force, :from(:$uninstall-from) = ['site'], *@identities ($, *@)) is export {
         my $client = Zef::Client.new(:$config, :$force, :$verbose);
         my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
         die "`uninstall` command currently requires a bleeding edge version of rakudo" unless any(@from>>.can('uninstall'));
@@ -117,7 +129,7 @@ package Zef::CLI {
     }
 
     #| Get a list of possible distribution candidates for the given terms
-    multi MAIN('search', Int :$wrap = False, Bool :v(:$verbose), *@terms) is export {
+    multi MAIN('search', Int :$wrap = False, Bool :v(:$verbose), *@terms ($, *@)) is export {
         my $client  = Zef::Client.new(:$config, :$verbose);
         my @results = $client.search(|@terms);
 
@@ -200,40 +212,15 @@ package Zef::CLI {
     }
 
     #| Download a single module and change into its directory
-    multi MAIN('look', $identity, Bool :$force, Bool :v(:$verbose),
-        Bool :$depends, Bool :$test-depends, Bool :$build-depends) is export {
-
-        my $client     = Zef::Client.new(:$config, :$verbose, :$force, :$depends, :$test-depends, :$build-depends);
-        my @candidates = |$client.candidates( str2identity($identity) );
+    multi MAIN('look', $identity, Bool :$force, Bool :v(:$verbose)) is export {
+        my $client     = Zef::Client.new(:$config, :$verbose, :$force);
+        my @candidates = |$client.find-candidates( str2identity($identity) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
-
-        my @fetched = |$client.fetch(@remote), |@local;
-        die "Failed to fetch candidates: $identity" unless +@fetched;
-        my @linked  = |$client.link-candidates(:recursive, |@fetched);
-
-        # If the user wants us to fetch dependencies too then we need to
-        # also `build` anything we fetched (but only the dependencies,
-        # as the user is expected to build their target distribution themselves).
-        # This allows one to `zef look XXX::YYY` and be able to do local
-        # testing (hopefully) without needing to install the dependencies
-        my (:@requested, :@dependency) := @linked.classify: {.as eq $identity ?? <requested> !! <dependency>}
-        die "Failed to fetch candidate: $identity" unless +@requested;
-
-        my @built = |@requested, |$client.build(|@dependency);
-
-        # Since We don't install the dependencies, we need to set all their paths in
-        # the PERL6LIB ENV of the shell that gets spawned, allowing tests/build to find the
-        # libs of any ***declared*** dependencies
-        my $env = %*ENV andthen $env<PERL6LIB> = join $*DISTRO.cur-sep, grep *.?chars,
-            |@built.map(*.dist.metainfo<includes>).flatmap(*.flat), $env<PERL6LIB>;
-
-        my $dist-path = @requested[0].dist.path;
+        my $fetched = @local[0] || |$client.fetch(@remote[0])[0] || die "Failed to fetch candidate: $identity";
+        my $dist-path = $fetched.dist.path;
         say "===> Shelling into directory: {$dist-path}";
-        say "Note: Dependencies that were fetched are in env at: `PERL6LIB`" if +@fetched > 1;
-        # todo: handle dependencies; only shell into the requested distribution's directory, but
-        # fetch all dependencies and add their paths to %*ENV<PERL6LIB> for the shell below
-        exit so shell(%*ENV<SHELL> // %*ENV<ComSpec> // %*ENV<COMSPEC>, :$env, :cwd($dist-path)) ?? 0 !! 1;
+        exit so shell(%*ENV<SHELL> // %*ENV<ComSpec> // %*ENV<COMSPEC>, :cwd($dist-path)) ?? 0 !! 1;
     }
 
     #| Smoke test
@@ -269,7 +256,7 @@ package Zef::CLI {
     }
 
     #| Nuke module installations (site, home) and storages from config (RootDir, StoreDir, TempDir)
-    multi MAIN('nuke', Bool :$confirm, *@names) {
+    multi MAIN('nuke', Bool :$confirm, *@names ($, *@)) {
         my sub dir-delete($dir) {
             my @deleted = grep *.defined, try delete-paths($dir, :f, :d, :r);
             say "Deleted " ~ +@deleted ~ " paths from $dir/*";
@@ -316,7 +303,7 @@ package Zef::CLI {
                 test                    Run tests on a given module's path
                 fetch                   Fetch and extract module's source
                 build                   Run the Build.pm in a given module's path
-                look                    `fetch` followed by shelling into the module's path (dependencies in \%*ENV<PERL6LIB>)
+                look                    `fetch` followed by shelling into the module's path
                 update                  Update package indexes for content storages
                 search                  Show a list of possible distribution candidates for the given terms
                 info                    Show detailed distribution information
@@ -355,6 +342,14 @@ package Zef::CLI {
     sub str2cur($target) {
         $ = CompUnit::RepositoryRegistry.repository-for-name($target)
         || CompUnit::RepositoryRegistry.repository-for-spec(~$target, :next-repo($*REPO));
+    }
+
+    sub path2candidate($path) {
+        Candidate.new(
+                as   => $path,
+                uri  => $path.IO.absolute,
+                dist => Zef::Distribution::Local.new($path),
+        )
     }
 
     # prints a table with rows and columns. expects a header row.

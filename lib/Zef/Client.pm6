@@ -58,108 +58,27 @@ class Zef::Client {
         self.bless(:$cache, :$fetcher, :$storage, :$extractor, :$tester, :$config, |%_);
     }
 
-    method candidates(Bool :$upgrade, *@identities) {
-        # This entire structure sucks as much as the previous recursive one. really want something like
-        # a single assignment (like a gather loop) where the body of the block can access whats already been taken
-        # which would make it easier to find identities that may have already been found. It also needs to not just
-        # match against the name or identity, but check $dist.contains-spec so if 2 modules depend on say:
-        # URI::Escape and another on URI (but both refer to URI distribution) then they get treated as a single request
-        # (currently only works if they are requested on different iterations of the `while` loop, so requesting
-        # `install URI::Escape URI` will still see them both)
-        #
-        # TODO: just redo this thing such that .candidates returns empty matches for identities it did not find
-        # so we don't have to iterate @candidates>>.dist.contains-spec every iteration of while(@wants)
-        my @wants = |@identities; # @wants contains the current iteration of identities
-        my @needs;                # keeps trac
-        my @candidates;
-
-        # First we resolve local paths and URIs, because these refer to a specific distribution, but we won't know
-        # what that distribution's identity is until we fetch it and examine the META6. By knowing the identity of
-        # these distributions before the ContentStorage.candidate search loop (after this block of code) we can
-        # skip fetching any dependencies by name that these paths or URIs fulfill
-
-        # - LOCAL PATHS
-        for @wants.grep({.starts-with('.' | '/')}, :p).reverse {
-            @needs.push: Candidate.new(:uri(.value.IO.absolute), :as(.value));
-            @wants[.key]:delete;
-        }
-
-        # - URNs
-        # Note that URNs like Foo-Bar:ver('1.2.3') also matches as a URI.
-        # So if something is a URN, assume its not a URI (for our purposes)
-        for @wants.grep({!Zef::Identity($_)}, :p).reverse -> $kv {
-            if my $uri = Zef::Utils::URI($kv.value) and !$uri.is-relative {
-                @needs.push: Candidate.new(:uri($kv.value), :as($kv.value));
-                @wants[$kv.key]:delete;
-            }
-        }
-
-        # fetch dependencies for URIs and Paths (which will be identities)
-        for self.fetch(|@needs) -> $candi {
-            @candidates.push($candi);
-            @wants.append(|unique(grep *.chars, grep *.defined,
-                ($candi.dist.depends       if ?$!depends).Slip,
-                ($candi.dist.test-depends  if ?$!test-depends).Slip,
-                ($candi.dist.build-depends if ?$!build-depends).Slip));
-        }
-
-        # - IDENTITIES
-        # ContentStorage.candidate search loop
-        # The above chunk of code is for "finding" a distribution that we know the exact location of. This is for
-        # finding identities (like you would type on the command line, `use` in your code, or put in your `depends`)
-        my $exclude = any(|@!exclude);
-        my $is-dependency = 0;
-        while @wants.splice.grep(*.defined) -> @wanted {
-            my @todo = @wanted.grep(* ~~ none(|@!ignore)).grep(-> $id {
-                my $spec = Zef::Distribution::DependencySpecification.new($id);
-                so !@candidates.first(*.dist.contains-spec($spec))
-            }).unique;
-            next unless +@todo;
-            @needs = (|@needs, |@todo).grep(* !~~ $exclude).unique;
-
-            say "Searching for {'dependencies ' if $is-dependency++}{@todo.join(', ')}";
-
-            for $!storage.candidates(|@todo, :$upgrade) -> $candis {
-                for $candis.grep({ .dist.identity ~~ none(|@candidates.map(*.dist.identity)) }) -> $candi {
-                    # conditional is to handle --depsonly (installing only deps)
-                    if $candi.as !~~ $exclude {
-                        @candidates.push($candi);
-                        say "[{$candi.from}] found {$candi.dist.name}" if ?$!verbose;
-                    }
-
-                    # todo: alternatives, i.e. not a Str but [Str, Str]
-                    # todo: abstract the depends/build-depends/test-depends shit
-                    @wants.append(|unique(grep *.chars, grep *.defined,
-                        ($candi.dist.depends       if ?$!depends).Slip,
-                        ($candi.dist.test-depends  if ?$!test-depends).Slip,
-                        ($candi.dist.build-depends if ?$!build-depends).Slip));
-                }
-            }
-        }
-
-        # For now we use unique on the `as` field so if someone has both p6c and cpan
-        # enabled that they only get 1 result for a specific requested instead of 1 from each.
-        # In the future this won't be neccesary because they *should* match on identities, but
-        # right now metacpan has some of the versions/auths screwy. This means a dist on both
-        # may be exactly the same, but metacpan reports the auth or version slightly different
-        # causing it to be treated as a unique result.
-        # XXX: this check (and anything that dies really) should be moved to `.install`
-        my @chosen = @candidates.unique(:as(*.as));
-        if +@needs !== +@chosen {
-            # if @needs has more elements than @missing its probably a bug related to:
-            my @missing = @needs.grep(* !~~ any(@candidates>>.as));
-            +@missing >= +@needs
-                ?? say("Could not find distributions for the following requests:\n{@missing.sort.join(', ')}")
-                !! say(   "Found too many results :(\n\nGot:\n{@candidates.map(*.dist.name).sort.join(', ')}\n"
-                        ~ "Expected: {@needs.sort.join(', ')}");
-            die "use --force to continue" unless ?$!force;
-        }
-
-        $ = @chosen;
+    method find-candidates(Bool :$upgrade, *@identities ($, *@)) {
+        my $candidates := unique :as(*.dist.identity), $!storage.candidates(|@identities, :$upgrade);
     }
 
+    method find-prereq-candidates(Bool :$upgrade, *@candis ($, *@)) {
+        my $prereqs := unique :as(*.dist.identity), gather {
+            state @skip = |@candis.map(*.dist.identity), |self.list-installed.map(*.dist.identity);
+            my @specs = |self.list-dependencies(@candis);
+            while @specs.splice -> @specs-batch {
+                next unless my @needed = @specs-batch.map(*.identity).grep(* ~~ none(@skip));
+                next unless my @prereq-candidates = |self.find-candidates(:$upgrade, |@needed);
 
-    method fetch(*@candidates) {
+                my @prereq-identities = @prereq-candidates.map(*.dist.identity);
+                @skip.append(|@prereq-identities);
+                @specs = |self.list-dependencies(@prereq-candidates);
+                take @prereq-candidates.grep({.is-dependency = True}).Slip;
+            }
+        }
+    }
+
+    method fetch(*@candidates ($, *@)) {
         my $stdout = Supplier.new;
         my &out = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
         $stdout.Supply.tap(&out);
@@ -168,6 +87,7 @@ class Zef::Client {
         my &err = ?$!verbose ?? -> $e {$e.say} !! -> $ { };
         $stderr.Supply.tap(&err);
 
+        say "===> Fetching: {@candidates.map(*.as).join(', ')}";
         my @saved = eager gather for @candidates -> $candi {
             my $from     = $candi.from;
             my $as       = $candi.as;
@@ -203,7 +123,7 @@ class Zef::Client {
             my $local-candi = $candi.clone(:$dist);
             # XXX: the above used to just be `$candi.dist = $dist` where dist is rw
 
-            say "{$local-candi.dist.identity} fulfills the request for {$local-candi.as}";
+            say "{$local-candi.dist.identity} fulfills the request for {$local-candi.as}" if $!verbose;
 
             take $local-candi;
         }
@@ -220,31 +140,31 @@ class Zef::Client {
     }
 
     # xxx: needs some love. also an entire specification
-    method build(*@candidates) {
+    method build(*@candidates ($, *@)) {
         my @built = eager gather for @candidates -> $candi {
             my $dist := $candi.dist;
-            take($candi) && next() unless $dist.IO.child('Build.pm').e;
+            take !$dist.IO.child('Build.pm').e
+                ?? $candi
+                !! do {
+                    my $result = legacy-hook($candi);
 
-            my $result = legacy-hook($candi);
+                    if !$result {
+                        die "Aborting due to build failure: {$candi.dist.?identity // $candi.uri}"
+                        ~   "(use --force to override)" unless ?$!force;
+                        say "build failure: {$candi.dist.?identity // $candi.uri}. "
+                        ~   "Continuing anyway with --force"
+                    }
+                    else {
+                        say "Build passed for {$candi.dist.?identity // $candi.uri}";
+                    }
 
-            if !$result {
-                die "Aborting due to build failure: {$candi.dist.?identity // $candi.uri}"
-                ~   "(use --force to override)" unless ?$!force;
-                say "build failure: {$candi.dist.?identity // $candi.uri}. "
-                ~   "Continuing anyway with --force"
-            }
-            else {
-                say "Build passed for {$candi.dist.?identity // $candi.uri}";
-            }
-
-            $candi does role :: { has $.build-results = ?$result };
-
-            take $candi;
+                    $candi does role :: { has $.build-results = ?$result };
+                }
         }
     }
 
     # xxx: needs some love
-    method test(:@includes, *@candidates) {
+    method test(:@includes, *@candidates ($, *@)) {
         my $stdout = Supplier.new;
         my &out = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
         $stdout.Supply.tap(&out);
@@ -256,7 +176,7 @@ class Zef::Client {
         my @tested = eager gather for @candidates -> $candi {
             say "Start test phase for: {$candi.dist.?identity // $candi.uri}";
 
-            my @result = $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes>), :$stdout, :$stderr);
+            my @result = $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$stdout, :$stderr);
 
             if @result.grep(*.not).elems {
                 die "Aborting due to test failure: {$candi.dist.?identity // $candi.uri} "
@@ -283,7 +203,7 @@ class Zef::Client {
 
 
     # xxx: needs some love
-    method search(*@identities, *%fields) {
+    method search(*@identities ($, *@), *%fields) {
         $!storage.search(|@identities, |%fields);
     }
 
@@ -294,7 +214,7 @@ class Zef::Client {
         Bool :$test  = True,        # run tests
         Bool :$dry,                 # do everything *but* actually install
         Bool :$upgrade,             # NYI
-        *@candidates,
+        *@candidates ($, *@),
         *%_
         ) {
         my &notice = ?$!force ?? &say !! &die;
@@ -313,33 +233,9 @@ class Zef::Client {
         # Fetch Stage:
         # Use the results from searching ContentStorages and download/fetch the distributions they point at
         my @fetched-candidates = eager gather for @candidates -> $store {
-            # xxx: paths and uris we already fetched (saves us from copying 1 extra time)
-            take $store and next if $store.dist.^name.contains('Zef::Distribution::Local');
-            # todo: send |@candidates to fetch instead of each $store one at a time
-            take $_ for |self.fetch($store, |%_);
+            take $_ for $store.dist.^name.contains('Zef::Distribution::Local') ?? $store !! |self.fetch($store, |%_);
         }
         die "Failed to fetch any candidates. No reason to proceed" unless +@fetched-candidates;
-
-
-        # This could really go in the filter stage (thats where it got moved from!) but
-        # this lets us give a better error message if all candidates are installed. We can
-        # also put logic related to checking if its installed in *specific* CURs
-        my @needed-candidates = eager gather for @fetched-candidates -> $candi {
-            my $dist := $candi.dist;
-            say "===> Probing for {$dist.name}" if ?$!verbose;
-            if ?self.is-installed($candi.dist, at => @to) {
-                unless ?$!force {
-                    say "{$!verbose??'['~$candi.as~'] '!!''}{$dist.identity} "
-                    ~   "is already installed. Skipping... (use :force to override)";
-                    next;
-                }
-                say "{$!verbose??'['~$candi.as~'] '!!''}{$dist.identity} is already installed. "
-                ~   "Continuing anyway with :force";
-            }
-            take $candi;
-        }
-        die "All candidates appear to be installed already. Aborting!" unless $!force || +@needed-candidates;
-
 
         # Filter Stage:
         # Handle stuff like removing distributions that are already installed, that don't have
@@ -347,9 +243,9 @@ class Zef::Client {
         # problem outlined below under `Sort Phase` (a depends on [A, B] where A gets filtered out
         # below because it has the wrong license means we don't need anything that depends on A but
         # *do* need to replace those items with things depended on by B [which replaces A])
-        my @filtered-candidates = eager gather for @needed-candidates -> $candi {
+        say "===> Filtering: {@fetched-candidates.map(*.dist.identity).join(', ')}";
+        my @filtered-candidates = eager gather for @fetched-candidates -> $candi {
             my $dist := $candi.dist;
-            say "===> Filtering {$dist.name}" if ?$!verbose;
             # todo: Change config.json to `"Filter" : { "License" : "xxx" }`)
             given $!config<License> {
                 CATCH { default {
@@ -408,24 +304,27 @@ class Zef::Client {
         # Install Phase:
         # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
         # and contain only the modules needed for this specific run/plan
-        my @installed-candidates = gather for @tested-candidates -> $candi {
-            take $candi if @curs.grep: -> $cur {
-                my $dist = $candi.dist;
+        say "===> Installing: {@tested-candidates.map(*.dist.identity).join(', ')}";
+        my @installed-candidates = eager gather for @tested-candidates -> $candi {
+            my @installed-at = |@curs.grep: -> $cur {
                 # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
                 # any subsequent .install as the fuck up involves changing the data structures
-                temp $dist.provides = $dist.provides;
-                temp $dist.files    = $dist.files;
+                my $dist = $candi.dist.clone(provides => $candi.dist.provides, files => $candi.dist.files);
 
                 if ?$dry {
-                    say "{$dist.identity}{$!verbose??q|#|~$dist.path!!''} processed successfully";
+                    say "{$dist.identity}{$!verbose??q|#|~$dist.path!!''} processed successfully" if $!verbose;
                 }
                 else {
                     #$!lock.protect({
-                    say "Installing {$dist.identity}{?$!verbose??qq| to $cur|!!''}";
-                    try $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+                    try {
+                        CATCH { default {.rethrow} }
+                        say "Installing {$dist.identity} to $cur" if $!verbose;
+                        $ = $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+                    }
                     #});
                 }
             }
+            take $candi if +@installed-at;
         }
 
         # Report phase:
@@ -435,7 +334,7 @@ class Zef::Client {
         unless $dry {
             if @installed-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
                 say "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
-                ~   "\n\t" ~ @curs.map(*.prefix.child('bin')).join("\n");
+                ~   "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
             }
         }
 
@@ -500,7 +399,17 @@ class Zef::Client {
         }
     }
 
-    method is-installed($dist, :@at) {
+    method list-dependencies(*@candis) {
+        my $deps := gather for @candis -> $candi {
+            take $_ for grep *.defined,
+                ($candi.dist.depends-specs       if ?$!depends).Slip,
+                ($candi.dist.test-depends-specs  if ?$!test-depends).Slip,
+                ($candi.dist.build-depends-specs if ?$!build-depends).Slip;
+        }
+        $deps.unique(:as(*.identity));
+    }
+
+    method is-installed($dist, :@at = ['site']) {
         $ = ?self.list-installed(|@at).first(*.dist.contains-spec($dist))
     }
 
@@ -511,10 +420,7 @@ class Zef::Client {
             if ($candi.dist.metainfo<marked> // 0) == 0 {
                 $candi.dist.metainfo<marked> = 1;
 
-                my @deps = unique(grep *.defined,
-                    ($candi.dist.depends-specs       if ?$!depends).Slip,
-                    ($candi.dist.test-depends-specs  if ?$!test-depends).Slip,
-                    ($candi.dist.build-depends-specs if ?$!build-depends).Slip);
+                my @deps = |self.list-dependencies($candi);
 
                 for @deps -> $m {
                     for @candis.grep(*.dist.spec-matcher($m)) -> $m2 {
@@ -576,10 +482,7 @@ class Zef::Client {
         @ = @candidates.map: -> $candi {
             my $dist := $candi.dist;
 
-            my @dep-specs = unique(grep *.defined,
-                ($dist.depends-specs       if ?$!depends).Slip,
-                ($dist.test-depends-specs  if ?$!test-depends).Slip,
-                ($dist.build-depends-specs if ?$!build-depends).Slip);
+            my @dep-specs = |self.list-dependencies($candi);
 
             # this could probably be done in the topological-sort itself
             $dist.metainfo<includes> = eager gather DEPSPEC: for @dep-specs -> $spec {

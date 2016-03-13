@@ -6,7 +6,7 @@ class Zef::ContentStorage does Pluggable {
 
     # Like search, but meant to return a single result for each specific identity string
     # whereas search is meant to search more fields and give many results to choose from
-    method candidates(Bool :$upgrade, *@identities) {
+    method candidates(Bool :$upgrade, *@identities ($, *@)) {
         # todo: have a `file` identity in Zef::Identity
         my @searchable = @identities.grep(!*.starts-with("." | "/"));
         my @results = gather for self!plugins -> $storage {
@@ -27,7 +27,7 @@ class Zef::ContentStorage does Pluggable {
         }
     }
 
-    method search(:$max-results = 5, *@identities, *%fields) {
+    method search(:$max-results = 5, *@identities ($, *@), *%fields) {
         return () unless @identities || %fields;
         my @results = eager gather for self!plugins -> $storage {
             take $_ for $storage.search(|@identities, |%fields, :$max-results);

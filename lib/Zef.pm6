@@ -37,9 +37,10 @@ role Tester {
 
 role Candidate {
     has $.dist;
-    has $.as;   # Requested as
-    has $.from; # Recommended from
+    has $.as;   # Requested as (maybe a url, maybe an identity, maybe a path)
+    has $.from; # Recommended from (::P6C, ::CPAN, ::LocalCache)
     has $.uri;  # url, file path, etc
+    has Bool $.is-dependency is rw;
 }
 
 role ContentStorage {

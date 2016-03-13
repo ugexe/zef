@@ -2,19 +2,19 @@ use Zef::Identity;
 
 class Zef::Distribution::DependencySpecification {
     has $!ident;
-    has $.spec;
+    has $.id;
     # todo: handle wildcard/+ (like "1.2.3+", "1.2.*", "*:ugexe", "github:*")
 
-    submethod new($spec) { self.bless(:$spec) }
+    submethod new($id) { self.bless(:$id) }
 
-    method spec { $ = self.?identity // $!spec }
+    method identity { $ = hash2identity( %(:name($.name), :ver($.version-matcher), :auth($.auth-matcher), :api($.api-matcher)) ) }
 
-    method spec-parts(Zef::Distribution::DependencySpecification:_: $spec = self.spec) {
-        $!ident //= Zef::Identity($spec);
+    method spec-parts(Zef::Distribution::DependencySpecification:_: $id = self.id) {
+        $!ident //= Zef::Identity($id);
         $!ident.?hash;
     }
 
-    method name { $ = callsame() // self.spec-parts<name> }
+    method name            { $ = self.spec-parts<name> }
 
     method version-matcher { $ = self.spec-parts<ver>  }
 

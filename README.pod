@@ -229,7 +229,7 @@ List available distributions that directly depend on C<$identity>
 
 =head4 B<fetch> [*@identities]
 
-Fetches candidates for given identities, including any dependencies (if requested)
+Fetches candidates for given identities
 
 =head4 B<test> [*@paths]
 

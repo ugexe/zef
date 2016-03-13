@@ -47,6 +47,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
                 dist => $dist,
                 uri  => ($dist.source-url || $dist.hash<support><source>),
                 from => $?CLASS.^name,
+                as   => $dist.identity,
             );
         }
     }
@@ -94,6 +95,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # note this doesn't apply the $max-results per identity searched, and always returns a 1 dist
     # max for a single identity (todo: update to handle $max-results for each @identities)
     method search(:$max-results = 5, *@identities, *%fields) {
+        return () unless @identities || %fields;
         my @wanted = |@identities;
         my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
 
@@ -120,7 +122,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # After the `fetch` phase an app can call `.store` on any ContentStorage that
     # provides it, allowing each ContentStorage to do things like keep a simple list of
     # identities installed, keep a cache of anything installed (how its used here), etc
-    method store(*@new) {
+    method store(*@new ($, *@)) {
         $lock.protect({
             # xxx: terribly inefficient
             my %lookup;

@@ -84,9 +84,8 @@ package Zef::CLI {
 
         my $client     = Zef::Client.new(:$config, :exclude(|@excluded), :$force, :$verbose, :$depends, :$test-depends, :$build-depends);
 
-        my @all-installed-identities = |$client.list-installed.map(*.dist.identity);
         my (:@wanted-identities, :@skip-identities) := @identities\
-            .classify: {$_ ~~ none(@all-installed-identities) ?? <wanted-identities> !! <skip-identities>}
+            .classify: {$client.is-installed($_) ?? <skip-identities> !! <wanted-identities>}
         say "The following candidates are already installed: {@skip-identities.join(', ')}"\
             if $verbose && +@skip-identities;
 

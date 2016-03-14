@@ -63,11 +63,15 @@ class Zef::Client {
     }
 
     method find-prereq-candidates(Bool :$upgrade, *@candis ($, *@)) {
+        my @skip  = @candis.map(*.dist.identity);
+        my @specs = |self.list-dependencies(@candis);
+
         my $prereqs := unique :as(*.dist.identity), gather {
-            state @skip = |@candis.map(*.dist.identity), |self.list-installed.map(*.dist.identity);
-            my @specs = |self.list-dependencies(@candis);
             while @specs.splice -> @specs-batch {
-                next unless my @needed = @specs-batch.map(*.identity).grep(* ~~ none(@skip));
+                next unless my @needed = @specs-batch\
+                    .grep({.identity ~~ none(@skip)})\
+                    .grep({not self.is-installed($_)})\
+                    .map(*.identity);
                 next unless my @prereq-candidates = |self.find-candidates(:$upgrade, |@needed);
 
                 my @prereq-identities = @prereq-candidates.map(*.dist.identity);
@@ -409,8 +413,8 @@ class Zef::Client {
         $deps.unique(:as(*.identity));
     }
 
-    method is-installed($dist, :@at = ['site']) {
-        $ = ?self.list-installed(|@at).first(*.dist.contains-spec($dist))
+    method is-installed($spec, :@at) {
+        $ = ?self.list-installed(|@at).first(*.dist.contains-spec($spec))
     }
 
     method sort-candidates(@candis, *%_) {

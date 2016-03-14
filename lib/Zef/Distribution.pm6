@@ -64,7 +64,11 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
 
     method provides-spec-matcher($spec) { $ = self.provides-specs.first({ ?$_.spec-matcher($spec) })       }
 
-    method contains-spec($spec)         { so self.spec-matcher($spec) || self.provides-spec-matcher($spec) }
+    proto method contains-spec(|) {*}
+    multi method contains-spec(Str $spec)
+        { samewith( Zef::Distribution::DependencySpecification.new($spec) ) }
+    multi method contains-spec(Zef::Distribution::DependencySpecification $spec)
+        { so self.spec-matcher($spec) || self.provides-spec-matcher($spec)  }
 
     # Add new entries missing from original Distribution.hash
     method hash {

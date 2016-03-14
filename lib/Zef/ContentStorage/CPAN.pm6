@@ -69,29 +69,29 @@ class Zef::ContentStorage::CPAN does ContentStorage {
             # fetchers. Soon those will just print it to stdout, and return the captured raw data,
             # but the Fetcher interface needs to be updated to accommodate this.
             my $search-save-as = self.IO.child('search').IO.child("{time}.{$*THREAD.id}.json");
-            my $response-path = $!fetcher.fetch($search-url, $search-save-as);
+            my $response-path  = $!fetcher.fetch($search-url, $search-save-as);
 
-            if $!fetcher.fetch($search-url, $search-save-as) -> $reponse-path {
-                if from-json($response-path.IO.slurp) -> %meta {
-                    for (^%meta<hits><hits>.elems) -> $i {
-                        my $meta6 = METACPAN2META6(%meta<hits><hits>[$i]<_source>);
-                        # temporary. Some download_urls are absolute, and others are not
-                        my $host           = 'http://hack.p6c.org:5001';
-                        $meta6<source-url> = ($host ~ $meta6<source-url>) if $meta6<source-url>.starts-with('/');
+            if $response-path.IO.e {
+                my %meta = %(from-json($response-path.IO.slurp));
+                try $response-path.unlink;
 
-                        my $dist      = Zef::Distribution.new(|$meta6);
-                        my $candidate = Candidate.new(
-                            dist  => $dist,
-                            uri   => $dist.source-url,
-                            as    => $wants,
-                            from  => $?CLASS.^name,
-                        );
+                for (^%meta<hits><hits>.elems) -> $i {
+                    my $meta6 = METACPAN2META6(%meta<hits><hits>[$i]<_source>);
+                    # temporary. Some download_urls are absolute, and others are not
+                    my $host           = 'http://hack.p6c.org:5001';
+                    $meta6<source-url> = ($host ~ $meta6<source-url>) if $meta6<source-url>.starts-with('/');
 
-                        take $candidate;
-                    }
+                    my $dist      = Zef::Distribution.new(|$meta6);
+                    my $candidate = Candidate.new(
+                        dist  => $dist,
+                        uri   => $dist.source-url,
+                        as    => $wants,
+                        from  => $?CLASS.^name,
+                    );
+
+                    take $candidate;
                 }
             }
-            try { $response-path.unlink } if $response-path.IO.e;
         }
     }
 }

@@ -122,7 +122,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # After the `fetch` phase an app can call `.store` on any ContentStorage that
     # provides it, allowing each ContentStorage to do things like keep a simple list of
     # identities installed, keep a cache of anything installed (how its used here), etc
-    method store(*@new ($, *@)) {
+    method store(*@new) {
         $lock.protect({
             # xxx: terribly inefficient
             my %lookup;

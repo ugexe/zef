@@ -34,25 +34,25 @@ class Zef::Identity {
         token name    { <.token>+ }
 
         proto token version {*};
-        token version:sym(":ver(v") { <.sym> $<value>=[<.token>+?] ")"  }
-        token version:sym(":ver('") { <.sym> $<value>=[<.token>+?] "')" }
-        token version:sym(':ver("') { <.sym> $<value>=[<.token>+?] '")' }
-        token version:sym(":ver<")  { <.sym> $<value>=[<.token>+?] '>'  }
-        token version:sym(":version(v") { <.sym> $<value>=[<.token>+?] ")"  }
-        token version:sym(":version('") { <.sym> $<value>=[<.token>+?] "')" }
-        token version:sym(':version("') { <.sym> $<value>=[<.token>+?] '")' }
-        token version:sym(":version<")  { <.sym> $<value>=[<.token>+?] '>'  }
+        token version:sym(":ver(v") { <.sym> $<value>=[<.token>*?] ")"  }
+        token version:sym(":ver('") { <.sym> $<value>=[<.token>*?] "')" }
+        token version:sym(':ver("') { <.sym> $<value>=[<.token>*?] '")' }
+        token version:sym(":ver<")  { <.sym> $<value>=[<.token>*?] '>'  }
+        token version:sym(":version(v") { <.sym> $<value>=[<.token>*?] ")"  }
+        token version:sym(":version('") { <.sym> $<value>=[<.token>*?] "')" }
+        token version:sym(':version("') { <.sym> $<value>=[<.token>*?] '")' }
+        token version:sym(":version<")  { <.sym> $<value>=[<.token>*?] '>'  }
 
         proto token api {*};
-        token api:sym(":api(v") { <.sym> $<value>=[<.token>+?] ")"  }
-        token api:sym(":api('") { <.sym> $<value>=[<.token>+?] "')" }
-        token api:sym(':api("') { <.sym> $<value>=[<.token>+?] '")' }
-        token api:sym(":api<")  { <.sym> $<value>=[<.token>+?] '>'  }
+        token api:sym(":api(v") { <.sym> $<value>=[<.token>*?] ")"  }
+        token api:sym(":api('") { <.sym> $<value>=[<.token>*?] "')" }
+        token api:sym(':api("') { <.sym> $<value>=[<.token>*?] '")' }
+        token api:sym(":api<")  { <.sym> $<value>=[<.token>*?] '>'  }
 
         proto token auth {*};
-        token auth:sym(":auth('") { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>+?] "')" }
-        token auth:sym(':auth("') { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>+?] '")' }
-        token auth:sym(":auth<")  { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>+?] '>'  }
+        token auth:sym(":auth('") { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>*?] "')" }
+        token auth:sym(':auth("') { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>*?] '")' }
+        token auth:sym(":auth<")  { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>*?] '>'  }
 
         token token      { <-restricted +name-sep> }
         token restricted { < : > }
@@ -66,7 +66,7 @@ class Zef::Identity {
     multi method new(Str $id) {
         state %id-cache;
         %id-cache{$id} := %id-cache{$id}:exists ?? %id-cache{$id} !! do {
-            if URN.parse($id) -> $urn {
+            if $id !~~ /':ver' | ':auth' | ':api'/ and URN.parse($id) -> $urn {
                 self.bless(
                     name    => ~($urn<name>.subst('--','::') // ''),
                     version => ~($urn<version>               // ''),

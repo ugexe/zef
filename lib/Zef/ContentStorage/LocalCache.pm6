@@ -26,8 +26,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         @!dists = gather for self!slurp-manifest.lines -> $entry {
             my ($identity, $path) = $entry.split("\0");
             next unless "{$path}".IO.e;
-            try {
-                my $dist = Zef::Distribution::Local.new($path);
+            if try { Zef::Distribution::Local.new($path) } -> $dist {
                 take $dist;
             }
         }
@@ -70,16 +69,14 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
                 ||  $current.basename.starts-with('.')
                 ||  %dcache.values.grep({ $current.absolute.starts-with($_.IO.absolute) });
 
-            unless ?Zef::Distribution::Local.find-meta($current) {
+            my $dist = try Zef::Distribution::Local.new($current);
+
+            unless ?$dist {
                 @stack.append($current.dir.grep(*.d)>>.absolute);
                 next;
             }
 
-            try {
-                if Zef::Distribution::Local.new($current) -> $dist {
-                    %dcache{$dist.identity} //= $dist;
-                }
-            }
+            %dcache{$dist.identity} //= $dist;
         }
 
         @!dists = %dcache.values;

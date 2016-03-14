@@ -49,7 +49,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
             $path = $path.IO.child('p6c.json') if $path.IO.d;
             try { copy($path, self!package-list-file) } || next;
         }
-        @!dists = self!slurp-package-list.map({ Zef::Distribution.new(|%($_)) })
+        @!dists = |self!slurp-package-list.map: { $ = Zef::Distribution.new(|%($_)) }
     }
 
     # todo: handle %fields
@@ -61,7 +61,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
 
         cache gather DIST: for self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
-                KEEP { last DIST unless +@wanted }
+                last DIST unless +@wanted;
                 if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(
                         dist => $dist,

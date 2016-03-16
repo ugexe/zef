@@ -16,7 +16,6 @@ class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
             # many tests are written with the assumption that $*CWD will be their distro's base directory
             # so we have to hack around it so people can still (rightfully) pass absolute paths to `.test`
             my $relpath   = $test-file.relative($path);
-            $.stdout.emit("[Zef::Shell::Test] Testing: {$relpath}");
 
             my $env = %*ENV;
             my @cur-p6lib  = $env<PERL6LIB>.?chars ?? $env<PERL6LIB>.split($*DISTRO.cur-sep) !! ();

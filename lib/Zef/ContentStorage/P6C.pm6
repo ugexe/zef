@@ -12,9 +12,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
 
     method !gather-dists {
         once { self.update } if $.auto-update || !self!package-list-file.e;
-        return @!dists if +@!dists;
-
-        @!dists = gather for self!slurp-package-list -> $meta {
+        @!dists = cache gather for self!slurp-package-list -> $meta {
             my $dist = Zef::Distribution.new(|%($meta));
             take $dist;
         }

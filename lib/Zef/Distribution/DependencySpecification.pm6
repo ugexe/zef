@@ -17,11 +17,11 @@ class Zef::Distribution::DependencySpecification {
 
     method name            { $ = self.spec-parts<name> }
 
-    method version-matcher { $ = self.spec-parts<ver>  // '' }
+    method version-matcher { $ = self.spec-parts<ver>  // '*' }
 
-    method auth-matcher    { $ = self.spec-parts<auth> // '' }
+    method auth-matcher    { $ = self.spec-parts<auth> // ''  }
 
-    method api-matcher     { $ = self.spec-parts<api>  // '' }
+    method api-matcher     { $ = self.spec-parts<api>  // '*' }
 
     method !spec { $.spec || self.Str }
 

@@ -72,7 +72,7 @@ class Zef::Client {
             level   => VERBOSE,
             stage   => RESOLVE,
             phase   => AFTER,
-            payload => @candidates.map(*.dist.identity),
+            payload => @candidates,
             message => "Found: {@candidates.map(*.dist.identity).join(', ')}",
         });
         @candidates;
@@ -88,8 +88,8 @@ class Zef::Client {
             @specs.grep(-> $spec { !@skip.first(-> $dist {?$dist.contains-spec($spec)}) }).grep({ not self.is-installed($_) });
         }
 
-        my @prereqs = unique :as(*.dist.identity), gather {
-            my @specs = |self.list-dependencies(@candis);
+        my @prereqs = unique :as(*.dist.identity), eager gather {
+            my @specs = self.list-dependencies(@candis);
 
             while @specs.splice -> @specs-batch {
                 self.logger.emit({
@@ -101,25 +101,27 @@ class Zef::Client {
                 });
 
                 next unless my @needed = filter-needed(@specs-batch);
+                my @identities = @needed.map(*.identity);
                 self.logger.emit({
                     level   => INFO,
                     stage   => RESOLVE,
                     phase   => BEFORE,
                     payload => @needed,
-                    message => "Searching for missing dependencies: {@needed.map(*.identity).join(', ')}",
+                    message => "Searching for missing dependencies: {@identities.join(', ')}",
                 });
 
-                next unless my @prereq-candidates = |self!find-candidates(:$upgrade, |@needed.map(*.identity));
+                next unless my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
+                my @prereq-identities = @prereq-candidates.map(*.dist.identity);
                 self.logger.emit({
                     level   => VERBOSE,
                     stage   => RESOLVE,
                     phase   => AFTER,
                     payload => @prereq-candidates,
-                    message => "Found dependencies: {@prereq-candidates.map(*.dist.identity)}",
+                    message => "Found dependencies: {@prereq-identities.join(', ')}",
                 });
 
-                @skip.append: |@prereq-candidates.map(*.dist);
-                @specs = |self.list-dependencies(@prereq-candidates);
+                @skip.append: @prereq-candidates.map(*.dist);
+                @specs = self.list-dependencies(@prereq-candidates);
                 for @prereq-candidates -> $prereq {
                     $prereq.is-dependency = True;
                     take $prereq;

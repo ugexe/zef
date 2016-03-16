@@ -59,7 +59,6 @@ package Zef::CLI {
         my @built = |$client.build(|@candidates);
         my (:@pass, :@fail) := @built.classify: {$_.?build-results !=== False ?? <pass> !! <fail> }
 
-        say "===> Built: {.as}{?$verbose??' at '~.dist.path!!''}"         for @pass.grep(*.?build-results);
         say "!!!> Build failure: {.as}{?$verbose??' at '~.dist.path!!''}" for @fail;
 
         exit ?@fail ?? 1 !! ?@pass ?? 0 !! 255;
@@ -78,7 +77,8 @@ package Zef::CLI {
                 !! die("Don't understand identity: {$wanted}");
         }
 
-        my @excluded = grep *.defined, ?$depsonly ?? (|@identities, |$exclude) !! $exclude;
+        my @excluded =  $exclude.map(*.&identity2spec);
+
         my $client   = get-client(:$config, :exclude(|@excluded), :$force, :$verbose, :$depends, :$test-depends, :$build-depends);
 
         my (:@wanted-identities, :@skip-identities) := @identities\
@@ -100,7 +100,8 @@ package Zef::CLI {
         my @prereqs    = |$client.find-prereq-candidates(|@path-candidates, |@url-candidates, |@requested)\
             if +@path-candidates || +@url-candidates || +@requested;
 
-        my @candidates = grep *.defined, |@path-candidates, |@url-candidates, |@requested, |@prereqs;
+        my @candidates = grep *.defined, ?$depsonly
+            ??|@prereqs !! (|@path-candidates, |@url-candidates, |@requested, |@prereqs);
         die "All candidates are currently installed. No reason to proceed (use --force to continue anyway)"\
             unless +@candidates || ?$force;
 
@@ -366,6 +367,10 @@ package Zef::CLI {
                 uri  => $path.IO.absolute,
                 dist => Zef::Distribution::Local.new($path),
         )
+    }
+
+    sub identity2spec($identity) {
+        Zef::Distribution::DependencySpecification.new($identity);
     }
 
     # prints a table with rows and columns. expects a header row.

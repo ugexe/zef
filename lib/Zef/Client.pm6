@@ -72,14 +72,16 @@ class Zef::Client {
             level   => VERBOSE,
             stage   => RESOLVE,
             phase   => AFTER,
-            payload => @candidates,
+            payload => @candidates.map(*.dist.identity),
             message => "Found: {@candidates.map(*.dist.identity).join(', ')}",
-        });
+        }) if +@candidates;
         @candidates;
 
     }
     method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
-        my $candidates := $!storage.candidates(|@identities, :$upgrade).unique(:as(*.dist.identity));
+        my $candidates := $!storage.candidates(|@identities, :$upgrade)\
+            .grep(-> $dist { not @!exclude.first(-> $spec {$dist.dist.contains-spec($spec)}) })\
+            .unique(:as(*.dist.identity));
     }
 
     method find-prereq-candidates(Bool :$upgrade, *@candis ($, *@)) {
@@ -466,7 +468,7 @@ class Zef::Client {
                                 stage   => INSTALL,
                                 phase   => AFTER,
                                 payload => $candi,
-                                message => "Install failure for {$candi.dist.?identity // $candi.as}: {$_}",
+                                message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
                             });
                             $_.rethrow;
                         } }
@@ -476,7 +478,7 @@ class Zef::Client {
                             stage   => INSTALL,
                             phase   => AFTER,
                             payload => $candi,
-                            message => "Install success: {$candi.dist.?identity // $candi.as}",
+                            message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
                         }) if ?$install;
                         $ = ?$install;
                     }

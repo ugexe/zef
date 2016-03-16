@@ -19,7 +19,6 @@ class Zef::Shell::prove6 is Zef::Shell does Tester does Messenger {
         die "path does not exist: {$path}" unless $path.IO.e;
         my $test-path = $path.IO.child('t');
         return True unless $test-path.e;
-        $.stdout.emit("[Zef::Shell::prove6] Testing: {$test-path.absolute}");
 
         my $env = %*ENV;
         my @cur-p6lib  = $env<PERL6LIB>.?chars ?? $env<PERL6LIB>.split($*DISTRO.cur-sep) !! ();
@@ -29,7 +28,7 @@ class Zef::Shell::prove6 is Zef::Shell does Tester does Messenger {
         # XXX: -Ilib/.precomp is a workaround for rakudo precomp locking bug
         # It generates it .precomp in lib/.precomp/.precomp so the default
         # precomp folder being in use/locked won't affect our custom prefix copy
-        my $proc = zrun('prove6', '-Ilib/.precomp', '-v', '-r',
+        my $proc = zrun('prove6', '-Ilib/.precomp', '-r',
             $test-path.relative($path), :cwd($path), :$env, :out, :err);
 
         $.stdout.emit($_) for $proc.out.lines;

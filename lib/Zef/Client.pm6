@@ -13,8 +13,9 @@ class Zef::Client {
     has $.storage;
     has $.extractor;
     has $.tester;
-
     has $.config;
+
+    has $.logger = Supplier.new;
 
     has @.exclude;
     has @!ignore = <Test NativeCall lib MONKEY-TYPING nqp>;
@@ -59,40 +60,88 @@ class Zef::Client {
     }
 
     method find-candidates(Bool :$upgrade, *@identities ($, *@)) {
-        my $candidates := unique :as(*.dist.identity), $!storage.candidates(|@identities, :$upgrade);
+        self.logger.emit({
+            level   => INFO,
+            stage   => RESOLVE,
+            phase   => BEFORE,
+            payload => @identities,
+            message => "Searching for: {@identities.join(', ')}",
+        });
+        my @candidates = self!find-candidates(:$upgrade, |@identities);
+        self.logger.emit({
+            level   => VERBOSE,
+            stage   => RESOLVE,
+            phase   => AFTER,
+            payload => @candidates.map(*.dist.identity),
+            message => "Found: {@candidates.map(*.dist.identity).join(', ')}",
+        }) if +@candidates;
+        @candidates;
+
+    }
+    method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
+        my $candidates := $!storage.candidates(|@identities, :$upgrade)\
+            .grep(-> $dist { not @!exclude.first(-> $spec {$dist.dist.contains-spec($spec)}) })\
+            .unique(:as(*.dist.identity));
     }
 
     method find-prereq-candidates(Bool :$upgrade, *@candis ($, *@)) {
-        my @skip  = @candis.map(*.dist.identity);
-        my @specs = |self.list-dependencies(@candis);
+        my @skip = @candis.map(*.dist);
+        my sub filter-needed(*@specs) {
+            @specs.grep(-> $spec { !@skip.first(-> $dist {?$dist.contains-spec($spec)}) }).grep({ not self.is-installed($_) });
+        }
 
-        my $prereqs := unique :as(*.dist.identity), gather {
+        my @prereqs = unique :as(*.dist.identity), eager gather {
+            my @specs = self.list-dependencies(@candis);
+
             while @specs.splice -> @specs-batch {
-                next unless my @needed = @specs-batch\
-                    .grep({.identity ~~ none(@skip)})\
-                    .grep({not self.is-installed($_)})\
-                    .map(*.identity);
-                next unless my @prereq-candidates = |self.find-candidates(:$upgrade, |@needed);
+                self.logger.emit({
+                    level   => DEBUG,
+                    stage   => RESOLVE,
+                    phase   => BEFORE,
+                    payload => @specs-batch,
+                    message => "Dependencies: {@specs-batch.unique.join(', ')}",
+                });
 
+                next unless my @needed = filter-needed(@specs-batch);
+                my @identities = @needed.map(*.identity);
+                self.logger.emit({
+                    level   => INFO,
+                    stage   => RESOLVE,
+                    phase   => BEFORE,
+                    payload => @needed,
+                    message => "Searching for missing dependencies: {@identities.join(', ')}",
+                });
+
+                next unless my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
                 my @prereq-identities = @prereq-candidates.map(*.dist.identity);
-                @skip.append(|@prereq-identities);
-                @specs = |self.list-dependencies(@prereq-candidates);
-                take @prereq-candidates.grep({.is-dependency = True}).Slip;
+                self.logger.emit({
+                    level   => VERBOSE,
+                    stage   => RESOLVE,
+                    phase   => AFTER,
+                    payload => @prereq-candidates,
+                    message => "Found dependencies: {@prereq-identities.join(', ')}",
+                });
+
+                @skip.append: @prereq-candidates.map(*.dist);
+                @specs = self.list-dependencies(@prereq-candidates);
+                for @prereq-candidates -> $prereq {
+                    $prereq.is-dependency = True;
+                    take $prereq;
+                }
             }
         }
     }
 
     method fetch(*@candidates ($, *@)) {
-        my $stdout = Supplier.new;
-        my &out = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
-        $stdout.Supply.tap(&out);
-
-        my $stderr = Supplier.new;
-        my &err = ?$!verbose ?? -> $e {$e.say} !! -> $ { };
-        $stderr.Supply.tap(&err);
-
-        say "===> Fetching: {@candidates.map(*.as).join(', ')}";
         my @saved = eager gather for @candidates -> $candi {
+            self.logger.emit({
+                level   => INFO,
+                stage   => FETCH,
+                phase   => BEFORE,
+                payload => $candi,
+                message => "Fetching: {$candi.as}",
+            });
+
             my $from     = $candi.from;
             my $as       = $candi.as;
             my $uri      = $candi.uri;
@@ -105,19 +154,33 @@ class Zef::Client {
             # It could be a file or url; $dist.source-url contains where the source was
             # originally located but we may want to use a local copy (while retaining
             # the original source-url for some other purpose like updating)
-
-            say "{?$from??qq|[$from] |!!''}{$uri} staging at: $stage-at" if ?$!verbose;
-
-            my $save-to    = $!fetcher.fetch($uri, $stage-at, :$stdout, :$stderr);
+            my $save-to    = $!fetcher.fetch($uri, $stage-at, :$!logger);
             my $relpath    = $stage-at.relative($tmp);
             my $extract-to = $!cache.IO.child($relpath);
-
-            say "$uri saved to $save-to" if ?$!verbose;
+            self.logger.emit({
+                level   => VERBOSE,
+                stage   => FETCH,
+                phase   => AFTER,
+                payload => $candi,
+                message => "Fetched: {$candi.as} to $save-to",
+            });
 
             # should probably break this out into its out method
-            say "[{$!extractor.^name}] Extracting: {$save-to} to {$extract-to}" if ?$!verbose;
-            my $dist-dir = $!extractor.extract($save-to, $extract-to);
-            say "Extracted to: {$dist-dir}" if ?$!verbose;
+            self.logger.emit({
+                level   => DEBUG,
+                stage   => EXTRACT,
+                phase   => BEFORE,
+                payload => $candi,
+                message => "Extracting: {$candi.as}",
+            });
+            my $dist-dir = $!extractor.extract($save-to, $extract-to, :$!logger);
+            self.logger.emit({
+                level   => DEBUG,
+                stage   => EXTRACT,
+                phase   => AFTER,
+                payload => $candi,
+                message => "Extracted: {$candi.as} to {$dist-dir}",
+            });
 
             # $candi.dist may already contain a distribution object, but we reassign it as a
             # Zef::Distribution::Local so that it has .path/.IO methods. These could be
@@ -127,13 +190,8 @@ class Zef::Client {
             my $local-candi = $candi.clone(:$dist);
             # XXX: the above used to just be `$candi.dist = $dist` where dist is rw
 
-            say "{$local-candi.dist.identity} fulfills the request for {$local-candi.as}" if $!verbose;
-
             take $local-candi;
         }
-
-        $stdout.done;
-        $stderr.done;
 
         # Calls optional `.store` method on all ContentStorage plugins so they may
         # choose to cache the dist or simply cache the meta data of what is installed.
@@ -147,60 +205,93 @@ class Zef::Client {
     method build(*@candidates ($, *@)) {
         my @built = eager gather for @candidates -> $candi {
             my $dist := $candi.dist;
-            take !$dist.IO.child('Build.pm').e
-                ?? $candi
-                !! do {
-                    my $result = legacy-hook($candi);
+            unless ?$dist.IO.child('Build.pm').e {
+                self.logger.emit({
+                    level   => DEBUG,
+                    stage   => BUILD,
+                    phase   => BEFORE,
+                    payload => $candi,
+                    message => "# SKIP: No Build.pm for {$candi.dist.?identity // $candi.as}",
+                });
+                take $candi;
+                next();
+            }
 
-                    if !$result {
-                        die "Aborting due to build failure: {$candi.dist.?identity // $candi.uri}"
-                        ~   "(use --force to override)" unless ?$!force;
-                        say "build failure: {$candi.dist.?identity // $candi.uri}. "
-                        ~   "Continuing anyway with --force"
-                    }
-                    else {
-                        say "Build passed for {$candi.dist.?identity // $candi.uri}";
-                    }
+            $!logger.emit({
+                level   => INFO,
+                stage   => BUILD,
+                phase   => BEFORE,
+                payload => $candi,
+                message => "Building: {$candi.dist.?identity // $candi.as}",
+            });
 
-                    $candi does role :: { has $.build-results = ?$result };
-                }
+            my $result = legacy-hook($candi, :$!logger);
+
+            $candi does role :: { has $.build-results = ?$result };
+
+            if !$result {
+                self.logger.emit({
+                    level   => ERROR,
+                    stage   => BUILD,
+                    phase   => AFTER,
+                    payload => $candi,
+                    message => "Building [FAIL]: {$candi.dist.?identity // $candi.as}",
+                });
+                die "Aborting due to build failure: {$candi.dist.?identity // $candi.uri}"
+                ~   "(use --force to override)" unless ?$!force;
+            }
+            else {
+                self.logger.emit({
+                    level   => INFO,
+                    stage   => BUILD,
+                    phase   => AFTER,
+                    payload => $candi,
+                    message => "Building [OK] for {$candi.dist.?identity // $candi.as}",
+                });
+            }
+
+            take $candi;
         }
     }
 
     # xxx: needs some love
     method test(:@includes, *@candidates ($, *@)) {
-        my $stdout = Supplier.new;
-        my &out = ?$!verbose ?? -> $o {$o.say} !! -> $ { };
-        $stdout.Supply.tap(&out);
-
-        my $stderr = Supplier.new;
-        my &err = ?$!verbose ?? -> $e {$e.say} !! -> $ { };
-        $stderr.Supply.tap(&err);
-
         my @tested = eager gather for @candidates -> $candi {
-            say "Start test phase for: {$candi.dist.?identity // $candi.uri}";
+            self.logger.emit({
+                level   => INFO,
+                stage   => TEST,
+                phase   => BEFORE,
+                payload => $candi,
+                message => "Testing: {$candi.dist.?identity // $candi.as}",
+            });
 
-            my @result = $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$stdout, :$stderr);
+            my @result = $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$!logger);
+
+            $candi does role :: { has $.test-results = |@result };
 
             if @result.grep(*.not).elems {
-                die "Aborting due to test failure: {$candi.dist.?identity // $candi.uri} "
+                self.logger.emit({
+                    level   => ERROR,
+                    stage   => TEST,
+                    phase   => AFTER,
+                    payload => $candi,
+                    message => "Testing [FAIL]: {$candi.dist.?identity // $candi.as}",
+                });
+                die "Aborting due to test failure: {$candi.dist.?identity // $candi.as} "
                 ~   "(use --force to override)" unless ?$!force;
-                say "Test failure: {$candi.dist.?identity // $candi.uri}. "
-                ~   "Continuing anyway with --force"
             }
             else {
-                say "Testing passed for {$candi.dist.?identity // $candi.uri}";
+                self.logger.emit({
+                    level   => INFO,
+                    stage   => TEST,
+                    phase   => AFTER,
+                    payload => $candi,
+                    message => "Testing [OK] for {$candi.dist.?identity // $candi.as}",
+                });
             }
-
-            # This method of attaching meta information will eventually be replaced
-            # with a `Plan`/`Result` class, but its great for fleshing out a design now
-            $candi does role :: { has $.test-results = |@result };
 
             take $candi;
         }
-
-        $stdout.done;
-        $stderr.done;
 
         @tested
     }
@@ -221,12 +312,28 @@ class Zef::Client {
         *@candidates ($, *@),
         *%_
         ) {
-        my &notice = ?$!force ?? &say !! &die;
-        my (@curs, @cant-install);
-        @to.map: { my $group := $_.?can-install ?? @curs !! @cant-install; $group.push($_) }
-        say "You specified the following CompUnit::Repository install targets that don't appear writeable/installable:\n"
-            ~ "\t{@cant-install.join(', ')}" if +@cant-install;
-        die "Need a valid installation target to continue" unless ?$dry || (+@curs - +@cant-install) > 0;
+        my @curs = @to.grep: -> $cur {
+            UNDO {
+                self.logger.emit({
+                    level   => WARN,
+                    stage   => INSTALL,
+                    phase   => BEFORE,
+                    payload => $cur,
+                    message => "CompUnit::Repository install target is not writeable/installable: {$cur}"
+                });
+            }
+            KEEP {
+                self.logger.emit({
+                    level   => TRACE,
+                    stage   => INSTALL,
+                    phase   => BEFORE,
+                    payload => $cur,
+                    message => "CompUnit::Repository install target is valid: {$cur}"
+                });
+            }
+            $cur.?can-install || next();
+        }
+        die "Need a valid installation target to continue" unless ?$dry || +@curs;
 
         # XXX: Each loop block below essentially represents a phase, so they will probably
         # be moved into their own method/module related directly to their phase. For now
@@ -247,23 +354,44 @@ class Zef::Client {
         # problem outlined below under `Sort Phase` (a depends on [A, B] where A gets filtered out
         # below because it has the wrong license means we don't need anything that depends on A but
         # *do* need to replace those items with things depended on by B [which replaces A])
-        say "===> Filtering: {@fetched-candidates.map(*.dist.identity).join(', ')}";
         my @filtered-candidates = eager gather for @fetched-candidates -> $candi {
             my $dist := $candi.dist;
+            self.logger.emit({
+                level   => DEBUG,
+                stage   => FILTER,
+                phase   => BEFORE,
+                payload => $candi,
+                message => "Filtering: {$dist.identity}",
+            });
+
             # todo: Change config.json to `"Filter" : { "License" : "xxx" }`)
-            given $!config<License> {
+            my $msg = do given $!config<License> {
                 CATCH { default {
-                    say $_.message;
-                    die "Allowed licenses: {$!config<License>.<whitelist>.join(',')    || 'n/a'}\n"
+                    die "{$_.message}\n"
+                    ~   "Allowed licenses: {$!config<License>.<whitelist>.join(',')    || 'n/a'}\n"
                     ~   "Disallowed licenses: {$!config<License>.<blacklist>.join(',') || 'n/a'}";
                 } }
                 when .<blacklist>.?chars && any(|.<blacklist>) ~~ any('*', $dist.license // '') {
-                    notice "License blacklist configuration exists and matches {$dist.license // 'n/a'} for {$dist.name}";
+                    $ = "License blacklist configuration exists and matches {$dist.license // 'n/a'} for {$dist.name}";
                 }
                 when .<whitelist>.?chars && any(|.<whitelist>) ~~ none('*', $dist.license // '') {
-                    notice "License whitelist configuration exists and does not match {$dist.license // 'n/a'} for {$dist.name}";
+                    $ = "License whitelist configuration exists and does not match {$dist.license // 'n/a'} for {$dist.name}";
                 }
             }
+
+            ?$msg ?? $!logger.emit({
+                level   => ERROR,
+                stage   => FILTER,
+                phase   => AFTER,
+                payload => $candi,
+                message => "Filtering [FAIL] for {$candi.dist.?identity // $candi.as}: $msg",
+            }) !! $!logger.emit({
+                level   => DEBUG,
+                stage   => FILTER,
+                phase   => AFTER,
+                payload => $candi,
+                message => "Filtering [OK] for {$candi.dist.?identity // $candi.as}",
+            });
 
             take $candi;
         }
@@ -308,26 +436,56 @@ class Zef::Client {
         # Install Phase:
         # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
         # and contain only the modules needed for this specific run/plan
-        say "===> Installing: {@tested-candidates.map(*.dist.identity).join(', ')}";
         my @installed-candidates = eager gather for @tested-candidates -> $candi {
+            self.logger.emit({
+                level   => INFO,
+                stage   => INSTALL,
+                phase   => BEFORE,
+                payload => $candi,
+                message => "Installing: {$candi.dist.?identity // $candi.as}",
+            });
+
             my @installed-at = |@curs.grep: -> $cur {
                 # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
                 # any subsequent .install as the fuck up involves changing the data structures
                 my $dist = $candi.dist.clone(provides => $candi.dist.provides, files => $candi.dist.files);
 
                 if ?$dry {
-                    say "{$dist.identity}{$!verbose??q|#|~$dist.path!!''} processed successfully" if $!verbose;
+                    self.logger.emit({
+                        level   => VERBOSE,
+                        stage   => INSTALL,
+                        phase   => AFTER,
+                        payload => $candi,
+                        message => "(dry) Installed: {$candi.dist.?identity // $candi.as}",
+                    });
                 }
                 else {
                     #$!lock.protect({
                     try {
-                        CATCH { default {.rethrow} }
-                        say "Installing {$dist.identity} to $cur" if $!verbose;
-                        $ = $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+                        CATCH { default {
+                            self.logger.emit({
+                                level   => ERROR,
+                                stage   => INSTALL,
+                                phase   => AFTER,
+                                payload => $candi,
+                                message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
+                            });
+                            $_.rethrow;
+                        } }
+                        my $install = $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+                        self.logger.emit({
+                            level   => VERBOSE,
+                            stage   => INSTALL,
+                            phase   => AFTER,
+                            payload => $candi,
+                            message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
+                        }) if ?$install;
+                        $ = ?$install;
                     }
                     #});
                 }
             }
+
             take $candi if +@installed-at;
         }
 
@@ -337,8 +495,14 @@ class Zef::Client {
         # Optionally report to any cpan testers type service (testers.perl6.org)
         unless $dry {
             if @installed-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
-                say "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
-                ~   "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
+                my $msg = "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
+                ~ "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
+                self.logger.emit({
+                    level   => INFO,
+                    stage   => REPORT,
+                    phase   => LIVE,
+                    message => $msg,
+                });
             }
         }
 
@@ -508,13 +672,12 @@ class Zef::Client {
 
 # todo: write a real hooking implementation to CU::R::I instead of the current practice
 # of writing an installer specific (literally) Build.pm
-sub legacy-hook($candi) {
+sub legacy-hook($candi, :$logger) {
     my $dist := $candi.dist;
     my $DEBUG = ?%*ENV<ZEF_BUILDPM_DEBUG>;
 
     my $builder-path = $dist.IO.child('Build.pm');
     my $legacy-code  = $builder-path.IO.slurp;
-    say "[Build] Attempting to build via {$builder-path}" if ?$DEBUG;
 
     # if panda is declared as a dependency then there is no need to fix the code, although
     # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
@@ -523,7 +686,13 @@ sub legacy-hook($candi) {
         && !$dist.build-depends\.first(/'panda' | 'Panda::'/)
         && !$dist.test-depends\ .first(/'panda' | 'Panda::'/) {
 
-        say "[Build] `build-depends` is missing entries. Attemping to mimick missing dependencies..." if ?$DEBUG;
+        $logger.emit({
+            level   => WARN,
+            stage   => BUILD,
+            phase   => LIVE,
+            payload => $candi,
+            message => "`build-depends` is missing entries. Attemping to mimick missing dependencies...",
+        });
 
         my $legacy-fixer-code = q:to/END_LEGACY_FIX/;
             class Build {
@@ -541,28 +710,48 @@ sub legacy-hook($candi) {
 
 
     my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
-    say "[Build] Command: `$cmd`" if ?$DEBUG;
 
     my $result;
     try {
         use Zef::Shell;
-        CATCH { default { say "[Build] Something went wrong: $_" if ?$DEBUG; $result = False; } }
+        CATCH { default { $result = False; } }
         my @includes = $dist.metainfo<includes>.grep(*.defined).map: { "-I{$_}" }
         my @exec = |($*EXECUTABLE, '-Ilib/.precomp', '-I.', '-Ilib', |@includes, '-e', "$cmd");
-        say "[Build] cwd: {$dist.IO.absolute}" if ?$DEBUG;
-        say "[Build] exec: {@exec.join(' ')}"  if ?$DEBUG;
+
+        $logger.emit({
+            level   => DEBUG,
+            stage   => BUILD,
+            phase   => LIVE,
+            payload => $candi,
+            message => "Command: {@exec.join(' ')}",
+        });
+
         my $proc = zrun(|@exec, :cwd($dist.path), :out, :err);
         my @err = $proc.err.lines;
         my @out = $proc.out.lines;
-        if ?$DEBUG {
-            say "[Build] > $_" for @out;
-            say "[Build] ! $_" for @err;
-        }
+
         $ = $proc.out.close unless +@err;
         $ = $proc.err.close;
         $result = ?$proc;
+
+        $logger.emit({
+            level   => DEBUG,
+            stage   => BUILD,
+            phase   => LIVE,
+            payload => $candi,
+            message => @out.join("\n"),
+        }) if +@out;
+
+        $logger.emit({
+            level   => ERROR,
+            stage   => BUILD,
+            phase   => LIVE,
+            payload => $candi,
+            message => @err.join("\n"),
+        }) if +@err;
     }
+
     $builder-path.IO.unlink if $builder-path.ends-with('.zef') && "{$builder-path}".IO.e;
-    say "[Build] Result: {?$result??'Success'!!'Failure'}" if ?$DEBUG;
-    $ = $result;
+
+    $ = ?$result;
 }

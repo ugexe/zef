@@ -1,13 +1,16 @@
 use Zef;
 
 class Zef::Test does Pluggable {
-    method test($path, :@includes, Supplier :$stdout, Supplier :$stderr) {
+    method test($path, :@includes, Supplier :$logger) {
         die "Can't test non-existent path: {$path}" unless $path.IO.e;
         my $tester = self.plugins.first(*.test-matcher($path));
         die "No testing backend available" unless ?$tester;
 
-        $tester.stdout.Supply.act: -> $out { ?$stdout ?? $stdout.emit($out) !! $*OUT.say($out) }
-        $tester.stderr.Supply.act: -> $err { ?$stderr ?? $stderr.emit($err) !! $*ERR.say($err) }
+        if ?$logger {
+            $logger.emit({ level => DEBUG, stage => TEST, phase => START, payload => self, message => "Testing with plugin: {$tester.^name}" });
+            $tester.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, message => $out }) }
+            $tester.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, message => $err }) }
+        }
 
         my @got = try $tester.test($path, :@includes);
 

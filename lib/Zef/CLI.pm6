@@ -102,8 +102,10 @@ package Zef::CLI {
 
         my @candidates = grep *.defined, ?$depsonly
             ??|@prereqs !! (|@path-candidates, |@url-candidates, |@requested, |@prereqs);
-        die "All candidates are currently installed. No reason to proceed (use --force to continue anyway)"\
-            unless +@candidates || ?$force;
+        unless +@candidates {
+            note("All candidates are currently installed");
+            (?$depsonly || ?$force) ?? exit(0) !! die("No reason to proceed. Use --force to continue anyway");
+        }
 
         my (:@local, :@remote) := @candidates.classify: {.dist ~~ Zef::Distribution::Local ?? <local> !! <remote>}
         my @fetched = grep *.so, |@local, ($client.fetch(|@remote).Slip if +@remote);

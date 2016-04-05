@@ -90,7 +90,7 @@ class Zef::Client {
             @specs.grep(-> $spec { !@skip.first(-> $dist {?$dist.contains-spec($spec)}) }).grep({ not self.is-installed($_) });
         }
 
-        my @prereqs = unique :as(*.dist.identity), eager gather {
+        my $prereqs := gather {
             my @specs = self.list-dependencies(@candis);
 
             while @specs.splice -> @specs-batch {
@@ -99,7 +99,7 @@ class Zef::Client {
                     stage   => RESOLVE,
                     phase   => BEFORE,
                     payload => @specs-batch,
-                    message => "Dependencies: {@specs-batch.unique.join(', ')}",
+                    message => "Dependencies: {@specs-batch.map(*.name).unique.join(', ')}",
                 });
 
                 next unless my @needed = filter-needed(@specs-batch);
@@ -130,6 +130,8 @@ class Zef::Client {
                 }
             }
         }
+
+        $prereqs.unique(:as(*.dist.identity));
     }
 
     method fetch(*@candidates ($, *@)) {
@@ -681,11 +683,12 @@ sub legacy-hook($candi, :$logger) {
 
     # if panda is declared as a dependency then there is no need to fix the code, although
     # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
-    if ?$legacy-code.contains('use Panda')
-        && !$dist.depends\      .first(/'panda' | 'Panda::'/)
-        && !$dist.build-depends\.first(/'panda' | 'Panda::'/)
-        && !$dist.test-depends\ .first(/'panda' | 'Panda::'/) {
+    my $needs-panda = ?$legacy-code.contains('use Panda');
+    my $reqs-panda  = ?$dist.depends.first(/^[:i 'panda']/)
+                    || ?$dist.build-depends.first(/^[:i 'panda']/)
+                    || ?$dist.test-depends.first(/^[:i 'panda']/);
 
+    if ?$needs-panda && !$reqs-panda {
         $logger.emit({
             level   => WARN,
             stage   => BUILD,

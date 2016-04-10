@@ -9,6 +9,28 @@ use Zef::Utils::SystemInfo;
 # This allows the bin/zef original code to be precompiled, halving bare start up time.
 # Ideally this all ends up back in bin/zef once/if precompilation of scripts is handled in CURI
 package Zef::CLI {
+    # Basically a top level of option that every CLI option would use, so centralize it here
+    my $VERBOSITY = do given any(@*ARGS) {
+        when /'--fatal'/
+            { FATAL }
+        when /'--error'/
+            { ERROR }
+        when /'--warn'/
+            { WARN }
+        when /'--info'/
+            { INFO }
+        when /'-v' | '--verbose'/
+            { VERBOSE }
+        when /'--debug'/
+            { DEBUG }
+        when /'--trace'/
+            { TRACE }
+
+        default
+            { INFO }
+    }
+    @*ARGS = @*ARGS.grep: {$_ !~~ /"--fatal" | "--error" | "--warn" | "--info" | "-v" | "--verbose" | "--debug" | "--trace"/ }
+
     # Second crack at cli config modification
     # Currently only uses Bools `--name` and `--/name` to enable and disable a plugin
     # Note that `name` can match the config plugin key `short-name` or `module`
@@ -25,48 +47,48 @@ package Zef::CLI {
     }
 
     #| Download specific distributions
-    multi MAIN('fetch', Bool :$force, Bool :v(:$verbose), *@identities ($, *@)) is export {
-        my $client = get-client(:$config, :$verbose, :$force);
+    multi MAIN('fetch', Bool :$force, *@identities ($, *@)) is export {
+        my $client = get-client(:$config, :$force);
         my @candidates = |$client.find-candidates(|@identities>>.&str2identity);
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @fetched    = |$client.fetch(|@candidates);
         my @fail       = |@candidates.grep: {.as !~~ any(@fetched>>.as)}
 
-        say "!!!> Fetch failed: {.as}{?$verbose??' at '~.dist.path!!''}" for @fail;
+        say "!!!> Fetch failed: {.as}{?($VERBOSITY >= VERBOSE)??' at '~.dist.path!!''}" for @fail;
 
         exit +@fetched && +@fetched == +@candidates && +@fail == 0 ?? 0 !! 1;
     }
 
     #| Run tests
-    multi MAIN('test', Bool :$force, Bool :v(:$verbose), *@paths ($, *@)) is export {
-        my $client     = get-client(:$config, :$verbose, :$force);
+    multi MAIN('test', Bool :$force, *@paths ($, *@)) is export {
+        my $client     = get-client(:$config, :$force);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @tested = |$client.test(|@candidates);
         my (:@test-pass, :@test-fail) := @tested.classify: {.test-results.grep(*.so) ?? <test-pass> !! <test-fail> }
 
-        say "!!!> Testing failed: {.as}{?$verbose??' at '~.dist.path!!''}" for @test-fail;
+        say "!!!> Testing failed: {.as}{?($VERBOSITY >= VERBOSE)??' at '~.dist.path!!''}" for @test-fail;
 
         exit ?@test-fail ?? 1 !! ?@test-pass ?? 0 !! 255;
     }
 
     #| Run Build.pm
-    multi MAIN('build', Bool :$force, Bool :v(:$verbose), *@paths ($, *@)) is export {
-        my $client = get-client(:$config, :$verbose, :$force);
+    multi MAIN('build', Bool :$force, *@paths ($, *@)) is export {
+        my $client = get-client(:$config, :$force);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
 
         my @built = |$client.build(|@candidates);
         my (:@pass, :@fail) := @built.classify: {$_.?build-results !=== False ?? <pass> !! <fail> }
 
-        say "!!!> Build failure: {.as}{?$verbose??' at '~.dist.path!!''}" for @fail;
+        say "!!!> Build failure: {.as}{?($VERBOSITY >= VERBOSE)??' at '~.dist.path!!''}" for @fail;
 
         exit ?@fail ?? 1 !! ?@pass ?? 0 !! 255;
     }
 
     #| Install
     multi MAIN('install', Bool :$depends = True, Bool :$test-depends = True, Bool :$build-depends = True,
-                Bool :v(:$verbose), Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude is copy,
+                Bool :$force, Bool :$test = True, Bool :$fetch = True, :$exclude is copy,
                 Bool :$dry, Bool :$update, Bool :$upgrade, Bool :$depsonly, :to(:$install-to) = ['site'], *@wants ($, *@)) is export {
 
         @wants .= map: *.&str2identity;
@@ -79,12 +101,12 @@ package Zef::CLI {
 
         my @excluded =  $exclude.map(*.&identity2spec);
 
-        my $client   = get-client(:$config, :exclude(|@excluded), :$force, :$verbose, :$depends, :$test-depends, :$build-depends);
+        my $client   = get-client(:$config, :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
 
         my (:@wanted-identities, :@skip-identities) := @identities\
             .classify: {$client.is-installed($_) ?? <skip-identities> !! <wanted-identities>}
         say "The following candidates are already installed: {@skip-identities.join(', ')}"\
-            if $verbose && +@skip-identities;
+            if ($VERBOSITY >= VERBOSE) && +@skip-identities;
 
         my @path-candidates = @paths.map(*.&path2candidate);
         die "No candidates found matching: {@paths.join(', ')}" if +@paths && +@path-candidates == 0;
@@ -119,8 +141,8 @@ package Zef::CLI {
     }
 
     #| Uninstall
-    multi MAIN('uninstall', Bool :v(:$verbose), Bool :$force, :from(:$uninstall-from) = ['site'], *@identities ($, *@)) is export {
-        my $client = get-client(:$config, :$verbose, :$force);
+    multi MAIN('uninstall', Bool :$force, :from(:$uninstall-from) = ['site'], *@identities ($, *@)) is export {
+        my $client = get-client(:$config, :$force);
         my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
         die "`uninstall` command currently requires a bleeding edge version of rakudo" unless any(@from>>.can('uninstall'));
 
@@ -134,8 +156,8 @@ package Zef::CLI {
     }
 
     #| Get a list of possible distribution candidates for the given terms
-    multi MAIN('search', Int :$wrap = False, Bool :v(:$verbose), *@terms ($, *@)) is export {
-        my $client = get-client(:$config, :$verbose);
+    multi MAIN('search', Int :$wrap = False, *@terms ($, *@)) is export {
+        my $client = get-client(:$config);
         my @results = $client.search(|@terms);
 
         say "===> Found " ~ +@results ~ " results";
@@ -150,8 +172,8 @@ package Zef::CLI {
     }
 
     #| A list of available modules from enabled content storages
-    multi MAIN('list', Int :$max?, Bool :v(:$verbose), Bool :i(:$installed), *@at) is export {
-        my $client = get-client(:$config, :$verbose);
+    multi MAIN('list', Int :$max?, Bool :i(:$installed), *@at) is export {
+        my $client = get-client(:$config);
 
         my $found := ?$installed
             ?? $client.list-installed(|@at.map(*.&str2cur))
@@ -163,7 +185,7 @@ package Zef::CLI {
             say "===> Found via {$from}";
             for |$candis -> $candi {
                 say "{$candi.dist.identity}";
-                say "#\t{$_}" for @($candi.dist.provides.keys.sort if ?$verbose);
+                say "#\t{$_}" for @($candi.dist.provides.keys.sort if ?($VERBOSITY >= VERBOSE));
             }
         }
 
@@ -171,15 +193,15 @@ package Zef::CLI {
     }
 
     #| View reverse dependencies of a distribution
-    multi MAIN('rdepends', $identity, Bool :v(:$verbose)) {
-        my $client = get-client(:$config, :$verbose);
+    multi MAIN('rdepends', $identity) {
+        my $client = get-client(:$config);
         .dist.identity.say for $client.list-rev-depends($identity);
         exit 0;
     }
 
     #| Detailed distribution information
-    multi MAIN('info', $identity, Int :$wrap = False, Bool :v(:$verbose)) is export {
-        my $client = get-client(:$config, :$verbose);
+    multi MAIN('info', $identity, Int :$wrap = False) is export {
+        my $client = get-client(:$config);
         my $candi  = $client.search($identity, :max-results(1))[0]\
             or die "Found no candidates matching identity: {$identity}";
         my $dist  := $candi.dist;
@@ -193,7 +215,7 @@ package Zef::CLI {
 
         my @provides = $dist.provides.keys.sort(*.chars);
         say "Provides: {@provides.elems} modules";
-        if $verbose { say "#\t$_" for $dist.provides.keys.sort(*.chars).sort }
+        if ?($VERBOSITY >= VERBOSE) { say "#\t$_" for $dist.provides.keys.sort(*.chars).sort }
 
         if $dist.hash<support> {
             say "Support:";
@@ -204,7 +226,7 @@ package Zef::CLI {
 
         my @deps = (|$dist.depends-specs, |$dist.test-depends-specs, |$dist.build-depends-specs).grep(*.defined).unique;
         say "Depends: {@deps.elems} items";
-        if $verbose {
+        if ?($VERBOSITY >= VERBOSE) {
             my @rows = eager gather for @deps -> $spec {
                 FIRST { take [<ID Identity Installed?>] }
                 my $row = [ "{state $id += 1}", $spec.name, ($client.is-installed($spec) ?? '✓' !! '')];
@@ -217,8 +239,8 @@ package Zef::CLI {
     }
 
     #| Download a single module and change into its directory
-    multi MAIN('look', $identity, Bool :$force, Bool :v(:$verbose)) is export {
-        my $client     = get-client(:$config, :$verbose, :$force);
+    multi MAIN('look', $identity, Bool :$force) is export {
+        my $client     = get-client(:$config, :$force);
         my @candidates = |$client.find-candidates( str2identity($identity) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
@@ -229,8 +251,8 @@ package Zef::CLI {
     }
 
     #| Smoke test
-    multi MAIN('smoke', Bool :v(:$verbose), Bool :$force, Bool :$test = True,Bool :$fetch = True, :$exclude, :to(:$install-to) = ['site']) is export {
-        my $client                  = get-client(:$config, :$verbose, :$force);
+    multi MAIN('smoke', Bool :$force, Bool :$test = True,Bool :$fetch = True, :$exclude, :to(:$install-to) = ['site']) is export {
+        my $client                  = get-client(:$config, :$force);
         my @identities              = $client.available.values.flatmap(*.keys).unique;
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         say "===> Smoke testing with {+@identities} distributions...";
@@ -249,7 +271,7 @@ package Zef::CLI {
     }
 
     #| Update package indexes
-    multi MAIN('update', Bool :v(:$verbose), *@names) is export {
+    multi MAIN('update', *@names) is export {
         my $client  = get-client(:$config);
         my %results = $client.storage.update(|@names);
         my $rows    = |%results.map: {[.key, .value]};
@@ -321,10 +343,10 @@ package Zef::CLI {
 
                 --install-to=[name]     Short name or spec of CompUnit::Repository to install to
 
+            VERBOSITY LEVEL (from least to most verbose)
+                --error, --warn, --info (default), --verbose, --debug
+
             FLAGS
-
-                --verbose               More detailed output from all commands
-
                 --depsonly              Install only the dependency chains of the requested distributions
                 --force                 Continue each phase regardless of failures
                 --dry                   Run all phases except the actual installations
@@ -346,7 +368,7 @@ package Zef::CLI {
     sub get-client(*%_) {
         my $client = Zef::Client.new(|%_);
         my $logger = $client.logger;
-        my $log    = $logger.Supply.grep({ .<level> <= (?%_<verbose> ?? VERBOSE !! INFO) });
+        my $log    = $logger.Supply.grep({ .<level> <= $VERBOSITY });
         $log.tap: -> $m {
             given $m.<phase> {
                 when BEFORE { say "===> {$m.<message>}" }

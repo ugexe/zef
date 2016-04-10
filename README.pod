@@ -100,9 +100,6 @@ B<Options>
     # Install only the dependency chains of the requested distributions
     --depsonly
 
-    # More detailed output
-    --verbose
-
     # install the requested modules regardless of: currently installed versions,
     # test results, or failed dependency installations
     --force
@@ -278,6 +275,13 @@ Deletes all paths that are rooted in the prefix of the matching CompUnit::Reposi
 
     # uninstall all modules
     $ zef nuke site home
+
+=head2 Output Verbosity
+
+You can control the logging level using the following flags:
+
+    # More/less detailed output
+    --error, --warn, --info (default), --verbose (-v), --debug
 
 =head2 Plugins and Configuration
 

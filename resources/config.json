@@ -24,7 +24,7 @@
                 "auto-update" : 0,
                 "mirrors" : [
                     "git://github.com/ugexe/Perl6-ecosystems.git",
-                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c.json"
+                    "http://ecosystem-api.p6c.org/projects.json"
                 ]
             }
         },
@@ -40,7 +40,10 @@
     "Fetch" : [
         {
             "short-name" : "git",
-            "module" : "Zef::Shell::git"
+            "module" : "Zef::Shell::git",
+            "options" : {
+                "scheme" : "https"
+            }
         },
         {
             "short-name" : "path",

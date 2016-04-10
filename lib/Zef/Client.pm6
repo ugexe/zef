@@ -166,6 +166,7 @@ class Zef::Client {
                 payload => $candi,
                 message => "Fetched: {$candi.as} to $save-to",
             });
+            die "Failure fetching to: {$save-to}" unless $save-to.IO.e;
 
             # should probably break this out into its out method
             self.logger.emit({
@@ -175,6 +176,7 @@ class Zef::Client {
                 payload => $candi,
                 message => "Extracting: {$candi.as}",
             });
+
             my $dist-dir = $!extractor.extract($save-to, $extract-to, :$!logger);
             self.logger.emit({
                 level   => DEBUG,

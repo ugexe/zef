@@ -5,6 +5,8 @@ use Zef::Utils::URI;
 # todo: have a similar interface for git fetch/extract via `run` but using --archive
 
 my role GitFetcher {
+    has $.scheme;
+
     # FETCH (clone/pull) INTERFACE
     method fetch-matcher($url) {
         if uri($url) -> $uri {
@@ -14,7 +16,10 @@ my role GitFetcher {
         False;
     }
 
-    multi method fetch($url, $save-as) {
+    multi method fetch($orig-url, $save-as) {
+        # allow overriding the default scheme of git urls
+        my $url = $!scheme ?? $orig-url.subst(/^\w+ '://'/, "{$!scheme}://") !! $orig-url;
+
         my $clone-proc := $.zrun('git', 'clone', $url, $save-as.IO.abspath, '--quiet', :cwd($save-as.IO.dirname));
         my $pull-proc  := $.zrun('git', 'pull', '--quiet', :cwd($save-as.IO.abspath));
 

@@ -20,7 +20,7 @@ my role GitFetcher {
         # allow overriding the default scheme of git urls
         my $url = $!scheme ?? $orig-url.subst(/^\w+ '://'/, "{$!scheme}://") !! $orig-url;
 
-        my $clone-proc := $.zrun('git', 'clone', $url, $save-as.IO.abspath, '--quiet', :cwd($save-as.IO.dirname));
+        my $clone-proc := $.zrun('git', 'clone', $url, $save-as.IO.abspath, '--quiet', :cwd($save-as.IO.parent));
         my $pull-proc  := $.zrun('git', 'pull', '--quiet', :cwd($save-as.IO.abspath));
 
         return ?$clone-proc || ?$pull-proc ?? $save-as !! False;

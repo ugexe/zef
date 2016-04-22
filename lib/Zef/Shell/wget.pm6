@@ -16,7 +16,7 @@ class Zef::Shell::wget is Zef::Shell does Fetcher does Probeable does Messenger 
     }
 
     method fetch($url, $save-as) {
-        mkdir($save-as.IO.dirname) unless $save-as.IO.dirname.IO.e;
+        mkdir($save-as.IO.parent) unless $save-as.IO.parent.IO.e;
         my $proc = $.zrun('wget', '--quiet', $url, '-O', $save-as);
         $ = ?$proc ?? $save-as !! False;
     }

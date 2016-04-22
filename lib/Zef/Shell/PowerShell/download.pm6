@@ -20,7 +20,7 @@ class Zef::Shell::PowerShell::download is Zef::Shell::PowerShell does Fetcher do
     }
 
     method fetch($url, $save-as) {
-        mkdir($save-as.IO.dirname) unless $save-as.IO.dirname.IO.e;
+        mkdir($save-as.IO.parent) unless $save-as.IO.parent.IO.e;
         my $proc = $.zrun(%?RESOURCES<scripts/win32http.ps1>, $url, $save-as);
         ?$proc ?? $save-as !! False;
     }

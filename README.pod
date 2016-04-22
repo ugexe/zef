@@ -15,7 +15,7 @@ Perl6 Module Management
 
 To install it via rakudobrew, please use the following command:
 
-    $ rakudobrew build-zef
+    $ rakudobrew build zef
 
 =head4 Manual
 

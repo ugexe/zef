@@ -280,20 +280,34 @@ package Zef::CLI {
         :$exclude is copy,
         :to(:$install-to) = ['site'],
     ) is export {
-        my @excluded =  $exclude.map(*.&identity2spec);
-        my $client   = get-client(:$config, :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
-        my @identities              = $client.available.values.flatmap(*.keys).unique;
+        die "Smoke testing requires rakudo 2016.04 or later" unless try &*EXIT;
+        my @excluded   = $exclude.map(*.&identity2spec);
+        my $client     = get-client(:$config, :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
+        my @identities = $client.list-available.map(*.dist.identity).unique;
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         say "===> Smoke testing with {+@identities} distributions...";
 
-        # We only need to test a specific identity once. `.install` returns the installed
-        # candidates so each iteration we can add any new dists to %skip for when we encounter
-        # them through the for loop. XXX: should probably pass in :exclude(%skip>>.values)
+        my &smoker = &MAIN.assuming(
+            'install',
+            :$depends,
+            :$test-depends,
+            :$build-depends,
+            :$test,
+            :$fetch,
+            :$force,
+            :$update,
+            :$upgrade,
+            :$depsonly,
+            :$exclude,
+            :$install-to,
+            :$force,
+        );
+
         for @identities -> $identity {
-            state %skip;
-            next if %skip{$identity}++;
-            my @installed = try $client.install( :@to, :$fetch, :$test, $identity );
-            %skip{$_.dist.identity}++ for @installed;
+            # &*EXIT requires rakudo 2016.04
+            my &*EXIT = sub ($code) { return $code == 0 ?? True !! False };
+            my $result = try smoker($identity);
+            say "===> Smoke result for {$identity}: {?$result??'OK'!!'NOT OK'}";
         }
 
         exit 0;

@@ -2,7 +2,7 @@ language: perl
 
 os:
     - linux
-    - osx
+#    - osx
 
 env:
     - BACKEND=moar

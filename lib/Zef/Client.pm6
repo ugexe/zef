@@ -26,6 +26,7 @@ class Zef::Client {
     has Bool $.build-depends is rw = True;
     has Bool $.test-depends  is rw = True;
 
+
     method new(
         :cache(:$zcache),
         :fetcher(:$zfetcher),
@@ -86,9 +87,6 @@ class Zef::Client {
 
     method find-prereq-candidates(Bool :$upgrade, *@candis ($, *@)) {
         my @skip = @candis.map(*.dist);
-        my sub filter-needed(*@specs) {
-            @specs.grep(-> $spec { !@skip.first(-> $dist {?$dist.contains-spec($spec)}) }).grep({ not self.is-installed($_) });
-        }
 
         my $prereqs := gather {
             my @specs = self.list-dependencies(@candis);
@@ -102,7 +100,9 @@ class Zef::Client {
                     message => "Dependencies: {@specs-batch.map(*.name).unique.join(', ')}",
                 });
 
-                next unless my @needed = filter-needed(@specs-batch);
+                next unless my @needed = @specs-batch\               # The current set of specs
+                    .grep({ not @skip.first(*.contains-spec($_)) })\ # Dists in @skip are not needed
+                    .grep({ not self.is-installed($_)            }); # Installed dists are not needed
                 my @identities = @needed.map(*.identity);
                 self.logger.emit({
                     level   => INFO,

@@ -97,7 +97,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
 
         # identities that are cached in the localcache manifest
-        my $resolved-dists := +@wanted == 0 ?? [] !! gather RDIST: for |self!gather-dists -> $dist {
+        my $resolved-dists := gather RDIST: for |self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(

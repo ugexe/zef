@@ -62,7 +62,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
         }
     }
 
-    method provides-spec-matcher($spec) { $ = self.provides-specs.first({ ?$_.spec-matcher($spec) })       }
+    method provides-spec-matcher($spec) { $ = self.provides-specs.first({ ?$_.spec-matcher($spec) }) }
 
     proto method contains-spec(|) {*}
     multi method contains-spec(Str $spec)

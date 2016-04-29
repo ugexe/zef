@@ -57,7 +57,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
         my @wanted = @identities;
         my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
 
-        cache gather DIST: for self!gather-dists -> $dist {
+        gather DIST: for self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 last DIST unless +@wanted;
                 if ?$dist.contains-spec( %specs{$wants} ) {

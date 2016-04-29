@@ -259,7 +259,7 @@ package Zef::CLI {
         my @candidates = |$client.find-candidates( str2identity($identity) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
-        my $fetched = @local[0] || |$client.fetch(@remote[0])[0] || die "Failed to fetch candidate: $identity";
+        my $fetched = @local[0] || $client.fetch(@remote[0])[0] || die "Failed to fetch candidate: $identity";
         my $dist-path = $fetched.dist.path;
         say "===> Shelling into directory: {$dist-path}";
         exit so shell(%*ENV<SHELL> // %*ENV<ComSpec> // %*ENV<COMSPEC>, :cwd($dist-path)) ?? 0 !! 1;

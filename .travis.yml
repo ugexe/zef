@@ -1,11 +1,8 @@
 language: perl
 
-perl:
-    - '5.20-shrplib'
-
 os:
     - linux
-    - osx
+#    - osx
 
 env:
     - BACKEND=moar
@@ -51,11 +48,6 @@ script:
     - zef -v install Base64
     - zef -v --max=10 list
     - zef -v --installed list
-
-    # test fetching via an identity (Inline::Perl5)
-    # perl/perlbrew setup for osx on travis is buggy; not sure how to use shrplib perl without building from source
-    - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then zef -v install Inline::Perl5; fi'
-    - 'if [[ $TRAVIS_OS_NAME == "linux" ]]; then perl6 -MInline::Perl5 -e "exit 0;"; fi'
 
     - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
 

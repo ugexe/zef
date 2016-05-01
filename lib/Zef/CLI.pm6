@@ -207,6 +207,38 @@ package Zef::CLI {
         exit 0;
     }
 
+    #| Upgrade installed distributions (BETA)
+    multi MAIN('upgrade', *@at) is export {
+        # XXX: This is a very inefficient prototype inefficient
+        my $client = get-client(:$config);
+
+        my @installed = $client.list-installed(|@at.map(*.&str2cur)).map(*.dist);
+        my @requested = |$client.find-candidates(|@installed.map({ .clone(ver => "*") }).map(*.identity)) if +@installed;
+        my @to-install = gather for @requested -> $latest {
+            my $latest-dist = $latest.dist;
+            my $dist = @installed.first({
+                    .name         eq $latest-dist.name
+                &&  .auth-matcher eq $latest-dist.auth-matcher
+            });
+
+            take $latest-dist if $latest-dist cmp $dist === Order::More;
+        }
+
+        if +@to-install {
+            say "===> Updating: " ~ @to-install.join(', ');
+            # Ideally we don't need to call MAIN('install'), as it will search for the identities *again*.
+            # This requires factoring out the part of the install process that comes after the search.
+            for @to-install.map(*.identity) -> $identity {
+                try &MAIN('install', $identity);
+            }
+        }
+        else {
+            say "!!!> Nothing to update";
+        }
+
+        exit 0;
+    }
+
     #| View reverse dependencies of a distribution
     multi MAIN('rdepends', $identity) {
         my $client = get-client(:$config);
@@ -375,6 +407,7 @@ package Zef::CLI {
                 build                   Run the Build.pm in a given module's path
                 look                    `fetch` followed by shelling into the module's path
                 update                  Update package indexes for content storages
+                upgrade (BETA)          Upgrade all installed distributions
                 search                  Show a list of possible distribution candidates for the given terms
                 info                    Show detailed distribution information
                 list                    List known available distributions, or installed distributions with `--installed`

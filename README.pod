@@ -57,6 +57,12 @@ To install it via rakudobrew, please use the following command:
     # run Build.pm if one exists in given path
     zef build .
 
+    # Update ContentStorage package lists
+    zef update
+
+    # Upgrade all distributions (BETA)
+    zef upgrade
+
 =head2 More CLI
 
 =head4 B<install> [*@identities]
@@ -122,6 +128,12 @@ Note: Requires a a bleeding edge rakudo (not available in 6.c)
 =head4 B<update>
 
 Update the package indexes for all `ContentStorage` backends
+
+Note: Some `ContentStorage` backends, like the default P6C, have an `auto-update` option in `config.json` that can be enabled
+
+=head4 B<upgrade> I<BETA>
+
+Upgrade all installed distributions
 
 =head4 B<search> [$identity]
 

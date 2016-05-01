@@ -9,10 +9,12 @@ class Zef::Distribution::DependencySpecification {
 
     method identity { $ = hash2identity( %(:name($.name), :ver($.version-matcher), :auth($.auth-matcher), :api($.api-matcher)) ) }
 
-    method spec-parts(Zef::Distribution::DependencySpecification:_: $spec = self!spec) {
-        $!ident := ?$!ident ?? $!ident !! Zef::Identity($spec);
-        $!ident.?hash;
+    method clone(|) { $!ident = Nil; nextsame(); }
 
+    method spec-parts(Zef::Distribution::DependencySpecification:_: $spec = self!spec) {
+        # Need to find a way to break this cache when a distribution gets cloned with a different version
+        $!ident //= Zef::Identity($spec);
+        $!ident.?hash;
     }
 
     method name            { $ = self.spec-parts<name> }

@@ -394,7 +394,7 @@ package Zef::CLI {
                 --force                 Continue each phase regardless of failures
                 --dry                   Run all phases except the actual installations
 
-                --/tests                Skip the testing phase
+                --/test                 Skip the testing phase
                 --/depends              Do not fetch runtime dependencies
                 --/test-depends         Do not fetch test dependencies
                 --/build-depends        Do not fetch build dependencies

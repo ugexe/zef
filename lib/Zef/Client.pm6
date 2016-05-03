@@ -657,7 +657,7 @@ class Zef::Client {
             my @dep-specs = |self.list-dependencies($candi);
 
             # this could probably be done in the topological-sort itself
-            $dist.metainfo<includes> = eager gather DEPSPEC: for @dep-specs -> $spec {
+            my $includes := eager gather DEPSPEC: for @dep-specs -> $spec {
                 for @candidates -> $fcandi {
                     my $fdist := $fcandi.dist;
                     if $fdist.contains-spec($spec) {
@@ -667,6 +667,7 @@ class Zef::Client {
                     }
                 }
             }
+            $dist.metainfo<includes> = $includes.unique.cache;
 
             $candi;
         }

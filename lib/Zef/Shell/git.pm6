@@ -11,7 +11,7 @@ my role GitFetcher {
     method fetch-matcher($url) {
         if uri($url) -> $uri {
             return True if $uri.scheme.lc eq 'git';
-            return True if $uri.scheme.lc.starts-with('http') && $uri.path.ends-with('.git' || '.git/');
+            return True if $uri.scheme.lc.starts-with('http' | 'ssh') && $uri.path.ends-with('.git' || '.git/');
         }
         False;
     }

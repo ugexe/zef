@@ -157,6 +157,21 @@ class Zef::Utils::URI {
                 fragment    => ~($m.<fragment>      // ''),
             );
         }
+        elsif $id ~~ /^(.+?) '@' (.+?) ':'/ and URI.parse("ssh\:\/\/$0\@$1\/", :rule<URI>) -> $m {
+            my $heir = $m.<heir-part>;
+            my $auth = $heir.<authority>;
+            self.bless(
+                match       => $m,
+                is-relative => False,
+                scheme      => ~($m.<scheme>          //  '').lc,
+                host        => ~($auth.<host>         //  ''),
+                port        =>  ($auth.<port>         // Int).Int,
+                user-info   => ~($auth.<userinfo>     //  ''),
+                path        => ~($heir.<path-abempty> // '/'),
+                query       => ~($m.<query>           //  ''),
+                fragment    => ~($m.<fragment>        //  ''),
+            );
+        }
         else {
             die "Cannot parse $id as an URI";
         }

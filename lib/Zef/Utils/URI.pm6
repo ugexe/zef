@@ -157,7 +157,7 @@ class Zef::Utils::URI {
                 fragment    => ~($m.<fragment>      // ''),
             );
         }
-        elsif $id ~~ /^(.+?) '@' (.+?) ':'/ and URI.parse("ssh\:\/\/$0\@$1\/", :rule<URI>) -> $m {
+        elsif $id ~~ /^(.+?) '@' (.+?) ':' (.*)/ and URI.parse("ssh\:\/\/$0\@$1\/$2", :rule<URI>) -> $m {
             my $heir = $m.<heir-part>;
             my $auth = $heir.<authority>;
             self.bless(

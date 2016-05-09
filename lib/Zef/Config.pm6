@@ -1,3 +1,4 @@
+use Zef;
 unit module Zef::Config;
 
 # ideally this would load a chain of config files from most to least broad in scope

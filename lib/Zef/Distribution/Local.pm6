@@ -1,3 +1,4 @@
+use Zef;
 use Zef::Distribution;
 
 class Zef::Distribution::Local is Zef::Distribution {

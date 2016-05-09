@@ -1,5 +1,18 @@
 class Zef { }
 
+# rakudo must be able to parse json, so it doesn't
+# make sense to require a dependency ot parse it
+sub from-json($text) is export {
+    ::("Rakudo::Internals::JSON") !~~ Failure
+        ?? ::("Rakudo::Internals::JSON").from-json($text)
+        !! do {
+            my $a = ::("JSONPrettyActions").new();
+            my $o = ::("JSONPrettyGrammar").parse($text, :actions($a));
+            JSONException.new(:$text).throw unless $o;
+            $o.ast;
+        }
+}
+
 # todo: define all the additional options in these signatures, such as passing :$jobs
 # to `test` (for the prove command), how to handle existing files, etc
 

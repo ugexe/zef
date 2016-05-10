@@ -1,9 +1,10 @@
 class Zef { }
 
 # rakudo must be able to parse json, so it doesn't
-# make sense to require a dependency ot parse it
+# make sense to require a dependency to parse it
 sub from-json($text) is export {
-    ::("Rakudo::Internals::JSON") !~~ Failure
+    INIT my $INTERNAL_JSON = (so try { ::("Rakudo::Internals::JSON") !~~ Failure }) == True;
+    $INTERNAL_JSON
         ?? ::("Rakudo::Internals::JSON").from-json($text)
         !! do {
             my $a = ::("JSONPrettyActions").new();

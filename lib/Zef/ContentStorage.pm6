@@ -9,12 +9,17 @@ class Zef::ContentStorage does Pluggable {
     method candidates(Bool :$upgrade, *@identities ($, *@)) {
         # todo: have a `file` identity in Zef::Identity
         my @searchable = @identities.grep(!*.starts-with("." | "/"));
-        my @results = gather for self!plugins -> $storage {
+        my @candis = gather for self!plugins -> $storage {
             # todo: (cont. from above): Each ContentStorage should just filter this themselves
             my $searchable := $storage.^name eq 'Zef::ContentStorage::LocalCache' ?? @identities !! @searchable;
-            for $storage.search(|$searchable, :max-results(1)) -> $result {
-                take $result;
+            for $storage.search(|$searchable, :max-results(1)) -> $candi {
+                take $candi;
             }
+        }
+        my @reduced = gather for @candis.categorize(*.dist.name).values -> $candis {
+            my $max-version  = [max] $candis.map(*.dist.version);
+            my $latest-candi = $candis.first({ .dist.version eq $max-version });
+            take $latest-candi;
         }
     }
 

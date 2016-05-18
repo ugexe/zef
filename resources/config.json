@@ -94,7 +94,6 @@
         {
             "short-name" : "tap-harness",
             "module" : "Zef::Test::TAPHarness",
-            "comment" : "Requires TAP::Harness"
         },
         {
             "short-name" : "prove6",

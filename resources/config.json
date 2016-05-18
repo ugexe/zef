@@ -40,74 +40,69 @@
     "Fetch" : [
         {
             "short-name" : "git",
-            "module" : "Zef::Shell::git",
+            "module" : "Zef::Service::Shell::git",
             "options" : {
                 "scheme" : "https"
             }
         },
         {
             "short-name" : "path",
-            "module" : "Zef::Fetch::Path"
+            "module" : "Zef::Service::FetchPath"
         },
         {
             "short-name" : "wget",
-            "module" : "Zef::Shell::wget"
+            "module" : "Zef::Service::Shell::wget"
         },
         {
             "short-name" : "curl",
-            "module" : "Zef::Shell::curl"
+            "module" : "Zef::Service::Shell::curl"
         },
         {
             "short-name" : "pswebrequest",
-            "module" : "Zef::Shell::PowerShell::download"
+            "module" : "Zef::Service::Shell::PowerShell::download"
         }
     ],
     "Extract" : [
         {
             "short-name" : "git",
-            "module" : "Zef::Shell::git",
+            "module" : "Zef::Service::Shell::git",
             "comment" : "used to checkout (extract) specific tags/sha1/commit/branch from a git repo"
         },
         {
             "short-name" : "path",
-            "module" : "Zef::Fetch::Path",
+            "module" : "Zef::Service::FetchPath",
             "comment" : "if this goes before git then git wont be able to extract/checkout local paths because this reaches it first :("
         },
         {
             "short-name" : "tar",
-            "module" : "Zef::Shell::tar"
+            "module" : "Zef::Service::Shell::tar"
         },
         {
             "short-name" : "p5tar",
-            "module" : "Zef::Shell::p5tar"
+            "module" : "Zef::Service::Shell::p5tar"
         },
         {
             "short-name" : "unzip",
-            "module" : "Zef::Shell::unzip"
+            "module" : "Zef::Service::Shell::unzip"
         },
         {
             "short-name" : "psunzip",
-            "module" : "Zef::Shell::PowerShell::unzip"
+            "module" : "Zef::Service::Shell::PowerShell::unzip"
         }
     ],
     "Test" : [
         {
-            "short-name" : "tap-harness",
-            "module" : "Zef::Test::TAPHarness",
-        },
-        {
-            "short-name" : "prove6",
-            "enabled" : 0,
-            "module" : "Zef::Shell::prove6",
-            "comment" : "Not really needed anymore due to Zef::Test::TAPHarness"
-        },
-        {
             "short-name" : "prove",
-            "module" : "Zef::Shell::prove"
+            "module" : "Zef::Service::Shell::prove"
         },
         {
             "short-name" : "default-tester",
-            "module" : "Zef::Shell::Test"
+            "module" : "Zef::Service::Shell::Test"
+        },
+        {
+            "short-name" : "tap-harness",
+            "module" : "Zef::Service::TAP",
+            "comment" : "Buggy; Seems to not like dynamic module loading? (ex: HTTP::UserAgent t/090-ua-ssl.t)"
         }
     ]
 }

@@ -1,18 +1,29 @@
 use Zef;
 use Zef::Shell;
 
-class Zef::Shell::prove6 is Zef::Shell does Tester does Messenger {
+class Zef::Service::Shell::prove is Zef::Shell does Tester does Messenger {
     method test-matcher($path) { True }
 
     method probe {
-        state $prove6-probe = try {
-            CATCH {
-                when X::Proc::Unsuccessful { return False }
-                default { return False }
+        state $prove-probe;
+        once {
+            # `prove --help` has exitcode == 1 unlike most other processes
+            # so it requires a more convoluted probe check
+            try {
+                my $proc = zrun('prove', '--help', :out, :err);
+                my @out  = $proc.out.lines;
+                my @err  = $proc.err.lines;
+                $proc.out.close;
+                $proc.err.close;
+                CATCH {
+                    when X::Proc::Unsuccessful {
+                        $prove-probe = True if $proc.exitcode == 1 && @out.first(*.contains("-exec"));
+                    }
+                    default { return False }
+                }
             }
-            so zrun('prove6', '--help');
         }
-        ?$prove6-probe;
+        ?$prove-probe;
     }
 
     method test($path, :@includes) {
@@ -28,13 +39,14 @@ class Zef::Shell::prove6 is Zef::Shell does Tester does Messenger {
         # XXX: -Ilib/.precomp is a workaround for rakudo precomp locking bug
         # It generates it .precomp in lib/.precomp/.precomp so the default
         # precomp folder being in use/locked won't affect our custom prefix copy
-        my $proc = zrun('prove6', '-Ilib/.precomp', '-r',
+        my $proc = zrun('prove', '-r', '-e', qq|$*EXECUTABLE -Ilib/.precomp|,
             $test-path.relative($path), :cwd($path), :$env, :out, :err);
 
         $.stdout.emit($_) for $proc.out.lines;
         $.stderr.emit($_) for $proc.err.lines;
         $proc.out.close;
         $proc.err.close;
+
         $ = ?$proc;
     }
 }

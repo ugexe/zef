@@ -68,7 +68,10 @@ my role GitExtractor {
     }
 }
 
-class Zef::Shell::git is Zef::Shell does GitFetcher does GitExtractor does Probeable does Messenger {
+class Zef::Service::Shell::git is Zef::Shell does Probeable does Messenger {
+    also does GitFetcher;
+    also does GitExtractor;
+
     method probe {
         state $git-probe = try {
             CATCH {

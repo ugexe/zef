@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Utils::FileSystem;
 
-class Zef::Test::TAPHarness does Tester does Messenger {
+class Zef::Service::TAP does Tester does Messenger {
     method test-matcher($path) { True }
 
     method probe { state $probe = (try require TAP) !~~ Nil ?? True !! False }

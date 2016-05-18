@@ -293,7 +293,7 @@ You can control the logging level using the following flags:
     # More/less detailed output
     --error, --warn, --info (default), --verbose (-v), --debug
 
-=head2 Plugins and Configuration
+=head2 Plugins, Service Locator, and Configuration
 
 See the root zef directory for config.json. Each phase module will attempt to load/use each plugin in order.
 More details to be made available in time, but they are fairly simple and the code itself should provide enough

@@ -5,7 +5,7 @@ use Zef::Shell;
 # relative paths. ex: set :cwd to $tar-file.parent, and use $tar-file.basename as the target
 # This is because gnu tar on windows can't handle a windows style volume in path arguments
 
-class Zef::Shell::tar is Zef::Shell does Extractor does Messenger {
+class Zef::Service::Shell::tar is Zef::Shell does Extractor does Messenger {
     method extract-matcher($path) { so $path.lc.ends-with('.tar.gz') }
 
     method probe {

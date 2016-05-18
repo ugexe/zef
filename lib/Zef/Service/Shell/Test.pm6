@@ -2,7 +2,7 @@ use Zef;
 use Zef::Shell;
 use Zef::Utils::FileSystem;
 
-class Zef::Shell::Test is Zef::Shell does Tester does Messenger {
+class Zef::Service::Shell::Test is Zef::Shell does Tester does Messenger {
     method test-matcher($path) { True }
 
     method probe { $ = True }

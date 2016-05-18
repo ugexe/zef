@@ -6,15 +6,11 @@ install:
     - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
     - choco install strawberryperl
     - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
-    - git clone https://github.com/rakudo/rakudo.git %APPVEYOR_BUILD_FOLDER%\..\rakudo
-    - cd %APPVEYOR_BUILD_FOLDER%\..\rakudo
-    - perl Configure.pl --gen-moar --gen-nqp
-    - nmake install
-    - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\bin;%PATH%
+    - appveyor DownloadFile "http://rakudo.org/downloads/star/rakudo-star-2016.04-x86_64 (JIT).msi" -FileName "%APPVEYOR_BUILD_FOLDER%\rakudo.msi"
+    - msiexec /i rakudo.msi /quiet /qn /norestart /log install.log
+    - SET PATH=C:\rakudo\bin;C:\rakudo\share\perl6\site\bin;%PATH%
     - SET ZEF_PLUGIN_DEBUG=1
     - SET ZEF_BUILDPM_DEBUG=1
-    - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%
-    - cd %APPVEYOR_BUILD_FOLDER%
 
 build: off
 

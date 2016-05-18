@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Shell;
 
-class Zef::Shell::PowerShell is Zef::Shell does Probeable {
+class Zef::Service::Shell::PowerShell is Zef::Shell does Probeable {
     has @.invocation = 'powershell', '-NoProfile', '-ExecutionPolicy', 'unrestricted', '-Command';
 
     method probe {

@@ -1,8 +1,7 @@
 use Zef;
-use Zef::Shell;
-use Zef::Shell::PowerShell;
+use Zef::Service::Shell::PowerShell;
 
-class Zef::Shell::PowerShell::unzip is Zef::Shell::PowerShell does Extractor does Messenger {
+class Zef::Service::PowerShell::unzip is Zef::Service::Shell::PowerShell does Extractor does Messenger {
     method extract-matcher($path) { so $path.IO.extension.lc eq 'zip' }
     method probe { nextsame }
 

@@ -2,7 +2,7 @@ use Zef;
 use Zef::Utils::FileSystem;
 use Zef::Utils::URI;
 
-class Zef::Fetch::Path does Fetcher does Messenger does Extractor {
+class Zef::Service::FetchPath does Fetcher does Messenger does Extractor {
     # .is-absolute lets the app pass around absolute paths on windows and still work as expected
     method fetch-matcher($uri)   { $ = (?$uri.IO.is-absolute || ?$uri.lc.starts-with('.' | '/')) && $uri.IO.e }
     method extract-matcher($uri) { $ = (?$uri.IO.is-absolute || ?$uri.lc.starts-with('.' | '/')) && $uri.IO.d }

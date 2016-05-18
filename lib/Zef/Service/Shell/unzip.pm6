@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Shell;
 
-class Zef::Shell::unzip is Zef::Shell does Extractor does Messenger {
+class Zef::Service::Shell::unzip is Zef::Shell does Extractor does Messenger {
     method extract-matcher($path) { so $path.IO.extension.lc eq 'zip' }
 
     method probe {

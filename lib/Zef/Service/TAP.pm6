@@ -1,16 +1,16 @@
 use Zef;
 use Zef::Utils::FileSystem;
-require ::("TAP::Harness");
 
-class Zef::Test::TAPHarness does Tester does Messenger {
+class Zef::Service::TAP does Tester does Messenger {
     method test-matcher($path) { True }
 
-    method probe { state $probe = (so try { ::("TAP::Harness") !~~ Failure }) == True; }
+    method probe { state $probe = (try require TAP) !~~ Nil ?? True !! False }
 
     method test($path, :@includes) {
         die "path does not exist: {$path}" unless $path.IO.e;
-        my @test-paths = list-paths($path.IO.child('t')).grep(*.extension eq 't').sort;
-        return True unless +@test-paths;
+        my @test-files = grep *.extension eq 't',
+            list-paths($path.IO.child('t').absolute, :f, :!d, :r).sort;
+        return True unless +@test-files;
 
         my $cwd = $*CWD;
         my $result = try {
@@ -18,7 +18,7 @@ class Zef::Test::TAPHarness does Tester does Messenger {
             my @incdirs  = $path.IO.child('lib').absolute, |@includes;
             my @handlers = ::("TAP::Harness::SourceHandler::Perl6").new(:@incdirs);
             my $parser   = ::("TAP::Harness").new(:@handlers);
-            my $promise  = $parser.run(@test-paths>>.relative($path));
+            my $promise  = $parser.run(@test-files>>.relative($path));
             $promise.result;
         }
         chdir($cwd);

@@ -92,12 +92,19 @@
     ],
     "Test" : [
         {
-            "short-name" : "prove",
-            "module" : "Zef::Shell::prove"
+            "short-name" : "tap-harness",
+            "module" : "Zef::Test::TAPHarness",
+            "comment" : "Requires TAP::Harness"
         },
         {
             "short-name" : "prove6",
-            "module" : "Zef::Shell::prove6"
+            "enabled" : 0,
+            "module" : "Zef::Shell::prove6",
+            "comment" : "Not really needed anymore due to Zef::Test::TAPHarness"
+        },
+        {
+            "short-name" : "prove",
+            "module" : "Zef::Shell::prove"
         },
         {
             "short-name" : "default-tester",

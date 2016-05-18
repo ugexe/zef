@@ -1,6 +1,6 @@
 use Zef;
 use Zef::Utils::FileSystem;
-use TAP::Harness;
+require ::("TAP::Harness");
 
 class Zef::Test::TAPHarness does Tester does Messenger {
     method test-matcher($path) { True }
@@ -16,8 +16,8 @@ class Zef::Test::TAPHarness does Tester does Messenger {
         my $result = try {
             chdir($path);
             my @incdirs  = $path.IO.child('lib').absolute, |@includes;
-            my @handlers = TAP::Harness::SourceHandler::Perl6.new(:@incdirs);
-            my $parser   = TAP::Harness.new(:@handlers);
+            my @handlers = ::("TAP::Harness::SourceHandler::Perl6").new(:@incdirs);
+            my $parser   = ::("TAP::Harness").new(:@handlers);
             my $promise  = $parser.run(@test-paths>>.relative($path));
             $promise.result;
         }

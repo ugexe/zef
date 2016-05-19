@@ -22,10 +22,7 @@ class Zef::Service::Shell::Test is Zef::Shell does Tester does Messenger {
             my @new-p6lib  = $path.IO.child('lib').absolute, |@includes;
             $env<PERL6LIB> = (|@new-p6lib, |@cur-p6lib).join($*DISTRO.cur-sep);
 
-            # XXX: -Ilib/.precomp is a workaround for rakudo precomp locking bug
-            # It generates it .precomp in lib/.precomp/.precomp so the default
-            # precomp folder being in use/locked won't affect our custom prefix copy
-            my $proc = zrun($*EXECUTABLE, '-Ilib/.precomp', $relpath, :cwd($path), :$env, :out, :err);
+            my $proc = zrun($*EXECUTABLE, $relpath, :cwd($path), :$env, :out, :err);
 
             my @err = $proc.err.lines;
             my @out = $proc.out.lines;

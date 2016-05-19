@@ -723,7 +723,7 @@ sub legacy-hook($candi, :$logger) {
         use Zef::Shell;
         CATCH { default { $result = False; } }
         my @includes = $dist.metainfo<includes>.grep(*.defined).map: { "-I{$_}" }
-        my @exec = |($*EXECUTABLE, '-Ilib/.precomp', '-I.', '-Ilib', |@includes, '-e', "$cmd");
+        my @exec = |($*EXECUTABLE, '-Ilib', '-I.', |@includes, '-e', "$cmd");
 
         $logger.emit({
             level   => DEBUG,

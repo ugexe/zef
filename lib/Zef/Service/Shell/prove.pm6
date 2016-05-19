@@ -39,7 +39,7 @@ class Zef::Service::Shell::prove is Zef::Shell does Tester does Messenger {
         # XXX: -Ilib/.precomp is a workaround for rakudo precomp locking bug
         # It generates it .precomp in lib/.precomp/.precomp so the default
         # precomp folder being in use/locked won't affect our custom prefix copy
-        my $proc = zrun('prove', '-r', '-e', qq|$*EXECUTABLE -Ilib/.precomp|,
+        my $proc = zrun('prove', '-r', '-e', $*EXECUTABLE,
             $test-path.relative($path), :cwd($path), :$env, :out, :err);
 
         $.stdout.emit($_) for $proc.out.lines;

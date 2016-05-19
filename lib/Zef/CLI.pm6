@@ -371,7 +371,7 @@ package Zef::CLI {
                 test                    Run tests on a given module's path
                 fetch                   Fetch and extract module's source
                 build                   Run the Build.pm in a given module's path
-                look                    `fetch` followed by shelling into the module's path
+                look                    Fetch followed by shelling into the module's path
                 update                  Update package indexes for content storages
                 upgrade (BETA)          Upgrade all installed distributions
                 search                  Show a list of possible distribution candidates for the given terms
@@ -385,7 +385,7 @@ package Zef::CLI {
 
                 --install-to=[name]     Short name or spec of CompUnit::Repository to install to
 
-            verbosity LEVEL (from least to most verbose)
+            VERBOSITY LEVEL (from least to most verbose)
                 --error, --warn, --info (default), --verbose, --debug
 
             FLAGS

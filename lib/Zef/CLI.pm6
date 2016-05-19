@@ -9,42 +9,8 @@ use Zef::Utils::SystemInfo;
 # This allows the bin/zef original code to be precompiled, halving bare start up time.
 # Ideally this all ends up back in bin/zef once/if precompilation of scripts is handled in CURI
 package Zef::CLI {
-    # Basically a top level of option that every CLI option would use, so centralize it here
-    my $VERBOSITY = do given any(@*ARGS) {
-        when /'--fatal'/
-            { FATAL }
-        when /'--error'/
-            { ERROR }
-        when /'--warn'/
-            { WARN }
-        when /'--info'/
-            { INFO }
-        when /'-v' | '--verbose'/
-            { VERBOSE }
-        when /'--debug'/
-            { DEBUG }
-        when /'--trace'/
-            { TRACE }
-
-        default
-            { INFO }
-    }
-    @*ARGS = @*ARGS.grep: {$_ !~~ /"--fatal" | "--error" | "--warn" | "--info" | "-v" | "--verbose" | "--debug" | "--trace"/ }
-
-    # Second crack at cli config modification
-    # Currently only uses Bools `--name` and `--/name` to enable and disable a plugin
-    # Note that `name` can match the config plugin key `short-name` or `module`
-    # TODO: accept --name="key.subkey=xxx" format for setting explicit parameters
-    my $config = ZEF-CONFIG() andthen do {
-        my $plugin-lookup := config-plugin-lookup($config);
-        @*ARGS = eager gather for @*ARGS -> $arg {
-            my $arg-as  = $arg.subst(/^ ["--" | "--\/"]/, '');
-            my $enabled = $arg.starts-with('--/') ?? 0 !! 1;
-            $arg-as ~~ any($plugin-lookup.keys)
-                ?? (for |$plugin-lookup{$arg-as} -> $p { $p<enabled> = $enabled })
-                !! take($arg);
-        }
-    }
+    my $verbosity = preprocess-args-verbosity-mutate(@*ARGS);
+    my $config    = preprocess-args-config-mutate(@*ARGS);
 
     #| Download specific distributions
     multi MAIN('fetch', Bool :$force, *@identities ($, *@)) is export {
@@ -54,7 +20,7 @@ package Zef::CLI {
         my @fetched    = |$client.fetch(|@candidates);
         my @fail       = |@candidates.grep: {.as !~~ any(@fetched>>.as)}
 
-        say "!!!> Fetch failed: {.as}{?($VERBOSITY >= VERBOSE)??' at '~.dist.path!!''}" for @fail;
+        say "!!!> Fetch failed: {.as}{?($verbosity >= VERBOSE)??' at '~.dist.path!!''}" for @fail;
 
         exit +@fetched && +@fetched == +@candidates && +@fail == 0 ?? 0 !! 1;
     }
@@ -67,7 +33,7 @@ package Zef::CLI {
         my @tested = |$client.test(|@candidates);
         my (:@test-pass, :@test-fail) := @tested.classify: {.test-results.grep(*.so) ?? <test-pass> !! <test-fail> }
 
-        say "!!!> Testing failed: {.as}{?($VERBOSITY >= VERBOSE)??' at '~.dist.path!!''}" for @test-fail;
+        say "!!!> Testing failed: {.as}{?($verbosity >= VERBOSE)??' at '~.dist.path!!''}" for @test-fail;
 
         exit ?@test-fail ?? 1 !! ?@test-pass ?? 0 !! 255;
     }
@@ -81,7 +47,7 @@ package Zef::CLI {
         my @built = |$client.build(|@candidates);
         my (:@pass, :@fail) := @built.classify: {$_.?build-results !=== False ?? <pass> !! <fail> }
 
-        say "!!!> Build failure: {.as}{?($VERBOSITY >= VERBOSE)??' at '~.dist.path!!''}" for @fail;
+        say "!!!> Build failure: {.as}{?($verbosity >= VERBOSE)??' at '~.dist.path!!''}" for @fail;
 
         exit ?@fail ?? 1 !! ?@pass ?? 0 !! 255;
     }
@@ -119,7 +85,7 @@ package Zef::CLI {
         my (:@wanted-identities, :@skip-identities) := @identities\
             .classify: {$client.is-installed($_) ?? <skip-identities> !! <wanted-identities>}
         say "The following candidates are already installed: {@skip-identities.join(', ')}"\
-            if ($VERBOSITY >= VERBOSE) && +@skip-identities;
+            if ($verbosity >= VERBOSE) && +@skip-identities;
 
         my @path-candidates = @paths.map(*.&path2candidate);
         die "No candidates found matching: {@paths.join(', ')}" if +@paths && +@path-candidates == 0;
@@ -200,7 +166,7 @@ package Zef::CLI {
             say "===> Found via {$from}";
             for |$candis -> $candi {
                 say "{$candi.dist.identity}";
-                say "#\t{$_}" for @($candi.dist.provides.keys.sort if ?($VERBOSITY >= VERBOSE));
+                say "#\t{$_}" for @($candi.dist.provides.keys.sort if ?($verbosity >= VERBOSE));
             }
         }
 
@@ -262,7 +228,7 @@ package Zef::CLI {
 
         my @provides = $dist.provides.keys.sort(*.chars);
         say "Provides: {@provides.elems} modules";
-        if ?($VERBOSITY >= VERBOSE) { say "#\t$_" for $dist.provides.keys.sort(*.chars).sort }
+        if ?($verbosity >= VERBOSE) { say "#\t$_" for $dist.provides.keys.sort(*.chars).sort }
 
         if $dist.hash<support> {
             say "Support:";
@@ -273,7 +239,7 @@ package Zef::CLI {
 
         my @deps = (|$dist.depends-specs, |$dist.test-depends-specs, |$dist.build-depends-specs).grep(*.defined).unique;
         say "Depends: {@deps.elems} items";
-        if ?($VERBOSITY >= VERBOSE) {
+        if ?($verbosity >= VERBOSE) {
             my @rows = eager gather for @deps -> $spec {
                 FIRST { take [<ID Identity Installed?>] }
                 my $row = [ "{state $id += 1}", $spec.name, ($client.is-installed($spec) ?? '✓' !! '')];
@@ -419,7 +385,7 @@ package Zef::CLI {
 
                 --install-to=[name]     Short name or spec of CompUnit::Repository to install to
 
-            VERBOSITY LEVEL (from least to most verbose)
+            verbosity LEVEL (from least to most verbose)
                 --error, --warn, --info (default), --verbose, --debug
 
             FLAGS
@@ -441,10 +407,48 @@ package Zef::CLI {
             END_USAGE
     }
 
+    # Filter/mutate out verbosity flags from @*ARGS and return a verbosity level
+    sub preprocess-args-verbosity-mutate(*@_) {
+        my (:@log-level, :@filtered-args) := @_.classify: {
+            $_ ~~ any(<--fatal --error --warn --info -v --verbose --debug --trace>)
+                ?? <log-level>
+                !! <filtered-args>;
+        }
+        @*ARGS = @filtered-args;
+        do given any(@log-level) {
+            when '--fatal'   { FATAL   }
+            when '--error'   { ERROR   }
+            when '--warn'    { WARN    }
+            when '--info'    { INFO    }
+            when '--verbose' { VERBOSE }
+            when '-v'        { VERBOSE }
+            when '--debug'   { DEBUG   }
+            when '--trace'   { TRACE   }
+            default          { INFO    }
+        }
+    }
+
+    # Second crack at cli config modification
+    # Currently only uses Bools `--name` and `--/name` to enable and disable a plugin
+    # Note that `name` can match the config plugin key `short-name` or `module`
+    # TODO: accept --name="key.subkey=xxx" format for setting explicit parameters
+    sub preprocess-args-config-mutate(*@_) {
+        my $config = ZEF-CONFIG();
+        my $plugin-lookup := config-plugin-lookup($config);
+        @*ARGS = eager gather for @_ -> $arg {
+            my $arg-as  = $arg.subst(/^ ["--" | "--\/"]/, '');
+            my $enabled = $arg.starts-with('--/') ?? 0 !! 1;
+            $arg-as ~~ any($plugin-lookup.keys)
+                ?? (for |$plugin-lookup{$arg-as} -> $p { $p<enabled> = $enabled })
+                !! take($arg);
+        }
+        $config;
+    }
+
     sub get-client(*%_) {
         my $client = Zef::Client.new(|%_);
         my $logger = $client.logger;
-        my $log    = $logger.Supply.grep({ .<level> <= $VERBOSITY });
+        my $log    = $logger.Supply.grep({ .<level> <= $verbosity });
         $log.tap: -> $m {
             given $m.<phase> {
                 when BEFORE { say "===> {$m.<message>}" }

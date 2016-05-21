@@ -1,9 +1,43 @@
 use v6;
 use Test;
-plan 2;
+plan 3;
 
+use Zef::ContentStorage;
 use Zef::ContentStorage::P6C;
 use Zef::Fetch;
+
+
+subtest {
+    class Mock::ContentStorage does ContentStorage {
+        method search(:$max-results = 5, *@identities, *%fields) {
+            @ = Candidate.new(:as("{@identities[0]}::X")),
+                Candidate.new(:as("{@identities[0]}::XX"));
+        }
+    }
+
+    subtest {
+        my $mock-storage = Mock::ContentStorage.new;
+        my @candidates   = $mock-storage.search("Mock::Storage");
+
+        is +@candidates, 2;
+        is @candidates[0].as, "Mock::Storage::X";
+        is @candidates[1].as, "Mock::Storage::XX";
+    }, "Mock::ContentStorage";
+
+    subtest {
+        my $mock-storage1 = Mock::ContentStorage.new;
+        my $mock-storage2 = Mock::ContentStorage.new;
+        my $content-storage = Zef::ContentStorage.new but role :: {
+            method plugins { state @plugins = $mock-storage1, $mock-storage2 }
+        }
+        my @candidates = $content-storage.search("Mock::Storage");
+        is +@candidates, 4;
+        is @candidates[0].as, "Mock::Storage::X";
+        is @candidates[1].as, "Mock::Storage::XX";
+        is @candidates[2].as, "Mock::Storage::X";
+        is @candidates[3].as, "Mock::Storage::XX";
+    }, 'Zef::ContentStorage service aggregation'
+}, "ContentStorage";
 
 
 subtest {

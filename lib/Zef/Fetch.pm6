@@ -2,8 +2,6 @@ use Zef;
 use Zef::Utils::URI;
 
 class Zef::Fetch does Pluggable {
-    method ACCEPTS($uri) { $ = $uri ~~ @$.plugins }
-
     method fetch($uri, $save-as, Supplier :$logger) {
         my $fetcher = self.plugins.first(*.fetch-matcher($uri));
 

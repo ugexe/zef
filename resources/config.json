@@ -21,7 +21,7 @@
             "module" : "Zef::ContentStorage::P6C",
             "default" : 1,
             "options" : {
-                "auto-update" : 0,
+                "auto-update" : 1,
                 "mirrors" : [
                     "git://github.com/ugexe/Perl6-ecosystems.git",
                     "http://ecosystem-api.p6c.org/projects.json"

@@ -715,8 +715,9 @@ sub legacy-hook($candi, :$logger) {
         try { $builder-path.spurt($legacy-code) } || $builder-path.subst-mutate(/'.zef'$/, '');
     }
 
-
-    my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
+    # Rakudo bug related to using path instead of module name
+    # my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
+    my $cmd = "require ::('Build'); ::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
 
     my $result;
     try {

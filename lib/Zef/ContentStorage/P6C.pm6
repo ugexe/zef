@@ -12,9 +12,10 @@ class Zef::ContentStorage::P6C does ContentStorage {
 
     method !gather-dists {
         once { self.update } if $.auto-update || !self!package-list-file.e;
-        @!dists = cache gather for self!slurp-package-list -> $meta {
-            my $dist = Zef::Distribution.new(|%($meta));
-            take $dist;
+        @!dists = +@!dists ?? @!dists !! eager gather for self!slurp-package-list -> $meta {
+            if try { Zef::Distribution.new(|%($meta)) } -> $dist {
+                take $dist;
+            }
         }
     }
 
@@ -47,7 +48,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
             $path = $path.IO.child('p6c.json') if $path.IO.d;
             try { copy($path, self!package-list-file) } || next;
         }
-        @!dists = |self!slurp-package-list.map: { $ = Zef::Distribution.new(|%($_)) }
+        self!gather-dists;
     }
 
     # todo: handle %fields

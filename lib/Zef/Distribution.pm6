@@ -62,7 +62,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
         }
     }
 
-    method provides-spec-matcher($spec) { $ = self.provides-specs.first({ ?$_.spec-matcher($spec) }) }
+    method provides-spec-matcher($spec) { self.provides-specs.first({ ?$_.spec-matcher($spec) }) }
 
     proto method contains-spec(|) {*}
     multi method contains-spec(Str $spec)
@@ -87,7 +87,7 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # use Distribution's .ver but filter off a leading 'v'
     method ver { my $v = callsame; $v.subst(/^v/, '') }
 
-    method id() { use nqp; $ = nqp::sha1(self.Str()) }
+    method id() { use nqp; nqp::sha1(self.Str()) }
 
     method WHICH(Zef::Distribution:D:) { "{self.^name}|{self.Str()}" }
 }

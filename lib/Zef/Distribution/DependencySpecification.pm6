@@ -7,7 +7,11 @@ class Zef::Distribution::DependencySpecification {
 
     submethod new($spec) { self.bless(:$spec) }
 
-    method identity { $ = hash2identity( %(:name($.name), :ver($.version-matcher), :auth($.auth-matcher), :api($.api-matcher)) ) }
+    method identity {
+        my $hash = %(:name($.name), :ver($.version-matcher), :auth($.auth-matcher), :api($.api-matcher));
+        my $identity = hash2identity( $hash );
+        $identity;
+    }
 
     method clone(|) { $!ident = Nil; nextsame(); }
 
@@ -17,13 +21,13 @@ class Zef::Distribution::DependencySpecification {
         $!ident.?hash;
     }
 
-    method name            { $ = self.spec-parts<name> }
+    method name            { self.spec-parts<name> }
 
-    method version-matcher { $ = self.spec-parts<ver>  // '*' }
+    method version-matcher { self.spec-parts<ver>  // '*' }
 
-    method auth-matcher    { $ = self.spec-parts<auth> // ''  }
+    method auth-matcher    { self.spec-parts<auth> // ''  }
 
-    method api-matcher     { $ = self.spec-parts<api>  // '*' }
+    method api-matcher     { self.spec-parts<api>  // '*' }
 
     method !spec { $.spec || self.Str }
 

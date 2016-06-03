@@ -113,13 +113,13 @@ class Zef::Identity {
 
 sub str2identity($str) is export {
     # todo: when $str is a path
-    $ = Zef::Identity($str).?identity // $str;
+    Zef::Identity($str).?identity // $str;
 }
 
 sub identity2hash($identity) is export {
-    $ = Zef::Identity($identity).?hash;
+    Zef::Identity($identity).?hash;
 }
 
 sub hash2identity($hash) is export {
-    $ = Zef::Identity($hash).?identity;
+    Zef::Identity($hash).?identity;
 }

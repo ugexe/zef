@@ -742,8 +742,11 @@ sub try-legacy-hook($candi, :$logger) {
 
         $legacy-code.subst-mutate(/'use Panda::' \w+ ';'/, '', :g);
         $legacy-code.subst-mutate('class Build is Panda::Builder {', "{$legacy-fixer-code}\n");
-        $builder-path = "{$builder-path.absolute}.zef".IO;
-        try { $builder-path.spurt($legacy-code) } || $builder-path.subst-mutate(/'.zef'$/, '');
+
+        try {
+            move "{$builder-path}", "{$builder-path}.bak";
+            spurt "{$builder-path}", $legacy-code;
+        }
     }
 
     # Rakudo bug related to using path instead of module name
@@ -790,7 +793,12 @@ sub try-legacy-hook($candi, :$logger) {
         }) if +@err;
     }
 
-    $builder-path.IO.unlink if $builder-path.ends-with('.zef') && "{$builder-path}".IO.e;
+    if my $bak = "{$builder-path}.bak" and $bak.IO.e {
+        try {
+            unlink $builder-path;
+            move $bak, $builder-path;
+        } if $bak.IO.f;
+    }
 
     $ = ?$result;
 }

@@ -14,6 +14,13 @@ sub from-json($text) is export {
         }
 }
 
+sub to-json(|c) is export {
+    INIT my $INTERNAL_JSON = (so try { ::("Rakudo::Internals::JSON") !~~ Failure }) == True;
+    $INTERNAL_JSON
+        ?? ::("Rakudo::Internals::JSON").to-json(|c)
+        !! &::("to-json").(|c);
+}
+
 # todo: define all the additional options in these signatures, such as passing :$jobs
 # to `test` (for the prove command), how to handle existing files, etc
 

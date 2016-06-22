@@ -751,14 +751,17 @@ sub try-legacy-hook($candi, :$logger) {
 
     # Rakudo bug related to using path instead of module name
     # my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
-    my $cmd = "require ::('Build'); ::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
+    my $cmd = "::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
 
     my $result;
     try {
         use Zef::Shell;
         CATCH { default { $result = False; } }
         my @includes = $dist.metainfo<includes>.grep(*.defined).map: { "-I{$_}" }
-        my @exec = |($*EXECUTABLE, '-Ilib', '-I.', |@includes, '-e', "$cmd");
+
+        # see: https://github.com/ugexe/zef/issues/93
+        # my @exec = |($*EXECUTABLE, '-Ilib', '-I.', |@includes, '-e', "$cmd");
+        my @exec = |($*EXECUTABLE, '-Ilib', '-I.', '-MBuild', |@includes, '-e', "$cmd");
 
         $logger.emit({
             level   => DEBUG,

@@ -15,7 +15,9 @@ my CompUnit::Repository @cur = CompUnit::RepositoryRegistry\
     .repository-for-spec("inst#{$path.absolute}", :next-repo($*REPO));
 END { try delete-paths($path, :r, :d, :f, :dot) }
 
-my $config = ZEF-CONFIG();
+my $guess-path = $?FILE.IO.parent.parent.child('resources/config.json');
+my $config-file = $guess-path.e ?? ~$guess-path !! Zef::Config::guess-path();
+my $config      = Zef::Config::parse-file($config-file);
 $config<RootDir>  = "$path/.cache";
 $config<StoreDir> = "$path/.cache/store";
 $config<TempDir>  = "$path/.cache/tmp";

@@ -1,5 +1,4 @@
 use Zef;
-use Zef::Config;
 use Zef::Distribution;
 use Zef::Distribution::Local;
 use Zef::Fetch;

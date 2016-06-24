@@ -101,6 +101,9 @@ B<Options>
     --install-to=<id> # site/home/vendor/perl, or
     -to=<id>          # inst#/home/some/path/custom
 
+    # Load a specific Zef config file
+    --config-path=/some/path/config.json
+
     # Install only the dependency chains of the requested distributions
     --depsonly
 

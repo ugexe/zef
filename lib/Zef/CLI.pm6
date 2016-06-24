@@ -10,11 +10,11 @@ use Zef::Utils::SystemInfo;
 # Ideally this all ends up back in bin/zef once/if precompilation of scripts is handled in CURI
 package Zef::CLI {
     my $verbosity = preprocess-args-verbosity-mutate(@*ARGS);
-    my $config    = preprocess-args-config-mutate(@*ARGS);
+    my $CONFIG    = preprocess-args-config-mutate(@*ARGS);
 
     #| Download specific distributions
     multi MAIN('fetch', Bool :$force, *@identities ($, *@)) is export {
-        my $client = get-client(:$config, :$force);
+        my $client = get-client(:config($CONFIG) :$force);
         my @candidates = |$client.find-candidates(|@identities>>.&str2identity);
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @fetched    = |$client.fetch(|@candidates);
@@ -27,7 +27,7 @@ package Zef::CLI {
 
     #| Run tests
     multi MAIN('test', Bool :$force, *@paths ($, *@)) is export {
-        my $client     = get-client(:$config, :$force);
+        my $client     = get-client(:config($CONFIG) :$force);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @tested = |$client.test(|@candidates);
@@ -40,7 +40,7 @@ package Zef::CLI {
 
     #| Run Build.pm
     multi MAIN('build', Bool :$force, *@paths ($, *@)) is export {
-        my $client = get-client(:$config, :$force);
+        my $client = get-client(:config($CONFIG) :$force);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
 
@@ -80,7 +80,7 @@ package Zef::CLI {
 
         my @excluded =  $exclude.map(*.&identity2spec);
 
-        my $client   = get-client(:$config, :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
+        my $client   = get-client(:config($CONFIG) :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
 
         my (:@wanted-identities, :@skip-identities) := @identities\
             .classify: {$client.is-installed($_) ?? <skip-identities> !! <wanted-identities>}
@@ -122,7 +122,7 @@ package Zef::CLI {
 
     #| Uninstall
     multi MAIN('uninstall', Bool :$force, :from(:$uninstall-from) = ['site'], *@identities ($, *@)) is export {
-        my $client = get-client(:$config, :$force);
+        my $client = get-client(:config($CONFIG) :$force);
         my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
         die "`uninstall` command currently requires a bleeding edge version of rakudo"\
             unless any(@from>>.can('uninstall'));
@@ -138,7 +138,7 @@ package Zef::CLI {
 
     #| Get a list of possible distribution candidates for the given terms
     multi MAIN('search', Int :$wrap = False, *@terms ($, *@)) is export {
-        my $client = get-client(:$config);
+        my $client = get-client(:config($CONFIG));
         my @results = $client.search(|@terms);
 
         say "===> Found " ~ +@results ~ " results";
@@ -154,7 +154,7 @@ package Zef::CLI {
 
     #| A list of available modules from enabled content storages
     multi MAIN('list', Int :$max?, Bool :i(:$installed), *@at) is export {
-        my $client = get-client(:$config);
+        my $client = get-client(:config($CONFIG));
 
         my $found := ?$installed
             ?? $client.list-installed(|@at.map(*.&str2cur))
@@ -176,7 +176,7 @@ package Zef::CLI {
     #| Upgrade installed distributions (BETA)
     multi MAIN('upgrade', *@at) is export {
         # XXX: This is a very inefficient prototype inefficient
-        my $client = get-client(:$config);
+        my $client = get-client(:config($CONFIG));
 
         my @installed = $client.list-installed(|@at.map(*.&str2cur)).map(*.dist);
         my @requested = |$client.find-candidates(|@installed.map({ .clone(ver => "*") }).map(*.identity)) if +@installed;
@@ -207,14 +207,14 @@ package Zef::CLI {
 
     #| View reverse dependencies of a distribution
     multi MAIN('rdepends', $identity) {
-        my $client = get-client(:$config);
+        my $client = get-client(:config($CONFIG));
         .dist.identity.say for $client.list-rev-depends($identity);
         exit 0;
     }
 
     #| Detailed distribution information
     multi MAIN('info', $identity, Int :$wrap = False) is export {
-        my $client = get-client(:$config);
+        my $client = get-client(:config($CONFIG));
         my $candi  = $client.search($identity, :max-results(1))[0]\
             or die "Found no candidates matching identity: {$identity}";
         my $dist  := $candi.dist;
@@ -253,7 +253,7 @@ package Zef::CLI {
 
     #| Download a single module and change into its directory
     multi MAIN('look', $identity, Bool :$force) is export {
-        my $client     = get-client(:$config, :$force);
+        my $client     = get-client(:config($CONFIG) :$force);
         my @candidates = |$client.find-candidates( str2identity($identity) );
         die "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
@@ -280,7 +280,7 @@ package Zef::CLI {
     ) is export {
         die "Smoke testing requires rakudo 2016.04 or later" unless try &*EXIT;
         my @excluded   = $exclude.map(*.&identity2spec);
-        my $client     = get-client(:$config, :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
+        my $client     = get-client(:config($CONFIG) :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
         my @identities = $client.list-available.map(*.dist.identity).unique;
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         say "===> Smoke testing with {+@identities} distributions...";
@@ -313,7 +313,7 @@ package Zef::CLI {
 
     #| Update package indexes
     multi MAIN('update', *@names) is export {
-        my $client  = get-client(:$config);
+        my $client  = get-client(:config($CONFIG));
         my %results = $client.storage.update(|@names);
         my $rows    = |%results.map: {[.key, .value]};
         die "An unknown plugin name used" if +@names && (+@names > +$rows);
@@ -341,7 +341,7 @@ package Zef::CLI {
         }
 
         my @config-keys = <RootDir StoreDir TempDir>;
-        my @config-dirs = $config<<{@names (&) @config-keys}>>.map(*.IO.absolute).sort;
+        my @config-dirs = $CONFIG<<{@names (&) @config-keys}>>.map(*.IO.absolute).sort;
 
         my @curli-dirs = @names\
             .grep(* !~~ any(@config-keys))\
@@ -355,7 +355,7 @@ package Zef::CLI {
         exit 0;
     }
 
-    multi MAIN(Bool :h(:$help)?) {
+    multi MAIN(Bool :h(:$help)?, *%_, *@_) {
         note qq:to/END_USAGE/
             Zef - Perl6 Module Management
 
@@ -384,6 +384,7 @@ package Zef::CLI {
             OPTIONS
 
                 --install-to=[name]     Short name or spec of CompUnit::Repository to install to
+                --config-path=[path]    Load a specific Zef config file
 
             VERBOSITY LEVEL (from least to most verbose)
                 --error, --warn, --info (default), --verbose, --debug
@@ -398,7 +399,7 @@ package Zef::CLI {
                 --/test-depends         Do not fetch test dependencies
                 --/build-depends        Do not fetch build dependencies
 
-            CONFIGURATION {find-config().IO.absolute}
+            CONFIGURATION {$CONFIG.IO.absolute}
                 Enable or disable plugins that match the configuration that has field `short-name` that matches <short-name>
 
                 --<short-name>  # `--cpan`  Enable plugin with short-name `cpan`
@@ -431,17 +432,31 @@ package Zef::CLI {
     # Second crack at cli config modification
     # Currently only uses Bools `--name` and `--/name` to enable and disable a plugin
     # Note that `name` can match the config plugin key `short-name` or `module`
-    # TODO: accept --name="key.subkey=xxx" format for setting explicit parameters
+    # * Now also removes --config-path $path parameters
+    # TODO: Turn this into a more general getopts
     sub preprocess-args-config-mutate(*@_) {
-        my $config = ZEF-CONFIG();
-        my $plugin-lookup := config-plugin-lookup($config);
-        @*ARGS = eager gather for @_ -> $arg {
+        # get/remove --config-path=xxx
+        my Str $config-path-from-args;
+        my @args = eager gather for |@_.flatmap(*.split(/\=/, 2)).rotor(2, :partial) {
+            $_[0] eq '--config-path' && $_[1]
+                ?? ($config-path-from-args = ~$_[1])
+                !! take($_.Slip)
+        }
+        my $chosen-config-file = $config-path-from-args // Zef::Config::guess-path();
+
+        # Mixin the original path so we can show it on the --help usage :-/
+        my $config = Zef::Config::parse-file($chosen-config-file) but role { method IO { $chosen-config-file.IO } };
+
+        # get/remove --$short-name and --/$short-name where $short-name is a value in the config file
+        my $plugin-lookup := Zef::Config::plugin-lookup($config);
+        @*ARGS = eager gather for @args -> $arg {
             my $arg-as  = $arg.subst(/^ ["--" | "--\/"]/, '');
             my $enabled = $arg.starts-with('--/') ?? 0 !! 1;
             $arg-as ~~ any($plugin-lookup.keys)
                 ?? (for |$plugin-lookup{$arg-as} -> $p { $p<enabled> = $enabled })
                 !! take($arg);
         }
+
         $config;
     }
 

@@ -355,7 +355,7 @@ package Zef::CLI {
         exit 0;
     }
 
-    multi MAIN(Bool :h(:$help)?, *%_, *@_) {
+    multi MAIN(Bool :h(:$help)?) {
         note qq:to/END_USAGE/
             Zef - Perl6 Module Management
 
@@ -434,13 +434,18 @@ package Zef::CLI {
     # Note that `name` can match the config plugin key `short-name` or `module`
     # * Now also removes --config-path $path parameters
     # TODO: Turn this into a more general getopts
-    sub preprocess-args-config-mutate(*@_) {
+    sub preprocess-args-config-mutate(*@args) {
         # get/remove --config-path=xxx
+        # MUTATES @*ARGS
         my Str $config-path-from-args;
-        my @args = eager gather for |@_.flatmap(*.split(/\=/, 2)).rotor(2, :partial) {
-            $_[0] eq '--config-path' && $_[1]
-                ?? ($config-path-from-args = ~$_[1])
-                !! take($_.Slip)
+        for |@args.flatmap(*.split(/\=/, 2)).rotor(2, :partial) {
+            $config-path-from-args = ~$_[1] if $_[0] eq '--config-path' && $_[1];
+            LAST {
+                @*ARGS = eager gather for |@args.kv -> $key, $value {
+                    take($value) unless $value.starts-with('--config-path')
+                        || ($key > 0 && @args[$key - 1] eq '--config-path')
+                }
+            }
         }
         my $chosen-config-file = $config-path-from-args // Zef::Config::guess-path();
 
@@ -449,7 +454,7 @@ package Zef::CLI {
 
         # get/remove --$short-name and --/$short-name where $short-name is a value in the config file
         my $plugin-lookup := Zef::Config::plugin-lookup($config);
-        @*ARGS = eager gather for @args -> $arg {
+        @*ARGS = eager gather for @*ARGS -> $arg {
             my $arg-as  = $arg.subst(/^ ["--" | "--\/"]/, '');
             my $enabled = $arg.starts-with('--/') ?? 0 !! 1;
             $arg-as ~~ any($plugin-lookup.keys)

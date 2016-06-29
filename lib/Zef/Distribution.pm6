@@ -1,12 +1,52 @@
 use Zef::Distribution::DependencySpecification;
 
+# XXX: Needed for backwards compat. Will be removed when I rework Distribution related items
+class Distribution::DEPRECATED {
+    has $.name;
+    has $.auth;
+    has $.author;
+    has $.authority;
+    has $.api;
+    has $.ver;
+    has $.version;
+    has $.description;
+    has @.depends;
+    has %.provides;
+    has %.files;
+    has $.source-url;
+    method auth { $!auth // $!author // $!authority }
+    method ver  { $!ver // $!version }
+    method hash {
+        {
+            :$!name,
+            :$.auth,
+            :$.ver,
+            :$!description,
+            :@!depends,
+            :%!provides,
+            :%!files,
+            :$!source-url,
+        }
+    }
+    method Str() {
+        return "{$.name}:ver<{$.ver  // ''}>:auth<{$.auth // ''}>:api<{$.api // ''}>";
+    }
+    method id() {
+        use nqp;
+        return nqp::sha1(self.Str);
+    }
+
+    method meta { self.hash }
+}
+
+# NOTE: Everything referencing `Distribution` in the below comment now refers to `Distribution::DEPRECAED`
 # "is Distribution" because CU::R::I.install(Distribution $dist) requires it to be the core
 # Distribution (cant just add `role Distribution { }; class Zef::Distribution does Distribution`
 # as it will still not pass the parameter type validation on `Distribution`. It must actually
 # subclass the core Distribution itself, which is also why some attributes are left defined
 # in Distribution itself instead of Zef::Distribution (@.depends is already an attribute of
 # Distribution for example, so we don't have a `has @.depends`)
-class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecification {
+class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::DependencySpecification {
     # missing from Distribution
     has $.license;
     has @.build-depends;
@@ -87,9 +127,20 @@ class Zef::Distribution is Distribution is Zef::Distribution::DependencySpecific
     # use Distribution's .ver but filter off a leading 'v'
     method ver { my $v = callsame; $v.subst(/^v/, '') }
 
-    method id() { use nqp; nqp::sha1(self.Str()) }
-
     method WHICH(Zef::Distribution:D:) { "{self.^name}|{self.Str()}" }
+
+    # For now we will use $dist.compat in spots where we pass to rakudo and there
+    # are Distribution constraints (install and uninstall?). This provides backwards compatibility
+    # until a more robust solution is worked out
+    method compat {
+        ::("Distribution::Hash") !~~ Failure
+            ?? (::("Distribution::Hash").new($.hash, :prefix(self.?IO // $*CWD)) but role {
+                method name { self.meta<name> }
+                method ver  { self.meta<ver> // self.meta<version> }
+                method auth { self.meta<auth> // self.meta<authority> // self.meta<author> }
+            })
+            !! Distribution.new(|$.hash);
+    }
 }
 
 # allow easier sorting of an array of Distribution objects by version

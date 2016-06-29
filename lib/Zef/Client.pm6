@@ -476,7 +476,7 @@ class Zef::Client {
                             });
                             $_.rethrow;
                         } }
-                        my $install = $cur.install($dist, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+                        my $install = $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
                         self.logger.emit({
                             level   => VERBOSE,
                             stage   => INSTALL,
@@ -519,7 +519,7 @@ class Zef::Client {
             my $dist = $candi.dist;
             if @specs.first({ $dist.spec-matcher($_) }) {
                 my $cur = CompUnit::RepositoryRegistry.repository-for-spec("inst#{$candi.from}", :next-repo($*REPO));
-                $cur.uninstall($dist);
+                $cur.uninstall($dist.compat);
                 take $candi;
             }
         }

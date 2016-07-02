@@ -771,8 +771,11 @@ sub try-legacy-hook($candi, :$logger) {
         });
 
         my $proc = zrun(|@exec, :cwd($dist.path), :out, :err);
-        my @err = $proc.err.lines;
+
+        # Build phase can freeze up based on the order of these 2 assignments
+        # This is a rakudo bug with an unknown cause, so may still occur based on the process's output
         my @out = $proc.out.lines;
+        my @err = $proc.err.lines;
 
         $ = $proc.out.close unless +@err;
         $ = $proc.err.close;

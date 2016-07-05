@@ -313,6 +313,7 @@ class Zef::Client {
         Bool :$test  = True,        # run tests
         Bool :$dry,                 # do everything *but* actually install
         Bool :$upgrade,             # NYI
+        Bool :$serial,
         *@candidates ($, *@),
         *%_
         ) {
@@ -420,97 +421,101 @@ class Zef::Client {
         die "Something went terribly wrong linking the distributions" unless +@linked-candidates;
 
 
-        # Build Phase:
-        my @built-candidates = self.build(|@linked-candidates);
-        die "No installable candidates remain after `build` failures" unless +@built-candidates;
+        my $installer = sub (*@_) {
+            # Build Phase:
+            my @built-candidates = self.build(|@_);
+            die "No installable candidates remain after `build` failures" unless +@built-candidates;
 
 
-        # Test Phase:
-        my @tested-candidates = gather for @built-candidates -> $candi {
-            next() R, take($candi) unless ?$test;
+            # Test Phase:
+            my @tested-candidates = gather for @built-candidates -> $candi {
+                next() R, take($candi) unless ?$test;
 
-            my $tested = self.test($candi);
-            my $failed = $tested.map(*.test-results.grep(!*.so).elems).sum;
+                my $tested = self.test($candi);
+                my $failed = $tested.map(*.test-results.grep(!*.so).elems).sum;
 
-            take $candi unless ?$failed && !$!force;
-        }
-        # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
-        die "All candidates failed building and/or testing. No reason to proceed" unless +@tested-candidates;
+                take $candi unless ?$failed && !$!force;
+            }
+            # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
+            die "All candidates failed building and/or testing. No reason to proceed" unless +@tested-candidates;
 
-        # Install Phase:
-        # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
-        # and contain only the modules needed for this specific run/plan
-        my @installed-candidates = eager gather for @tested-candidates -> $candi {
-            self.logger.emit({
-                level   => INFO,
-                stage   => INSTALL,
-                phase   => BEFORE,
-                payload => $candi,
-                message => "Installing: {$candi.dist.?identity // $candi.as}",
-            });
+            # Install Phase:
+            # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
+            # and contain only the modules needed for this specific run/plan
+            my @installed-candidates = eager gather for @tested-candidates -> $candi {
+                self.logger.emit({
+                    level   => INFO,
+                    stage   => INSTALL,
+                    phase   => BEFORE,
+                    payload => $candi,
+                    message => "Installing: {$candi.dist.?identity // $candi.as}",
+                });
 
-            my @installed-at = |@curs.grep: -> $cur {
-                # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
-                # any subsequent .install as the fuck up involves changing the data structures
-                my $dist = $candi.dist.clone(provides => $candi.dist.provides, files => $candi.dist.files);
+                my @installed-at = |@curs.grep: -> $cur {
+                    # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
+                    # any subsequent .install as the fuck up involves changing the data structures
+                    my $dist = $candi.dist.clone(provides => $candi.dist.provides, files => $candi.dist.files);
 
-                if ?$dry {
-                    self.logger.emit({
-                        level   => VERBOSE,
-                        stage   => INSTALL,
-                        phase   => AFTER,
-                        payload => $candi,
-                        message => "(dry) Installed: {$candi.dist.?identity // $candi.as}",
-                    });
-                }
-                else {
-                    #$!lock.protect({
-                    try {
-                        CATCH { default {
-                            self.logger.emit({
-                                level   => ERROR,
-                                stage   => INSTALL,
-                                phase   => AFTER,
-                                payload => $candi,
-                                message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
-                            });
-                            $_.rethrow;
-                        } }
-                        my $install = $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+                    if ?$dry {
                         self.logger.emit({
                             level   => VERBOSE,
                             stage   => INSTALL,
                             phase   => AFTER,
                             payload => $candi,
-                            message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
-                        }) if ?$install;
-                        $ = ?$install;
+                            message => "(dry) Installed: {$candi.dist.?identity // $candi.as}",
+                        });
                     }
-                    #});
+                    else {
+                        #$!lock.protect({
+                        try {
+                            CATCH { default {
+                                self.logger.emit({
+                                    level   => ERROR,
+                                    stage   => INSTALL,
+                                    phase   => AFTER,
+                                    payload => $candi,
+                                    message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
+                                });
+                                $_.rethrow;
+                            } }
+                            my $install = $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+                            self.logger.emit({
+                                level   => VERBOSE,
+                                stage   => INSTALL,
+                                phase   => AFTER,
+                                payload => $candi,
+                                message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
+                            }) if ?$install;
+                            $ = ?$install;
+                        }
+                        #});
+                    }
+                }
+
+                take $candi if +@installed-at;
+            }
+
+            # Report phase:
+            # Handle exit codes for various option permutations like --force
+            # Inform user of what was tested/built/installed and what failed
+            # Optionally report to any cpan testers type service (testers.perl6.org)
+            unless $dry {
+                if @installed-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
+                    my $msg = "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
+                    ~ "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
+                    self.logger.emit({
+                        level   => INFO,
+                        stage   => REPORT,
+                        phase   => LIVE,
+                        message => $msg,
+                    });
                 }
             }
 
-            take $candi if +@installed-at;
-        }
+            @installed-candidates;
+        } # sub installer
 
-        # Report phase:
-        # Handle exit codes for various option permutations like --force
-        # Inform user of what was tested/built/installed and what failed
-        # Optionally report to any cpan testers type service (testers.perl6.org)
-        unless $dry {
-            if @installed-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
-                my $msg = "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
-                ~ "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
-                self.logger.emit({
-                    level   => INFO,
-                    stage   => REPORT,
-                    phase   => LIVE,
-                    message => $msg,
-                });
-            }
-        }
-
-        @installed-candidates;
+        my @installed = ?$serial ?? @linked-candidates.map({ $installer($_) }) !! $installer(|@linked-candidates);
     }
 
     method uninstall(CompUnit::Repository :@from!, *@identities) {

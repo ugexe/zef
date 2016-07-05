@@ -97,7 +97,7 @@ as part of their name. I<--> is probably valid too, but this makes my life a lot
 
 B<Options>
     
-    # install to a custom locations
+    # Install to a custom locations
     --install-to=<id> # site/home/vendor/perl, or
     -to=<id>          # inst#/home/some/path/custom
 
@@ -107,17 +107,20 @@ B<Options>
     # Install only the dependency chains of the requested distributions
     --depsonly
 
-    # install the requested modules regardless of: currently installed versions,
+    # Install the requested modules regardless of: currently installed versions,
     # test results, or failed dependency installations
     --force
 
-    # do everything except the actual installations
+    # Do everything except the actual installations
     --dry
 
-    # disable testing
+    # Build/Test/Install each dependency serially before proceeding to Build/Test/Install the next
+    --serial
+
+    # Disable testing
     --/test
 
-    # disable fetching dependencies
+    # Disable fetching dependencies
     --/depends
     --/build-depends
     --/test-depends

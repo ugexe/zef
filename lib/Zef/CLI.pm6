@@ -65,6 +65,7 @@ package Zef::CLI {
         Bool :$update,
         Bool :$upgrade,
         Bool :$depsonly,
+        Bool :$serial,
         :$exclude is copy,
         :to(:$install-to) = ['site'],
         *@wants ($, *@)
@@ -113,7 +114,7 @@ package Zef::CLI {
         my @fetched = grep *.so, |@local, ($client.fetch(|@remote).Slip if +@remote);
 
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
-        my @installed  = |$client.install( :@to, :$test, :$upgrade, :$update, :$dry, |@fetched );
+        my @installed  = |$client.install( :@to, :$test, :$upgrade, :$update, :$dry, :$serial, |@fetched );
         my @fail       = |@candidates.grep: {.as !~~ any(@installed>>.as)}
 
         say "!!!> Install failures: {@fail.map(*.dist.identity).join(', ')}" if +@fail;
@@ -393,6 +394,7 @@ package Zef::CLI {
                 --depsonly              Install only the dependency chains of the requested distributions
                 --force                 Continue each phase regardless of failures
                 --dry                   Run all phases except the actual installations
+                --serial                Install each dependency after passing testing and before building/testing the next dependency
 
                 --/test                 Skip the testing phase
                 --/depends              Do not fetch runtime dependencies

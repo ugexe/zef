@@ -9,10 +9,11 @@ our sub parse-file($path) {
 }
 
 our sub guess-path {
-    first *.e, (
-        $*HOME.child('.zef').child('config.json'),
-        %?RESOURCES<config.json>,
-    )
+    my $local-conf   = $*HOME.child('.zef').child('config.json');
+    my $default-conf = %?RESOURCES<config.json>;
+
+    return $local-conf if $local-conf.e;
+    return $default-conf;
 }
 
 our sub plugin-lookup($config is copy) {

@@ -60,6 +60,11 @@ role Tester {
     method test-matcher($path) { ... }
 }
 
+role Builder {
+    method build($path, :@includes) { ... }
+    method build-matcher($path) { ... }
+}
+
 role Candidate {
     has $.dist;
     has $.as;   # Requested as (maybe a url, maybe an identity, maybe a path)

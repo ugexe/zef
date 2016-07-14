@@ -90,6 +90,12 @@
             "module" : "Zef::Service::Shell::PowerShell::unzip"
         }
     ],
+    "Build" : [
+        {
+            "short-name" : "default-builder",
+            "module" : "Zef::Service::Shell::Build"
+        }
+    ],
     "Test" : [
         {
             "short-name" : "prove",

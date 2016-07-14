@@ -1,9 +1,11 @@
 use Zef;
 use Zef::Distribution;
 use Zef::Distribution::Local;
-use Zef::Fetch;
 use Zef::ContentStorage;
+
+use Zef::Fetch;
 use Zef::Extract;
+use Zef::Build;
 use Zef::Test;
 
 class Zef::Client {
@@ -13,6 +15,7 @@ class Zef::Client {
     has $.storage;
     has $.extractor;
     has $.tester;
+    has $.builder;
     has $.config;
 
     has $.logger = Supplier.new;
@@ -20,7 +23,6 @@ class Zef::Client {
     has @.exclude;
     has @!ignore = <Test NativeCall lib MONKEY-TYPING nqp>;
 
-    has Bool $.verbose       is rw = False;
     has Bool $.force         is rw = False;
     has Bool $.depends       is rw = True;
     has Bool $.build-depends is rw = True;
@@ -33,6 +35,7 @@ class Zef::Client {
         :storage(:$zstorage),
         :extractor(:$zextractor),
         :tester(:$ztester),
+        :builder(:$zbuilder),
         :$config,
         *%_
         ) {
@@ -48,6 +51,9 @@ class Zef::Client {
         my $tester := ?$ztester ?? $ztester !! ?$config<Test>
             ?? Zef::Test.new(:backends(|$config<Test>))
             !! die "Zef::Client requires a tester parameter";
+        my $builder := ?$zbuilder ?? $zbuilder !! ?$config<Build>
+            ?? Zef::Build.new(:backends(|$config<Build>))
+            !! die "Zef::Client requires a builder parameter";
         my $storage := ?$zstorage ?? $zstorage !! ?$config<ContentStorage>
             ?? Zef::ContentStorage.new(:backends(|$config<ContentStorage>))
             !! die "Zef::Client requires a storage parameter";
@@ -57,7 +63,7 @@ class Zef::Client {
         $storage.cache   //= $cache;
         $storage.fetcher //= $fetcher;
 
-        self.bless(:$cache, :$fetcher, :$storage, :$extractor, :$tester, :$config, |%_);
+        self.bless(:$cache, :$fetcher, :$storage, :$extractor, :$tester, :$builder, :$config, |%_);
     }
 
     method find-candidates(Bool :$upgrade, *@identities ($, *@)) {
@@ -229,7 +235,7 @@ class Zef::Client {
                 message => "Building: {$candi.dist.?identity // $candi.as}",
             });
 
-            my $result = legacy-hook($candi, :$!logger);
+            my $result = $!builder.build($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$!logger);
 
             $candi does role :: { has $.build-results = ?$result };
 
@@ -501,7 +507,7 @@ class Zef::Client {
             # Optionally report to any cpan testers type service (testers.perl6.org)
             unless $dry {
                 if @installed-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
-                    my $msg = "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins&&?$!verbose??' ['~@bins~']'!!''} installed to:"
+                    my $msg = "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins??' ['~@bins~']'!!''} installed to:"
                     ~ "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
                     self.logger.emit({
                         level   => INFO,
@@ -679,136 +685,3 @@ class Zef::Client {
     }
 }
 
-# todo: write a real hooking implementation to CU::R::I
-# this is a giant ball of shit btw. workaround on workarounds
-sub legacy-hook($candi, :$logger) {
-    my $dist := $candi.dist;
-    my $DEBUG = ?%*ENV<ZEF_BUILDPM_DEBUG>;
-
-    my $json-ext = $dist.IO.child('META6.json').e;
-    my Str $comp-version = ~$*PERL.compiler.version;
-    my $meta-name-workaround = $comp-version.substr(5..6) <= 5
-                            && $comp-version.substr(0..3) <= 2016
-                            && $dist.IO.child('META6.json').e;
-
-    my $orig-result = try-legacy-hook($candi, :$logger);
-    my $redo-result = do {
-        # Workaround rakudo CUR::FS bug when distribution has a
-        # Build.pm file, is using META6.json (not META.info), and
-        # the rakudo version is < 2016.05
-        # Retries try-legacy-hook after adding 'Build' => 'Build.pm' to provides
-        my $meta6-path     = $dist.IO.child('META6.json');
-        my $meta6-bak      = $meta6-path.absolute ~ '.bak';
-        my $meta6-contents = $meta6-path.IO.slurp;
-        try move $meta6-path, $meta6-bak;
-        my %meta6 = from-json($meta6-contents);
-        %meta6<provides><Build> = 'Build.pm';
-        "{$meta6-path}".IO.spurt( to-json(%meta6) );
-        my $result = try-legacy-hook($candi, :$logger);
-        try unlink $meta6-path;
-        try move $meta6-bak, $meta6-path;
-        $result;
-    } if !$orig-result && $meta-name-workaround;
-
-    return ?$orig-result || ?$redo-result;
-}
-
-sub try-legacy-hook($candi, :$logger) {
-    my $dist := $candi.dist;
-    my $DEBUG = ?%*ENV<ZEF_BUILDPM_DEBUG>;
-
-    my $builder-path = $dist.IO.child('Build.pm');
-    my $legacy-code  = $builder-path.IO.slurp;
-
-    # if panda is declared as a dependency then there is no need to fix the code, although
-    # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
-    my $needs-panda = ?$legacy-code.contains('use Panda');
-    my $reqs-panda  = ?$dist.depends.first(/^[:i 'panda']/)
-                    || ?$dist.build-depends.first(/^[:i 'panda']/)
-                    || ?$dist.test-depends.first(/^[:i 'panda']/);
-
-    if ?$needs-panda && !$reqs-panda {
-        $logger.emit({
-            level   => WARN,
-            stage   => BUILD,
-            phase   => LIVE,
-            payload => $candi,
-            message => "`build-depends` is missing entries. Attemping to mimick missing dependencies...",
-        });
-
-        my $legacy-fixer-code = q:to/END_LEGACY_FIX/;
-            class Build {
-                method isa($what) {
-                    return True if $what.^name eq 'Panda::Builder';
-                    callsame;
-                }
-            END_LEGACY_FIX
-
-        $legacy-code.subst-mutate(/'use Panda::' \w+ ';'/, '', :g);
-        $legacy-code.subst-mutate('class Build is Panda::Builder {', "{$legacy-fixer-code}\n");
-
-        try {
-            move "{$builder-path}", "{$builder-path}.bak";
-            spurt "{$builder-path}", $legacy-code;
-        }
-    }
-
-    # Rakudo bug related to using path instead of module name
-    # my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
-    my $cmd = "::('Build').new.build('{$dist.IO.absolute}'); exit(0);";
-
-    my $result;
-    try {
-        use Zef::Shell;
-        CATCH { default { $result = False; } }
-        my @includes = $dist.metainfo<includes>.grep(*.defined).map: { "-I{$_}" }
-
-        # see: https://github.com/ugexe/zef/issues/93
-        # my @exec = |($*EXECUTABLE, '-Ilib', '-I.', |@includes, '-e', "$cmd");
-        my @exec = |($*EXECUTABLE, '-Ilib', '-I.', '-MBuild', |@includes, '-e', "$cmd");
-
-        $logger.emit({
-            level   => DEBUG,
-            stage   => BUILD,
-            phase   => LIVE,
-            payload => $candi,
-            message => "Command: {@exec.join(' ')}",
-        });
-
-        my $proc = zrun(|@exec, :cwd($dist.path), :out, :err);
-
-        # Build phase can freeze up based on the order of these 2 assignments
-        # This is a rakudo bug with an unknown cause, so may still occur based on the process's output
-        my @out = $proc.out.lines;
-        my @err = $proc.err.lines;
-
-        $ = $proc.out.close unless +@err;
-        $ = $proc.err.close;
-        $result = ?$proc;
-
-        $logger.emit({
-            level   => DEBUG,
-            stage   => BUILD,
-            phase   => LIVE,
-            payload => $candi,
-            message => @out.join("\n"),
-        }) if +@out;
-
-        $logger.emit({
-            level   => ERROR,
-            stage   => BUILD,
-            phase   => LIVE,
-            payload => $candi,
-            message => @err.join("\n"),
-        }) if +@err;
-    }
-
-    if my $bak = "{$builder-path}.bak" and $bak.IO.e {
-        try {
-            unlink $builder-path;
-            move $bak, $builder-path;
-        } if $bak.IO.f;
-    }
-
-    $ = ?$result;
-}

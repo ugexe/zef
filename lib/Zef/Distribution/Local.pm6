@@ -62,8 +62,8 @@ class Zef::Distribution::Local is Zef::Distribution {
         # Re-map the module name to file path, possibly absolutifying the path
         % = self.hash<provides>.grep(*.so).map: {
             .key => .value.IO.is-relative
-                ?? ( ?$absolute ?? .value.IO.absolute($!path) !! IO::Path.new(.value, :CWD($!path)) )
-                !! ( !$absolute ?? IO::Path.new(.value, :CWD($!path)) !! .value.IO.absolute($!path) );
+                ?? ( ?$absolute ?? .value.IO.absolute($!path) !! .value )
+                !! ( !$absolute ?? .value.IO.relative($!path) !! .value );
         }
     }
 

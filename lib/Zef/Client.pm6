@@ -484,7 +484,7 @@ class Zef::Client {
                                 });
                                 $_.rethrow;
                             } }
-                            my $install = $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+                            my $install = $cur.install($dist.compat, $dist.sources, $dist.scripts, $dist.resources, :$!force);
                             self.logger.emit({
                                 level   => VERBOSE,
                                 stage   => INSTALL,

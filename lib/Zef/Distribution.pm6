@@ -1,3 +1,4 @@
+use Zef;
 use Zef::Distribution::DependencySpecification;
 
 # XXX: Needed for backwards compat. Will be removed when I rework Distribution related items
@@ -133,13 +134,13 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     # are Distribution constraints (install and uninstall?). This provides backwards compatibility
     # until a more robust solution is worked out
     method compat {
-        ::("Distribution::Hash") !~~ Failure
-            ?? (::("Distribution::Hash").new($.hash, :prefix(self.?IO // $*CWD)) but role {
+        $PRE-DIST-INTERFACE
+            ?? Distribution.new(|$.hash)
+            !! (::("Distribution::Hash").new($.hash, :prefix(self.?IO // $*CWD)) but role {
                 method name { self.meta<name> }
                 method ver  { self.meta<ver> // self.meta<version> }
                 method auth { self.meta<auth> // self.meta<authority> // self.meta<author> }
-            })
-            !! Distribution.new(|$.hash);
+            });
     }
 }
 

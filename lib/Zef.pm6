@@ -1,5 +1,7 @@
 class Zef { }
 
+our $PRE-DIST-INTERFACE is export = ::("Distribution::Hash") ~~ Failure;
+
 # rakudo must be able to parse json, so it doesn't
 # make sense to require a dependency to parse it
 sub from-json($text) is export {

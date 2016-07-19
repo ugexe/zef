@@ -484,7 +484,15 @@ class Zef::Client {
                                 });
                                 $_.rethrow;
                             } }
-                            my $install = $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force);
+
+                            # Previously we put this through the deprecation CURI.install shim no matter what,
+                            # but that doesn't play nicely with relative paths. We want to keep the original meta
+                            # paths for newer rakudos so we must avoid using :absolute for the source paths by
+                            # using the newer CURI.install if available
+                            my $install = $PRE-DIST-INTERFACE
+                                ?? $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force)
+                                !! $cur.install($dist.compat, :$!force);
+
                             self.logger.emit({
                                 level   => VERBOSE,
                                 stage   => INSTALL,

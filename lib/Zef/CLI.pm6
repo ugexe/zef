@@ -458,15 +458,15 @@ package Zef::CLI {
             # A bare .IO will complain that its being called on a type Any (not true)
             my $path = $config-path-from-args // Zef::Config::guess-path;
             my $IO   = $path.Str.IO;
-            my %conf = Zef::Config::parse-file($path).hash;
+            my %hash = Zef::Config::parse-file($path).hash;
             class :: {
                 has $.IO;
-                has %.conf handles <AT-KEY EXISTS-KEY DELETE-KEY push append iterator list kv keys values>;
-            }.new(:%conf, :$IO);
+                has %.hash handles <AT-KEY EXISTS-KEY DELETE-KEY push append iterator list kv keys values>;
+            }.new(:%hash, :$IO);
         }
 
         # get/remove --$short-name and --/$short-name where $short-name is a value in the config file
-        my $plugin-lookup := Zef::Config::plugin-lookup($config);
+        my $plugin-lookup := Zef::Config::plugin-lookup($config.hash);
         @*ARGS = eager gather for @*ARGS -> $arg {
             my $arg-as  = $arg.subst(/^ ["--" | "--\/"]/, '');
             my $enabled = $arg.starts-with('--/') ?? 0 !! 1;

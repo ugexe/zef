@@ -16,7 +16,7 @@ our sub guess-path {
     return $default-conf;
 }
 
-our sub plugin-lookup($config is copy) {
+our sub plugin-lookup($config) {
     my $lookup;
     my sub do-lookup($node) {
         if $node ~~ Hash {

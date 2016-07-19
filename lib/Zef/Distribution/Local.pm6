@@ -38,7 +38,7 @@ class Zef::Distribution::Local is Zef::Distribution {
         } || IO::Path;
     }
 
-    method resources {
+    method resources(Bool :$absolute) {
         my $res-path = self.IO.child('resources');
 
         # resources/libraries is treated differently than everything else.
@@ -52,9 +52,12 @@ class Zef::Distribution::Local is Zef::Distribution {
         my $lib-path = $res-path.child('libraries');
 
         % = self.hash<resources>.map: -> $resource {
-            $resource => $resource ~~ m/^libraries\/(.*)/
+            my $resource-path = $resource ~~ m/^libraries\/(.*)/
                 ?? $lib-path.child($*VM.platform-library-name(IO::Path.new($0, :CWD($!path))))
                 !! $res-path.child($resource);
+            $resource => $resource-path.IO.is-relative
+                ?? ( ?$absolute ?? $resource-path.IO.absolute($!path) !! $resource-path )
+                !! ( !$absolute ?? $resource-path.IO.relative($!path) !! $resource-path );
         }
     }
 
@@ -67,11 +70,27 @@ class Zef::Distribution::Local is Zef::Distribution {
         }
     }
 
-    method scripts {
+    method scripts(Bool :$absolute) {
         % = do with $.IO.child('bin') -> $bin {
             # Get all files in bin/ directory and map them into
             # a hash CURI.install understands: "zef" => "bin/zef"
-            $bin.dir.grep(*.IO.f).map({ .IO.basename => $_ }).hash if $bin.IO.d
+            $bin.dir.grep(*.IO.f).map({
+                $_.IO.basename => $_.IO.is-relative
+                    ?? ( ?$absolute ?? $_.IO.absolute($!path) !! $_ )
+                    !! ( !$absolute ?? $_.IO.relative($!path) !! $_ )
+            }).hash if $bin.IO.d
         }
+    }
+
+    method meta {
+        my %hash = self.hash;
+        self.resources.map: { %hash<files>{"resources/" ~ .key} = .value }
+        self.scripts.map:   { %hash<files>{"bin/" ~ .key}       = .value }
+        %hash;
+    }
+
+    method content($address) {
+        my $handle = IO::Handle.new: path => IO::Path.new($address, :CWD(self.IO));
+        $handle // $handle.throw;
     }
 }

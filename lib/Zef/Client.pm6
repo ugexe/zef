@@ -458,10 +458,6 @@ class Zef::Client {
                 });
 
                 my @installed-at = |@curs.grep: -> $cur {
-                    # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
-                    # any subsequent .install as the fuck up involves changing the data structures
-                    my $dist = $candi.dist.clone(provides => $candi.dist.provides, files => $candi.dist.files);
-
                     if ?$dry {
                         self.logger.emit({
                             level   => VERBOSE,
@@ -490,8 +486,12 @@ class Zef::Client {
                             # paths for newer rakudos so we must avoid using :absolute for the source paths by
                             # using the newer CURI.install if available
                             my $install = $PRE-DIST-INTERFACE
-                                ?? $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts, $dist.resources, :$!force)
-                                !! $cur.install($dist.compat, :$!force);
+                                ?? do {
+                                    # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
+                                    # any subsequent .install as the fuck up involves changing the data structures
+                                    my $dist = $candi.dist.clone(provides => $candi.dist.provides, files => $candi.dist.files);
+                                    $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts(:absolute), $dist.resources(:absolute), :$!force)
+                                } !! $cur.install($candi.dist.compat, :$!force);
 
                             self.logger.emit({
                                 level   => VERBOSE,

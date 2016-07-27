@@ -36,6 +36,8 @@ class Distribution::DEPRECATED {
         use nqp;
         return nqp::sha1(self.Str);
     }
+
+    method meta { self.hash }
 }
 
 # NOTE: Everything referencing `Distribution` in the below comment now refers to `Distribution::DEPRECAED`
@@ -134,7 +136,7 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     method compat {
         $PRE-DIST-INTERFACE
             ?? Distribution.new(|$.hash)
-            !! (::("Distribution::Hash").new($.meta, :prefix(self.?IO // $*CWD)) but role {
+            !! (::("Distribution::Hash").new($.hash, :prefix(self.?IO // $*CWD)) but role {
                 method name { self.meta<name> }
                 method ver  { self.meta<ver> // self.meta<version> }
                 method auth { self.meta<auth> // self.meta<authority> // self.meta<author> }

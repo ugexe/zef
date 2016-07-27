@@ -134,7 +134,7 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     method compat {
         $PRE-DIST-INTERFACE
             ?? Distribution.new(|$.hash)
-            !! (::("Distribution::Hash").new($.meta, :prefix(self.?IO // $*CWD)) but role {
+            !! (::("Distribution::Hash").new(self.?meta || $.hash, :prefix(self.?IO // $*CWD)) but role {
                 method name { self.meta<name> }
                 method ver  { self.meta<ver> // self.meta<version> }
                 method auth { self.meta<auth> // self.meta<authority> // self.meta<author> }

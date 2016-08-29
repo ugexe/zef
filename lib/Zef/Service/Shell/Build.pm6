@@ -103,8 +103,8 @@ my sub legacy-build($path, :@includes, :$stderr, :$stdout) {
         $ = $proc.err.close;
         $result = ?$proc;
 
-        $stdout.emit(@out.join("\n")) if $DEBUG && +@out;
-        $stderr.emit(@err.join("\n")) if $DEBUG && +@err;
+        $stdout.emit(@out.join("\n")) if +@out;
+        $stderr.emit(@err.join("\n")) if +@err;
     }
 
     if my $bak = "{$builder-path}.bak" and $bak.IO.e {

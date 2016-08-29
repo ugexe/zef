@@ -10,7 +10,7 @@ use Zef::Utils::SystemInfo;
 # Ideally this all ends up back in bin/zef once/if precompilation of scripts is handled in CURI
 package Zef::CLI {
     my $verbosity = preprocess-args-verbosity-mutate(@*ARGS);
-    %*ENV<ZEF_BUILDPM_DEBUG> = $verbosity >= DEBUG;
+    %*ENV<ZEF_BUILDPM_DEBUG> = $verbosity >= VERBOSE;
     my $CONFIG    = preprocess-args-config-mutate(@*ARGS);
 
     #| Download specific distributions

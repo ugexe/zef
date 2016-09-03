@@ -129,13 +129,20 @@ package Zef::CLI {
         die "`uninstall` command currently requires a bleeding edge version of rakudo"\
             unless any(@from>>.can('uninstall'));
 
-        my %uninstalled = $client.uninstall( :@from, |@identities>>.&str2identity ).classify(*.from);
-        for %uninstalled.kv -> $from, $candidates {
+        my @uninstalled = $client.uninstall( :@from, |@identities>>.&str2identity );
+        my @fail        = @identities.grep(* !~~ any(@uninstalled.map(*.as)));
+        if +@uninstalled == 0 && +@fail {
+            note("Found no matching candidates to uninstall");
+            die("No reason to proceed. Use --force to continue anyway");
+        }
+
+        for @uninstalled.classify(*.from).kv -> $from, $candidates {
             say "===> Uninstalled from $from";
             say "$_" for |$candidates>>.dist>>.identity;
         }
 
-        exit %uninstalled.keys ?? 0 !! 1;
+        say "!!!> Failed to uninstall distributions: {@fail.join('. ')}" if +@fail;
+        exit +@fail ?? 1 !! 0;
     }
 
     #| Get a list of possible distribution candidates for the given terms

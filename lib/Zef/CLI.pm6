@@ -224,8 +224,9 @@ package Zef::CLI {
     #| Detailed distribution information
     multi MAIN('info', $identity, Int :$wrap = False) is export {
         my $client = get-client(:config($CONFIG));
-        my $candi  = $client.search($identity, :max-results(1))[0]\
-            or die "Found no candidates matching identity: {$identity}";
+        my $candi  = $client.resolve($identity)
+                ||   $client.search($identity, :max-results(1))[0]\
+                ||   die "Found no candidates matching identity: {$identity}";
         my $dist  := $candi.dist;
 
         say "- Info for: $identity";
@@ -235,9 +236,34 @@ package Zef::CLI {
         say "Description:\t {$dist.description}" if $dist.description;
         say "Source-url:\t {$dist.source-url}"   if $dist.source-url;
 
-        my @provides = $dist.provides.keys.sort(*.chars);
+        my @provides = $dist.provides.sort(*.key.chars);
         say "Provides: {@provides.elems} modules";
-        if ?($verbosity >= VERBOSE) { say "#\t$_" for $dist.provides.keys.sort(*.chars).sort }
+        if ?($verbosity >= VERBOSE) {
+
+            my sub parse-value($str-or-kv) {
+                do given $str-or-kv {
+                    when Str  { $_ }
+                    when Hash { $_.keys[0] }
+                    when Pair { $_.key     }
+                }
+            }
+
+            my $meta := $dist.compat.meta;
+            my @rows = eager gather for @provides -> $lib {
+                FIRST {
+                    take $meta<provides>.values[0] ~~ Hash
+                        ?? [<Module Path-Name File-ID>]
+                        !! [<Module Path-Name>]
+                }
+                my $module-name = $lib.key;
+                my $name-path   = parse-value($lib.value);
+                my $real-path   = try { $meta<provides>{$module-name}{$name-path}<file> };
+                take $real-path
+                    ?? [ $module-name, $name-path, $real-path ]
+                    !! [ $module-name, $name-path ];
+            }
+            print-table(@rows, :$wrap);
+        }
 
         if $dist.hash<support> {
             say "Support:";

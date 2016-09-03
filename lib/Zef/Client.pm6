@@ -600,8 +600,12 @@ class Zef::Client {
         $deps.unique(:as(*.identity));
     }
 
-    method is-installed($spec, :@at) {
-        $ = ?self.list-installed(|@at).first(*.dist.contains-spec($spec))
+    method resolve($spec, :@at) {
+        self.list-installed(|@at).first(*.dist.contains-spec($spec))
+    }
+
+    method is-installed(|c) {
+        ?self.resolve(|c)
     }
 
     method sort-candidates(@candis, *%_) {

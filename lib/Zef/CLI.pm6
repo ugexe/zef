@@ -221,6 +221,50 @@ package Zef::CLI {
         exit 0;
     }
 
+    #| Lookup locally installed distributions by short-name, name-path, or sha1 id
+    multi MAIN('locate', $identity, Bool :$sha1) is export {
+        my $client = get-client(:config($CONFIG));
+        if !$sha1 {
+            if $identity ~~ /\.pm6?/ {
+                my $candi = $client.list-installed.first({
+                    my $meta := $_.dist.compat.meta;
+                    so $meta<provides>.first(*.values.first(*.<<$identity>>));
+                });
+
+                if $candi {
+                    my $libs = $candi.dist.compat.meta<provides>;
+                    my $lib  = $libs.first({.value.keys[0] eq $identity});
+                    say "===> From Distribution: {~$candi.dist}";
+                    say "{$lib.keys[0]} => {$candi.from.prefix.child('sources').child($lib.value.values[0]<file>)}";
+                    exit 0;
+                }
+            }
+            else {
+                my $candi = $client.resolve($identity);
+                say "===> From Distribution: {~$candi.dist}";
+                say "{.keys[0]} => {$candi.from.prefix.child('sources').child(.values[0]<file>)}" for $candi.dist.compat.meta<provides>{$identity};
+                exit 0;
+            }
+        }
+        else {
+            my $candi = $client.list-installed.first({
+                my $meta := $_.dist.compat.meta;
+                my @files = $meta<provides>.values.flatmap(*.values.map(*.<file>));
+                so $identity ~~ any(@files);
+            });
+
+            if $candi {
+                say "===> From Distribution: {~$candi.dist}";
+                say "{.keys[0]} => {$candi.from.prefix.child('sources').child(.values[0]<file>)}" for $candi.dist.compat.meta<provides>.values.grep(*.values.first({ .<file> eq $identity })).first(*.so);
+                exit 0;
+            }
+        }
+
+        say "!!!> Nothing located";
+
+        exit 1;
+    }
+
     #| Detailed distribution information
     multi MAIN('info', $identity, Int :$wrap = False) is export {
         my $client = get-client(:config($CONFIG));
@@ -413,6 +457,7 @@ package Zef::CLI {
                 info                    Show detailed distribution information
                 list                    List known available distributions, or installed distributions with `--installed`
                 rdepends                List all distributions directly depending on a given identity
+                locate                  Lookup installed module information by short-name, name-path, or sha1 (with --sha1 flag)
                 smoke                   Run smoke testing on available modules
                 nuke                    Delete directory/prefix containing matching configuration path or CURLI name
 

@@ -63,8 +63,8 @@ To install it via rakudobrew, please use the following command:
     # Upgrade all distributions (BETA)
     zef upgrade
 
-    # Lookup module name/path info
-    zef locate 9FA0AC28824EE9E5A9C0F99951CA870148AE378E
+    # Lookup module info by name/path/sha1
+    zef --sha1 locate 9FA0AC28824EE9E5A9C0F99951CA870148AE378E
 
 =head2 More CLI
 

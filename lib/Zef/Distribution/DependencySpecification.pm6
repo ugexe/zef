@@ -32,7 +32,7 @@ class Zef::Distribution::DependencySpecification {
     method !spec { $.spec || self.Str }
 
     method spec-matcher($spec) {
-        return False unless $spec.name eq self.name;
+        return False unless $spec.name.?chars && self.name.?chars &&  $spec.name eq self.name;
         if $spec.version-matcher.chars && $spec.version-matcher ne '*' {
             return False unless ?$.version-matcher
                 && $.version-matcher ne '*'

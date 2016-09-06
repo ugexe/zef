@@ -470,16 +470,27 @@ class Zef::Client {
                     else {
                         #$!lock.protect({
                         try {
-                            CATCH { default {
-                                self.logger.emit({
-                                    level   => ERROR,
-                                    stage   => INSTALL,
-                                    phase   => AFTER,
-                                    payload => $candi,
-                                    message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
-                                });
-                                $_.rethrow;
-                            } }
+                            CATCH {
+                                when /'already installed'/ {
+                                    self.logger.emit({
+                                        level   => INFO,
+                                        stage   => INSTALL,
+                                        phase   => AFTER,
+                                        payload => $candi,
+                                        message => "Install [SKIP] for {$candi.dist.?identity // $candi.as}: {$_}",
+                                    });
+                                }
+                                default {
+                                    self.logger.emit({
+                                        level   => ERROR,
+                                        stage   => INSTALL,
+                                        phase   => AFTER,
+                                        payload => $candi,
+                                        message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
+                                    });
+                                    $_.rethrow;
+                                }
+                            }
 
                             # Previously we put this through the deprecation CURI.install shim no matter what,
                             # but that doesn't play nicely with relative paths. We want to keep the original meta

@@ -68,7 +68,7 @@ package Zef::CLI {
         Bool :$depsonly,
         Bool :$serial,
         :$exclude is copy,
-        :to(:$install-to) = ['site'],
+        :to(:$install-to) = $CONFIG<DefaultCUR>,
         *@wants ($, *@)
     ) is export {
 
@@ -123,7 +123,12 @@ package Zef::CLI {
     }
 
     #| Uninstall
-    multi MAIN('uninstall', Bool :$force, :from(:$uninstall-from) = ['site'], *@identities ($, *@)) is export {
+    multi MAIN(
+        'uninstall',
+        Bool :$force,
+        :from(:$uninstall-from) = $CONFIG<DefaultCUR>,
+        *@identities ($, *@)
+    ) is export {
         my $client = get-client(:config($CONFIG) :$force);
         my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
         die "`uninstall` command currently requires a bleeding edge version of rakudo"\
@@ -355,7 +360,7 @@ package Zef::CLI {
         Bool :$upgrade,
         Bool :$depsonly,
         :$exclude is copy,
-        :to(:$install-to) = ['site'],
+        :to(:$install-to) = $CONFIG<DefaultCUR>,
     ) is export {
         die "Smoke testing requires rakudo 2016.04 or later" unless try &*EXIT;
         my @excluded   = $exclude.map(*.&identity2spec);

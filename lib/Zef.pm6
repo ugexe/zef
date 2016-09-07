@@ -70,7 +70,7 @@ role Builder {
 role Candidate {
     has $.dist;
     has $.as;   # Requested as (maybe a url, maybe an identity, maybe a path)
-    has $.from; # Recommended from (::P6C, ::CPAN, ::LocalCache)
+    has $.from; # Recommended from (::Ecosystems, ::MetaCPAN, ::LocalCache)
     has $.uri;  # url, file path, etc
     has Bool $.is-dependency is rw;
 }

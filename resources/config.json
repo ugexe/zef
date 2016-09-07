@@ -19,9 +19,10 @@
         {
             "short-name" : "p6c",
             "enabled" : 1,
-            "module" : "Zef::ContentStorage::P6C",
+            "module" : "Zef::ContentStorage::Ecosystems",
             "default" : 1,
             "options" : {
+                "name" : "p6c",
                 "auto-update" : 1,
                 "mirrors" : [
                     "git://github.com/ugexe/Perl6-ecosystems.git",
@@ -31,8 +32,22 @@
         },
         {
             "short-name" : "cpan",
+            "enabled" : 1,
+            "module" : "Zef::ContentStorage::Ecosystems",
+            "default" : 1,
+            "options" : {
+                "name" : "cpan",
+                "auto-update" : 1,
+                "mirrors" : [
+                    "git://github.com/ugexe/Perl6-ecosystems.git",
+                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json"
+                ]
+            }
+        },
+        {
+            "short-name" : "metacpan",
             "enabled" : 0,
-            "module" : "Zef::ContentStorage::CPAN",
+            "module" : "Zef::ContentStorage::MetaCPAN",
             "options" : {
                 "mirrors" : ["http://hack.p6c.org:5000/v0/release/"]
             }

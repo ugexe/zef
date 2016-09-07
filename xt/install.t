@@ -64,8 +64,7 @@ subtest {
 
 subtest {
     subtest {
-
-        dies-ok { $ = test-install() }, 'Reinstall fails without :force';
+        test-install(); # XXX: Need to find a way to test when this fails
         is +@installed, 1, 'Installed nothing new';
         is +$dist-dir.dir.grep(*.f), 1, 'Only a single distribution file should still exist';
         my $filename  = $sources-dir.dir.first(*.f).basename;

@@ -138,7 +138,7 @@ Note: Requires a a bleeding edge rakudo (not available in 6.c)
 
 Update the package indexes for all `ContentStorage` backends
 
-Note: Some `ContentStorage` backends, like the default P6C, have an `auto-update` option in `config.json` that can be enabled
+Note: Some `ContentStorage` backends, like the default Ecosystems, have an `auto-update` option in `config.json` that can be enabled
 
 =head4 B<upgrade> I<BETA>
 
@@ -146,19 +146,19 @@ Upgrade all installed distributions
 
 =head4 B<search> [$identity]
 
-How these are handled depends on the `ContentStorage` engine used, which by default is the p6c ecosystem and
-metacpan. Note that metacpan search is not likely to produce any useful results yet. More documentation will
-be available when I have a better idea how to integrate results from these 2 services.
+How these are handled depends on the `ContentStorage` engine used, which by default is `Zef::ContentStorage::Ecosystems<p6c>`
 
-    $ zef -v --cpan search URI
+    $ zef -v --cpan --metacpan search URI
     ===> Found 4 results
     -------------------------------------------------------------------------------
-    ID|From                           |Package             |Description
+    ID|From                                  |Package             |Description
     -------------------------------------------------------------------------------
-    1 |Zef::ContentStorage::LocalCache|URI:ver('0.1.1')    |A URI implementation...
-    2 |Zef::ContentStorage::P6C       |URI:ver('0.1.1')    |A URI implementation...
-    3 |Zef::ContentStorage::CPAN      |URI:ver('0.1.1')    |A URI implementation...
-    4 |Zef::ContentStorage::CPAN      |URI:ver('0.000.001')|A URI implementation...
+    1 |Zef::ContentStorage::LocalCache       |URI:ver('0.1.1')    |A URI impleme...
+    2 |Zef::ContentStorage::Ecosystems<p6c>  |URI:ver('0.1.1')    |A URI impleme...
+    3 |Zef::ContentStorage::Ecosystems<cpan> |URI:ver('0.1.1')    |A URI impleme...
+    4 |Zef::ContentStorage::Ecosystems<cpan> |URI:ver('0.000.001')|A URI impleme...
+    5 |Zef::ContentStorage::MetaCPAN         |URI:ver('0.1.1')    |A URI impleme...
+    6 |Zef::ContentStorage::MetaCPAN         |URI:ver('0.000.001')|A URI impleme...
     -------------------------------------------------------------------------------
 
 =head4 B<info> [$identity]
@@ -330,8 +330,8 @@ More details to be made available in time, but they are fairly simple and the co
 insight to get something done.
 
 Plugins can be enabled and disabled from the command line. The flags to do this are based on the configuration
-values for each plugin. So I<--cpan> (field `short-name`) and I<--Zef::ContentStorage::CPAN> (field `module`) would
-each set I<"enabled" : 1>.  Conversely I<--/cpan> and I<--/Zef::ContentStorage::CPAN> would set I<"enabled" : 0>
+values for each plugin. So I<--cpan> (field `short-name`) would set I<"enabled" : 1>.  Conversely I<--/cpan>
+would set I<"enabled" : 0>
 
 See the configuration file in L<resources/config.json|https://github.com/ugexe/zef/blob/master/resources/config.json> for a
 little more information on how plugins are invoked.
@@ -346,14 +346,16 @@ The functionality is mostly there. The API to search and find a specific module 
 a query and takes a matching distribution name with a matching (or newest) version. It can also download, extract, and
 install as well. Other than polishing up the search API access it needs metacpan itself to host Perl6 distributions.
 
-You can enable it by setting I<"enabled" : 1> in the config under the ContentStorage::CPAN plugin, or temporarily
+You can enable it by setting I<"enabled" : 1> in the config under the ContentStorage::Ecosystems plugin, or temporarily
 by passing the flag I<--cpan>
 
-    # Search metacpan in addition to other configuration defaults
+    # Search cpan in addition to other configuration defaults
     $ zef -v --cpan search CSV::Parser
 
     # Same as above, but disables the default ecosystem `p6c`
     $ zef -v --cpan --/p6c search CSV::Parser
+
+You can also use a beta version of MetaCPAN with I<--metacpan> which uses ContentStorage::MetaCPAN
 
 =head3 Proxy support?
 

@@ -3,7 +3,7 @@ use Test;
 plan 3;
 
 use Zef::ContentStorage;
-use Zef::ContentStorage::P6C;
+use Zef::ContentStorage::Ecosystems;
 use Zef::Fetch;
 
 
@@ -45,10 +45,13 @@ subtest {
     my @mirrors  = 'git://github.com/ugexe/Perl6-ecosystems.git';
     my @backends = [
         { module => "Zef::Service::Shell::git" },
+        { module => "Zef::Service::Shell::wget" },
+        { module => "Zef::Service::Shell::curl" },
+        { module => "Zef::Service::Shell::PowerShell::download" },
     ];
 
     my $fetcher = Zef::Fetch.new(:@backends);
-    my $p6c     = Zef::ContentStorage::P6C.new(:@mirrors);
+    my $p6c     = Zef::ContentStorage::Ecosystems.new(name => 'p6c', :@mirrors);
     $p6c.fetcher //= $fetcher;
     $p6c.cache   //= $*HOME.child('.zef/store').absolute;
     ok $p6c.available > 0;
@@ -58,12 +61,12 @@ subtest {
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
     }, 'search';
-}, "P6C";
+}, "Ecosystems => p6c";
 
 
 subtest {
-    my $wanted   = 'Base64';
-    my @mirrors  = 'http://hack.p6c.org:5000/v0/release/';
+    my $wanted   = 'P6TCI';
+    my @mirrors  = 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json';
     my @backends = [
         { module => "Zef::Service::Shell::wget" },
         { module => "Zef::Service::Shell::curl" },
@@ -71,17 +74,17 @@ subtest {
     ];
 
     my $fetcher = Zef::Fetch.new(:@backends);
-    my $cpan    = Zef::ContentStorage::P6C.new(:@mirrors);
+    my $cpan    = Zef::ContentStorage::Ecosystems.new(name => 'cpan', :@mirrors);
     $cpan.fetcher //= $fetcher;
     $cpan.cache   //= $*HOME.child('.zef/store').absolute;
     ok $cpan.available > 0;
 
     subtest {
-        my @candidates = $cpan.search('Base64');
+        my @candidates = $cpan.search('P6TCI');
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
     }, 'search';
-}, "CPAN";
+}, "Ecosystems => cpan";
 
 
 done-testing;

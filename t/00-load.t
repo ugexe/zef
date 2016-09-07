@@ -16,9 +16,9 @@ subtest {
     use-ok("Zef::Client");
 
     use-ok("Zef::ContentStorage");
-    use-ok("Zef::ContentStorage::CPAN");
+    use-ok("Zef::ContentStorage::MetaCPAN");
     use-ok("Zef::ContentStorage::LocalCache");
-    use-ok("Zef::ContentStorage::P6C");
+    use-ok("Zef::ContentStorage::Ecosystems");
 
     use-ok("Zef::Distribution");
     use-ok("Zef::Distribution::DependencySpecification");

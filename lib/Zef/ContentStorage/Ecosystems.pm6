@@ -2,7 +2,8 @@ use Zef;
 use Zef::Distribution;
 use Zef::Distribution::DependencySpecification;
 
-class Zef::ContentStorage::P6C does ContentStorage {
+class Zef::ContentStorage::Ecosystems does ContentStorage {
+    has $.name is required;
     has $.mirrors;
     has $.auto-update;
     has $.fetcher is rw;
@@ -31,7 +32,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
     }
 
     method IO {
-        my $dir = $!cache.IO.child('p6c').IO;
+        my $dir = $!cache.IO.child($!name).IO;
         $dir.mkdir unless $dir.e;
         $dir;
     }
@@ -40,12 +41,12 @@ class Zef::ContentStorage::P6C does ContentStorage {
     method !slurp-package-list { @ = |from-json(self!package-list-file.slurp) }
 
     method update {
-        die "Failed to update p6c" unless $!mirrors.first: -> $uri {
+        die "Failed to update $!name" unless $!mirrors.first: -> $uri {
             my $save-as = $!cache.IO.child($uri.IO.basename);
             my $path    = try { $!fetcher.fetch($uri, $save-as) } || next;
             # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
             # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)
-            $path = $path.IO.child('p6c.json') if $path.IO.d;
+            $path = $path.IO.child("{$!name}.json") if $path.IO.d;
             try { copy($path, self!package-list-file) } || next;
         }
         self!gather-dists;
@@ -66,7 +67,7 @@ class Zef::ContentStorage::P6C does ContentStorage {
                         dist => $dist,
                         uri  => ($dist.source-url || $dist.hash<support><source>),
                         as   => $wants,
-                        from => $?CLASS.^name,
+                        from => $?CLASS.^name ~ "<{$!name}>",
                     );
                     @wanted.splice(@wanted.first(/$wants/, :k), 1);
                     take $candidate;

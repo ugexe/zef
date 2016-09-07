@@ -17,9 +17,9 @@
         "Zef::Shell"    : "lib/Zef/Shell.pm6",
 
         "Zef::ContentStorage"             : "lib/Zef/ContentStorage.pm6",
-        "Zef::ContentStorage::CPAN"       : "lib/Zef/ContentStorage/CPAN.pm6",
+        "Zef::ContentStorage::MetaCPAN"   : "lib/Zef/ContentStorage/MetaCPAN.pm6",
         "Zef::ContentStorage::LocalCache" : "lib/Zef/ContentStorage/LocalCache.pm6",
-        "Zef::ContentStorage::P6C"        : "lib/Zef/ContentStorage/P6C.pm6",
+        "Zef::ContentStorage::Ecosystems" : "lib/Zef/ContentStorage/Ecosystems.pm6",
 
         "Zef::Distribution"                          : "lib/Zef/Distribution.pm6",
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",

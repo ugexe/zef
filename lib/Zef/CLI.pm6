@@ -131,7 +131,7 @@ package Zef::CLI {
     ) is export {
         my $client = get-client(:config($CONFIG) :$force);
         my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
-        abort "`uninstall` command currently requires an updated version of rakudo"\
+        abort "Uninstall requires rakudo v2016.02 or later"\
             unless any(@from>>.can('uninstall'));
 
         my @uninstalled = $client.uninstall( :@from, |@identities>>.&str2identity );

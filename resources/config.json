@@ -32,7 +32,7 @@
         },
         {
             "short-name" : "cpan",
-            "enabled" : 1,
+            "enabled" : 0,
             "module" : "Zef::ContentStorage::Ecosystems",
             "default" : 1,
             "options" : {

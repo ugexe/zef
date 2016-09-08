@@ -37,8 +37,15 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
         $dir;
     }
 
-    method !package-list-file  { $ = self.IO.child('packages.json') }
-    method !slurp-package-list { @ = |from-json(self!package-list-file.slurp) }
+    method !package-list-file  {
+        $ = self.IO.child('packages.json')
+    }
+
+    method !slurp-package-list {
+        self!package-list-file.e
+            ?? |from-json(self!package-list-file.slurp)
+            !! [ ];
+    }
 
     method update {
         die "Failed to update $!name" unless $!mirrors.first: -> $uri {

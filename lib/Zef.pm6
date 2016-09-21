@@ -129,7 +129,7 @@ role Pluggable {
 
             DEBUG($plugin, "\t(OK) Plugin loaded successful");
 
-            if ::($ = $module).^can("probe") {
+            if ::($ = $module).^find_method('probe') {
                 ::($ = $module).probe
                     ?? DEBUG($plugin, "\t(OK) Probing successful")
                     !! (next() R, DEBUG($plugin, "\t(SKIP) Probing failed"))

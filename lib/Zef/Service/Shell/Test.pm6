@@ -9,8 +9,12 @@ class Zef::Service::Shell::Test is Zef::Shell does Tester does Messenger {
 
     method test($path, :@includes) {
         die "path does not exist: {$path}" unless $path.IO.e;
+
+        my $test-path = $path.IO.child('t');
+        return True unless $test-path.e;
         my @test-files = grep *.extension eq 't',
-            list-paths($path.IO.child('t').absolute, :f, :!d, :r).sort;
+            list-paths($test-path.absolute, :f, :!d, :r).sort;
+        return True unless +@test-files;
 
         my @results = eager gather for @test-files -> $test-file {
             # many tests are written with the assumption that $*CWD will be their distro's base directory

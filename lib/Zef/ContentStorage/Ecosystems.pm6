@@ -2,8 +2,9 @@ use Zef;
 use Zef::Distribution;
 use Zef::Distribution::DependencySpecification;
 
+
 class Zef::ContentStorage::Ecosystems does ContentStorage {
-    has $.name is required;
+    has $.name;
     has $.mirrors;
     has $.auto-update;
     has $.fetcher is rw;
@@ -25,7 +26,7 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
             take Candidate.new(
                 dist => $dist,
                 uri  => ($dist.source-url || $dist.hash<support><source>),
-                from => $?CLASS.^name,
+                from => $?CLASS.^name ~ "<{$!name}>",
                 as   => $dist.identity,
             );
         }
@@ -53,8 +54,11 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
             my $path    = try { $!fetcher.fetch($uri, $save-as) } || next;
             # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
             # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)
-            $path = $path.IO.child("{$!name}.json") if $path.IO.d;
-            try { copy($path, self!package-list-file) } || next;
+            my $copy-from = $path.IO.d ?? $path.IO.child("{$!name}.json") !! $path;
+            try {
+                CATCH { default { warn $_ } }
+                copy($copy-from, self!package-list-file)
+            }
         }
         self!gather-dists;
     }

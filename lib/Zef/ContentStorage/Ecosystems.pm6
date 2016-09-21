@@ -72,7 +72,6 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
 
         gather DIST: for self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
-                last DIST unless +@wanted;
                 if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(
                         dist => $dist,
@@ -80,8 +79,11 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
                         as   => $wants,
                         from => $?CLASS.^name ~ "<{$!name}>",
                     );
-                    @wanted.splice(@wanted.first(/$wants/, :k), 1);
                     take $candidate;
+
+                    # XXX: see notes in Zef::ContentStorage::LocalCache::search
+                    #@wanted.splice(@wanted.first(/$wants/, :k), 1);
+                    #last RDIST unless +@wanted;
                 }
             }
         }

@@ -97,7 +97,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
 
         # identities that are cached in the localcache manifest
-        my $resolved-dists := gather RDIST: for |self!gather-dists -> $dist {
+        gather RDIST: for |self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(
@@ -107,13 +107,14 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
                         from => $?CLASS.^name,
                     );
                     take $candidate;
-                    @wanted.splice(@wanted.first(/$wants/, :k), 1);
-                    last RDIST unless +@wanted;
+
+                    # These are a short circuit that can be used again if the manifest format
+                    # is changed such that its saved in order from highest version to lowest version
+                    #@wanted.splice(@wanted.first(/$wants/, :k), 1);
+                    #last RDIST unless +@wanted;
                 }
             }
         }
-
-        my $sorted := $resolved-dists.sort({ $^b.dist cmp $^a.dist });
     }
 
     # After the `fetch` phase an app can call `.store` on any ContentStorage that

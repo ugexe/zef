@@ -540,7 +540,7 @@ class Zef::Client {
             @installed-candidates;
         } # sub installer
 
-        my @installed = ?$serial ?? @linked-candidates.map({ $installer($_) }) !! $installer(|@linked-candidates);
+        my @installed = ?$serial ?? @linked-candidates.map({ |$installer($_) }) !! $installer(|@linked-candidates);
     }
 
     method uninstall(CompUnit::Repository :@from!, *@identities) {

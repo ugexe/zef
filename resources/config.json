@@ -25,8 +25,8 @@
                 "name" : "p6c",
                 "auto-update" : 1,
                 "mirrors" : [
-                    "git://github.com/ugexe/Perl6-ecosystems.git",
-                    "http://ecosystem-api.p6c.org/projects.json"
+                    "http://ecosystem-api.p6c.org/projects.json",
+                    "git://github.com/ugexe/Perl6-ecosystems.git"
                 ]
             }
         },

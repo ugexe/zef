@@ -553,13 +553,12 @@ package Zef::CLI {
         # get/remove --$short-name and --/$short-name where $short-name is a value in the config file
         my $plugin-lookup := Zef::Config::plugin-lookup($config.hash);
         @*ARGS = eager gather for @*ARGS -> $arg {
-            my $arg-as  = $arg.subst(/^ ["--" | "--\/"]/, '');
+            my $arg-as  = $arg.subst(/^["--" | "--\/"]/, '');
             my $enabled = $arg.starts-with('--/') ?? 0 !! 1;
-            $arg-as ~~ any($plugin-lookup.keys)
+            $arg.starts-with('--') && $arg-as ~~ any($plugin-lookup.keys)
                 ?? (for |$plugin-lookup{$arg-as} -> $p { $p<enabled> = $enabled })
                 !! take($arg);
         }
-
         $config;
     }
 

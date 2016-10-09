@@ -2,6 +2,7 @@ use Zef;
 use Zef::Distribution;
 use Zef::Distribution::DependencySpecification;
 
+my %dist_cache;
 
 class Zef::ContentStorage::Ecosystems does ContentStorage {
     has $.name;
@@ -10,23 +11,28 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
     has $.fetcher is rw;
     has $.cache is rw;
 
-    has @!dists;
+    has $.update-counter;
 
-    method !gather-dists {
-        once { self.update } if $.auto-update || !self!package-list-file.e;
-        @!dists = +@!dists ?? @!dists !! eager gather for self!slurp-package-list -> $meta {
-            if try { Zef::Distribution.new(|%($meta)) } -> $dist {
-                take $dist;
+    method id { $?CLASS.^name.split('+', 2)[0] ~ "<{$!name}>" }
+
+    method !dists {
+        # Only update once, and only update automatically if $!auto-update is enabled or no package list exists yet
+        self.update unless $!update-counter++
+                        || !$!auto-update
+                        || self!package-list-file.e;
+        %dist_cache{self.id} := %dist_cache{self.id}
+            ?? %dist_cache{self.id}
+            !! cache gather for self!slurp-package-list -> $meta {
+                take($_) with try Zef::Distribution.new(|%($meta));
             }
-        }
     }
 
     method available {
-        my $candidates := gather for self!gather-dists -> $dist {
+        my $candidates := gather for self!dists -> $dist {
             take Candidate.new(
                 dist => $dist,
                 uri  => ($dist.source-url || $dist.hash<support><source>),
-                from => $?CLASS.^name ~ "<{$!name}>",
+                from => self.id,
                 as   => $dist.identity,
             );
         }
@@ -57,10 +63,11 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
             my $copy-from = $path.IO.d ?? $path.IO.child("{$!name}.json") !! $path;
             try {
                 CATCH { default { warn $_ } }
-                copy($copy-from, self!package-list-file)
+                rename($copy-from, self!package-list-file);
             }
         }
-        self!gather-dists;
+        %dist_cache{self.id}:delete;
+        self!dists;
     }
 
     # todo: handle %fields
@@ -70,14 +77,14 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
         my @wanted = @identities;
         my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
 
-        gather DIST: for self!gather-dists -> $dist {
+        gather DIST: for self!dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
                 if ?$dist.contains-spec( %specs{$wants} ) {
                     my $candidate = Candidate.new(
                         dist => $dist,
                         uri  => ($dist.source-url || $dist.hash<support><source>),
                         as   => $wants,
-                        from => $?CLASS.^name ~ "<{$!name}>",
+                        from => self.id,
                     );
                     take $candidate;
 

@@ -76,6 +76,11 @@ role Candidate {
 }
 
 role ContentStorage {
+    # An identifier like .^name but intended to differentiate between instances of the same class
+    # For instance: ::Ecosystems<p6c> and ::Ecosystems<cpan> which would otherwise share the
+    # same .^name of ::Ecosystems
+    method id { $?CLASS.^name.split('+', 2)[0] }
+
     # max-results is meant so we can :max-results(1) when we are interested in using it like
     # `.candidates` (i.e. 1 match per identity) so we can stop iterating search plugins earlier
     method search(:$max-results, *@identities, *%fields --> Array of Candidate) { ... }

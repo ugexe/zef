@@ -45,7 +45,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
             take Candidate.new(
                 dist => $dist,
                 uri  => ($dist.source-url || $dist.hash<support><source>),
-                from => $?CLASS.^name,
+                from => self.id,
                 as   => $dist.identity,
             );
         }
@@ -104,7 +104,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
                         dist => $dist,
                         uri  => $dist.IO.absolute,
                         as   => $wants,
-                        from => $?CLASS.^name,
+                        from => self.id,
                     );
                     take $candidate;
 

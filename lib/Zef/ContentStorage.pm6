@@ -11,7 +11,7 @@ class Zef::ContentStorage does Pluggable {
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });
         my @candis = gather for self!plugins -> $storage {
             # todo: (cont. from above): Each ContentStorage should just filter this themselves
-            my @search-for = $storage.^name eq 'Zef::ContentStorage::LocalCache' ?? @identities !! @searchable;
+            my @search-for = $storage.id eq 'Zef::ContentStorage::LocalCache' ?? @identities !! @searchable;
             for $storage.search(|@search-for, :max-results(1)) -> $candi {
                 take $candi;
             }
@@ -58,7 +58,7 @@ class Zef::ContentStorage does Pluggable {
         eager gather for self!plugins(|@names) -> $plugin {
             next() R, warn "Specified plugin by name {$plugin.short-name} doesn't support `.update`"\
                 if +@names && !$plugin.can('update'); # `.update` is an optional interface requirement
-            take $plugin.^name.split('+', 2)[0] => $plugin.update.elems;
+            take $plugin.id => $plugin.update.elems;
         }
     }
 }

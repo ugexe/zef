@@ -1,3 +1,4 @@
+use Zef;
 use Zef::Client;
 use Zef::Config;
 use Zef::Utils::FileSystem;

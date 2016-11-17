@@ -629,7 +629,7 @@ class Zef::Client {
                 my @deps = |self.list-dependencies($candi);
 
                 for @deps -> $m {
-                    for @candis.grep(*.dist.spec-matcher($m)) -> $m2 {
+                    for @candis.grep(*.dist.contains-spec($m)) -> $m2 {
                         $visit($m2, $candi);
                     }
                 }

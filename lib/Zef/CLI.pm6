@@ -551,14 +551,21 @@ package Zef::CLI {
             }.new(:%hash, :$IO);
         }
 
-        # get/remove --$short-name and --/$short-name where $short-name is a value in the config file
+        # - Move named options to start of @*ARGS so the git familiar style of options after positionals works
+        # - get/remove --$short-name and --/$short-name where $short-name is a value in the config file
         my $plugin-lookup := Zef::Config::plugin-lookup($config.hash);
-        @*ARGS = eager gather for @*ARGS -> $arg {
+        for @*ARGS -> $arg {
+            state @positional;
+            state @named;
+            LAST { @*ARGS = flat @named, @positional; }
+
             my $arg-as  = $arg.subst(/^["--" | "--\/"]/, '');
             my $enabled = $arg.starts-with('--/') ?? 0 !! 1;
-            $arg.starts-with('--') && $arg-as ~~ any($plugin-lookup.keys)
-                ?? (for |$plugin-lookup{$arg-as} -> $p { $p<enabled> = $enabled })
-                !! take($arg);
+            $arg.starts-with('--')
+                ?? $arg-as ~~ any($plugin-lookup.keys)
+                    ?? (for |$plugin-lookup{$arg-as} -> $p { $p<enabled> = $enabled })
+                    !! @named.append($arg)
+                !! @positional.append($arg);
         }
         $config;
     }

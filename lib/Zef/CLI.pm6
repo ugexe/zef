@@ -561,7 +561,7 @@ package Zef::CLI {
 
             my $arg-as  = $arg.subst(/^["--" | "--\/"]/, '');
             my $enabled = $arg.starts-with('--/') ?? 0 !! 1;
-            $arg.starts-with('--')
+            $arg.starts-with('-')
                 ?? $arg-as ~~ any($plugin-lookup.keys)
                     ?? (for |$plugin-lookup{$arg-as} -> $p { $p<enabled> = $enabled })
                     !! @named.append($arg)

@@ -3,7 +3,7 @@
     "RootDir"  : "$*HOME/.zef",
     "StoreDir" : "$*HOME/.zef/store",
     "TempDir"  : "$*HOME/.zef/tmp",
-    "DefaultCUR" : ["site"],
+    "DefaultCUR" : ["auto"],
     "License" : {
         "whitelist" : "*",
         "blacklist" : []

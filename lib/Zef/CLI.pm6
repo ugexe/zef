@@ -589,9 +589,24 @@ package Zef::CLI {
         my $named-repo = CompUnit::RepositoryRegistry.repository-for-name($target);
         return $named-repo if $named-repo;
 
+        # first try 'site', then try 'home'
+        if $target eq 'auto' {
+            state $cur =
+                first { .can-install() },
+                map   { CompUnit::RepositoryRegistry.repository-for-name($_) },
+                <site home>;
+            return $cur if $cur;
+        }
+
         # Technically a path without any short-id# is a CURFS, but now it needs to be explicitly declared file#
-        # so that the more common case can be used without the prefix (inst#)
-        my $spec-target = $target ~~ m/^\w+\#.*?[\. | \/]/ ?? $target !! "inst#{$target}";
+        # so that the more common case can be used without the prefix (inst#). This only applies when the path
+        # exists, so that short-names (site, home) that don't exist still throw errors instead of creating a directory.
+        my $spec-target = $target ~~ m/^\w+\#.*?[\. | \/]/
+            ?? $target
+            !! $target.IO.e
+                ?? "inst#{$target}"
+                !! $target;
+
         return CompUnit::RepositoryRegistry.repository-for-spec(~$spec-target, :next-repo($*REPO));
     }
 

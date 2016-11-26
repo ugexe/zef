@@ -277,7 +277,7 @@ package Zef::CLI {
     multi MAIN('info', $identity, Int :$wrap = False) is export {
         my $client = get-client(:config($CONFIG));
         my $candi  = $client.resolve($identity)
-                ||   $client.search($identity, :max-results(1))[0]\
+                ||   $client.search($identity, :strict, :max-results(1))[0]\
                 ||   abort "!!!> Found no candidates matching identity: {$identity}";
         my $dist  := $candi.dist;
 

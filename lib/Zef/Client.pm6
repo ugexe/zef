@@ -308,8 +308,8 @@ class Zef::Client {
 
 
     # xxx: needs some love
-    method search(*@identities ($, *@), *%fields) {
-        $!storage.search(|@identities, |%fields, :!strict);
+    method search(*@identities ($, *@), *%fields, Bool :$strict = False) {
+        $!storage.search(|@identities, |%fields);
     }
 
 

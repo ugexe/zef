@@ -586,8 +586,13 @@ package Zef::CLI {
 
     # maybe its a name, maybe its a spec/path. either way  Zef::App methods take a CURs, not strings
     sub str2cur($target) {
-        $ = CompUnit::RepositoryRegistry.repository-for-name($target)
-        || CompUnit::RepositoryRegistry.repository-for-spec(~$target, :next-repo($*REPO));
+        my $named-repo = CompUnit::RepositoryRegistry.repository-for-name($target);
+        return $named-repo if $named-repo;
+
+        # Technically a path without any short-id# is a CURFS, but now it needs to be explicitly declared file#
+        # so that the more common case can be used without the prefix (inst#)
+        my $spec-target = $target ~~ m/^\w+\#.*?[\. | \/]/ ?? $target !! "inst#{$target}";
+        return CompUnit::RepositoryRegistry.repository-for-spec(~$spec-target, :next-repo($*REPO));
     }
 
     sub path2candidate($path) {

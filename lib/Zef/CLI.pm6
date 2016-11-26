@@ -85,8 +85,10 @@ package Zef::CLI {
 
         my $client   = get-client(:config($CONFIG) :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
 
+        # Check if installed *to the given --install-to target(s)* but only for requested modules.
+        # Dependencies are still later checked if installed against all known $*REPOs.
         my (:@wanted-identities, :@skip-identities) := @identities\
-            .classify: {$client.is-installed($_) ?? <skip-identities> !! <wanted-identities>}
+            .classify: {$client.is-installed($_, :at($install-to.map(*.&str2cur))) ?? <skip-identities> !! <wanted-identities>}
         say "The following candidates are already installed: {@skip-identities.join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-identities;
 

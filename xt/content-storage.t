@@ -57,7 +57,7 @@ subtest {
     ok $p6c.available > 0;
 
     subtest {
-        my @candidates = $p6c.search('Base64');
+        my @candidates = $p6c.search('Base64', :strict);
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
     }, 'search';
@@ -80,7 +80,7 @@ subtest {
     ok $cpan.available > 0;
 
     subtest {
-        my @candidates = $cpan.search('P6TCI');
+        my @candidates = $cpan.search('P6TCI', :strict);
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
     }, 'search';

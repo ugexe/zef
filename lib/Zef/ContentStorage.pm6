@@ -12,7 +12,7 @@ class Zef::ContentStorage does Pluggable {
         my @candis = gather for self!plugins -> $storage {
             # todo: (cont. from above): Each ContentStorage should just filter this themselves
             my @search-for = $storage.id eq 'Zef::ContentStorage::LocalCache' ?? @identities !! @searchable;
-            for $storage.search(|@search-for, :max-results(1)) -> $candi {
+            for $storage.search(|@search-for, :strict, :max-results(1)) -> $candi {
                 take $candi;
             }
         }
@@ -32,10 +32,10 @@ class Zef::ContentStorage does Pluggable {
         }
     }
 
-    method search(:$max-results = 5, *@identities ($, *@), *%fields) {
+    method search(:$max-results = 5, Bool :$strict, *@identities ($, *@), *%fields) {
         return () unless @identities || %fields;
         my @results = eager gather for self!plugins -> $storage {
-            take $_ for $storage.search(|@identities, |%fields, :$max-results);
+            take $_ for $storage.search(|@identities, |%fields, :$max-results, :$strict);
         }
         |@results;
     }

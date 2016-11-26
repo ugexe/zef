@@ -72,14 +72,14 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
 
     # todo: handle %fields
     # todo: search for up to $max-results number of candidates for each *dist* (currently only 1 candidate per identity)
-    method search(:$max-results = 5, *@identities, *%fields) {
+    method search(:$max-results = 5, Bool :$strict, *@identities, *%fields) {
         return () unless @identities || %fields;
         my @wanted = @identities;
         my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
 
         gather DIST: for self!dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
-                if ?$dist.contains-spec( %specs{$wants} ) {
+                if ?$dist.contains-spec( %specs{$wants}, :$strict ) {
                     my $candidate = Candidate.new(
                         dist => $dist,
                         uri  => ($dist.source-url || $dist.hash<support><source>),

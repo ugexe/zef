@@ -91,7 +91,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
     # todo: handle %fields
     # note this doesn't apply the $max-results per identity searched, and always returns a 1 dist
     # max for a single identity (todo: update to handle $max-results for each @identities)
-    method search(:$max-results = 5, *@identities, *%fields) {
+    method search(:$max-results = 5, Bool :$strict, *@identities, *%fields) {
         return () unless @identities || %fields;
         my @wanted = |@identities;
         my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
@@ -99,7 +99,7 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         # identities that are cached in the localcache manifest
         gather RDIST: for |self!gather-dists -> $dist {
             for @identities.grep(* ~~ any(@wanted)) -> $wants {
-                if ?$dist.contains-spec( %specs{$wants} ) {
+                if ?$dist.contains-spec( %specs{$wants}, :$strict ) {
                     my $candidate = Candidate.new(
                         dist => $dist,
                         uri  => $dist.IO.absolute,

@@ -101,13 +101,13 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
         }
     }
 
-    method provides-spec-matcher($spec) { self.provides-specs.first({ ?$_.spec-matcher($spec) }) }
+    method provides-spec-matcher($spec, :$strict) { self.provides-specs.first({ ?$_.spec-matcher($spec, :$strict) }) }
 
     proto method contains-spec(|) {*}
-    multi method contains-spec(Str $spec)
-        { samewith( Zef::Distribution::DependencySpecification.new($spec) ) }
-    multi method contains-spec(Zef::Distribution::DependencySpecification $spec)
-        { so self.spec-matcher($spec) || self.provides-spec-matcher($spec)  }
+    multi method contains-spec(Str $spec, |c)
+        { samewith( Zef::Distribution::DependencySpecification.new($spec, |c) ) }
+    multi method contains-spec(Zef::Distribution::DependencySpecification $spec, Bool :$strict)
+        { so self.spec-matcher($spec, :$strict) || self.provides-spec-matcher($spec, :$strict)  }
 
     # Add new entries missing from original Distribution.hash
     method hash {

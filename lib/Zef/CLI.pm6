@@ -109,6 +109,7 @@ package Zef::CLI {
 
         my @candidates = grep *.defined, ?$depsonly
             ??|@prereqs !! (|@path-candidates, |@url-candidates, |@requested, |@prereqs);
+
         unless +@candidates {
             note("All candidates are currently installed");
             (?$depsonly || ?$force) ?? exit(0) !! abort("No reason to proceed. Use --force to continue anyway");

@@ -118,15 +118,31 @@ class Zef::Client {
                     message => "Searching for missing dependencies: {@identities.join(', ')}",
                 });
 
-                next unless my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
+                my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
                 my @prereq-identities = @prereq-candidates.map(*.dist.identity);
-                self.logger.emit({
-                    level   => VERBOSE,
-                    stage   => RESOLVE,
-                    phase   => AFTER,
-                    payload => @prereq-candidates,
-                    message => "Found dependencies: {@prereq-identities.join(', ')}",
-                });
+
+                # The failing part of this should ideally be handled in Zef::CLI I think
+                +@prereq-candidates == +@needed
+                    ??  self.logger.emit({
+                            level   => VERBOSE,
+                            stage   => RESOLVE,
+                            phase   => AFTER,
+                            payload => @prereq-candidates,
+                            message => "Found dependencies: {@prereq-identities.join(', ')}",
+                        })
+                    !!  do {
+                            my @not-found = @needed.grep({ not @prereq-candidates.first(*.contains-spec($_)) }).map(*.identity);
+                            self.logger.emit({
+                                level   => ERROR,
+                                stage   => RESOLVE,
+                                phase   => AFTER,
+                                payload => @prereq-candidates,
+                                message => "Failed to find dependencies: {@not-found.join(', ')}",
+                            });
+                            self.force
+                                ?? say('Failed to find dependencies, but continuing with --force')
+                                !! die('Failed to find some required dependencies');
+                        };
 
                 @skip.append: @prereq-candidates.map(*.dist);
                 @specs = self.list-dependencies(@prereq-candidates);

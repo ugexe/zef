@@ -64,7 +64,7 @@ To install it via rakudobrew, please use the following command:
     zef upgrade
 
     # Upgrade specific distributions (BETA)
-    zef upgrade CSV::{arser}
+    zef upgrade CSV::Parser
 
     # Lookup module info by name/path/sha1
     zef --sha1 locate 9FA0AC28824EE9E5A9C0F99951CA870148AE378E

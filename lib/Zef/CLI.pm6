@@ -469,7 +469,7 @@ package Zef::CLI {
                 build                   Run the Build.pm in a given module's path
                 look                    Fetch followed by shelling into the module's path
                 update                  Update package indexes for content storages
-                upgrade (BETA)          Upgrade all installed distributions
+                upgrade (BETA)          Upgrade specific distributions (or all if no arguments)
                 search                  Show a list of possible distribution candidates for the given terms
                 info                    Show detailed distribution information
                 list                    List known available distributions, or installed distributions with `--installed`

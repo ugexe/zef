@@ -30,8 +30,8 @@ To install it via rakudobrew, please use the following command:
     # duh
     zef install CSV::Parser
 
-    # search for distribution names matching `CSV::Parser`
-    zef search CSV::Parser
+    # search for distribution names matching `CSV`
+    zef search CSV
 
     # detailed information for a matching distribution
     zef info CSV::Parser
@@ -62,6 +62,9 @@ To install it via rakudobrew, please use the following command:
 
     # Upgrade all distributions (BETA)
     zef upgrade
+
+    # Upgrade specific distributions (BETA)
+    zef upgrade CSV::{arser}
 
     # Lookup module info by name/path/sha1
     zef --sha1 locate 9FA0AC28824EE9E5A9C0F99951CA870148AE378E
@@ -138,11 +141,12 @@ Note: Requires a a bleeding edge rakudo (not available in 6.c)
 
 Update the package indexes for all `ContentStorage` backends
 
-Note: Some `ContentStorage` backends, like the default Ecosystems, have an `auto-update` option in `config.json` that can be enabled
+Note: Some `ContentStorage` backends, like the default Ecosystems, have an `auto-update` option
+in `resources/config.json` that can be enabled
 
-=head4 B<upgrade> I<BETA>
+=head4 B<upgrade> [*@identities] I<BETA>
 
-Upgrade all installed distributions
+Upgrade specified identities. If no identities are provided, it attempts to upgrade all installed distributions.
 
 =head4 B<search> [$identity]
 
@@ -359,7 +363,9 @@ You can also use a beta version of MetaCPAN with I<--metacpan> which uses Conten
 
 =head3 Proxy support?
 
-All the default fetching plugins have proxy support
+All the default fetching plugins have proxy support, but you'll need to refer to the backend program's
+(wget, curl, git, etc) docs. You may need to set an I<ENV> variable, or you may need to add a command line
+option for that specific plugin in I<resources/config.json>
 
 =head3 Custom installation locations?
 

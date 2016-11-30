@@ -192,35 +192,43 @@ package Zef::CLI {
     }
 
     #| Upgrade installed distributions (BETA)
-    multi MAIN('upgrade', *@at) is export {
+    multi MAIN('upgrade', :to(:$install-to) = $CONFIG<DefaultCUR>, *@identities) is export {
+        abort "Upgrading requires rakudo 2016.04 or later" unless try &*EXIT;
+
         # XXX: This is a very inefficient prototype inefficient
         my $client = get-client(:config($CONFIG));
 
-        my @installed = $client.list-installed(|@at.map(*.&str2cur)).map(*.dist);
-        my @requested = |$client.find-candidates(|@installed.map({ .clone(ver => "*") }).map(*.identity)) if +@installed;
-        my @to-install = gather for @requested -> $latest {
-            my $latest-dist = $latest.dist;
-            my $dist = @installed.first({
-                    .name         eq $latest-dist.name
-                &&  .auth-matcher eq $latest-dist.auth-matcher
+        my @missing = @identities.grep: { not $client.is-installed($_) };
+        abort "Can't upgrade identities that aren't installed: {@missing.join(', ')}" if +@missing;
+
+        my @installed = $client.list-installed(|$install-to.map(*.&str2cur))
+            .sort({Version.new($^b.dist.ver) > Version.new($^a.dist.ver)})
+            .unique(:as({"{.dist.name}:ver<{.dist.auth-matcher}>"}));
+        my @requested = +@identities
+            ?? |$client.find-candidates(|@identities.map(*.&str2identity))
+            !! |$client.find-candidates(|@installed.map(*.dist.clone(ver => "*")).map(*.identity).unique);
+        my (:@upgradable, :@current) := @requested.classify: -> $candi {
+            my $latest-installed = @installed.first({
+                    .dist.name         eq $candi.dist.name
+                &&  .dist.auth-matcher eq $candi.dist.auth-matcher
             });
-
-            take $latest-dist if $latest-dist cmp $dist === Order::More;
+            (($latest-installed.dist.ver cmp $candi.dist.ver) === Order::Less) ?? <upgradable> !! <current>;
         }
+        abort "The following distributions are already at their latest versions: {@current.map(*.dist.identity).join(', ')}" if +@current;
+        abort "All requested distributions are already at their latest versions" unless +@upgradable;
 
-        if +@to-install {
-            say "===> Updating: " ~ @to-install.join(', ');
-            # Ideally we don't need to call MAIN('install'), as it will search for the identities *again*.
-            # This requires factoring out the part of the install process that comes after the search.
-            for @to-install.map(*.identity) -> $identity {
-                try &MAIN('install', $identity);
-            }
+        # Sort these ahead of time so they can be installed individually by passing
+        # the .uri instead of the identities (which would require another search)
+        my @sorted-candidates = $client.sort-candidates(@upgradable);
+        say "===> Updating: " ~ @sorted-candidates.map(*.dist.identity).join(', ');
+        my (:@upgraded, :@failed) := @sorted-candidates.map(*.uri).classify: -> $uri {
+            my &*EXIT = sub ($code) { return $code == 0 ?? True !! False };
+            try &MAIN('install', $uri) ?? <upgraded> !! <failed>;
         }
-        else {
-            say "!!!> Nothing to update";
-        }
+        abort "!!!> Failed upgrading *all* modules" unless +@upgraded;
 
-        exit 0;
+        say "!!!> Some modules failed to update: {@failed.map(*.dist.identity).join(', ')}" if +@failed;
+        exit +@upgraded < +@upgradable ?? 1 !! 0;
     }
 
     #| View reverse dependencies of a distribution

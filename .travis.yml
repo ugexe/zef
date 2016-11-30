@@ -50,6 +50,7 @@ script:
     - zef -v --installed list
 
     - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
+    - zef -v upgrade CSV::Parser
 
     - zef --/confirm nuke TempDir StoreDir RootDir
     - zef update cached # test single storage update; should be 0 after previous nuke

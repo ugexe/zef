@@ -325,7 +325,7 @@ class Zef::Client {
 
     # xxx: needs some love
     method search(*@identities ($, *@), *%fields, Bool :$strict = False) {
-        $!storage.search(|@identities, |%fields);
+        $!storage.search(|@identities, :$strict, |%fields);
     }
 
 
@@ -579,7 +579,7 @@ class Zef::Client {
             my $specs = $candidate.dist.depends-specs,
                         $candidate.dist.build-depends-specs,
                         $candidate.dist.test-depends-specs;
-            take $candidate if $specs.first({ $dist.contains-spec($_) });
+            take $candidate if $specs.first({ $dist.contains-spec($_, :strict) });
         }
     }
 

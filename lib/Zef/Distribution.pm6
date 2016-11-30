@@ -106,7 +106,7 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     proto method contains-spec(|) {*}
     multi method contains-spec(Str $spec, |c)
         { samewith( Zef::Distribution::DependencySpecification.new($spec, |c) ) }
-    multi method contains-spec(Zef::Distribution::DependencySpecification $spec, Bool :$strict)
+    multi method contains-spec(Zef::Distribution::DependencySpecification $spec, Bool :$strict = True)
         { so self.spec-matcher($spec, :$strict) || self.provides-spec-matcher($spec, :$strict)  }
 
     # Add new entries missing from original Distribution.hash

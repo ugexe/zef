@@ -131,7 +131,7 @@ class Zef::Client {
                             message => "Found dependencies: {@prereq-identities.join(', ')}",
                         })
                     !!  do {
-                            my @not-found = @needed.grep({ not @prereq-candidates.first(*.contains-spec($_)) }).map(*.identity);
+                            my @not-found = @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
                             self.logger.emit({
                                 level   => ERROR,
                                 stage   => RESOLVE,

@@ -114,17 +114,17 @@
     ],
     "Test" : [
         {
+            "short-name" : "tap-harness",
+            "module" : "Zef::Service::TAP",
+            "comment" : "Perl6 TAP::Harness adapter"
+        },
+        {
             "short-name" : "prove",
             "module" : "Zef::Service::Shell::prove"
         },
         {
-            "short-name" : "default-tester",
+            "short-name" : "perl6-test",
             "module" : "Zef::Service::Shell::Test"
-        },
-        {
-            "short-name" : "tap-harness",
-            "module" : "Zef::Service::TAP",
-            "comment" : "Buggy; Seems to not like dynamic module loading? (ex: HTTP::UserAgent t/090-ua-ssl.t)"
         }
     ]
 }

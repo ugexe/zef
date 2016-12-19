@@ -108,7 +108,8 @@ class Zef::Client {
 
                 next unless my @needed = @specs-batch\               # The current set of specs
                     .grep({ not @skip.first(*.contains-spec($_)) })\ # Dists in @skip are not needed
-                    .grep({ not self.is-installed($_)            }); # Installed dists are not needed
+                    .grep({ not self.is-installed($_)            })\ # Installed dists are not needed
+                    .grep({ not @!ignore.first($_.spec) });          # Core dependencies
                 my @identities = @needed.map(*.identity);
                 self.logger.emit({
                     level   => INFO,

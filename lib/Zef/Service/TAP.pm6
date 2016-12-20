@@ -26,8 +26,6 @@ class Zef::Service::TAP does Tester does Messenger {
         }
         chdir($cwd);
 
-        # $.stdout.emit($_);
-        # $.stderr.emit($_);
-        $ = $result.failed == 0;
+        $result.failed == 0 && not $result.errors ?? True !! False;
     }
 }

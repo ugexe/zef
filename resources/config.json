@@ -114,13 +114,13 @@
     ],
     "Test" : [
         {
-            "short-name" : "tap-harness",
-            "module" : "Zef::Service::TAP",
-            "comment" : "Perl6 TAP::Harness adapter"
-        },
-        {
             "short-name" : "prove",
             "module" : "Zef::Service::Shell::prove"
+        },
+        {
+            "short-name" : "tap-harness",
+            "module" : "Zef::Service::TAP",
+            "comment" : "Perl6 TAP::Harness adapter - not default due to reporting compile time errors as passing"
         },
         {
             "short-name" : "perl6-test",

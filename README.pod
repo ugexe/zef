@@ -13,7 +13,7 @@ Perl6 Module Management
 
 =head4 Rakudobrew
 
-To install it via rakudobrew, please use the following command:
+To install via rakudobrew, please use the following command:
 
     $ rakudobrew build zef
 
@@ -27,7 +27,7 @@ To install it via rakudobrew, please use the following command:
 
     zef --help
 
-    # duh
+    # install the CSV::Parser distribution
     zef install CSV::Parser
 
     # search for distribution names matching `CSV`
@@ -36,13 +36,13 @@ To install it via rakudobrew, please use the following command:
     # detailed information for a matching distribution
     zef info CSV::Parser
 
-    # list known available distributions
+    # list all available distributions
     zef list
 
     # list reverse dependencies of an identity
     zef rdepends HTTP::UserAgent
 
-    # test project in current directory    
+    # test project in current directory
     zef test .
 
     # fetch a specific module only
@@ -57,28 +57,27 @@ To install it via rakudobrew, please use the following command:
     # run Build.pm if one exists in given path
     zef build .
 
-    # Update ContentStorage package lists
+    # update ContentStorage package lists
     zef update
 
-    # Upgrade all distributions (BETA)
+    # upgrade all distributions (BETA)
     zef upgrade
 
-    # Upgrade specific distributions (BETA)
+    # upgrade specific distribution (BETA)
     zef upgrade CSV::Parser
 
-    # Lookup module info by name/path/sha1
+    # lookup module info by name/path/sha1
     zef --sha1 locate 9FA0AC28824EE9E5A9C0F99951CA870148AE378E
 
 =head2 More CLI
 
 =head4 B<install> [*@identities]
 
-Note: The install process does not install anything until all other phases have completed. So if A requires B,
-and a user has requested to C<install A>, it would download A and B, possibly Build A and B, test A and B,
-and then finally install A and B but only if A and B passed all their tests. For instance: if A failed its
-tests then B will not be installed (even if it passed its own tests) without force.
+Note: The install process does not install anything until all phases have completed. So, if the user requested to C<install A>, and A required module B: both would be downloaded, potentially built, tested,
+and installed -- but only if both passed all their tests. For example: if module A failed its
+tests, then module B would not be installed (even if it passed its own tests) unless forced.
 
-[C<@identities>] can be in the form of a file path (starting with B<.> or B</>), URNs, URLs, paths, or identities:
+[C<@identities>] can take the form of a file path (starting with B<.> or B</>), URNs, URLs, paths, or identities:
 
     # IDENTITY
     `zef install CSV::Parser`
@@ -98,11 +97,11 @@ tests then B will not be installed (even if it passed its own tests) without for
 A request may contain any number and combination of these. Paths and URLs will be resolved first so they are available
 to fulfill any dependencies of other requested identities.
 
-Note: In the name portion of the B<URN> style a double I<--> indicates a I<::>. This is because modules can have I<->
+Note: In the name portion of the B<URN> style, a double I<--> indicates a I<::>. This is because modules can have I<->
 as part of their name. I<--> is probably valid too, but this makes my life a lot easier for now!
 
 B<Options>
-    
+
     # Install to a custom locations
     --install-to=<id> # site/home/vendor/perl, or
     -to=<id>          # inst#/home/some/path/custom
@@ -135,7 +134,7 @@ B<Options>
 
 Uninstall the specified distributions
 
-Note: Requires a a bleeding edge rakudo (not available in 6.c)
+Note: Requires a bleeding edge rakudo (not available in 6.c)
 
 =head4 B<update>
 
@@ -146,7 +145,7 @@ in `resources/config.json` that can be enabled
 
 =head4 B<upgrade> [*@identities] I<BETA>
 
-Upgrade specified identities. If no identities are provided, it attempts to upgrade all installed distributions.
+Upgrade specified identities. If no identities are provided, zef attempts to upgrade all installed distributions.
 
 =head4 B<search> [$identity]
 
@@ -203,7 +202,7 @@ View meta information of a distribution
 
 B<Options>
 
-    # Extra details (ex: list dependencies and which ones are installed)
+    # Extra details (eg, list dependencies and which ones are installed)
     -v
 
 =head4 B<list> [*@from]
@@ -218,8 +217,8 @@ List known available distributions
     CORE:ver('6.c'):auth('perl')
 
 Note that not every `ContentStorage` may provide such a list, and such lists may only
-be a subset. For example: we don't have a way to get a list of every distribution stored
-on metacpan, but we *can* get the $x most recent additions (we use 100 for now)
+be a subset. For example: We may not be able to get a list of every distribution
+on metacpan, but we *can* get the $x most recent additions (we use 100 for now).
 
 [C<@from>] allows you to show results from specific storages only:
 
@@ -259,7 +258,7 @@ Run tests on each distribution located at [C<@paths>]
 
 Run the Build.pm file located in the given [C<@paths>]
 
-If you currently want to create a build hook, put the following dependency-free boilerplate
+If you want to create a build hook, put the following dependency-free boilerplate
 in a file named `Build.pm` at the root of your distribution:
 
     class Builder {
@@ -275,9 +274,9 @@ in a file named `Build.pm` at the root of your distribution:
         }
     }
 
-Set the env variable B<ZEF_BUILDPM_DEBUG=1> for additional debugging information
+Set the env variable B<ZEF_BUILDPM_DEBUG=1> for additional debugging information.
 
-I<Note: In the future a more appropriate hooking solution will replace this>
+I<Note: In the future, a more appropriate hooking solution will replace this.>
 
 =head4 B<look> [$identity]
 

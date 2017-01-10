@@ -4,7 +4,7 @@ platform: x64
 
 install:
     - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
-    - choco install strawberryperl
+    - appveyor-retry choco install strawberryperl --allow-empty-checksums
     - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
     - appveyor DownloadFile "http://rakudo.org/downloads/star/rakudo-star-latest-x86_64 (JIT).msi" -FileName "%APPVEYOR_BUILD_FOLDER%\rakudo.msi"
     - msiexec /i rakudo.msi /quiet /qn /norestart /log install.log

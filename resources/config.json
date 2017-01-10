@@ -9,6 +9,13 @@
         "blacklist" : []
     },
     "ContentStorage" : [
+        {
+            "short-name" : "zefpan",
+            "enabled" : 1,
+            "module" : "Zef::ContentStorage::MetaZef",
+            "default" : 1,
+            "options" : { }
+        },
         { 
             "short-name" : "cached",
             "enabled" : 1,

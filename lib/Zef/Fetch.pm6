@@ -45,7 +45,7 @@ class Zef::Fetch does Pluggable {
         for %query.keys -> $lval {
             $qs ~= "$lval=" ~
                 %query{$lval}.comb.map({
-                  %!replacements{$_} ?? %!replacements{$_} !! $_
+                    %!replacements{$_} ?? %!replacements{$_} !! $_
                 }).join.split("\n").join;
         }
         return $qs;

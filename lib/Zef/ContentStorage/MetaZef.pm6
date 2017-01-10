@@ -66,7 +66,7 @@ class Zef::ContentStorage::MetaZef does ContentStorage {
             # but the Fetcher interface needs to be updated to accommodate this.
             my $search-save-as = self.IO.child('search').IO.child("{time}.{$*THREAD.id}.json");
             my $response-path  = $!fetcher.fetch($search-url, $search-save-as, :query-string({
-              query => $qs, 
+                query => $qs, 
             }));
 
             if $response-path.IO.e {

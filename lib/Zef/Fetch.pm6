@@ -2,6 +2,7 @@ use Zef;
 use Zef::Utils::URI;
 
 class Zef::Fetch does Pluggable {
+
     method fetch($uri, $save-as, Supplier :$logger) {
         my $fetchers := self.plugins.grep(*.fetch-matcher($uri)).cache;
         die "No fetching backend available" unless $fetchers.head(1);

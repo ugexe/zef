@@ -179,3 +179,28 @@ class Zef::Utils::URI {
 }
 
 sub uri($str) is export { Zef::Utils::URI($str) }
+
+my %replacements = 
+    '>' => '%3E', '#' => '%23',
+    '%' => '%25', '{' => '%7B',
+    '}' => '%7D', '|' => '%7C',
+    '\\' => '%5C', '^' => '%5E',
+    '~' => '%7E', '[' => '%5B',
+    ']' => '%5D', '`' => '%60',
+    ';' => '%3B', '/' => '%2F',
+    '?' => '%3F', ':' => '%3A',
+    '@' => '%40', '=' => '%3D',
+    '&' => '%26', '$' => '%24',
+    '+' => '%2B', '"' => '%22',
+    ' ' => '%20'; 
+sub encode-query-string(*%query) is export {
+    return '' if %query.keys.elems == 0;
+    my $qs = '?';
+    for %query.keys -> $lval {
+        $qs ~= "$lval=" ~
+            %query{$lval}.comb.map({
+                %replacements{$_} ?? %replacements{$_} !! $_
+            }).join.split("\n").join;
+    }
+    return $qs;
+}

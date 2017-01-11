@@ -1,6 +1,7 @@
 use Zef;
 use Zef::Distribution;
 use Zef::Distribution::DependencySpecification;
+use Zef::Utils::URI;
 
 # todo: clear search json files
 class Zef::ContentStorage::MetaZef does ContentStorage {
@@ -59,15 +60,14 @@ class Zef::ContentStorage::MetaZef does ContentStorage {
             #    if ?$wants-spec.auth-matcher;
             my $qs = to-json(%fields);
 
-            my $search-url = 'http://modules.zef.pm/api/module-search';
+            my $search-url = 'http://modules.zef.pm/api/module-search' ~
+                             encode-query-string(query => $qs);
 
             # Query results currently saved to file for now to ease writing shell based
             # fetchers. Soon those will just print it to stdout, and return the captured raw data,
             # but the Fetcher interface needs to be updated to accommodate this.
             my $search-save-as = self.IO.child('search').IO.child("{time}.{$*THREAD.id}.json");
-            my $response-path  = $!fetcher.fetch($search-url, $search-save-as, :query-string({
-                query => $qs, 
-            }));
+            my $response-path  = $!fetcher.fetch($search-url, $search-save-as);
 
             if $response-path.IO.e {
                 my %meta = %(from-json($response-path.IO.slurp));

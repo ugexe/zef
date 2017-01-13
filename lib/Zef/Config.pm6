@@ -9,6 +9,9 @@ our sub parse-file($path) {
 
     %config<DefaultCUR> //= 'auto';
 
+    # XXX: config upgrade - just remove this in future when no one is looking
+    %config<Repository> //= %config<ContentStorage>:delete;
+
     %config;
 }
 

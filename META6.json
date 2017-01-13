@@ -16,10 +16,10 @@
         "Zef::Fetch"    : "lib/Zef/Fetch.pm6",
         "Zef::Shell"    : "lib/Zef/Shell.pm6",
 
-        "Zef::ContentStorage"             : "lib/Zef/ContentStorage.pm6",
-        "Zef::ContentStorage::MetaCPAN"   : "lib/Zef/ContentStorage/MetaCPAN.pm6",
-        "Zef::ContentStorage::LocalCache" : "lib/Zef/ContentStorage/LocalCache.pm6",
-        "Zef::ContentStorage::Ecosystems" : "lib/Zef/ContentStorage/Ecosystems.pm6",
+        "Zef::Repository"             : "lib/Zef/Repository.pm6",
+        "Zef::Repository::MetaCPAN"   : "lib/Zef/Repository/MetaCPAN.pm6",
+        "Zef::Repository::LocalCache" : "lib/Zef/Repository/LocalCache.pm6",
+        "Zef::Repository::Ecosystems" : "lib/Zef/Repository/Ecosystems.pm6",
 
         "Zef::Distribution"                          : "lib/Zef/Distribution.pm6",
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",

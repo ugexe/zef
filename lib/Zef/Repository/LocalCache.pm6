@@ -1,5 +1,6 @@
 use Zef;
 use Zef::Distribution::Local;
+use Zef::Distribution::DependencySpecification;
 
 # Intended to:
 # 1) Keep track of contents of a directory using a manifest.
@@ -8,9 +9,9 @@ use Zef::Distribution::Local;
 #       the single entry to be added to the manifest without having to search
 # 2) If a requested identity matches anything found in the manifest already
 #    then it will return *that* instead of necessarily making net requests
-#    for other ContentStorage like p6c or CPAN (although such choices are
-#    made inside Zef::ContentStorage itself)
-class Zef::ContentStorage::LocalCache does ContentStorage {
+#    for other Repository like p6c or CPAN (although such choices are
+#    made inside Zef::Repository itself)
+class Zef::Repository::LocalCache does Repository {
     state $lock = Lock.new;
     has $.mirrors;
     has $.auto-update;
@@ -117,8 +118,8 @@ class Zef::ContentStorage::LocalCache does ContentStorage {
         }
     }
 
-    # After the `fetch` phase an app can call `.store` on any ContentStorage that
-    # provides it, allowing each ContentStorage to do things like keep a simple list of
+    # After the `fetch` phase an app can call `.store` on any Repository that
+    # provides it, allowing each Repository to do things like keep a simple list of
     # identities installed, keep a cache of anything installed (how its used here), etc
     method store(*@new) {
         $lock.protect({

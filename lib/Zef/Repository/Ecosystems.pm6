@@ -4,7 +4,7 @@ use Zef::Distribution::DependencySpecification;
 
 my %dist_cache;
 
-class Zef::ContentStorage::Ecosystems does ContentStorage {
+class Zef::Repository::Ecosystems does Repository {
     has $.name;
     has $.mirrors;
     has $.auto-update;
@@ -88,7 +88,7 @@ class Zef::ContentStorage::Ecosystems does ContentStorage {
                     );
                     take $candidate;
 
-                    # XXX: see notes in Zef::ContentStorage::LocalCache::search
+                    # XXX: see notes in Zef::Repository::LocalCache::search
                     #@wanted.splice(@wanted.first(/$wants/, :k), 1);
                     #last RDIST unless +@wanted;
                 }

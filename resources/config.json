@@ -8,18 +8,18 @@
         "whitelist" : "*",
         "blacklist" : []
     },
-    "ContentStorage" : [
+    "Repository" : [
         { 
             "short-name" : "cached",
             "enabled" : 1,
-            "module" : "Zef::ContentStorage::LocalCache",
+            "module" : "Zef::Repository::LocalCache",
             "default" : 1,
             "options" : { }
         },
         {
             "short-name" : "p6c",
             "enabled" : 1,
-            "module" : "Zef::ContentStorage::Ecosystems",
+            "module" : "Zef::Repository::Ecosystems",
             "default" : 1,
             "options" : {
                 "name" : "p6c",
@@ -33,7 +33,7 @@
         {
             "short-name" : "cpan",
             "enabled" : 0,
-            "module" : "Zef::ContentStorage::Ecosystems",
+            "module" : "Zef::Repository::Ecosystems",
             "default" : 1,
             "options" : {
                 "name" : "cpan",
@@ -47,7 +47,7 @@
         {
             "short-name" : "metacpan",
             "enabled" : 0,
-            "module" : "Zef::ContentStorage::MetaCPAN",
+            "module" : "Zef::Repository::MetaCPAN",
             "options" : {
                 "mirrors" : ["http://hack.p6c.org:5000/v0/release/"]
             }

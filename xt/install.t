@@ -2,10 +2,12 @@ use v6;
 use Test;
 plan 3;
 
+use Zef;
 use Zef::Client;
 use Zef::Utils::FileSystem;
 use Zef::Identity;
 use Zef::Config;
+
 
 my $path = $*TMPDIR.child("zef").child("{time}.{$*PID}");
 my $bin-dir     = $path.child('bin');

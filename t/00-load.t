@@ -15,10 +15,10 @@ subtest {
     use-ok("Zef::Fetch");
     use-ok("Zef::Client");
 
-    use-ok("Zef::ContentStorage");
-    use-ok("Zef::ContentStorage::MetaCPAN");
-    use-ok("Zef::ContentStorage::LocalCache");
-    use-ok("Zef::ContentStorage::Ecosystems");
+    use-ok("Zef::Repository");
+    use-ok("Zef::Repository::MetaCPAN");
+    use-ok("Zef::Repository::LocalCache");
+    use-ok("Zef::Repository::Ecosystems");
 
     use-ok("Zef::Distribution");
     use-ok("Zef::Distribution::DependencySpecification");

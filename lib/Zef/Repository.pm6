@@ -1,6 +1,6 @@
 use Zef;
 
-class Zef::ContentStorage does Pluggable {
+class Zef::Repository does Pluggable {
     has $.fetcher is rw;
     has $.cache   is rw;
 

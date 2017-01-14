@@ -2,42 +2,44 @@ use v6;
 use Test;
 plan 3;
 
-use Zef::ContentStorage;
-use Zef::ContentStorage::Ecosystems;
+use Zef;
+use Zef::Repository;
+use Zef::Repository::Ecosystems;
 use Zef::Fetch;
 
 
 subtest {
-    class Mock::ContentStorage does ContentStorage {
+    class Mock::Repository does Repository {
         method search(:$max-results = 5, *@identities, *%fields) {
-            @ = Candidate.new(:as("{@identities[0]}::X")),
+            my @candidates =
+                Candidate.new(:as("{@identities[0]}::X")),
                 Candidate.new(:as("{@identities[0]}::XX"));
         }
     }
 
     subtest {
-        my $mock-storage = Mock::ContentStorage.new;
-        my @candidates   = $mock-storage.search("Mock::Storage");
+        my $mock-repository = Mock::Repository.new;
+        my @candidates   = $mock-repository.search("Mock::Repository");
 
         is +@candidates, 2;
-        is @candidates[0].as, "Mock::Storage::X";
-        is @candidates[1].as, "Mock::Storage::XX";
-    }, "Mock::ContentStorage";
+        is @candidates[0].as, "Mock::Repository::X";
+        is @candidates[1].as, "Mock::Repository::XX";
+    }, "Mock::Repository";
 
     subtest {
-        my $mock-storage1 = Mock::ContentStorage.new;
-        my $mock-storage2 = Mock::ContentStorage.new;
-        my $content-storage = Zef::ContentStorage.new but role :: {
-            method plugins { state @plugins = $mock-storage1, $mock-storage2 }
+        my $mock-repository1 = Mock::Repository.new;
+        my $mock-repository2 = Mock::Repository.new;
+        my $repository = Zef::Repository.new but role :: {
+            method plugins { state @plugins = $mock-repository1, $mock-repository2 }
         }
-        my @candidates = $content-storage.search("Mock::Storage");
+        my @candidates = $repository.search("Mock::Repository");
         is +@candidates, 4;
-        is @candidates[0].as, "Mock::Storage::X";
-        is @candidates[1].as, "Mock::Storage::XX";
-        is @candidates[2].as, "Mock::Storage::X";
-        is @candidates[3].as, "Mock::Storage::XX";
-    }, 'Zef::ContentStorage service aggregation'
-}, "ContentStorage";
+        is @candidates[0].as, "Mock::Repository::X";
+        is @candidates[1].as, "Mock::Repository::XX";
+        is @candidates[2].as, "Mock::Repository::X";
+        is @candidates[3].as, "Mock::Repository::XX";
+    }, 'Zef::Repository service aggregation'
+}, "Repository";
 
 
 subtest {
@@ -51,7 +53,7 @@ subtest {
     ];
 
     my $fetcher = Zef::Fetch.new(:@backends);
-    my $p6c     = Zef::ContentStorage::Ecosystems.new(name => 'p6c', :auto-update, :@mirrors);
+    my $p6c     = Zef::Repository::Ecosystems.new(name => 'p6c', :auto-update, :@mirrors);
     $p6c.fetcher //= $fetcher;
     $p6c.cache   //= $*HOME.child('.zef/store').absolute;
     ok $p6c.available > 0;
@@ -74,7 +76,7 @@ subtest {
     ];
 
     my $fetcher = Zef::Fetch.new(:@backends);
-    my $cpan    = Zef::ContentStorage::Ecosystems.new(name => 'cpan', :auto-update, :@mirrors);
+    my $cpan    = Zef::Repository::Ecosystems.new(name => 'cpan', :auto-update, :@mirrors);
     $cpan.fetcher //= $fetcher;
     $cpan.cache   //= $*HOME.child('.zef/store').absolute;
     ok $cpan.available > 0;

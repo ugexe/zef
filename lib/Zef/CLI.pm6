@@ -170,7 +170,7 @@ package Zef::CLI {
         exit 0;
     }
 
-    #| A list of available modules from enabled content storages
+    #| A list of available modules from enabled repositories
     multi MAIN('list', Int :$max?, Bool :i(:$installed), *@at) is export {
         my $client = get-client(:config($CONFIG));
 
@@ -428,7 +428,7 @@ package Zef::CLI {
     #| Update package indexes
     multi MAIN('update', *@names) is export {
         my $client  = get-client(:config($CONFIG));
-        my %results = $client.storage.update(|@names);
+        my %results = $client.recommendation-manager.update(|@names);
         my $rows    = |%results.map: {[.key, .value]};
         abort "An unknown plugin name used" if +@names && (+@names > +$rows);
 
@@ -437,7 +437,7 @@ package Zef::CLI {
         exit 0;
     }
 
-    #| Nuke module installations (site, home) and storages from config (RootDir, StoreDir, TempDir)
+    #| Nuke module installations (site, home) and repositories from config (RootDir, StoreDir, TempDir)
     multi MAIN('nuke', Bool :$confirm, *@names ($, *@)) {
         my sub dir-delete($dir) {
             my @deleted = grep *.defined, try delete-paths($dir, :f, :d, :r);
@@ -486,7 +486,7 @@ package Zef::CLI {
                 fetch                   Fetch and extract module's source
                 build                   Run the Build.pm in a given module's path
                 look                    Fetch followed by shelling into the module's path
-                update                  Update package indexes for content storages
+                update                  Update package indexes for repositories
                 upgrade (BETA)          Upgrade specific distributions (or all if no arguments)
                 search                  Show a list of possible distribution candidates for the given terms
                 info                    Show detailed distribution information

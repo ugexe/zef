@@ -51,13 +51,13 @@ To install via rakudobrew, please use the following command:
     # fetch a module, then shell into its local path
     zef look CSV::Parser
 
-    # smoke test modules from all content storages
+    # smoke test modules from all repositories
     zef smoke
 
     # run Build.pm if one exists in given path
     zef build .
 
-    # update ContentStorage package lists
+    # update Repository package lists
     zef update
 
     # upgrade all distributions (BETA)
@@ -138,9 +138,9 @@ Note: Requires a bleeding edge rakudo (not available in 6.c)
 
 =head4 B<update>
 
-Update the package indexes for all `ContentStorage` backends
+Update the package indexes for all `Repository` backends
 
-Note: Some `ContentStorage` backends, like the default Ecosystems, have an `auto-update` option
+Note: Some `Repository` backends, like the default Ecosystems, have an `auto-update` option
 in `resources/config.json` that can be enabled
 
 =head4 B<upgrade> [*@identities] I<BETA>
@@ -149,20 +149,20 @@ Upgrade specified identities. If no identities are provided, zef attempts to upg
 
 =head4 B<search> [$identity]
 
-How these are handled depends on the `ContentStorage` engine used, which by default is `Zef::ContentStorage::Ecosystems<p6c>`
+How these are handled depends on the `Repository` engine used, which by default is `Zef::Repository::Ecosystems<p6c>`
 
     $ zef -v --cpan --metacpan search URI
     ===> Found 4 results
-    -------------------------------------------------------------------------------
-    ID|From                                  |Package             |Description
-    -------------------------------------------------------------------------------
-    1 |Zef::ContentStorage::LocalCache       |URI:ver('0.1.1')    |A URI impleme...
-    2 |Zef::ContentStorage::Ecosystems<p6c>  |URI:ver('0.1.1')    |A URI impleme...
-    3 |Zef::ContentStorage::Ecosystems<cpan> |URI:ver('0.1.1')    |A URI impleme...
-    4 |Zef::ContentStorage::Ecosystems<cpan> |URI:ver('0.000.001')|A URI impleme...
-    5 |Zef::ContentStorage::MetaCPAN         |URI:ver('0.1.1')    |A URI impleme...
-    6 |Zef::ContentStorage::MetaCPAN         |URI:ver('0.000.001')|A URI impleme...
-    -------------------------------------------------------------------------------
+    ---------------------------------------------------------------------------
+    ID|From                              |Package             |Description
+    ---------------------------------------------------------------------------
+    1 |Zef::Repository::LocalCache       |URI:ver('0.1.1')    |A URI impleme...
+    2 |Zef::Repository::Ecosystems<p6c>  |URI:ver('0.1.1')    |A URI impleme...
+    3 |Zef::Repository::Ecosystems<cpan> |URI:ver('0.1.1')    |A URI impleme...
+    4 |Zef::Repository::Ecosystems<cpan> |URI:ver('0.000.001')|A URI impleme...
+    5 |Zef::Repository::MetaCPAN         |URI:ver('0.1.1')    |A URI impleme...
+    6 |Zef::Repository::MetaCPAN         |URI:ver('0.000.001')|A URI impleme...
+    ---------------------------------------------------------------------------
 
 =head4 B<info> [$identity]
 
@@ -171,7 +171,7 @@ View meta information of a distribution
     $ zef -v info HTTP::UserAgent
     - Info for: HTTP::UserAgent
     - Identity: HTTP::UserAgent:ver('1.1.16'):auth('github:sergot')
-    - Recommended By: Zef::ContentStorage::LocalCache
+    - Recommended By: Zef::Repository::LocalCache
     Author:  github:sergot
     Description:     Web user agent
     Source-url:      git://github.com/sergot/http-useragent.git
@@ -216,19 +216,19 @@ List known available distributions
     ===> Found via /home/nickl/.rakudobrew/moar-nom/install/share/perl6
     CORE:ver('6.c'):auth('perl')
 
-Note that not every `ContentStorage` may provide such a list, and such lists may only
+Note that not every Repository may provide such a list, and such lists may only
 be a subset. For example: We may not be able to get a list of every distribution
 on metacpan, but we *can* get the $x most recent additions (we use 100 for now).
 
-[C<@from>] allows you to show results from specific storages only:
+[C<@from>] allows you to show results from specific repositories only:
 
     zef --installed list perl   # Only list modules installed by rakudo itself
 
-    zef list cpan               # Only show available modules from the content storage
+    zef list cpan               # Only show available modules from the repository
     zef list p6c                # with a name field of `cpan` in the configuration
-    zef list cached             # (be sure the content storage is enabled in config)
+    zef list cached             # (be sure the repository is enabled in config)
 
-Otherwise results from all enabled content storages will be returned.
+Otherwise results from all enabled repositories will be returned.
 
 B<Options>
 
@@ -349,7 +349,7 @@ The functionality is mostly there. The API to search and find a specific module 
 a query and takes a matching distribution name with a matching (or newest) version. It can also download, extract, and
 install as well. Other than polishing up the search API access it needs metacpan itself to host Perl6 distributions.
 
-You can enable it by setting I<"enabled" : 1> in the config under the ContentStorage::Ecosystems plugin, or temporarily
+You can enable it by setting I<"enabled" : 1> in the config under the Repository::Ecosystems plugin, or temporarily
 by passing the flag I<--cpan>
 
     # Search cpan in addition to other configuration defaults
@@ -358,7 +358,7 @@ by passing the flag I<--cpan>
     # Same as above, but disables the default ecosystem `p6c`
     $ zef -v --cpan --/p6c search CSV::Parser
 
-You can also use a beta version of MetaCPAN with I<--metacpan> which uses ContentStorage::MetaCPAN
+You can also use a beta version of MetaCPAN with I<--metacpan> which uses Repository::MetaCPAN
 
 =head3 Proxy support?
 

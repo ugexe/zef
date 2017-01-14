@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Distribution;
 use Zef::Distribution::Local;
-use Zef::ContentStorage;
+use Zef::Repository;
 
 use Zef::Fetch;
 use Zef::Extract;
@@ -12,7 +12,7 @@ class Zef::Client {
     has $.cache;
     has $.indexer;
     has $.fetcher;
-    has $.storage;
+    has $.recommendation-manager;
     has $.extractor;
     has $.tester;
     has $.builder;
@@ -32,7 +32,7 @@ class Zef::Client {
     method new(
         :cache(:$zcache),
         :fetcher(:$zfetcher),
-        :storage(:$zstorage),
+        :recommendation-manager(:$zrecommendation-manager),
         :extractor(:$zextractor),
         :tester(:$ztester),
         :builder(:$zbuilder),
@@ -54,16 +54,15 @@ class Zef::Client {
         my $builder := ?$zbuilder ?? $zbuilder !! ?$config<Build>
             ?? Zef::Build.new(:backends(|$config<Build>))
             !! die "Zef::Client requires a builder parameter";
-        my $storage := ?$zstorage ?? $zstorage !! ?$config<ContentStorage>
-            ?? Zef::ContentStorage.new(:backends(|$config<ContentStorage>))
-            !! die "Zef::Client requires a storage parameter";
+        my $recommendation-manager :=
+            ?$zrecommendation-manager ?? $zrecommendation-manager !! ?$config<Repository>
+                ?? Zef::Repository.new(:backends(|$config<Repository>))
+                !! die "Zef::Client requires a recommendation-manager parameter";
+        $recommendation-manager.cache   //= $cache;
+        $recommendation-manager.fetcher //= $fetcher;
 
         mkdir $cache unless $cache.IO.e;
-
-        $storage.cache   //= $cache;
-        $storage.fetcher //= $fetcher;
-
-        self.bless(:$cache, :$fetcher, :$storage, :$extractor, :$tester, :$builder, :$config, |%_);
+        self.bless(:$cache, :$fetcher, :$recommendation-manager, :$extractor, :$tester, :$builder, :$config, |%_);
     }
 
     method find-candidates(Bool :$upgrade, *@identities ($, *@)) {
@@ -86,8 +85,9 @@ class Zef::Client {
 
     }
     method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
-        my $candidates := $!storage.candidates(|@identities, :$upgrade)\
+        my $candidates := $!recommendation-manager.candidates(|@identities, :$upgrade)\
             .grep(-> $dist { not @!exclude.first(-> $spec {$dist.dist.contains-spec($spec)}) })\
+            .sort({ Version.new($^b.dist.version) cmp Version.new($^a.dist.version) })\
             .unique(:as(*.dist.identity));
     }
 
@@ -211,7 +211,7 @@ class Zef::Client {
             # $candi.dist may already contain a distribution object, but we reassign it as a
             # Zef::Distribution::Local so that it has .path/.IO methods. These could be
             # applied via a role, but this way also allows us to use the distribution's
-            # meta data instead of the (possibly out-of-date) meta data content storage found
+            # meta data instead of the (possibly out-of-date) meta data repository found
             my $dist        = Zef::Distribution::Local.new(~$dist-dir);
             my $local-candi = $candi.clone(:$dist);
             # XXX: the above used to just be `$candi.dist = $dist` where dist is rw
@@ -219,10 +219,10 @@ class Zef::Client {
             take $local-candi;
         }
 
-        # Calls optional `.store` method on all ContentStorage plugins so they may
+        # Calls optional `.store` method on all Repository plugins so they may
         # choose to cache the dist or simply cache the meta data of what is installed.
         # Should go in its own phase/lifecycle event
-        $!storage.store(|@saved.map(*.dist));
+        $!recommendation-manager.store(|@saved.map(*.dist));
 
         @saved;
     }
@@ -325,7 +325,7 @@ class Zef::Client {
 
     # xxx: needs some love
     method search(*@identities ($, *@), *%fields, Bool :$strict = False) {
-        $!storage.search(|@identities, :$strict, |%fields);
+        $!recommendation-manager.search(|@identities, :$strict, |%fields);
     }
 
 
@@ -369,7 +369,7 @@ class Zef::Client {
         die "Must specify something to install" unless +@candidates;
 
         # Fetch Stage:
-        # Use the results from searching ContentStorages and download/fetch the distributions they point at
+        # Use the results from searching Repositorys and download/fetch the distributions they point at
         my @fetched-candidates = eager gather for @candidates -> $store {
             take $_ for $store.dist.^name.contains('Zef::Distribution::Local') ?? $store !! |self.fetch($store, |%_);
         }
@@ -583,11 +583,11 @@ class Zef::Client {
         }
     }
 
-    method list-available(*@storage-names) {
-        my $available := $!storage.available(|@storage-names);
+    method list-available(*@recommendation-manager-names) {
+        my $available := $!recommendation-manager.available(|@recommendation-manager-names);
     }
 
-    # XXX: an idea is to make CURI install locations a ContentStorage as well. then this method
+    # XXX: an idea is to make CURI install locations a Repository as well. then this method
     # would be grouped into the above `list-available` method
     method list-installed(*@curis) {
         my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);

@@ -1,25 +1,24 @@
 use Zef;
 
-class Zef::ContentStorage does Pluggable {
+class Zef::Repository does Pluggable {
     has $.fetcher is rw;
     has $.cache   is rw;
 
-    # Like search, but meant to return a single result for each specific identity string
-    # whereas search is meant to search more fields and give many results to choose from
     method candidates(Bool :$upgrade, *@identities ($, *@)) {
         # todo: have a `file` identity in Zef::Identity
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });
         my @candis = gather for self!plugins -> $storage {
-            # todo: (cont. from above): Each ContentStorage should just filter this themselves
-            my @search-for = $storage.id eq 'Zef::ContentStorage::LocalCache' ?? @identities !! @searchable;
-            for $storage.search(|@search-for, :strict, :max-results(1)) -> $candi {
+            # todo: (cont. from above): Each Repository should just filter this themselves
+            my @search-for = $storage.id eq 'Zef::Repository::LocalCache' ?? @identities !! @searchable;
+            for $storage.search(|@search-for, :strict) -> $candi {
                 take $candi;
             }
         }
         my @reduced = gather for @candis.categorize(*.dist.name).values -> $candis {
-            my $max-version  = [max] $candis.map(*.dist.version);
-            my $latest-candi = $candis.first({ .dist.version eq $max-version });
-            take $latest-candi;
+            # Put the cache in front so if its one of multiple sources with the identity it gets used
+            my $prefer-order := $candis.sort({ $^a.^name ne 'Zef::Repository::LocalCache '});
+
+            take $prefer-order.sort({ Version.new($^b.dist.version) <=> Version.new($^a.dist.version) }).head;
         }
     }
 

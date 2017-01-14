@@ -87,6 +87,7 @@ class Zef::Client {
     method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
         my $candidates := $!recommendation-manager.candidates(|@identities, :$upgrade)\
             .grep(-> $dist { not @!exclude.first(-> $spec {$dist.dist.contains-spec($spec)}) })\
+            .sort({ Version.new($^b.dist.version) cmp Version.new($^a.dist.version) })\
             .unique(:as(*.dist.identity));
     }
 

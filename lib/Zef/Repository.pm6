@@ -15,7 +15,10 @@ class Zef::Repository does Pluggable {
             }
         }
         my @reduced = gather for @candis.categorize(*.dist.name).values -> $candis {
-            take $candis.sort({ Version.new($^b.dist.version) <=> Version.new($^a.dist.version) }).head;
+            # Put the cache in front so if its one of multiple sources with the identity it gets used
+            my $prefer-order := $candis.sort({ $^a.^name ne 'Zef::Repository::LocalCache '});
+
+            take $prefer-order.sort({ Version.new($^b.dist.version) <=> Version.new($^a.dist.version) }).head;
         }
     }
 

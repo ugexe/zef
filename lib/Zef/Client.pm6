@@ -332,6 +332,7 @@ class Zef::Client {
     method install(
         CompUnit::Repository :@to!, # target CompUnit::Repository
         Bool :$fetch = True,        # try fetching whats missing
+        Bool :$build = True,        # run Build.pm (DEPRECATED..?)
         Bool :$test  = True,        # run tests
         Bool :$dry,                 # do everything *but* actually install
         Bool :$upgrade,             # NYI
@@ -445,7 +446,7 @@ class Zef::Client {
 
         my $installer = sub (*@_) {
             # Build Phase:
-            my @built-candidates = self.build(|@_);
+            my @built-candidates = ?$build ?? self.build(|@_) !! @_;
             die "No installable candidates remain after `build` failures" unless +@built-candidates;
 
 

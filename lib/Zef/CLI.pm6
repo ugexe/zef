@@ -62,6 +62,7 @@ package Zef::CLI {
         Bool :$build-depends = True,
         Bool :$test          = True,
         Bool :$fetch         = True,
+        Bool :$build         = True,
         Bool :$force,
         Bool :$dry,
         Bool :$update,
@@ -119,7 +120,7 @@ package Zef::CLI {
         my @fetched = grep *.so, |@local, ($client.fetch(|@remote).Slip if +@remote);
 
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
-        my @installed  = |$client.install( :@to, :$test, :$upgrade, :$update, :$dry, :$serial, |@fetched );
+        my @installed  = |$client.install( :@to, :$test, :$build, :$upgrade, :$update, :$dry, :$serial, |@fetched );
         my @fail       = |@candidates.grep: {.as !~~ any(@installed>>.as)}
 
         say "!!!> Install failures: {@fail.map(*.dist.identity).join(', ')}" if +@fail;
@@ -385,6 +386,7 @@ package Zef::CLI {
         Bool :$build-depends = True,
         Bool :$test          = True,
         Bool :$fetch         = True,
+        Bool :$build         = True,
         Bool :$force,
         Bool :$update,
         Bool :$upgrade,
@@ -406,6 +408,7 @@ package Zef::CLI {
             :$build-depends,
             :$test,
             :$fetch,
+            :$build,
             :$force,
             :$update,
             :$upgrade,
@@ -511,6 +514,8 @@ package Zef::CLI {
                 --serial                Install each dependency after passing testing and before building/testing the next dependency
 
                 --/test                 Skip the testing phase
+                --/build                Skip the building phase
+
                 --/depends              Do not fetch runtime dependencies
                 --/test-depends         Do not fetch test dependencies
                 --/build-depends        Do not fetch build dependencies

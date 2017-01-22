@@ -156,21 +156,32 @@ class Zef::Client {
         $prereqs.unique(:as(*.dist.identity));
     }
 
+
     method fetch(*@candidates ($, *@)) {
-        my @saved = eager gather for @candidates -> $candi {
+        my @fetched   = self!fetch(|@candidates);
+        my @extracted = self!extract(|@candidates);
+
+        my @local-candis = @extracted.map: -> $candi {
+            my $dist = Zef::Distribution::Local.new(~$candi.uri);
+            $candi.clone(:$dist);
+        }
+
+        $!recommendation-manager.store(|@local-candis.map(*.dist));
+
+        @local-candis;
+    }
+    method !fetch(*@candidates ($, *@)) {
+        my @fetched = eager gather for @candidates -> $candi {
             self.logger.emit({
-                level   => INFO,
+                level   => DEBUG,
                 stage   => FETCH,
                 phase   => BEFORE,
                 payload => $candi,
                 message => "Fetching: {$candi.as}",
             });
 
-            my $from     = $candi.from;
-            my $as       = $candi.as;
-            my $uri      = $candi.uri;
             my $tmp      = $!config<TempDir>.IO;
-            my $stage-at = $tmp.child($uri.IO.basename);
+            my $stage-at = $tmp.child($candi.uri.IO.basename);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
 
@@ -178,19 +189,38 @@ class Zef::Client {
             # It could be a file or url; $dist.source-url contains where the source was
             # originally located but we may want to use a local copy (while retaining
             # the original source-url for some other purpose like updating)
-            my $save-to    = $!fetcher.fetch($uri, $stage-at, :$!logger);
+            my $save-to    = $!fetcher.fetch($candi.uri, $stage-at, :$!logger);
             my $relpath    = $stage-at.relative($tmp);
             my $extract-to = $!cache.IO.child($relpath);
-            self.logger.emit({
-                level   => VERBOSE,
-                stage   => FETCH,
-                phase   => AFTER,
-                payload => $candi,
-                message => "Fetched: {$candi.as} to $save-to",
-            });
-            die "Failure fetching to: {$save-to}" unless $save-to.IO.e;
 
-            # should probably break this out into its out method
+            if !$save-to {
+                self.logger.emit({
+                    level   => ERROR,
+                    stage   => FETCH,
+                    phase   => AFTER,
+                    payload => $candi,
+                    message => "Fetching [FAIL]: {$candi.dist.?identity // $candi.as} from {$candi.uri}",
+                });
+
+                die "Aborting due to fetch failure: {$candi.dist.?identity // $candi.uri}"
+                ~   "(use --force to override)" unless ?$!force;
+            }
+            else {
+                self.logger.emit({
+                    level   => VERBOSE,
+                    stage   => FETCH,
+                    phase   => AFTER,
+                    payload => $candi,
+                    message => "Fetching [OK]: {$candi.as} to $save-to",
+                });
+            }
+
+            $candi.uri = $save-to;
+            take $candi;
+        }
+    }
+    method !extract(*@candidates ($, *@)) {
+        my @extracted = eager gather for @candidates -> $candi {
             self.logger.emit({
                 level   => DEBUG,
                 stage   => EXTRACT,
@@ -199,33 +229,43 @@ class Zef::Client {
                 message => "Extracting: {$candi.as}",
             });
 
-            my $dist-dir = $!extractor.extract($save-to, $extract-to, :$!logger);
-            self.logger.emit({
-                level   => DEBUG,
-                stage   => EXTRACT,
-                phase   => AFTER,
-                payload => $candi,
-                message => "Extracted: {$candi.as} to {$dist-dir}",
-            });
+            my $tmp        = $!config<TempDir>.IO;
+            my $stage-at   = $tmp.child($candi.uri.IO.basename);
+            my $relpath    = $stage-at.relative($tmp);
+            my $extract-to = $!cache.IO.child($relpath);
+            die "failed to create directory: {$tmp.absolute}"
+                unless ($tmp.IO.e || mkdir($tmp));
 
-            # $candi.dist may already contain a distribution object, but we reassign it as a
-            # Zef::Distribution::Local so that it has .path/.IO methods. These could be
-            # applied via a role, but this way also allows us to use the distribution's
-            # meta data instead of the (possibly out-of-date) meta data repository found
-            my $dist        = Zef::Distribution::Local.new(~$dist-dir);
-            my $local-candi = $candi.clone(:$dist);
-            # XXX: the above used to just be `$candi.dist = $dist` where dist is rw
+            my $extracted-to = $!extractor.extract($candi.uri, $extract-to, :$!logger);
 
-            take $local-candi;
+            if !$extracted-to {
+                self.logger.emit({
+                    level   => ERROR,
+                    stage   => EXTRACT,
+                    phase   => AFTER,
+                    payload => $candi,
+                    message => "Extraction [FAIL]: {$candi.dist.?identity // $candi.as} from {$candi.uri}",
+                });
+
+                die "Aborting due to extraction failure: {$candi.dist.?identity // $candi.uri}"
+                ~   "(use --force to override)" unless ?$!force;
+            }
+            else {
+                self.logger.emit({
+                    level   => DEBUG,
+                    stage   => EXTRACT,
+                    phase   => AFTER,
+                    payload => $candi,
+                    message => "Extraction [OK]: {$candi.as} to {$extract-to}",
+                });
+
+            }
+
+            $candi.uri = $extracted-to;
+            take $candi;
         }
-
-        # Calls optional `.store` method on all Repository plugins so they may
-        # choose to cache the dist or simply cache the meta data of what is installed.
-        # Should go in its own phase/lifecycle event
-        $!recommendation-manager.store(|@saved.map(*.dist));
-
-        @saved;
     }
+
 
     # xxx: needs some love. also an entire specification
     method build(*@candidates ($, *@)) {

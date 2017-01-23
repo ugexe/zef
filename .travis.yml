@@ -33,24 +33,24 @@ install:
 
 script:
     # test install from local path
-    - perl6 -Ilib bin/zef -v install .
+    - perl6 -Ilib bin/zef --debug install .
 
     # change path to make sure next `zef` commands aren't using any files in cwd or lib/
     - cd $TRAVIS_BUILD_DIR/..
 
     # test bells and whistles
-    - zef -v test ./zef
-    - zef -v update
-    - zef -v search Base64
-    - zef -v info Base64
-    - zef -v rdepends Base64
-    - zef -v fetch Base64
-    - zef -v --force install Base64
-    - zef -v --max=10 list
-    - zef -v --installed list
+    - zef --debug test ./zef
+    - zef --debug update
+    - zef --debug search Base64
+    - zef --debug info Base64
+    - zef --debug rdepends Base64
+    - zef --debug fetch Base64
+    - zef --debug --force install Base64
+    - zef --debug --max=10 list
+    - zef --debug --installed list
 
-    - zef -v install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
-    - zef -v upgrade CSV::Parser
+    - zef --debug install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
+    - zef --debug upgrade CSV::Parser
 
     - zef --/confirm nuke TempDir StoreDir RootDir
     - zef update cached # test single repository update; should be 0 after previous nuke

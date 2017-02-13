@@ -1,7 +1,7 @@
 {
     "perl"        : "6",
     "name"        : "zef",
-    "version"     : "*",
+    "version"     : "0.1.0",
     "description" : "It's like [cpanm] wearing high heels with a tracksuit",
     "depends"     : [ ],
     "provides"    : {

@@ -17,9 +17,9 @@ class Zef::Repository::Ecosystems does Repository {
 
     method !dists {
         # Only update once, and only update automatically if $!auto-update is enabled or no package list exists yet
-        self.update unless $!update-counter++
-                        || !$!auto-update
-                        || self!package-list-file.e;
+        self.update if ($!auto-update && !$!update-counter)
+                    or !self!package-list-file.e;
+
         %dist_cache{self.id} := %dist_cache{self.id}
             ?? %dist_cache{self.id}
             !! cache gather for self!slurp-package-list -> $meta {
@@ -55,6 +55,7 @@ class Zef::Repository::Ecosystems does Repository {
     }
 
     method update {
+        $!update-counter++;
         die "Failed to update $!name" unless $!mirrors.first: -> $uri {
             my $save-as = $!cache.IO.child($uri.IO.basename);
             my $path    = try { $!fetcher.fetch($uri, $save-as) } || next;

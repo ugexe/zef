@@ -32,7 +32,11 @@ install:
     - perl6 -v
 
 script:
-    # test install from local path
+    # run xtests
+    - perl6 -Ilib xt/repository.t
+    - perl6 -Ilib xt/install.t
+
+    # run local path test + install
     - perl6 -Ilib bin/zef --debug install .
 
     # change path to make sure next `zef` commands aren't using any files in cwd or lib/

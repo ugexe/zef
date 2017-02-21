@@ -64,7 +64,7 @@ class Zef::Repository::Ecosystems does Repository {
             my $copy-from = $path.IO.d ?? $path.IO.child("{$!name}.json") !! $path;
             try {
                 CATCH { default { warn $_ } }
-                rename($copy-from, self!package-list-file);
+                copy($copy-from, self!package-list-file);
             }
         }
         %dist_cache{self.id}:delete;

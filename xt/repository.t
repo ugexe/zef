@@ -55,7 +55,7 @@ subtest {
     my $fetcher = Zef::Fetch.new(:@backends);
     my $p6c     = Zef::Repository::Ecosystems.new(name => 'p6c', :auto-update, :@mirrors);
     $p6c.fetcher //= $fetcher;
-    $p6c.cache   //= $*HOME.child('.zef/store').absolute;
+    $p6c.cache   //= $*HOME.child('.zef/store').absolute andthen { mkdir $_ unless $_.IO.e };
     ok $p6c.available > 0;
 
     subtest {
@@ -78,7 +78,7 @@ subtest {
     my $fetcher = Zef::Fetch.new(:@backends);
     my $cpan    = Zef::Repository::Ecosystems.new(name => 'cpan', :auto-update, :@mirrors);
     $cpan.fetcher //= $fetcher;
-    $cpan.cache   //= $*HOME.child('.zef/store').absolute;
+    $cpan.cache   //= $*HOME.child('.zef/store').absolute andthen { mkdir $_ unless $_.IO.e };
     ok $cpan.available > 0;
 
     subtest {

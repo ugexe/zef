@@ -25,9 +25,9 @@ class Zef::Identity {
         token TOP {
             <name>
             [
-            || [ <auth>    [[<version>  <api>? ] || [ <api> <version>?]?]? ]
-            || [ <version> [[<auth> <api>? ]     || [ <api> <auth>? ]?]?   ]
-            || [ <api>     [[<auth> <version>? ] || [ <ver> <auth>? ]?]?   ]
+            || [ <auth>    [[<version>  <api>? ] || [ <api> <version>?]?]?   ]
+            || [ <version> [[<auth> <api>? ]     || [ <api> <auth>? ]?]?     ]
+            || [ <api>     [[<auth> <version>? ] || [ <version> <auth>? ]?]? ]
             ]?
         }
 

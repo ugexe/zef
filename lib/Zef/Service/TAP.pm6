@@ -17,6 +17,7 @@ class Zef::Service::TAP does Tester does Messenger {
 
         my $cwd = $*CWD;
         my $result = try {
+            require TAP;
             chdir($path);
             my @incdirs  = $path.IO.child('lib').absolute, |@includes;
             my @handlers = ::("TAP::Harness::SourceHandler::Perl6").new(:@incdirs);

@@ -105,7 +105,7 @@ class Zef::Utils::URI {
 
         token scheme         { "file" }
 
-        token heir-part      { "//" <auth-path> || <local-path> }
+        token heir-part      { "//"? <auth-path> || <local-path> }
 
         token auth-path      { [ <auth> ]? <path-absolute> || <unc-path> || <windows-path> }
 
@@ -121,13 +121,17 @@ class Zef::Utils::URI {
     }
 
     method new($id is copy) {
-        if URI::File.parse($id.subst('\\','/',:g), :rule<file-URI>) -> $m {
+        # prefix windows paths with `file://` so they get parsed as a 'uri' type identity.
+        my $possible-file-uri = "{$id.starts-with('file://')??''!!'file://'}{$*DISTRO.is-win??$id.subst('\\','/',:g)!!$id}";
+
+        if URI::File.parse($possible-file-uri, :rule<file-URI>) -> $m {
             my $ap             = $m.<heir-part><auth-path>;
-            my $volume         = $ap.<windows-path>.<drive-letter> ~ ':'; # what IO::SPEC::Win32 understands
-            my $path           = ~($ap.<windows-path> // $ap.<path-absolute> // die "Could not parse path from: $id");
+            my $volume         = $ap.<windows-path>.<drive-letter>; # what IO::SPEC::Win32 understands
+            my $path           = ~($ap.<windows-path>.<path-absolute> // $ap.<path-absolute> // die "Could not parse path from: $id");
             my $host           = ~($ap.<host> // '');
             my $scheme         = ~$m.<scheme>;
-            my $is-relative    = ?$path.IO.is-relative;
+            my $is-relative    = $path.IO.is-relative || not $ap.<windows-path>.<drive-letter>.defined;
+
             # because `|` is sometimes used as a windows volume separator in a file-URI
             my $normalized-path = $is-relative ?? $path !! $*SPEC.join($volume // '', $path, '');
             self.bless( :match($m), :$is-relative, :$scheme, :$host, :path($normalized-path) );

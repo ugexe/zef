@@ -529,7 +529,9 @@ package Zef::CLI {
             END_USAGE
     }
 
-    sub abort(|c) { say(|c); exit 0; }
+    proto sub abort(|) {*}
+    multi sub abort(Int $exit-code, Str $str) { samewith($str, $exit-code) }
+    multi sub abort(Str $str, Int $exit-code = 255) { say $str; exit $exit-code }
 
     # Filter/mutate out verbosity flags from @*ARGS and return a verbosity level
     sub preprocess-args-verbosity-mutate(*@_) {

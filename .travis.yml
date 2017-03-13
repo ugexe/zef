@@ -36,8 +36,14 @@ script:
     - perl6 -Ilib xt/repository.t
     - perl6 -Ilib xt/install.t
 
-    # run local path test + install
+    # run relative local path test + install
     - perl6 -Ilib bin/zef --debug install .
+
+    # test uninstall
+    - perl6 -Ilib bin/zef uninstall zef
+
+    # run absolute local path test + install
+    - perl6 -Ilib bin/zef install $TRAVIS_BUILD_DIR
 
     # change path to make sure next `zef` commands aren't using any files in cwd or lib/
     - cd $TRAVIS_BUILD_DIR/..

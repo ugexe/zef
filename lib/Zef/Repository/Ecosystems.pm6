@@ -56,18 +56,33 @@ class Zef::Repository::Ecosystems does Repository {
 
     method update {
         $!update-counter++;
-        die "Failed to update $!name" unless $!mirrors.first: -> $uri {
+        my $bak-abspath = self!package-list-file.absolute ~ '.bak';
+
+        %dist_cache{self.id}:delete if $!mirrors.first: -> $uri {
             my $save-as = $!cache.IO.child($uri.IO.basename);
-            my $path    = try { $!fetcher.fetch($uri, $save-as) } || next;
-            # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
-            # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)
-            my $copy-from = $path.IO.d ?? $path.IO.child("{$!name}.json") !! $path;
+
+            # TODO: Handle fetch failure, invalid json, and file operation exceptions individually
             try {
-                CATCH { default { warn $_ } }
+                CATCH {
+                    default {
+                        note "Failed to update $!name mirror {$_ ~~ JSONException??'Invalid JSON'!!$_}";
+                        try rename($bak-abspath, self!package-list-file) if $bak-abspath.IO.e;
+                    }
+                }
+
+                my $path = $!fetcher.fetch($uri, $save-as);
+
+                # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
+                # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)
+                my $copy-from = $path.IO.d ?? $path.IO.child("{$!name}.json") !! $path;
+                from-json($copy-from.IO.slurp); # ""validation""
+
+                rename(self!package-list-file, $bak-abspath) if self!package-list-file.e;
+
                 copy($copy-from, self!package-list-file);
             }
         }
-        %dist_cache{self.id}:delete;
+
         self!dists;
     }
 

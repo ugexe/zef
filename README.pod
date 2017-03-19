@@ -329,20 +329,117 @@ You can control the logging level using the following flags:
     # More/less detailed output
     --error, --warn, --info (default), --verbose (-v), --debug
 
-=head2 Plugins, Service Locator, and Configuration
+=head1 Global Configuration
 
-See the root zef directory for config.json. Each phase module will attempt to load/use each plugin in order.
-More details to be made available in time, but they are fairly simple and the code itself should provide enough
-insight to get something done.
+=head3 Finding the configuration file
 
-Plugins can be enabled and disabled from the command line. The flags to do this are based on the configuration
-values for each plugin. So I<--cpan> (field C<short-name>) would set I<"enabled" : 1>.  Conversely I<--/cpan>
-would set I<"enabled" : 0>
+You can always see the configuration file that will be used by running:
+
+    $ zef --help
+
+In most cases the default configuration combined with command line options should be enough for most users.
+
+If you are most users (e.g. not: power users, packagers, zef plugin developers) you hopefully don't care about this section! 
+
+=head3 How the configuration file is chosen
+
+The configuration file will be chosen at runtime from one of two (technically four) locations, and one can affect the others (this is not really a design decision and suggestions and PRs are welcome).
+
+First, and the most precise way, is to specify the config file by passing C<--config-path="..."> to any zef command.
+
+Second, third, and fourth we look at the path pointed to by `%?RESOURCES<config.json>`. This will point to C<$zef-dir/resources/config.json>, where C<$zef-dir> will be either:
+
+=over 4
+
+=item * The prefix of a rakudo installation location - This is the case if the modules loaded for bin/zef come from an installation CompUnit::Repository.
+
+=item * The current working directory C<$*CWD> - This is the case when modules loaded for bin/zef come from a non-installation CompUnit::Repository (such as C<-I $lib>).
+
+To understand how this is chosen, consider:
+
+    # Modules not loaded from an ::Installation,
+    # so %?RESOURCES is $*CWD/resources
+    $ perl6 -Ilib bin/zef --help
+    ...
+    CONFIGURATION /home/user/perl6/zef/resources/config.json
+    ...
+
+    # Installed zef script loads modules from an ::Installation,
+    # so %?RESOURCES is $perl6-share-dir/site/resources
+    $ zef --help
+    ...
+    CONFIGURATION /home/user/perl6/install/share/perl6/site/resources/EE5DBAABF07682ECBE72BEE98E6B95E5D08675DE.json
+    ...
+
+=back
+
+This config is loaded, but it is not yet the chosen config! We check that temporary config's C<%configE<lt>RootDirE<gt>> for valid json in a file named C<config.json> (i.e. C<%configE<lt>RootDirE<gt>/config.json>). This can be confusing (so it may go away or be refined - PRs welcome) but for most cases it just means C<$*HOME/.zef/config.json> will override an installed zef configuration file.
+
+To summarize:
+
+=over 4
+
+=item * You can edit the C<resources/config.json> file before you install zef.
+
+When you C<perl6 -Ilib bin/zef install .> that configuration file be be used to install zef and will also be installed with zef such that it will be the default.
+
+=item * You can create a C<%configE<lt>RootDirE<gt>/config.json> file.
+
+Where C<%configE<lt>RootDirE<gt>>` comes from the previously mentioned C<%?RESOURCESE<lt>config.jsonE<gt>>'s C<RootDir> field (C<$*HOME/.zef> in most cases), to allow overriding zef config behavior on a per user basis (allows setting different C<--install-to> targets for, say, a root user and a regular user). Since this new config file could have a different C<RootDir> than the default config (used to find the new one in the first place) this behavior may be changed in the future to be less confusing.
+
+=item * You can override both of the previous entries by passing C<zef --config-path="$path" E<lt>any commandE<gt>>
+
+=back
+
+=head3 Configuration fields
+
+=head4 Basic Settings
+
+=over 4
+
+=item * B<RootDir> - Where zef will look for a custom config.json file
+
+=item * B<TempDir> - A staging area for items that have been fetched and need to be extracted/moved
+
+=item * B<StoreDir> - Where zef caches distributions, package lists, etc after they've been fetched and extracted
+
+=item * B<DefaultCUR> - This sets the default value for C<--install-to="...">. The default value of C<auto> means it will first try installing to rakudo's installation prefix, and if its not writable by the current user it will install to C<$*HOME/.perl6>. These directories are not chosen by zef - they are actually represented by the magic strings C<site> and C<home> (which, like C<auto>, are valid values despite not being paths along with C<vendor> and C<perl>)
+
+=back
+
+=head4 Phases / Plugins Settings
+
+These consist of an array of hashes that describe how to instantiate some class that fulfills the appropriate interface from I<Zef.pm> (C<Repository> C<Fetcher> C<Extractor> C<Builder> C<Tester>)
+
+The descriptions follow this format:
+
+    {
+        "short-name" : "p6c",
+        "enabled" : 1,
+        "module" : "Zef::Repository::Ecosystems",
+        "options" : { }
+    }
+
+and are instantiated via
+
+    ::($hash<module>).new(|($hash<options>)
+
+=over 4
+
+=item * B<short-name> - This adds an enable and disable flag by the same name to the CLI (e.g. C<--p6c> and C<--/p6c>) and is used when referencing which object took some action.
+
+=item * B<enabled> - Set to 0 to skip over the object during consideration (it will never be loaded). If omitted or if the value is non 0 then it will be enabled for use.
+
+=item * B<module> - The name of the class to instantiate. While it doesn't technically have to be a module it I<does> need to be a known namespace to C<require>.
+
+=item * B<options> - These are passed to the objects C<new> method and may not be consistent between modules as they are free to implement their own requirements.
+
+=back
 
 See the configuration file in L<resources/config.json|https://github.com/ugexe/zef/blob/master/resources/config.json> for a
 little more information on how plugins are invoked.
 
-You can see debug output related to plugins by setting the env variable B<ZEF_PLUGIN_DEBUG=1>
+You can see debug output related to chosing and loading plugins by setting the env variable B<ZEF_PLUGIN_DEBUG=1>
 
 =head1 FAQ
 

@@ -80,19 +80,19 @@ tests, then module B would not be installed (even if it passed its own tests) un
 [C<@identities>] can take the form of a file path (starting with B<.> or B</>), URNs, URLs, paths, or identities:
 
     # IDENTITY
-    `zef install CSV::Parser`
-    `zef install "CSV::Parser:auth<tony-o>:ver<0.1.2>"`
-    `zef install "CSV::Parser:ver('0.1.2')"`
+    zef install CSV::Parser
+    zef install "CSV::Parser:auth<tony-o>:ver<0.1.2>"
+    zef install "CSV::Parser:ver('0.1.2')"
 
     # PATH
-    `zef install ./Perl6-Net--HTTP`
+    zef install ./Perl6-Net--HTTP
 
     # URL
-    `zef -v install git://github.com/ugexe/zef.git`
-    `zef -v install https://github.com/ugexe/zef/archive/master.tar.gz`
+    zef -v install git://github.com/ugexe/zef.git
+    zef -v install https://github.com/ugexe/zef/archive/master.tar.gz
 
     # URN
-    `zef install github:tony-o:CSV--Parser:0.1.2`
+    zef install github:tony-o:CSV--Parser:0.1.2
 
 A request may contain any number and combination of these. Paths and URLs will be resolved first so they are available
 to fulfill any dependencies of other requested identities.
@@ -141,10 +141,10 @@ Note: Requires a bleeding edge rakudo (not available in 6.c)
 
 =head4 B<update>
 
-Update the package indexes for all `Repository` backends
+Update the package indexes for all C<Repository> backends
 
-Note: Some `Repository` backends, like the default Ecosystems, have an `auto-update` option
-in `resources/config.json` that can be enabled
+Note: Some C<Repository> backends, like the default Ecosystems, have an C<auto-update> option
+in C<resources/config.json> that can be enabled
 
 =head4 B<upgrade> [*@identities] I<BETA>
 
@@ -152,7 +152,7 @@ Upgrade specified identities. If no identities are provided, zef attempts to upg
 
 =head4 B<search> [$identity]
 
-How these are handled depends on the `Repository` engine used, which by default is `Zef::Repository::Ecosystems<p6c>`
+How these are handled depends on the C<Repository> engine used, which by default is C<Zef::Repository::EcosystemsE<gt>p6cE<lt>>
 
     $ zef -v --cpan --metacpan search URI
     ===> Found 4 results
@@ -228,7 +228,7 @@ on metacpan, but we *can* get the $x most recent additions (we use 100 for now).
     zef --installed list perl   # Only list modules installed by rakudo itself
 
     zef list cpan               # Only show available modules from the repository
-    zef list p6c                # with a name field of `cpan` in the configuration
+    zef list p6c                # with a name field matching the arguments to `list`
     zef list cached             # (be sure the repository is enabled in config)
 
 Otherwise results from all enabled repositories will be returned.
@@ -262,7 +262,7 @@ Run tests on each distribution located at [C<@paths>]
 Run the Build.pm file located in the given [C<@paths>]
 
 If you want to create a build hook, put the following dependency-free boilerplate
-in a file named `Build.pm` at the root of your distribution:
+in a file named C<Build.pm> at the root of your distribution:
 
     class Builder {
         method build($dist-path) {
@@ -285,7 +285,7 @@ I<Note: In the future, a more appropriate hooking solution will replace this.>
 
 Fetches the requested distribution and any dependencies (if requested), changes the directory to that of the fetched
 distribution, and then stops program execution. This allows you modify or look at the source code before manually
-continuing the install via `zef install .`
+continuing the install via C<zef install .>
 
 Note that the path to any dependencies that needed to be fetched will be set in env at B<PERL6LIB>, so you should
 be able to run any build scripts, tests, or complete a manual install without having to specify their locations.
@@ -336,7 +336,7 @@ More details to be made available in time, but they are fairly simple and the co
 insight to get something done.
 
 Plugins can be enabled and disabled from the command line. The flags to do this are based on the configuration
-values for each plugin. So I<--cpan> (field `short-name`) would set I<"enabled" : 1>.  Conversely I<--/cpan>
+values for each plugin. So I<--cpan> (field C<short-name>) would set I<"enabled" : 1>.  Conversely I<--/cpan>
 would set I<"enabled" : 0>
 
 See the configuration file in L<resources/config.json|https://github.com/ugexe/zef/blob/master/resources/config.json> for a
@@ -371,7 +371,7 @@ option for that specific plugin in I<resources/config.json>
 
 =head3 Custom installation locations?
 
-Pass a path to the I<-to> / I<--install-to> option and prefix the path with `inst#` (unless you know what you're doing)
+Pass a path to the I<-to> / I<--install-to> option and prefix the path with C<inst#> (unless you know what you're doing)
 
     $ zef -to="inst#/home/perl6/custom" install Text::Table::Simple
     ===> Searching for: Text::Table::Simple

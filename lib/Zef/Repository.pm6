@@ -10,16 +10,24 @@ class Zef::Repository does Pluggable {
         my @candis = gather for self!plugins -> $storage {
             # todo: (cont. from above): Each Repository should just filter this themselves
             my @search-for = $storage.id eq 'Zef::Repository::LocalCache' ?? @identities !! @searchable;
-            for $storage.search(|@search-for, :strict) -> $candi {
+            for $storage.search(|@search-for, :strict) -> $candi { # :strict means exact short-name match
                 take $candi;
             }
         }
-        my @reduced = gather for @candis.categorize(*.dist.name).values -> $candis {
+
+        # Take the distribution with the highest version out of all matching distributions from all repositories
+        my @ordered = gather for @candis.categorize(*.dist.name).values -> $candis {
             # Put the cache in front so if its one of multiple sources with the identity it gets used
             my $prefer-order := $candis.sort({ $^a.^name ne 'Zef::Repository::LocalCache '});
 
             take $prefer-order.sort({ Version.new($^b.dist.version) <=> Version.new($^a.dist.version) }).head;
         }
+
+        # $candi.as tells us what string was used to request its distribution ($candi.dist)
+        # So this is similar to the .categorize(*.dist.name) filter above, except it
+        # covers when two different repositories have a matching candidate with different
+        # distribution names (likely matching *module* names in provides)
+        my @distinct-requested-as = @ordered.unique(:as(*.as));
     }
 
     # todo: Find a better way to allow plugins access to other plugins

@@ -2,6 +2,7 @@
     "perl"        : "6",
     "name"        : "zef",
     "version"     : "0.1.3",
+    "auth"        : "github:ugexe",
     "description" : "It's like [cpanm] wearing high heels with a tracksuit",
     "depends"     : [ ],
     "provides"    : {
@@ -52,7 +53,6 @@
         "scripts/win32http.ps1",
         "scripts/win32unzip.ps1"
     ],
-    "auth"    : "github:ugexe",
     "authors" : [
         "Nick Logan",
         "Tony O'Dell"
@@ -60,5 +60,14 @@
     "support" : {
         "bugtracker" : "https://github.com/ugexe/zef/issues"
     },
+    "tags"        : [
+        "package-manager",
+        "module-installer",
+        "meta-search",
+        "distribution",
+        "ecosystem",
+        "cpan",
+        "toolchain"
+    ],
     "source-url"  : "git://github.com/ugexe/zef.git"
 }

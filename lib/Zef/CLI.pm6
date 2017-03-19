@@ -563,7 +563,7 @@ package Zef::CLI {
         # get/remove --config-path=xxx
         # MUTATES @*ARGS
         my Str $config-path-from-args;
-        for |@args.flatmap(*.split(/\=/, 2)).rotor(2, :partial) {
+        for |@args.flatmap(*.split(/\=/, 2)).rotor(2 => -1, :partial) {
             $config-path-from-args = ~$_[1] if $_[0] eq '--config-path' && $_[1];
             LAST {
                 @*ARGS = eager gather for |@args.kv -> $key, $value {

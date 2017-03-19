@@ -16,11 +16,14 @@ our sub parse-file($path) {
 }
 
 our sub guess-path {
-    my $local-conf   = $*HOME.child('.zef').child('config.json');
-    my $default-conf = %?RESOURCES<config.json>;
+    my $default-conf-path = %?RESOURCES<config.json>;
+    my %default-conf = try { parse-file($default-conf-path)   }
+                    || try { parse-file($*HOME.child('.zef')) };
 
-    return $local-conf if $local-conf.e;
-    return $default-conf;
+    my $local-conf-path = %default-conf<RootDir>.IO.child('config.json');
+
+    return $local-conf-path if $local-conf-path.e;
+    return $default-conf-path;
 }
 
 our sub plugin-lookup($config) {

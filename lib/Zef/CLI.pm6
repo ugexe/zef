@@ -75,45 +75,61 @@ package Zef::CLI {
     ) is export {
 
         @wants .= map: *.&str2identity;
-        my (:@paths, :@urls, :@identities) := @wants.classify: -> $wanted {
+        my (:@paths, :@uris, :@identities) := @wants.classify: -> $wanted {
             $wanted ~~ /^[\. | \/]/                                           ?? <paths>
                 !! ?Zef::Identity($wanted)                                    ?? <identities>
-                !! (my $uri = Zef::Utils::URI($wanted) and !$uri.is-relative) ?? <urls>
+                !! (my $uri = Zef::Utils::URI($wanted) and !$uri.is-relative) ?? <uris>
                 !! abort("Don't understand identity: {$wanted}");
         }
 
         my @excluded =  $exclude.map(*.&identity2spec);
-
         my $client   = get-client(:config($CONFIG) :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
 
-        # Check if installed *to the given --install-to target(s)* but only for requested modules.
-        # Dependencies are still later checked if installed against all known $*REPOs.
+
+        # LOCAL PATHS
+        abort "The follow were recognized as file paths and don't exist as such - {@paths.grep(!*.IO.e)}"
+            if +@paths.grep(!*.IO.e);
+        my (:@wanted-paths, :@skip-paths) := @paths\
+            .classify: {$client.is-installed(Zef::Distribution::Local.new($_).identity, :at($install-to.map(*.&str2cur))) ?? <skip-paths> !! <wanted-paths>}
+        say "The following local paths candidates are already installed: {@skip-paths.join(', ')}"\
+            if ($verbosity >= VERBOSE) && +@skip-paths;
+        my @requested-paths = ?$force ?? @paths !! @wanted-paths;
+        my @path-candidates = @requested-paths.map(*.&path2candidate);
+
+
+        # URIS
+        my @uri-candidates-to-check = $client.fetch( |@uris.map({ Candidate.new(:as($_), :uri($_)) }) ) if +@uris;
+        abort "No candidates found matching uri: {@uri-candidates-to-check.join(', ')}" if +@uris && +@uri-candidates-to-check == 0;
+        my (:@wanted-uris, :@skip-uris) := @uri-candidates-to-check\
+            .classify: {$client.is-installed($_.dist.identity, :at($install-to.map(*.&str2cur))) ?? <skip-uris> !! <wanted-uris>}
+        say "The following uri candidates are already installed: {@skip-uris.map(*.as).join(', ')}"\
+            if ($verbosity >= VERBOSE) && +@skip-uris;
+        my @requested-uris = (?$force ?? @uri-candidates-to-check !! @wanted-uris)\
+            .grep: { $_ ~~ none(@path-candidates.map(*.dist.identity)) }
+        my @uri-candidates = @requested-uris;
+
+
+        # IDENTITIES
         my (:@wanted-identities, :@skip-identities) := @identities\
             .classify: {$client.is-installed($_, :at($install-to.map(*.&str2cur))) ?? <skip-identities> !! <wanted-identities>}
         say "The following candidates are already installed: {@skip-identities.join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-identities;
-
-        my @path-candidates = @paths.map(*.&path2candidate);
-        abort "No candidates found matching: {@paths.join(', ')}" if +@paths && +@path-candidates == 0;
-
-        my @url-candidates  = $client.fetch( |@urls.map({ Candidate.new(:as($_), :uri($_)) }) ) if +@urls;
-        abort "No candidates found matching: {@url-candidates.join(', ')}" if +@urls && +@url-candidates == 0;
-
         my @requested-identities = (?$force ?? @identities !! @wanted-identities)\
-            .grep: { $_ ~~ none(@url-candidates.map(*.dist.identity)) }
+            .grep: { $_ ~~ none(@uri-candidates.map(*.dist.identity)) }
         my @requested  = |$client.find-candidates(:$upgrade, |@requested-identities) if +@requested-identities;
-        abort "No candidates found matching: {@requested-identities.join(', ')}"\
+        abort "No candidates found matching identity: {@requested-identities.join(', ')}"\
             if +@requested-identities && +@requested == 0;
 
-        my @prereqs    = |$client.find-prereq-candidates(|@path-candidates, |@url-candidates, |@requested)\
-            if +@path-candidates || +@url-candidates || +@requested;
 
+        my @prereqs    = |$client.find-prereq-candidates(|@path-candidates, |@uri-candidates, |@requested)\
+            if +@path-candidates || +@uri-candidates || +@requested;
         my @candidates = grep *.defined, ?$depsonly
-            ??|@prereqs !! (|@path-candidates, |@url-candidates, |@requested, |@prereqs);
+            ??|@prereqs !! (|@path-candidates, |@uri-candidates, |@requested, |@prereqs);
 
         unless +@candidates {
             note("All candidates are currently installed");
-            (?$depsonly || ?$force) ?? exit(0) !! abort("No reason to proceed. Use --force to continue anyway");
+            exit(0) if $depsonly;
+            abort("No reason to proceed. Use --force to continue anyway", 0) unless $force;
         }
 
         my (:@local, :@remote) := @candidates.classify: {.dist ~~ Zef::Distribution::Local ?? <local> !! <remote>}

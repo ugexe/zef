@@ -287,10 +287,11 @@ package Zef::CLI {
                     exit 0;
                 }
             }
-            else {
-                my $candi = $client.resolve($identity);
+            elsif $client.resolve($identity) -> $candi {
                 say "===> From Distribution: {~$candi.dist}";
-                say "{.keys[0]} => {$candi.from.prefix.child('sources').child(.values[0]<file>)}" for $candi.dist.compat.meta<provides>{$identity};
+                my $source-prefix = $candi.from.prefix.child('sources');
+                my $source-path   = $source-prefix.child($candi.dist.compat.meta<provides>{$identity}.values[0]<file> // '');
+                say "{$identity} => {$source-path}" if $source-path.IO.f;
                 exit 0;
             }
         }

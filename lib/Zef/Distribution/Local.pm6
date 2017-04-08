@@ -10,9 +10,9 @@ class Zef::Distribution::Local is Zef::Distribution {
     method new($path) {
         die "Cannot create a Zef::Distribution from non-existant path: {$path}" unless $path.IO.e;
         my $meta-path = self.find-meta($path)                  || die "No meta file? Path: {$path}";
-        my $abspath   = $meta-path.parent.absolute;
         my %meta      = try { %(from-json($meta-path.slurp)) } || die "Invalid json? File: {$meta-path}";
-        my $IO        = IO::Path.new-from-absolute-path($abspath);
+        my $abspath   = $meta-path.parent.absolute;
+        my $IO        = $abspath.IO;
         self.bless(:path($abspath), :$IO, |%(%meta.grep(?*.value.elems)));
     }
 

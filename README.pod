@@ -11,17 +11,17 @@ Perl6 Module Management
 
 =head1 Installation
 
-=head4 Rakudobrew
-
-To install via rakudobrew, please use the following command:
-
-    $ rakudobrew build zef
-
 =head4 Manual
 
     $ git clone https://github.com/ugexe/zef.git
     $ cd zef
     $ perl6 -Ilib bin/zef install .
+
+=head4 Rakudobrew
+
+To install via rakudobrew, please use the following command:
+
+    $ rakudobrew build zef
 
 =head1 USAGE
 
@@ -269,15 +269,9 @@ in a file named C<Build.pm> at the root of your distribution:
             # do build stuff to your module
             # which is located at $dist-path
         }
-
-        # Only needed for panda compatability
-        method isa($what) {
-            return True if $what.^name eq 'Panda::Builder';
-            callsame;
-        }
     }
 
-Set the env variable B<ZEF_BUILDPM_DEBUG=1> for additional debugging information.
+Set the env variable B<ZEF_BUILDPM_DEBUG=1> or use the I<--debug> flag for additional debugging information.
 
 I<Note: In the future, a more appropriate hooking solution will replace this.>
 

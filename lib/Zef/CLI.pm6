@@ -198,7 +198,7 @@ package Zef::CLI {
         my $range := defined($max) ?? 0..+$max !! *;
         my %locations = $found[$range].classify: -> $candi { $candi.from }
         for %locations.kv -> $from, $candis {
-            say "===> Found via {$from}";
+            note "===> Found via {$from}";
             for |$candis -> $candi {
                 say "{$candi.dist.identity}";
                 say "#\t{$_}" for @($candi.dist.provides.keys.sort if ?($verbosity >= VERBOSE));

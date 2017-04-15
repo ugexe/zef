@@ -8,8 +8,8 @@ class Zef::Test does Pluggable {
 
         if ?$logger {
             $logger.emit({ level => DEBUG, stage => TEST, phase => START, payload => self, message => "Testing with plugin: {$tester.^name}" });
-            $tester.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, message => $out }) }
-            $tester.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, message => $err }) }
+            $tester.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => TEST, phase => LIVE, message => $out }) }
+            $tester.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => TEST, phase => LIVE, message => $err }) }
         }
 
         my @got = try $tester.test($path, :@includes);

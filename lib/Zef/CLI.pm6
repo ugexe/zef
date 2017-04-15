@@ -623,16 +623,82 @@ package Zef::CLI {
         $config;
     }
 
+
     sub get-client(*%_) {
-        my $client = Zef::Client.new(|%_);
-        my $logger = $client.logger;
-        my $log    = $logger.Supply.grep({ .<level> <= $verbosity });
-        $log.tap: -> $m {
+        my $client   = Zef::Client.new(|%_);
+        my $logger   = $client.logger;
+        my $stdout   = $logger.Supply.grep({ .<level> <= $verbosity });
+        my $reporter = $logger.Supply.grep({ %*ENV<ZEF_REPORTER_P6C> }).grep({ .<stage> == TEST && .<phase> == AFTER });
+        $stdout.tap: -> $m {
             given $m.<phase> {
                 when BEFORE { say "===> {$m.<message>}" }
                 when AFTER  { say "===> {$m.<message>}" }
                 default     { say $m.<message> }
             }
+        }
+        $reporter.tap: -> $m {
+            # TODO: STICK testers.p6c.org REPORTER HERE
+            # my $candi := $m.<payload>;
+            # $candi.test-results is: `List[Bool test-pass/fail] but { has $.Str = 'test output here' }`
+            # say "TEST PASS? - {$candi.test-results.map(*.so).all.so}";
+            # say "TEST OUTPUT";
+            # say $candi.test-results.Str;
+            # say "/OUTPUT";
+            my $sock    = IO::Socket::INET.new(:host<213.95.82.53>, :port(80));
+            my $message = "POST http://testers.perl6.org/report HTTP/1.1\nHost: testers.perl6.org\nConnection: Close";
+            my utf8 $payload = do given $m.<payload> -> $candi {
+                to-json({
+                    :name($candi.dist.name),
+                    :version(first *.defined, $candi.dist.meta<ver version>),
+                    :dependencies($candi.dist.meta<depends>),
+                    :metainfo($candi.dist.meta.hash),
+                    :build-output(Str),
+                    :build-passed(Str),
+                    :test-output($candi.test-results.Str),
+                    :test-passed(so $candi.test-results.map(*.so).all),
+                    :distro({
+                        :name($*DISTRO.name),
+                        :version($*DISTRO.version.Str),
+                        :auth($*DISTRO.auth),
+                        :release($*DISTRO.release),
+                    }),
+                    :kernel({
+                        :name($*KERNEL.name),
+                        :version($*KERNEL.version.Str),
+                        :auth($*KERNEL.auth),
+                        :release($*KERNEL.release),
+                        :hardware($*KERNEL.hardware),
+                        :arch($*KERNEL.arch),
+                        :bits($*KERNEL.bits),
+                    }),
+                    :perl({
+                        :name($*PERL.name),
+                        :version($*PERL.version.Str),
+                        :auth($*PERL.auth),
+                        :compiler({
+                            :name($*PERL.compiler.name),
+                            :version($*PERL.compiler.version.Str),
+                            :auth($*PERL.compiler.auth),
+                            :release($*PERL.compiler.release),
+                            :build-date($*PERL.compiler.build-date.Str),
+                            :codename($*PERL.compiler.codename),
+                        }),
+                    }),
+                    :vm({
+                        :name($*VM.name),
+                        :version($*VM.version.Str),
+                        :auth($*VM.auth),
+                        :config($*VM.config),
+                        :properties($*VM.?properties),
+                        :precomp-ext($*VM.precomp-ext),
+                        :precomp-target($*VM.precomp-target),
+                        :prefix($*VM.prefix.Str),
+                    }),
+                }).encode
+            }
+            $sock.print("$message\nContent-Type: application/json; ; charset=utf-8\r\nContent-Length: $payload.elems()\r\n\r\n");
+            $sock.write($payload);
+            say $sock.lines;
         }
         $client;
     }

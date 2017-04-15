@@ -331,11 +331,11 @@ class Zef::Client {
                 message => "Testing: {$candi.dist.?identity // $candi.as}",
             });
 
-            my @result = $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$!logger);
+            my $result := $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$!logger).cache;
 
-            $candi does role :: { has $.test-results = |@result };
+            $candi does role :: { has $.test-results is rw = $result; };
 
-            if @result.grep(*.not).elems {
+            if $result.grep(*.not).elems {
                 self.logger.emit({
                     level   => ERROR,
                     stage   => TEST,

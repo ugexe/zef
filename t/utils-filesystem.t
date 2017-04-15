@@ -21,7 +21,6 @@ subtest {
     mkdir($_) and @delete-us.append($_) with ~$save-to;
     my $sub-folder = $save-to.child('deleteme-subfolder');
     mkdir($_) and @delete-us.append($_) with ~$sub-folder;
-    @delete-us.append(mkdir(~$sub-folder));
 
     # create 2 test files, one in each directory we created above
     my $save-to-file    = $save-to.child('base-delete.me');

@@ -20,7 +20,7 @@ class Zef::Service::TAP does Tester does Messenger {
         my $out;
         my $err;
         my $cwd = $*CWD;
-        my $result = do {
+        my $result = try {
             require TAP;
             chdir($path);
             my $*OUT = class {

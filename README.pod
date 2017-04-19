@@ -480,4 +480,8 @@ To make the custom location discoverable:
     $ perl6 -Iinst#/home/perl6/custom -e "use Text::Table::Simple; say 'ok'"
     ok
 
+=head3 Test reporting?
+
+This experimental feature can be enabled by setting B<ZEF_REPORTER_P6C=1> and having C<Net::HTTP> installed.
+
 =cut

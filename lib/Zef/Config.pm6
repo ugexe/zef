@@ -4,7 +4,7 @@ unit module Zef::Config;
 our sub parse-file($path) {
     my %config = %(from-json( $path.IO.slurp ));
 
-    %config{$_.key} = $_.value.subst(/'{$*HOME}' || '$*HOME'/, $*HOME // $*TMP, :g)\
+    %config{$_.key} = $_.value.subst(/'{$*HOME}' || '$*HOME'/, $*HOME // $*TMPDIR, :g)\
         for %config.grep(*.key.ends-with('Dir'));
 
     %config<DefaultCUR> //= 'auto';
@@ -16,14 +16,18 @@ our sub parse-file($path) {
 }
 
 our sub guess-path {
-    my $default-conf-path = %?RESOURCES<config.json>;
-    my %default-conf = try { parse-file($default-conf-path)   }
-                    || try { parse-file($*HOME.child('.zef')) };
+    my $default-conf-path = %?RESOURCES<config.json>.IO;
+
+    my %default-conf = try { parse-file($default-conf-path)    }\
+                    || try { parse-file($*HOME.child('.zef'))  }\
+                    || die "Failed to find the zef config file";
 
     my $local-conf-path = %default-conf<RootDir>.IO.child('config.json');
 
-    return $local-conf-path if $local-conf-path.e;
-    return $default-conf-path;
+    return $local-conf-path   if $local-conf-path.e;
+    return $default-conf-path if $default-conf-path.e;
+
+    die "Failed to find a zef config file at {$local-conf-path} or {$default-conf-path}";
 }
 
 our sub plugin-lookup($config) {

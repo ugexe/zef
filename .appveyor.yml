@@ -8,7 +8,7 @@ install:
     - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
     - appveyor-retry git clone https://github.com/rakudo/rakudo.git %APPVEYOR_BUILD_FOLDER%\..\rakudo
     - cd %APPVEYOR_BUILD_FOLDER%\..\rakudo
-    - perl Configure.pl --gen-moar --gen-nqp
+    - perl Configure.pl --gen-moar --gen-nqp --moar-option="--no-telemeh"
     - nmake install
     - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\bin;%PATH%
     - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%

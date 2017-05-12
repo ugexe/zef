@@ -8,8 +8,15 @@
         "whitelist" : "*",
         "blacklist" : []
     },
-    "Repository" : [
+    "Report" : [
         { 
+            "short-name" : "cpantesters",
+            "enabled" : 1,
+            "module" : "Zef::Reporter"
+        }
+    ],
+    "Repository" : [
+        {
             "short-name" : "cached",
             "enabled" : 1,
             "module" : "Zef::Repository::LocalCache",

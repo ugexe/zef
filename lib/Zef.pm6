@@ -67,6 +67,10 @@ role Builder {
     method build-matcher($path) { ... }
 }
 
+role Reporter {
+    method report($dist) { ... }
+}
+
 role Candidate {
     has $.dist;
     has $.as;        # Requested as (maybe a url, maybe an identity, maybe a path)

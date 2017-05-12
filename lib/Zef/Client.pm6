@@ -7,6 +7,7 @@ use Zef::Fetch;
 use Zef::Extract;
 use Zef::Build;
 use Zef::Test;
+use Zef::Report;
 
 class Zef::Client {
     has $.cache;
@@ -16,6 +17,7 @@ class Zef::Client {
     has $.extractor;
     has $.tester;
     has $.builder;
+    has $.reporter;
     has $.config;
 
     has $.logger = Supplier.new;
@@ -35,6 +37,7 @@ class Zef::Client {
         :recommendation-manager(:$zrecommendation-manager),
         :extractor(:$zextractor),
         :tester(:$ztester),
+        :reporter(:$zreporter),
         :builder(:$zbuilder),
         :$config,
         *%_
@@ -54,6 +57,10 @@ class Zef::Client {
         my $builder := ?$zbuilder ?? $zbuilder !! ?$config<Build>
             ?? Zef::Build.new(:backends(|$config<Build>))
             !! die "Zef::Client requires a builder parameter";
+        my $reporter := ?$zreporter ?? $zreporter !! ?$config<Report>
+            ?? Zef::Report.new(:backends(|$config<Report>))
+            !! die "Zef::Client requires a reporter parameter";
+
         my $recommendation-manager :=
             ?$zrecommendation-manager ?? $zrecommendation-manager !! ?$config<Repository>
                 ?? Zef::Repository.new(:backends(|$config<Repository>))
@@ -62,7 +69,7 @@ class Zef::Client {
         $recommendation-manager.fetcher //= $fetcher;
 
         mkdir $cache unless $cache.IO.e;
-        self.bless(:$cache, :$fetcher, :$recommendation-manager, :$extractor, :$tester, :$builder, :$config, |%_);
+        self.bless(:$cache, :$reporter, :$fetcher, :$recommendation-manager, :$extractor, :$tester, :$builder, :$config, |%_);
     }
 
     method find-candidates(Bool :$upgrade, *@identities ($, *@)) {

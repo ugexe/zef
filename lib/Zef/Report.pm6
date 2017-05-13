@@ -14,7 +14,7 @@ class Zef::Report does Pluggable does Reporter {
                 $reporter.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => REPORT, phase => LIVE, message => $err }) }
             }
 
-            my $out = $reporter.report($dist);
+            my $out = try $reporter.report($dist);
 
             $reporter.stdout.done;
             $reporter.stderr.done;

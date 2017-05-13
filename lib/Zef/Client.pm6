@@ -300,7 +300,7 @@ class Zef::Client {
 
             my $result = $!builder.build($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$!logger);
 
-            $candi does role :: { has $.build-results = ?$result };
+            $candi does role :: { has $.build-results is rw = $result; };
 
             if !$result {
                 self.logger.emit({

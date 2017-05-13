@@ -6,17 +6,21 @@ class Zef::Build does Pluggable {
         my $builder = self.plugins.first(*.build-matcher($path));
         die "No building backend available" unless ?$builder;
 
+        my $stdmerge;
+
         if ?$logger {
             $logger.emit({ level => DEBUG, stage => BUILD, phase => START, payload => self, message => "Building with plugin: {$builder.^name}" });
-            $builder.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => BUILD, phase => LIVE, message => $out }) }
-            $builder.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => BUILD, phase => LIVE, message => $err }) }
+            $builder.stdout.Supply.grep(*.defined).act: -> $out { $stdmerge ~= $out; $logger.emit({ level => VERBOSE, stage => BUILD, phase => LIVE, message => $out }) }
+            $builder.stderr.Supply.grep(*.defined).act: -> $err { $stdmerge ~= $err; $logger.emit({ level => ERROR,   stage => BUILD, phase => LIVE, message => $err }) }
         }
 
-        my $got = try $builder.build($path, :@includes);
+        my @got = try $builder.build($path, :@includes);
 
         $builder.stdout.done;
         $builder.stderr.done;
 
-        $got;
+        @got does role :: { method Str { $stdmerge } }; # boolify for pass/fail, stringify for report
+
+        @got;
     }
 }

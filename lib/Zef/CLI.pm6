@@ -628,7 +628,11 @@ package Zef::CLI {
         my $client   = Zef::Client.new(|%_);
         my $logger   = $client.logger;
         my $stdout   = $logger.Supply.grep({ .<level> <= $verbosity });
-        my $reporter = $logger.Supply.grep({ .<stage> == TEST && .<phase> == AFTER });
+        my $reporter = $logger.Supply.grep({
+                (.<stage> == TEST  && .<phase> == AFTER)
+            ||  (.<level> == ERROR && .<phase> == AFTER)
+            ||  (.<level> == FATAL && .<phase> == AFTER)
+        });
         $stdout.tap: -> $m {
             given $m.<phase> {
                 when BEFORE { say "===> {$m.<message>}" }

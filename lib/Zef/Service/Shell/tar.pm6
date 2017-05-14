@@ -6,7 +6,7 @@ use Zef::Shell;
 # This is because gnu tar on windows can't handle a windows style volume in path arguments
 
 class Zef::Service::Shell::tar is Zef::Shell does Extractor does Messenger {
-    method extract-matcher($path) { so $path.lc.ends-with('.tar.gz') }
+    method extract-matcher($path) { so $path.lc.ends-with('.tar.gz' | '.tgz') }
 
     method probe {
         # todo: check without spawning process (slow)

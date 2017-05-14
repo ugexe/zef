@@ -211,7 +211,7 @@ class Zef::Client {
                     stage   => FETCH,
                     phase   => AFTER,
                     payload => $candi,
-                    message => "Fetching [OK]: {$candi.as} to $save-to",
+                    message => "Fetching [OK]: {$candi.dist.?identity // $candi.as} to $save-to",
                 });
             }
 

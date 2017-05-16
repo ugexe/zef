@@ -26,6 +26,9 @@ class Zef::Repository::MetaCPAN does Repository {
     method search(:$max-results = 5, :%params is copy, *@identities, *%fields) {
         return () unless @identities || %fields;
 
+        # TODO: modify query to allow for exact or fuzzy namespace matching before deleting
+        %fields<strict>:delete if %fields<strict>:exists;
+
         %params<size> //= $max-results;
         my $params-string = %params.grep(*.value.defined).map(-> $p {
             $p.value.map({"{$p.key}=$_"}).join('&');
@@ -37,6 +40,7 @@ class Zef::Repository::MetaCPAN does Repository {
         # really match (currently trusts that the metacpan query result will contain the
         # requested identity) and filter out those that do not instead of assuming metacpan
         # will always do what we expect
+
         my $matches := gather DIST: for |@identities -> $wants {
             my $spec = Zef::Distribution::DependencySpecification.new($wants);
 

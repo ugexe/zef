@@ -329,9 +329,10 @@ package Zef::CLI {
         say "- Info for: $identity";
         say "- Identity: {$dist.identity}";
         say "- Recommended By: {$candi.from}";
-        say "Author:\t {$dist.author}"           if $dist.author;
-        say "Description:\t {$dist.description}" if $dist.description;
-        say "Source-url:\t {$dist.source-url}"   if $dist.source-url;
+        say "Author:\t {$dist.author}"                if $dist.author;
+        say "Description:\t {$dist.description}"      if $dist.description;
+        say "License:\t {$dist.compat.meta<license>}" if $dist.compat.meta<license>;
+        say "Source-url:\t {$dist.source-url}"        if $dist.source-url;
 
         my @provides = $dist.provides.sort(*.key.chars);
         say "Provides: {@provides.elems} modules";

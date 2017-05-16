@@ -34,7 +34,7 @@ class Zef::Distribution::DependencySpecification {
     method spec-matcher($spec, Bool :$strict = True) {
         return False unless $spec.name.?chars && self.name.?chars;
         if $strict {
-            return False unless $spec.name eq self.name
+            return False unless $spec.name.lc eq self.name.lc;
         }
         else {
             my $name = $spec.name;

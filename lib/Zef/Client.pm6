@@ -218,7 +218,7 @@ class Zef::Client {
                     stage   => FETCH,
                     phase   => AFTER,
                     payload => $candi,
-                    message => "Fetching [OK]: {$candi.as} to $save-to",
+                    message => "Fetching [OK]: {$candi.dist.?identity // $candi.as} to $save-to",
                 });
             }
 
@@ -446,11 +446,11 @@ class Zef::Client {
                     ~   "Allowed licenses: {$!config<License>.<whitelist>.join(',')    || 'n/a'}\n"
                     ~   "Disallowed licenses: {$!config<License>.<blacklist>.join(',') || 'n/a'}";
                 } }
-                when .<blacklist>.?chars && any(|.<blacklist>) ~~ any('*', $dist.license // '') {
-                    $ = "License blacklist configuration exists and matches {$dist.license // 'n/a'} for {$dist.name}";
+                when .<blacklist>.?chars && any(|.<blacklist>) ~~ any('*', $dist.meta<license> // '') {
+                    $ = "License blacklist configuration exists and matches {$dist.meta<license> // 'n/a'} for {$dist.name}";
                 }
-                when .<whitelist>.?chars && any(|.<whitelist>) ~~ none('*', $dist.license // '') {
-                    $ = "License whitelist configuration exists and does not match {$dist.license // 'n/a'} for {$dist.name}";
+                when .<whitelist>.?chars && any(|.<whitelist>) ~~ none('*', $dist.meta<license> // '') {
+                    $ = "License whitelist configuration exists and does not match {$dist.meta<license> // 'n/a'} for {$dist.name}";
                 }
             }
 
@@ -468,7 +468,7 @@ class Zef::Client {
                 message => "Filtering [OK] for {$candi.dist.?identity // $candi.as}",
             });
 
-            take $candi;
+            take $candi unless ?$msg;
         }
         die "All candidates have been filtered out. No reason to proceed" unless +@filtered-candidates;
 

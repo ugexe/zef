@@ -642,9 +642,7 @@ package Zef::CLI {
             }
         }
         $reporter.tap: -> $event {
-            my $report = $client.reporter.report($event);
-            say "Report for {$event<payload>.dist.identity} will be available at http://testers.p6c.org/reports/{$report}.html"
-                if ?$report;
+            $client.reporter.report($event, :$logger);
         };
 
         $client;

@@ -17,33 +17,54 @@ class Zef::Service::TAP does Tester does Messenger {
 
         my $stdout = $*OUT;
         my $stderr = $*ERR;
+        my $out-supply = $.stdout;
+        my $err-supply = $.stderr;
         my $out;
         my $err;
         my $cwd = $*CWD;
+
+        my class OUT_CAPTURE is IO::Handle {
+            method print(*@_) {
+                $out ~= @_.join("\n");
+                my $self = self;
+                $*OUT = $stdout;
+                $out-supply.emit($_) for @_;
+                $*OUT = $self;
+                True;
+            }
+            method flush {}
+        }
+
+        my class ERR_CAPTURE is IO::Handle {
+            method print(*@_) {
+                $err ~= @_.join("\n");
+                my $self = self;
+                $*ERR = $stderr;
+                $err-supply.emit($_) for @_;
+                $*ERR = $self;
+                True;
+            }
+            method flush {}
+        }
+
         my $result = try {
             require TAP;
             chdir($path);
-            my $*OUT = class {
-                also is IO::Handle;
-                method print(*@_) { $out ~= @_.join("\n") }
-                method flush {}
-            }.new;
-            my $*ERR = class {
-                also is IO::Handle;
-                method print(*@_) { $err ~= @_.join("\n") }
-                method flush {}
-            }.new;
+            $*OUT = OUT_CAPTURE.new;
+            $*ERR = ERR_CAPTURE.new;
             my @incdirs  = $path.IO.child('lib').absolute, |@includes;
             my @handlers = ::("TAP::Harness::SourceHandler::Perl6").new(:@incdirs);
             my $parser   = ::("TAP::Harness").new(:@handlers);
             my $promise  = $parser.run(@test-files>>.relative($path));
-            $promise.result;
+            my $result = $promise.result;
+            $result;
         }
+        chdir($cwd);
+
+        $out-supply.done;
+        $err-supply.done;
         $*OUT = $stdout;
         $*ERR = $stderr;
-        $.stdout.emit($out);
-        $.stderr.emit($err);
-        chdir($cwd);
 
         $result.failed == 0 && not $result.errors ?? True !! False;
     }

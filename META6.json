@@ -28,8 +28,9 @@
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",
         "Zef::Distribution::Local"                   : "lib/Zef/Distribution/Local.pm6",
 
-        "Zef::Service::FetchPath" : "lib/Zef/Service/FetchPath.pm6",
-        "Zef::Service::TAP"       : "lib/Zef/Service/TAP.pm6",
+        "Zef::Service::FetchPath"   : "lib/Zef/Service/FetchPath.pm6",
+        "Zef::Service::TAP"         : "lib/Zef/Service/TAP.pm6",
+        "Zef::Service::P6CReporter" : "lib/Zef/Service/P6CReporter.pm6",
 
         "Zef::Service::Shell::Build"  : "lib/Zef/Service/Shell/Build.pm6",
         "Zef::Service::Shell::Test"   : "lib/Zef/Service/Shell/Test.pm6",

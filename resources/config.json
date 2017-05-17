@@ -11,7 +11,7 @@
     "Report" : [
         { 
             "short-name" : "p6ctesters",
-            "enabled" : 1,
+            "enabled" : 0,
             "module" : "Zef::Service::P6CReporter"
         },
         {

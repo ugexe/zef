@@ -482,6 +482,6 @@ To make the custom location discoverable:
 
 =head3 Test reporting?
 
-This feature can be enabled by passing `--p6ctesters` (and having C<Net::HTTP> installed) or `--cpantesters` (and having C<Zef::Reporter> installed)
+This feature can be enabled by passing `--p6ctesters` (and having C<Net::HTTP> installed) or `--cpantesters` (and having C<Zef::CPANReporter> installed)
 
 =cut

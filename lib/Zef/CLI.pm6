@@ -638,7 +638,7 @@ package Zef::CLI {
             given $m.<phase> {
                 when BEFORE { say "===> {$m.<message>}" }
                 when AFTER  { say "===> {$m.<message>}" }
-                default     { say $m.<message> }
+                default     { print $m.<message> }
             }
         }
         $reporter.tap: -> $event {

@@ -25,11 +25,8 @@ class Zef::Service::TAP does Tester does Messenger {
 
         my class OUT_CAPTURE is IO::Handle {
             method print(*@_) {
-                $out ~= @_.join("\n");
-                my $self = self;
-                $*OUT = $stdout;
-                $out-supply.emit($_) for @_;
-                $*OUT = $self;
+                temp $*OUT = $stdout;
+                $out-supply.emit(.chomp) for @_;
                 True;
             }
             method flush {}
@@ -37,11 +34,8 @@ class Zef::Service::TAP does Tester does Messenger {
 
         my class ERR_CAPTURE is IO::Handle {
             method print(*@_) {
-                $err ~= @_.join("\n");
-                my $self = self;
-                $*ERR = $stderr;
-                $err-supply.emit($_) for @_;
-                $*ERR = $self;
+                temp $*ERR = $stderr;
+                $err-supply.emit(.chomp) for @_;
                 True;
             }
             method flush {}

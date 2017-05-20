@@ -701,7 +701,7 @@ class Zef::Client {
             $visit($candi, 'olaf') if ($candi.dist.metainfo<marked> // 0) == 0;
         }
 
-        $ = @tree.map(*.dist)>>.metainfo<marked>:delete;
+        .dist.metainfo<marked> = Nil for @tree;
         return @tree;
     }
 

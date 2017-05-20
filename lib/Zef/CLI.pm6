@@ -249,8 +249,14 @@ package Zef::CLI {
     }
 
     #| View reverse dependencies of a distribution
-    multi MAIN('rdepends', $identity) {
-        my $client = get-client(:config($CONFIG));
+    multi MAIN(
+        'rdepends',
+        $identity,
+        Bool :$depends       = True,
+        Bool :$test-depends  = True,
+        Bool :$build-depends = True,
+    ) {
+        my $client = get-client(:config($CONFIG), :$depends, :$test-depends, :$build-depends);
         .dist.identity.say for $client.list-rev-depends($identity);
         exit 0;
     }

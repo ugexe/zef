@@ -623,11 +623,13 @@ class Zef::Client {
         my $spec  = Zef::Distribution::DependencySpecification.new($identity);
         my $dist  = self.list-available.first(*.dist.contains-spec($spec)).?dist || return [];
 
-        my $rev-deps := gather for self.list-available -> $candidate {
-            my $specs = $candidate.dist.depends-specs,
-                        $candidate.dist.build-depends-specs,
-                        $candidate.dist.test-depends-specs;
-            take $candidate if $specs.first({ $dist.contains-spec($_, :strict) });
+        my $rev-deps := gather for self.list-available -> $candi {
+            my $specs = grep *.defined,
+                ($candi.dist.depends-specs       if ?$!depends).Slip,
+                ($candi.dist.test-depends-specs  if ?$!test-depends).Slip,
+                ($candi.dist.build-depends-specs if ?$!build-depends).Slip;
+
+            take $candi if $specs.first({ $dist.contains-spec($_, :strict) });
         }
     }
 

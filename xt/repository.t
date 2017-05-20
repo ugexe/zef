@@ -68,7 +68,7 @@ subtest {
 
 subtest {
     my $wanted   = 'P6TCI';
-    my @mirrors  = 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json';
+    my @mirrors  = 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/667d2f0c6f9f43dfd05926c561e828b06dc2bf23/cpan.json';
     my @backends = [
         { module => "Zef::Service::Shell::wget" },
         { module => "Zef::Service::Shell::curl" },

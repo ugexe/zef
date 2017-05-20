@@ -628,7 +628,7 @@ class Zef::Client {
 
             take $candi if $specs.first({ $dist.contains-spec($_, :strict) });
         }
-        $rev-deps.unique(:as(*.identity));
+        $rev-deps.unique(:as(*.dist.identity));
     }
 
     method list-available(*@recommendation-manager-names) {

@@ -264,7 +264,7 @@ Run the Build.pm file located in the given [C<@paths>]
 If you want to create a build hook, put the following dependency-free boilerplate
 in a file named C<Build.pm> at the root of your distribution:
 
-    class Builder {
+    class Build {
         method build($dist-path) {
             # do build stuff to your module
             # which is located at $dist-path

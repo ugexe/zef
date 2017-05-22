@@ -26,34 +26,31 @@
             "short-name" : "cached",
             "enabled" : 1,
             "module" : "Zef::Repository::LocalCache",
-            "default" : 1,
             "options" : { }
         },
         {
-            "short-name" : "p6c",
+            "short-name" : "cpan",
             "enabled" : 1,
             "module" : "Zef::Repository::Ecosystems",
-            "default" : 1,
-            "options" : {
-                "name" : "p6c",
-                "auto-update" : 1,
-                "mirrors" : [
-                    "http://ecosystem-api.p6c.org/projects.json",
-                    "git://github.com/ugexe/Perl6-ecosystems.git"
-                ]
-            }
-        },
-        {
-            "short-name" : "cpan",
-            "enabled" : 0,
-            "module" : "Zef::Repository::Ecosystems",
-            "default" : 1,
             "options" : {
                 "name" : "cpan",
                 "auto-update" : 1,
                 "mirrors" : [
                     "git://github.com/ugexe/Perl6-ecosystems.git",
                     "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json"
+                ]
+            }
+        },
+        {
+            "short-name" : "p6c",
+            "enabled" : 1,
+            "module" : "Zef::Repository::Ecosystems",
+            "options" : {
+                "name" : "p6c",
+                "auto-update" : 1,
+                "mirrors" : [
+                    "http://ecosystem-api.p6c.org/projects.json",
+                    "git://github.com/ugexe/Perl6-ecosystems.git"
                 ]
             }
         },

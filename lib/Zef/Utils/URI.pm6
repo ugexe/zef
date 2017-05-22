@@ -126,14 +126,14 @@ class Zef::Utils::URI {
 
         if URI::File.parse($possible-file-uri, :rule<file-URI>) -> $m {
             my $ap             = $m.<heir-part><auth-path>;
-            my $volume         = $ap.<windows-path>.<drive-letter>; # what IO::SPEC::Win32 understands
+            my $volume         = ~($ap.<windows-path>.<drive-letter> // ''); # what IO::SPEC::Win32 understands
             my $path           = ~($ap.<windows-path>.<path-absolute> // $ap.<path-absolute> // die "Could not parse path from: $id");
             my $host           = ~($ap.<host> // '');
             my $scheme         = ~$m.<scheme>;
             my $is-relative    = $path.IO.is-relative || not $ap.<windows-path>.<drive-letter>.defined;
 
             # because `|` is sometimes used as a windows volume separator in a file-URI
-            my $normalized-path = $is-relative ?? $path !! $*SPEC.join($volume // '', $path, '');
+            my $normalized-path = $is-relative ?? $path !! $*SPEC.join($volume, $path, '');
             self.bless( :match($m), :$is-relative, :$scheme, :$host, :path($normalized-path) );
         }
         elsif URI.parse($id, :rule<URI>) -> $m {

@@ -80,16 +80,20 @@ class Zef::Client {
             payload => @identities,
             message => "Searching for: {@identities.join(', ')}",
         });
-        my @candidates = self!find-candidates(:$upgrade, |@identities);
-        self.logger.emit({
-            level   => VERBOSE,
-            stage   => RESOLVE,
-            phase   => AFTER,
-            payload => @candidates.map(*.dist.identity),
-            message => "Found: {@candidates.map(*.dist.identity).join(', ')}",
-        }) if +@candidates;
-        @candidates;
 
+        my @candidates = self!find-candidates(:$upgrade, |@identities);
+
+        for @candidates.classify({.from}).kv -> $from, $found {
+            self.logger.emit({
+                level   => VERBOSE,
+                stage   => RESOLVE,
+                phase   => AFTER,
+                payload => $found,
+                message => "Found: {$found.map(*.dist.identity).join(', ')} [via {$from}]",
+            })
+        }
+
+        return @candidates;
     }
     method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
         my $candidates := $!recommendation-manager.candidates(|@identities, :$upgrade)\
@@ -126,17 +130,20 @@ class Zef::Client {
                 });
 
                 my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
-                my @prereq-identities = @prereq-candidates.map(*.dist.identity);
 
                 # The failing part of this should ideally be handled in Zef::CLI I think
                 +@prereq-candidates == +@needed
-                    ??  self.logger.emit({
-                            level   => VERBOSE,
-                            stage   => RESOLVE,
-                            phase   => AFTER,
-                            payload => @prereq-candidates,
-                            message => "Found dependencies: {@prereq-identities.join(', ')}",
-                        })
+                    ??  do {
+                            for @prereq-candidates.classify({.from}).kv -> $from, $found {
+                                self.logger.emit({
+                                    level   => VERBOSE,
+                                    stage   => RESOLVE,
+                                    phase   => AFTER,
+                                    payload => $found,
+                                    message => "Found dependencies: {$found.map(*.dist.identity).join(', ')} [via {$from}]",
+                                })
+                            }
+                        }
                     !!  do {
                             my @not-found = @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
                             self.logger.emit({

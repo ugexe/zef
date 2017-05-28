@@ -439,20 +439,14 @@ You can see debug output related to chosing and loading plugins by setting the e
 
 =head3 CPAN?
 
-The functionality is mostly there. The API to search and find a specific module needs more work, but currently can execute
-a query and takes a matching distribution name with a matching (or newest) version. It can also download, extract, and
-install as well. Other than polishing up the search API access it needs metacpan itself to host Perl6 distributions.
+CPAN is now used as a default (alongside the familiar p6c "ecosystem").
 
-You can enable it by setting I<"enabled" : 1> in the config under the Repository::Ecosystems plugin, or temporarily
-by passing the flag I<--cpan>
-
-    # Search cpan in addition to other configuration defaults
-    $ zef -v --cpan search CSV::Parser
-
-    # Same as above, but disables the default ecosystem `p6c`
-    $ zef -v --cpan --/p6c search CSV::Parser
+    # Explicitly enable cpan (now defaults to the same as `zef search zef`)
+    $ zef --cpan search Inline::Perl5
 
 You can also use a beta version of MetaCPAN with I<--metacpan> which uses Repository::MetaCPAN
+
+    $ zef --metacpan search Inline::Perl5
 
 =head3 Proxy support?
 

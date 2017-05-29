@@ -110,7 +110,7 @@ B<Options>
     --config-path=/some/path/config.json
 
     # Install only the dependency chains of the requested distributions
-    --depsonly
+    --deps-only
 
     # Ignore errors occuring during the corresponding phase
     --force-resolve

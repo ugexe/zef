@@ -14,6 +14,9 @@ package Zef::CLI {
     %*ENV<ZEF_BUILDPM_DEBUG> = $verbosity >= DEBUG;
     my $CONFIG    = preprocess-args-config-mutate(@*ARGS);
 
+    # TODO: deprecate usage of --depsonly
+    @*ARGS = @*ARGS.map: { $_ eq '--depsonly' ?? '--deps-only' !! $_ }
+
     #| Download specific distributions
     multi MAIN('fetch', Bool :force(:$force-fetch), *@identities ($, *@)) is export {
         my $client = get-client(:config($CONFIG) :$force-fetch);
@@ -73,7 +76,7 @@ package Zef::CLI {
         Bool :$dry,
         Bool :$update,
         Bool :$upgrade,
-        Bool :$depsonly,
+        Bool :$deps-only,
         Bool :$serial,
         :$exclude is copy,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
@@ -133,12 +136,12 @@ package Zef::CLI {
 
         my @prereqs    = |$client.find-prereq-candidates(|@path-candidates, |@uri-candidates, |@requested)\
             if +@path-candidates || +@uri-candidates || +@requested;
-        my @candidates = grep *.defined, ?$depsonly
+        my @candidates = grep *.defined, ?$deps-only
             ??|@prereqs !! (|@path-candidates, |@uri-candidates, |@requested, |@prereqs);
 
         unless +@candidates {
             note("All candidates are currently installed");
-            exit(0) if $depsonly;
+            exit(0) if $deps-only;
             abort("No reason to proceed. Use --force-install to continue anyway", 0) unless $force-install;
         }
 
@@ -429,7 +432,7 @@ package Zef::CLI {
         Bool :$force-install = $force,
         Bool :$update,
         Bool :$upgrade,
-        Bool :$depsonly,
+        Bool :$deps-only,
         :$exclude is copy,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
     ) is export {
@@ -457,7 +460,7 @@ package Zef::CLI {
             :$force,
             :$update,
             :$upgrade,
-            :$depsonly,
+            :$deps-only,
             :$exclude,
             :$install-to,
         );
@@ -552,7 +555,7 @@ package Zef::CLI {
                 --error, --warn, --info (default), --verbose, --debug
 
             FLAGS
-                --depsonly              Install only the dependency chains of the requested distributions
+                --deps-only             Install only the dependency chains of the requested distributions
                 --dry                   Run all phases except the actual installations
                 --serial                Install each dependency after passing testing and before building/testing the next dependency
 

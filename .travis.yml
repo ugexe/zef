@@ -55,9 +55,10 @@ script:
     - zef --debug info Base64
     - zef --debug rdepends Base64
     - zef --debug fetch Base64
-    - zef --debug --force install Base64
+    - zef --debug install Base64
     - zef --debug --max=10 list
     - zef --debug --installed list
+    - zef --debug --force-install install Base64
 
     - zef --debug install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
     - zef --debug upgrade CSV::Parser

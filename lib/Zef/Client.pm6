@@ -25,7 +25,13 @@ class Zef::Client {
     has @.exclude;
     has @!ignore = <Test NativeCall lib MONKEY-TYPING nqp>;
 
-    has Bool $.force         is rw = False;
+    has Bool $.force-resolve is rw = False;
+    has Bool $.force-fetch   is rw = False;
+    has Bool $.force-extract is rw = False;
+    has Bool $.force-build   is rw = False;
+    has Bool $.force-test    is rw = False;
+    has Bool $.force-install is rw = False;
+
     has Bool $.depends       is rw = True;
     has Bool $.build-depends is rw = True;
     has Bool $.test-depends  is rw = True;
@@ -153,9 +159,9 @@ class Zef::Client {
                                 payload => @prereq-candidates,
                                 message => "Failed to find dependencies: {@not-found.join(', ')}",
                             });
-                            self.force
-                                ?? say('Failed to find dependencies, but continuing with --force')
-                                !! die('Failed to find some required dependencies');
+                            $!force-resolve
+                                ?? say('Failed to resolve missing dependencies, but continuing with --force-resolve')
+                                !! die('Failed to resolve some missing dependencies');
                         };
 
                 @skip.append: @prereq-candidates.map(*.dist);
@@ -216,8 +222,9 @@ class Zef::Client {
                     message => "Fetching [FAIL]: {$candi.dist.?identity // $candi.as} from {$candi.uri}",
                 });
 
-                die "Aborting due to fetch failure: {$candi.dist.?identity // $candi.uri}"
-                ~   "(use --force to override)" unless ?$!force;
+                $!force-fetch
+                    ?? say('Failed to fetch, but continuing with --force-fetch')
+                    !! die("Aborting due to fetch failure: {$candi.dist.?identity // $candi.uri} (use --force-fetch to override)");
             }
             else {
                 self.logger.emit({
@@ -261,8 +268,9 @@ class Zef::Client {
                     message => "Extraction [FAIL]: {$candi.dist.?identity // $candi.as} from {$candi.uri}",
                 });
 
-                die "Aborting due to extraction failure: {$candi.dist.?identity // $candi.uri}"
-                ~   "(use --force to override)" unless ?$!force;
+                $!force-extract
+                    ?? say('Failed to extract, but continuing with --force-fetch')
+                    !! die("Aborting due to extract failure: {$candi.dist.?identity // $candi.uri} (use --force-extract to override)");
             }
             else {
                 self.logger.emit({
@@ -317,8 +325,10 @@ class Zef::Client {
                     payload => $candi,
                     message => "Building [FAIL]: {$candi.dist.?identity // $candi.as}",
                 });
-                die "Aborting due to build failure: {$candi.dist.?identity // $candi.uri}"
-                ~   "(use --force to override)" unless ?$!force;
+
+                $!force-build
+                    ?? say('Failed to build, but continuing with --force-build')
+                    !! die("Aborting due to build failure: {$candi.dist.?identity // $candi.uri} (use --force-fetch to override)");
             }
             else {
                 self.logger.emit({
@@ -332,6 +342,8 @@ class Zef::Client {
 
             take $candi;
         }
+
+        @built
     }
 
     # xxx: needs some love
@@ -357,8 +369,13 @@ class Zef::Client {
                     payload => $candi,
                     message => "Testing [FAIL]: {$candi.dist.?identity // $candi.as}",
                 });
+
+                $!force-test
+                    ?? say('Failed to get passing tests, but continuing with --force-test')
+                    !! die("Aborting due to test failure: {$candi.dist.?identity // $candi.uri} (use --force-test to override)");
+
                 die "Aborting due to test failure: {$candi.dist.?identity // $candi.as} "
-                ~   "(use --force to override)" unless ?$!force;
+                ~   "(use --force-test to override)" unless ?$!force-test;
             }
             else {
                 self.logger.emit({
@@ -511,7 +528,7 @@ class Zef::Client {
                 my $tested = self.test($candi);
                 my $failed = $tested.map(*.test-results.grep(!*.so).elems).sum;
 
-                take $candi unless ?$failed && !$!force;
+                take $candi unless ?$failed && !$!force-test;
             }
             # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
             die "All candidates failed building and/or testing. No reason to proceed" unless +@tested-candidates;
@@ -572,8 +589,8 @@ class Zef::Client {
                                     # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
                                     # any subsequent .install as the fuck up involves changing the data structures
                                     my $dist = $candi.dist.clone(provides => $candi.dist.provides, files => $candi.dist.files);
-                                    $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts(:absolute), $dist.resources(:absolute), :$!force)
-                                } !! $cur.install($candi.dist.compat, :$!force);
+                                    $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts(:absolute), $dist.resources(:absolute), :force($!force-install))
+                                } !! $cur.install($candi.dist.compat, :force($!force-install));
 
                             self.logger.emit({
                                 level   => VERBOSE,

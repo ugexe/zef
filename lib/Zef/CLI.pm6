@@ -15,8 +15,8 @@ package Zef::CLI {
     my $CONFIG    = preprocess-args-config-mutate(@*ARGS);
 
     #| Download specific distributions
-    multi MAIN('fetch', Bool :$force, *@identities ($, *@)) is export {
-        my $client = get-client(:config($CONFIG) :$force);
+    multi MAIN('fetch', Bool :force(:$force-fetch), *@identities ($, *@)) is export {
+        my $client = get-client(:config($CONFIG) :$force-fetch);
         my @candidates = |$client.find-candidates(|@identities>>.&str2identity);
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @fetched    = |$client.fetch(|@candidates);
@@ -28,8 +28,8 @@ package Zef::CLI {
     }
 
     #| Run tests
-    multi MAIN('test', Bool :$force, *@paths ($, *@)) is export {
-        my $client     = get-client(:config($CONFIG) :$force);
+    multi MAIN('test', Bool :force(:$force-test), *@paths ($, *@)) is export {
+        my $client     = get-client(:config($CONFIG) :$force-test);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @tested = |$client.test(|@candidates);
@@ -41,8 +41,8 @@ package Zef::CLI {
     }
 
     #| Run Build.pm
-    multi MAIN('build', Bool :$force, *@paths ($, *@)) is export {
-        my $client = get-client(:config($CONFIG) :$force);
+    multi MAIN('build', Bool :force(:$force-build), *@paths ($, *@)) is export {
+        my $client = get-client(:config($CONFIG) :$force-build);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
 
@@ -64,6 +64,12 @@ package Zef::CLI {
         Bool :$fetch         = True,
         Bool :$build         = True,
         Bool :$force,
+        Bool :$force-resolve = $force,
+        Bool :$force-fetch   = $force,
+        Bool :$force-extract = $force,
+        Bool :$force-build   = $force,
+        Bool :$force-test    = $force,
+        Bool :$force-install = $force,
         Bool :$dry,
         Bool :$update,
         Bool :$upgrade,
@@ -83,8 +89,12 @@ package Zef::CLI {
         }
 
         my @excluded =  $exclude.map(*.&identity2spec);
-        my $client   = get-client(:config($CONFIG) :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
-
+        my $client   = get-client(
+            :config($CONFIG) :exclude(|@excluded),
+            :$depends,       :$test-depends, :$build-depends,
+            :$force-resolve, :$force-fetch,  :$force-extract,
+            :$force-build,   :$force-test,   :$force-install,
+        );
 
         # LOCAL PATHS
         abort "The follow were recognized as file paths and don't exist as such - {@paths.grep(!*.IO.e)}"
@@ -93,7 +103,7 @@ package Zef::CLI {
             .classify: {$client.is-installed(Zef::Distribution::Local.new($_).identity, :at($install-to.map(*.&str2cur))) ?? <skip-paths> !! <wanted-paths>}
         say "The following local paths candidates are already installed: {@skip-paths.join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-paths;
-        my @requested-paths = ?$force ?? @paths !! @wanted-paths;
+        my @requested-paths = ?$force-install ?? @paths !! @wanted-paths;
         my @path-candidates = @requested-paths.map(*.&path2candidate);
 
 
@@ -104,7 +114,7 @@ package Zef::CLI {
             .classify: {$client.is-installed($_.dist.identity, :at($install-to.map(*.&str2cur))) ?? <skip-uris> !! <wanted-uris>}
         say "The following uri candidates are already installed: {@skip-uris.map(*.as).join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-uris;
-        my @requested-uris = (?$force ?? @uri-candidates-to-check !! @wanted-uris)\
+        my @requested-uris = (?$force-install ?? @uri-candidates-to-check !! @wanted-uris)\
             .grep: { $_ ~~ none(@path-candidates.map(*.dist.identity)) }
         my @uri-candidates = @requested-uris;
 
@@ -114,7 +124,7 @@ package Zef::CLI {
             .classify: {$client.is-installed($_, :at($install-to.map(*.&str2cur))) ?? <skip-identities> !! <wanted-identities>}
         say "The following candidates are already installed: {@skip-identities.join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-identities;
-        my @requested-identities = (?$force ?? @identities !! @wanted-identities)\
+        my @requested-identities = (?$force-install ?? @identities !! @wanted-identities)\
             .grep: { $_ ~~ none(@uri-candidates.map(*.dist.identity)) }
         my @requested  = |$client.find-candidates(:$upgrade, |@requested-identities) if +@requested-identities;
         abort "No candidates found matching identity: {@requested-identities.join(', ')}"\
@@ -129,7 +139,7 @@ package Zef::CLI {
         unless +@candidates {
             note("All candidates are currently installed");
             exit(0) if $depsonly;
-            abort("No reason to proceed. Use --force to continue anyway", 0) unless $force;
+            abort("No reason to proceed. Use --force-install to continue anyway", 0) unless $force-install;
         }
 
         my (:@local, :@remote) := @candidates.classify: {.dist ~~ Zef::Distribution::Local ?? <local> !! <remote>}
@@ -146,11 +156,10 @@ package Zef::CLI {
     #| Uninstall
     multi MAIN(
         'uninstall',
-        Bool :$force,
         :from(:$uninstall-from) = $CONFIG<DefaultCUR>,
         *@identities ($, *@)
     ) is export {
-        my $client = get-client(:config($CONFIG) :$force);
+        my $client = get-client(:config($CONFIG));
         my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
         abort "Uninstall requires rakudo v2016.02 or later"\
             unless any(@from>>.can('uninstall'));
@@ -391,8 +400,8 @@ package Zef::CLI {
     }
 
     #| Download a single module and change into its directory
-    multi MAIN('look', $identity, Bool :$force) is export {
-        my $client     = get-client(:config($CONFIG) :$force);
+    multi MAIN('look', $identity) is export {
+        my $client     = get-client(:config($CONFIG));
         my @candidates = |$client.find-candidates( str2identity($identity) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my (:@remote, :@local) := @candidates.classify: {.dist !~~ Zef::Distribution::Local ?? <remote> !! <local>}
@@ -412,6 +421,12 @@ package Zef::CLI {
         Bool :$fetch         = True,
         Bool :$build         = True,
         Bool :$force,
+        Bool :$force-resolve = $force,
+        Bool :$force-fetch   = $force,
+        Bool :$force-extract = $force,
+        Bool :$force-build   = $force,
+        Bool :$force-test    = $force,
+        Bool :$force-install = $force,
         Bool :$update,
         Bool :$upgrade,
         Bool :$depsonly,
@@ -419,8 +434,14 @@ package Zef::CLI {
         :to(:$install-to) = $CONFIG<DefaultCUR>,
     ) is export {
         abort "Smoke testing requires rakudo 2016.04 or later" unless try &*EXIT;
-        my @excluded   = $exclude.map(*.&identity2spec);
-        my $client     = get-client(:config($CONFIG) :exclude(|@excluded), :$force, :$depends, :$test-depends, :$build-depends);
+        my @excluded = $exclude.map(*.&identity2spec);
+        my $client   = get-client(
+            :config($CONFIG) :exclude(|@excluded),
+            :$depends,       :$test-depends, :$build-depends,
+            :$force-resolve, :$force-fetch,  :$force-extract,
+            :$force-build,   :$force-test,   :$force-install,
+        );
+
         my @identities = $client.list-available.map(*.dist.identity).unique;
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         say "===> Smoke testing with {+@identities} distributions...";
@@ -439,7 +460,6 @@ package Zef::CLI {
             :$depsonly,
             :$exclude,
             :$install-to,
-            :$force,
         );
 
         for @identities -> $identity {
@@ -533,7 +553,6 @@ package Zef::CLI {
 
             FLAGS
                 --depsonly              Install only the dependency chains of the requested distributions
-                --force                 Continue each phase regardless of failures
                 --dry                   Run all phases except the actual installations
                 --serial                Install each dependency after passing testing and before building/testing the next dependency
 
@@ -543,6 +562,13 @@ package Zef::CLI {
                 --/depends              Do not fetch runtime dependencies
                 --/test-depends         Do not fetch test dependencies
                 --/build-depends        Do not fetch build dependencies
+
+            FORCE FLAGS
+                Ignore errors occuring during the corresponding phase:
+                --force-resolve --force-fetch --force-extract --force-build --force-test --force-install
+
+                or enable all unset --force-* flags with:
+                --force
 
             CONFIGURATION {$CONFIG.IO.absolute}
                 Enable or disable plugins that match the configuration that has field `short-name` that matches <short-name>

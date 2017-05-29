@@ -75,7 +75,7 @@ subtest {
     }, 'Without force';
 
     subtest {
-        temp $client.force = True;
+        temp $client.force-install = True;
         my @installed = test-install();
 
         is +@installed, 1, 'Install count remains 1';
@@ -83,7 +83,7 @@ subtest {
         my $filename  = ~$sources-dir.dir.first(*.f).basename;
         my $dist-info = ~$dist-dir.dir.first(*.f).slurp;
         ok $dist-info.contains($filename), 'Verify reinstall appears valid';
-    }, 'With force';
+    }, 'With force-install';
 }, 'reinstall';
 
 

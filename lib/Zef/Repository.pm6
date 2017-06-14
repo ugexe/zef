@@ -7,7 +7,7 @@ class Zef::Repository does Pluggable {
     method candidates(Bool :$upgrade, *@identities ($, *@)) {
         # todo: have a `file` identity in Zef::Identity
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });
-        my @candis = gather for self!plugins -> $storage {
+        my @unsorted-candis = gather for self!plugins -> $storage {
             # todo: (cont. from above): Each Repository should just filter this themselves
             my @search-for = $storage.id eq 'Zef::Repository::LocalCache' ?? @identities !! @searchable;
             for $storage.search(|@search-for, :strict) -> $candi { # :strict means exact short-name match
@@ -16,18 +16,18 @@ class Zef::Repository does Pluggable {
         }
 
         # Take the distribution with the highest version out of all matching distributions from all repositories
-        my @ordered = gather for @candis.categorize(*.dist.name).values -> $candis {
+        my @sorted-candis = gather for @unsorted-candis.categorize(*.dist.name).values -> $candis {
             # Put the cache in front so if its one of multiple sources with the identity it gets used
             my $prefer-order := $candis.sort({ $^a.^name ne 'Zef::Repository::LocalCache '});
 
-            take $prefer-order.sort({ Version.new($^b.dist.version) <=> Version.new($^a.dist.version) }).head;
+            take $prefer-order.sort({ Version.new($^b.dist.ver) <=> Version.new($^a.dist.ver) }).head;
         }
 
         # $candi.as tells us what string was used to request its distribution ($candi.dist)
         # So this is similar to the .categorize(*.dist.name) filter above, except it
         # covers when two different repositories have a matching candidate with different
         # distribution names (likely matching *module* names in provides)
-        my @distinct-requested-as = @ordered.unique(:as(*.as));
+        my @distinct-requested-as = @sorted-candis.unique(:as(*.as));
     }
 
     # todo: Find a better way to allow plugins access to other plugins
@@ -41,10 +41,20 @@ class Zef::Repository does Pluggable {
 
     method search(:$max-results = 5, Bool :$strict, *@identities ($, *@), *%fields) {
         return () unless @identities || %fields;
-        my @results = eager gather for self!plugins -> $storage {
+
+        my @unsorted-candis = eager gather for self!plugins -> $storage {
             take $_ for $storage.search(|@identities, |%fields, :$max-results, :$strict);
         }
-        |@results;
+
+        # Take the distribution with the highest version out of all matching distributions from all repositories
+        my @sorted-candis = gather for @unsorted-candis -> $candis {
+            # Put the cache in front so if its one of multiple sources with the identity it gets used
+            my $prefer-order := $candis.sort({ $^a.^name ne 'Zef::Repository::LocalCache '});
+
+            take $_ for $prefer-order.sort({ Version.new($^b.dist.ver) <=> Version.new($^a.dist.ver) });
+        }
+
+        @sorted-candis.head($max-results);
     }
 
     method store(*@dists) {

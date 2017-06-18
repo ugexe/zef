@@ -12,38 +12,17 @@ use Zef::Distribution::DependencySpecification;
 #    for other Repository like p6c or CPAN (although such choices are
 #    made inside Zef::Repository itself)
 class Zef::Repository::LocalCache does Repository {
-    state $lock = Lock.new;
     has $.mirrors;
     has $.auto-update;
-    has $.cache is rw;
 
+    has $.cache is rw;
     has @!dists;
 
-    # Abstraction to handle automatic updating of package list and/or local index
-    method !gather-dists {
-        once { self.update } if $.auto-update || !self!manifest-file.e;
-        return @!dists if +@!dists;
+    method IO(--> IO::Path) { my $dir = $!cache.IO; $dir.mkdir unless $dir.e; $dir }
 
-        @!dists = gather for self!slurp-manifest.lines -> $entry {
-            my ($identity, $path) = $entry.split("\0");
-            next unless "{$path}".IO.e;
-            if try { Zef::Distribution::Local.new($path) } -> $dist {
-                take $dist;
-            }
-        }
-    }
-
-    method !manifest-file  {
-        my $path = self.IO.child('MANIFEST.zef');
-        $path.spurt('') unless $path.e;
-        $path;
-    }
-
-    method !slurp-manifest { $ = self!manifest-file.IO.slurp }
-
-    method available {
-        my $candidates := gather for self!gather-dists -> $dist {
-            take Candidate.new(
+    method available(--> Seq) {
+        self!gather-dists.map: -> $dist {
+            Candidate.new(
                 dist => $dist,
                 uri  => ($dist.source-url || $dist.hash<support><source>),
                 from => self.id,
@@ -52,14 +31,10 @@ class Zef::Repository::LocalCache does Repository {
         }
     }
 
-    method IO {
-        my $dir = $!cache.IO;
-        $dir.mkdir unless $dir.e;
-        $dir;
-    }
-
     # Rebuild the manifest/index by recursively searching for META files
-    method update {
+    method update(--> Bool) {
+        LEAVE { self.store(|@!dists) }
+
         my @stack = $!cache;
         my %dcache;
 
@@ -80,19 +55,14 @@ class Zef::Repository::LocalCache does Repository {
             %dcache{$dist.identity} //= $dist;
         }
 
-        @!dists = %dcache.values;
-        self!update;
-    }
-
-    method !update(*@dists) {
-        self.store(|@!dists);
-        @!dists;
+        my $content = join "\n", %dcache.map: { join "\0", (.key, .value) }
+        so $content ?? self!spurt-package-list($content) !! False;
     }
 
     # todo: handle %fields
     # note this doesn't apply the $max-results per identity searched, and always returns a 1 dist
     # max for a single identity (todo: update to handle $max-results for each @identities)
-    method search(:$max-results = 5, Bool :$strict, *@identities, *%fields) {
+    method search(:$max-results = 5, Bool :$strict, *@identities, *%fields --> Seq) {
         return () unless @identities || %fields;
         my @wanted = |@identities;
         my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
@@ -121,17 +91,57 @@ class Zef::Repository::LocalCache does Repository {
     # After the `fetch` phase an app can call `.store` on any Repository that
     # provides it, allowing each Repository to do things like keep a simple list of
     # identities installed, keep a cache of anything installed (how its used here), etc
-    method store(*@new) {
-        $lock.protect({
-            # xxx: terribly inefficient
-            my %lookup;
-            for self!slurp-manifest.lines -> $line {
+    method store(*@new --> Bool) {
+        my %lookup andthen do given self!package-list-path.open(:r) {
+            LEAVE {.close}
+            .lock: :shared;
+            for .lines -> $line {
                 my ($id, $path) = $line.split("\0");
                 %lookup{$id} = $path;
             }
+        }
+
+        do given self!package-list-path.open(:w) {
             %lookup{$_.identity} = $_.IO.absolute for |@new;
-            my $contents = join "\n", %lookup.map: { join "\0", (.key, .value) }
-            self!manifest-file.spurt($contents ~ "\n") if $contents;
-        })
+            my $content = join "\n", %lookup.map: { join "\0", (.key, .value) }
+            self!spurt-package-list($content) if $content;
+            return True;
+        }
+
+        return False;
+    }
+
+    method !package-list-path(--> IO::Path)  {
+        my $path = self.IO.child('MANIFEST.zef');
+        $path.spurt('') unless $path.e;
+        $path;
+    }
+
+    method !slurp-package-list(--> List) {
+        return [ ] unless self!package-list-path.e;
+
+        do given self!package-list-path.open(:r) {
+            LEAVE {.close}
+            .lock: :shared;
+            .slurp.lines.map({.split("\0")[1]}).cache;
+        }
+    }
+
+    method !spurt-package-list($content --> Bool) {
+        do given self!package-list-path.open(:w) {
+            LEAVE {.close}
+            .lock;
+            try .spurt($content);
+        }
+    }
+
+    # Abstraction to handle automatic updating of package list and/or local index
+    method !gather-dists(--> List) {
+        once { self.update } if $.auto-update || !self!package-list-path.e;
+        return @!dists if +@!dists;
+
+        @!dists = gather for self!slurp-package-list.grep(*.IO.e) -> $path {
+            take($_) with try Zef::Distribution::Local.new($path);
+        }
     }
 }

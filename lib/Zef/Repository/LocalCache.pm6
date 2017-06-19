@@ -64,26 +64,17 @@ class Zef::Repository::LocalCache does Repository {
     # max for a single identity (todo: update to handle $max-results for each @identities)
     method search(:$max-results = 5, Bool :$strict, *@identities, *%fields --> Seq) {
         return () unless @identities || %fields;
-        my @wanted = |@identities;
-        my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
+        my %specs  = @identities.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
 
         # identities that are cached in the localcache manifest
-        gather RDIST: for |self!gather-dists -> $dist {
-            for @identities.grep(* ~~ any(@wanted)) -> $wants {
-                if ?$dist.contains-spec( %specs{$wants}, :$strict ) {
-                    my $candidate = Candidate.new(
-                        dist => $dist,
-                        uri  => $dist.IO.absolute,
-                        as   => $wants,
-                        from => self.id,
-                    );
-                    take $candidate;
-
-                    # These are a short circuit that can be used again if the manifest format
-                    # is changed such that its saved in order from highest version to lowest version
-                    #@wanted.splice(@wanted.first(/$wants/, :k), 1);
-                    #last RDIST unless +@wanted;
-                }
+        gather for |self!gather-dists -> $dist {
+            for @identities.grep({ $dist.contains-spec(%specs{$_}, :$strict) }) -> $wanted-as {
+                take Candidate.new(
+                    dist => $dist,
+                    uri  => $dist.IO.absolute,
+                    as   => $wanted-as,
+                    from => self.id,
+                );
             }
         }
     }

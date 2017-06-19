@@ -31,8 +31,9 @@ class Zef::Repository::Ecosystems does Repository {
         $!update-counter++;
 
         so $!mirrors.first: -> $uri {
-            UNDO note "Failed to update $!name mirror: $uri";
-            KEEP note "Updated $!name mirror: $uri";
+            # TODO: use the logger to send these as events
+            UNDO note "!!!> Failed to update $!name mirror: $uri";
+            KEEP note "===> Updated $!name mirror: $uri";
             KEEP self!gather-dists;
 
             my $path = try {
@@ -56,21 +57,14 @@ class Zef::Repository::Ecosystems does Repository {
         my @wanted = @identities;
         my %specs  = @wanted.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
 
-        gather DIST: for self!gather-dists -> $dist {
-            for @identities.grep(* ~~ any(@wanted)) -> $wants {
-                if ?$dist.contains-spec( %specs{$wants}, :$strict ) {
-                    my $candidate = Candidate.new(
-                        dist => $dist,
-                        uri  => ($dist.source-url || $dist.hash<support><source>),
-                        as   => $wants,
-                        from => self.id,
-                    );
-                    take $candidate;
-
-                    # XXX: see notes in Zef::Repository::LocalCache::search
-                    #@wanted.splice(@wanted.first(/$wants/, :k), 1);
-                    #last RDIST unless +@wanted;
-                }
+        gather for |self!gather-dists -> $dist {
+            for @identities.grep({ $dist.contains-spec(%specs{$_}, :$strict) }) -> $wanted-as {
+                take Candidate.new(
+                    dist => $dist,
+                    uri  => ($dist.source-url || $dist.hash<support><source>),
+                    as   => $wanted-as,
+                    from => self.id,
+                );
             }
         }
     }
@@ -98,8 +92,7 @@ class Zef::Repository::Ecosystems does Repository {
     # Abstraction to handle automatic updating of package list and/or local index
     method !gather-dists(--> List) {
         # Only update once, and only update automatically if $!auto-update is enabled or no package list exists yet
-        self.update if ($!auto-update && !$!update-counter)
-                    or !self!package-list-path.e;
+        self.update if !$!update-counter && ($!auto-update || !self!package-list-path.e);
         return @!dists if +@!dists;
 
         @!dists = eager gather for self!slurp-package-list -> $meta {

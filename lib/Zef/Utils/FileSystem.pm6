@@ -41,3 +41,12 @@ sub delete-paths($path, Bool :$d = True, Bool :$f = True, Bool :$r = True, Bool 
         for @dirs\.sort(*.chars).reverse { rmdir($_)  && take $_ }
     }
 }
+
+sub lock-file-protect($path, &code, Bool :$shared = False) is export {
+    do given ($shared ?? $path.IO.open(:r) !! $path.IO.open(:w)) {
+        LEAVE {.close}
+        LEAVE {try .path.unlink}
+        .lock(:$shared);
+        code();
+    }
+}

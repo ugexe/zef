@@ -1,8 +1,9 @@
 use Zef;
+use Zef::Utils::FileSystem;
 use Zef::Utils::URI;
 
 class Zef::Fetch does Pluggable {
-    method fetch($uri, $save-as, Supplier :$logger) {
+    method fetch($uri, $save-to, Supplier :$logger) {
         my $fetchers := self.plugins.grep(*.fetch-matcher($uri)).cache;
 
         unless +$fetchers {
@@ -20,7 +21,7 @@ class Zef::Fetch does Pluggable {
                 $fetcher.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => FETCH, phase => LIVE, message => $err }) }
             }
 
-            my $ret = try $fetcher.fetch($uri, $save-as);
+            my $ret = lock-file-protect("{$save-to}.lock", -> { try $fetcher.fetch($uri, $save-to) });
 
             $fetcher.stdout.done;
             $fetcher.stderr.done;

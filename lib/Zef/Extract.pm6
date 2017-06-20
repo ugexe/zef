@@ -1,4 +1,5 @@
 use Zef;
+use Zef::Utils::FileSystem;
 
 class Zef::Extract does Pluggable {
     method extract($path, $extract-to, Supplier :$logger) {
@@ -14,7 +15,7 @@ class Zef::Extract does Pluggable {
                 $extractor.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, message => $err }) }
             }
 
-            my $out = try $extractor.extract($path, $extract-to);
+            my $out = lock-file-protect("{$extract-to}.lock", -> { try $extractor.extract($path, $extract-to) });
 
             $extractor.stdout.done;
             $extractor.stderr.done;

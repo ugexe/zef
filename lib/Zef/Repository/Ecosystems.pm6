@@ -1,4 +1,5 @@
 use Zef;
+use Zef::Utils::FileSystem;
 use Zef::Distribution;
 use Zef::Distribution::DependencySpecification;
 
@@ -36,17 +37,18 @@ class Zef::Repository::Ecosystems does Repository {
             KEEP note "===> Updated $!name mirror: $uri";
             KEEP self!gather-dists;
 
-            my $path = try {
-                my $saved-as = $!fetcher.fetch($uri, $!cache.IO.child($uri.IO.basename));
-                # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
-                # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)
-                $saved-as.IO.d ?? $saved-as.child("{$!name}.json") !! $saved-as;
+            my $save-as  = $!cache.IO.child($uri.IO.basename);
+            my $saved-as = try $!fetcher.fetch($uri, $save-as);
+            next unless $saved-as.e;
 
-            };
+            # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
+            # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)
+            $saved-as .= child("{$!name}.json") if $saved-as.d;
+            next unless $saved-as.e;
 
-            next unless $path.e;
-
-            self!spurt-package-list($path.slurp(:bin));
+            lock-file-protect("{$saved-as}.lock", -> {
+                self!spurt-package-list($saved-as.slurp(:bin))
+            });
         }
     }
 
@@ -77,7 +79,7 @@ class Zef::Repository::Ecosystems does Repository {
         do given self!package-list-path.open(:r) {
             LEAVE {.close}
             .lock: :shared;
-            |from-json(self!package-list-path.slurp)
+            try |from-json(.slurp);
         }
     }
 

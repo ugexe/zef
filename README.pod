@@ -352,6 +352,8 @@ Second, third, and fourth we look at the path pointed to by `%?RESOURCES<config.
 
 =over 4
 
+=item * The prefix of a common configuration directory, such as `$XDG_CONFIG_HOME`  or `$HOME/.config`.
+
 =item * The prefix of a rakudo installation location - This is the case if the modules loaded for bin/zef come from an installation CompUnit::Repository.
 
 =item * The current working directory C<$*CWD> - This is the case when modules loaded for bin/zef come from a non-installation CompUnit::Repository (such as C<-I $lib>).

@@ -16,18 +16,26 @@ our sub parse-file($path) {
 }
 
 our sub guess-path {
-    my $default-conf-path = %?RESOURCES<config.json>.IO;
-
-    my %default-conf = try { parse-file($default-conf-path)    }\
-                    || try { parse-file($*HOME.child('.zef'))  }\
-                    || die "Failed to find the zef config file";
-
-    my $local-conf-path = %default-conf<RootDir>.IO.child('config.json');
-
-    return $local-conf-path   if $local-conf-path.e;
-    return $default-conf-path if $default-conf-path.e;
-
-    die "Failed to find a zef config file at {$local-conf-path} or {$default-conf-path}";
+    my %default-conf;
+    my IO::Path $local-conf-path;
+    my @path-candidates = (
+        (%*ENV<XDG_CONFIG_HOME> // "$*HOME/.config").IO.child('/zef/config.json'),
+        %?RESOURCES<config.json>.IO,
+        $*HOME.child('.zef')
+    );
+    for @path-candidates -> $path {
+        if $path.e {
+            %default-conf = try { parse-file($path) }
+            die "Failed to parse the zef config file '$path'" if !%default-conf;
+            $local-conf-path = $path;
+            last;
+        }
+    }
+    die "Failed to find the zef config file at: {@path-candidates.join(', ')}"
+        unless $local-conf-path.defined and $local-conf-path.e;
+    die "Failed to parse a zef config file at $local-conf-path"
+        if !%default-conf;
+    return $local-conf-path;
 }
 
 our sub plugin-lookup($config) {

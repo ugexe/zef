@@ -41,7 +41,7 @@ class Zef::Repository::MetaCPAN does Repository {
         # requested identity) and filter out those that do not instead of assuming metacpan
         # will always do what we expect
 
-        my $matches := gather DIST: for |@identities -> $wants {
+        my $matches := gather for |@identities -> $wants {
             my $spec = Zef::Distribution::DependencySpecification.new($wants);
 
             temp %fields<distribution> = $spec.name.subst('::', '-', :g)
@@ -72,10 +72,15 @@ class Zef::Repository::MetaCPAN does Repository {
             # Query results currently saved to file for now to ease writing shell based
             # fetchers. Soon those will just print it to stdout, and return the captured raw data,
             # but the Fetcher interface needs to be updated to accommodate this.
-            my $search-save-as = self.IO.child('search').IO.child("{time}.{$*THREAD.id}.json");
-            my $response-path  = $!fetcher.fetch($search-url, $search-save-as);
+            my $search-save-as = self.IO.child('search').IO.child("{time}.{$*THREAD.id}.json")
+                andthen {.parent.mkdir unless .parent.e};
 
-            if $response-path.IO.e {
+            my $response-path  = $!fetcher.fetch($search-url, ~$search-save-as);
+            next() R, note "!!!> MetaCPAN query failed to fetch [$search-url]"
+                unless $response-path && $response-path.IO.e;
+            note "===> MetaCPAN query responded [$search-url]";
+
+            if $response-path && $response-path.IO.e {
                 my %meta = %(from-json($response-path.IO.slurp));
                 try $response-path.unlink;
 

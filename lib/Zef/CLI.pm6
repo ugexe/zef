@@ -402,6 +402,27 @@ package Zef::CLI {
         exit 0;
     }
 
+    #| Browse a distribution's available support urls (homepage, bugtracker, source)
+    multi MAIN('browse', $identity, $url-type where * ~~ any(<homepage bugtracker source>), Bool :$open = True) {
+        my $client = get-client(:config($CONFIG));
+        my $candi  = $client.resolve($identity)
+                ||   $client.search($identity, :strict, :max-results(1))[0]\
+                ||   abort "!!!> Found no candidates matching identity: {$identity}";
+        my %support  = $candi.dist.compat.meta<support>;
+        my $url      = %support{$url-type};
+        my @has-urls = grep { %support{$_} }, <homepage bugtracker source>;
+        unless $url && $url.starts-with('http://' | 'https://') {
+            say "'browse' urls supported by $identity: {+@has-urls??@has-urls.join(',')!!'none'}";
+            exit 255;
+        }
+        say $url;
+
+        my @cmd = $*DISTRO.is-win          ?? <cmd /c start>
+                !! $*VM.osname eq 'darwin' ?? <open>
+                                           !! <xdg-open>;
+        run( |@cmd, $url ) if $open;
+    }
+
     #| Download a single module and change into its directory
     multi MAIN('look', $identity) is export {
         my $client     = get-client(:config($CONFIG));
@@ -540,6 +561,7 @@ package Zef::CLI {
                 upgrade (BETA)          Upgrade specific distributions (or all if no arguments)
                 search                  Show a list of possible distribution candidates for the given terms
                 info                    Show detailed distribution information
+                browse                  Open browser to various support urls (homepage, bugtracker, source)
                 list                    List known available distributions, or installed distributions with `--installed`
                 rdepends                List all distributions directly depending on a given identity
                 locate                  Lookup installed module information by short-name, name-path, or sha1 (with --sha1 flag)

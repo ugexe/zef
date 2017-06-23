@@ -69,6 +69,9 @@ To install via rakudobrew, please use the following command:
     # lookup module info by name/path/sha1
     zef --sha1 locate 9FA0AC28824EE9E5A9C0F99951CA870148AE378E
 
+    # launch browser to named support urls from meta data
+    zef browse zef bugtracker
+
 =head2 More CLI
 
 =head4 B<install> [*@identities]
@@ -290,6 +293,23 @@ continuing the install via C<zef install .>
 
 Note that the path to any dependencies that needed to be fetched will be set in env at B<PERL6LIB>, so you should
 be able to run any build scripts, tests, or complete a manual install without having to specify their locations.
+
+=head4 B<browse> $identity [bugtracker | homepage | source]
+
+B<Options>
+
+    # disables launching a browser window (just shows url)
+    --/open
+
+Output the url and launch a browser to open it.
+
+    # also opens browser
+    $ zef browse Net::HTTP bugtracker
+    https://github.com/ugexe/Perl6-Net--HTTP/issues
+
+    # only outputs the url
+    $ zef browse Net::HTTP bugtracker --/open
+    https://github.com/ugexe/Perl6-Net--HTTP/issues
 
 =head4 B<locate> [$identity, $name-path, $sha1-id]
 

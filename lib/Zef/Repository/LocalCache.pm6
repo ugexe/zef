@@ -36,7 +36,6 @@ class Zef::Repository::LocalCache does Repository {
     method update(--> Bool) {
         LEAVE { self.store(|@!dists) }
         self!update;
-        @!dists;
     }
 
     method !update(-->Bool) {

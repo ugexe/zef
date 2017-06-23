@@ -1,6 +1,7 @@
 use Zef;
 use Zef::Distribution::Local;
 use Zef::Distribution::DependencySpecification;
+use Zef::Utils::FileSystem;
 
 # Intended to:
 # 1) Keep track of contents of a directory using a manifest.
@@ -34,28 +35,15 @@ class Zef::Repository::LocalCache does Repository {
     # Rebuild the manifest/index by recursively searching for META files
     method update(--> Bool) {
         LEAVE { self.store(|@!dists) }
+        self!update;
+        @!dists;
+    }
 
-        my @stack = $!cache;
-        my %dcache;
-
-        while ( @stack ) {
-            my $current = @stack.pop.IO;
-            next if !$current.e
-                ||  $current.f
-                ||  $current.basename.starts-with('.')
-                ||  %dcache.values.grep({ $current.absolute.starts-with($_.IO.absolute) });
-
-            my $dist = try Zef::Distribution::Local.new($current);
-
-            unless ?$dist {
-                @stack.append($current.dir.grep(*.d)>>.absolute);
-                next;
-            }
-
-            %dcache{$dist.identity} //= $dist;
-        }
-
-        my $content = join "\n", %dcache.map: { join "\0", (.key, .value) }
+    method !update(-->Bool) {
+        # $.cache/level1/level2/ # dirs containing dist files
+        my @dirs    = $!cache.IO.dir.grep(*.d).map(*.dir.Slip).grep(*.d);
+        my @dists   = grep { .defined }, map { try Zef::Distribution::Local.new($_) }, @dirs;
+        my $content = join "\n", @dists.map: { join "\0", (.identity, .path) }
         so $content ?? self!spurt-package-list($content) !! False;
     }
 
@@ -83,23 +71,10 @@ class Zef::Repository::LocalCache does Repository {
     # provides it, allowing each Repository to do things like keep a simple list of
     # identities installed, keep a cache of anything installed (how its used here), etc
     method store(*@new --> Bool) {
-        my %lookup andthen do given self!package-list-path.open(:r) {
-            LEAVE {.close}
-            .lock: :shared;
-            for .lines -> $line {
-                my ($id, $path) = $line.split("\0");
-                %lookup{$id} = $path;
-            }
+        for @new.unique(:as(*.identity)).map(*.IO.parent.IO).unique -> $from {
+            try copy-paths( $from, $.cache.IO.add($from.basename) )
         }
-
-        do given self!package-list-path.open(:w) {
-            %lookup{$_.identity} = $_.IO.absolute for |@new;
-            my $content = join "\n", %lookup.map: { join "\0", (.key, .value) }
-            self!spurt-package-list($content) if $content;
-            return True;
-        }
-
-        return False;
+        self!update;
     }
 
     method !package-list-path(--> IO::Path)  {

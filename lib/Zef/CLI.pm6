@@ -278,56 +278,71 @@ package Zef::CLI {
         my $client = get-client(:config($CONFIG));
         if !$sha1 {
             if $identity.ends-with('.pm' | '.pm6') {
-                my $candi = $client.list-installed.first({
-                    my $meta := $_.dist.compat.meta;
-                    so $meta<provides>.values.grep({.keys[0] eq $identity});
+                my @candis = $client.list-installed.grep({
+                    .dist.compat.meta<provides>.values.grep({.keys[0] eq $identity}).so;
                 });
 
-                if $candi {
-                    my $libs = $candi.dist.compat.meta<provides>;
-                    my $lib  = $libs.first({.value.keys[0] eq $identity});
-                    say "===> From Distribution: {~$candi.dist}";
-                    say "{$lib.keys[0]} => {$candi.from.prefix.child('sources').child($lib.value.values[0]<file>)}";
-                    exit 0;
+                for @candis -> $candi {
+                    LAST exit 0;
+                    NEXT say '';
+
+                    if $candi {
+                        my $libs = $candi.dist.compat.meta<provides>;
+                        my $lib  = $libs.first({.value.keys[0] eq $identity});
+                        say "===> From Distribution: {~$candi.dist}";
+                        say "{$lib.keys[0]} => {$candi.from.prefix.child('sources').child($lib.value.values[0]<file>)}";
+                    }
                 }
             }
             elsif $identity.starts-with('bin/' | 'resources/') {
-                my $candi = $client.list-installed.first({
-                    my $meta := $_.dist.compat.meta;
-                    so $meta<files>.first({.key eq $identity});
+                my @candis = $client.list-installed.grep({
+                    .dist.compat.meta<files>.first({.key eq $identity}).so
                 });
 
-                if $candi {
-                    my $libs = $candi.dist.compat.meta<files>;
-                    my $lib  = $libs.first({.key eq $identity});
-                    say "===> From Distribution: {~$candi.dist}";
-                    say "{$identity} => {$candi.from.prefix.child('resources').child($lib.value)}";
-                    exit 0;
+                for @candis -> $candi {
+                    LAST exit 0;
+                    NEXT say '';
+
+                    if $candi {
+                        my $libs = $candi.dist.compat.meta<files>;
+                        my $lib  = $libs.first({.key eq $identity});
+                        say "===> From Distribution: {~$candi.dist}";
+                        say "{$identity} => {$candi.from.prefix.child('resources').child($lib.value)}";
+                        exit 0;
+                    }
                 }
             }
-            elsif $client.resolve($identity) -> $candi {
-                say "===> From Distribution: {~$candi.dist}";
-                my $source-prefix = $candi.from.prefix.child('sources');
-                my $source-path   = $source-prefix.child($candi.dist.compat.meta<provides>{$identity}.values[0]<file> // '');
-                say "{$identity} => {$source-path}" if $source-path.IO.f;
-                exit 0;
+            elsif $client.resolve($identity) -> @candis {
+                for @candis -> $candi {
+                    LAST exit 0;
+                    NEXT say '';
+
+                    say "===> From Distribution: {~$candi.dist}";
+                    my $source-prefix = $candi.from.prefix.child('sources');
+                    my $source-path   = $source-prefix.child($candi.dist.compat.meta<provides>{$identity}.values[0]<file> // '');
+                    say "{$identity} => {$source-path}" if $source-path.IO.f;
+                }
             }
         }
         else {
-            my $candi = $client.list-installed.first({
+            my @candis = $client.list-installed.grep({
                 my $meta := $_.dist.compat.meta;
                 my @source_files   = $meta<provides>.values.flatmap(*.values.map(*.<file>));
                 my @resource_files = $meta<files>.values.first({$_ eq $identity});
                 $identity ~~ any(grep *.defined, flat @source_files, @resource_files);
             });
 
-            if $candi {
-                say "===> From Distribution: {~$candi.dist}";
-                $identity ~~ any($candi.dist.compat.meta<provides>.values.flatmap(*.values.map(*.<file>)))
-                    ?? (say "{.keys[0]} => {$candi.from.prefix.child('sources').child(.values[0]<file>)}" for $candi.dist.compat.meta<provides>.values.grep(*.values.first({ .<file> eq $identity })).first(*.so))
-                    !! (say "{.key} => {.value}" for $candi.dist.compat.meta<files>.first({.value eq $identity}));
+            for @candis -> $candi {
+                LAST exit 0;
+                NEXT say '';
 
-                exit 0;
+                if $candi {
+                    say "===> From Distribution: {~$candi.dist}";
+                    $identity ~~ any($candi.dist.compat.meta<provides>.values.flatmap(*.values.map(*.<file>)))
+                        ?? (say "{.keys[0]} => {$candi.from.prefix.child('sources').child(.values[0]<file>)}" for $candi.dist.compat.meta<provides>.values.grep(*.values.first({ .<file> eq $identity })).first(*.so))
+                        !! (say "{.key} => {.value}" for $candi.dist.compat.meta<files>.first({.value eq $identity}));
+
+                }
             }
         }
 
@@ -339,7 +354,7 @@ package Zef::CLI {
     #| Detailed distribution information
     multi MAIN('info', $identity, Int :$wrap = False) is export {
         my $client = get-client(:config($CONFIG));
-        my $candi  = $client.resolve($identity)
+        my $candi  = $client.resolve($identity).head
                 ||   $client.search($identity, :strict, :max-results(1))[0]\
                 ||   abort "!!!> Found no candidates matching identity: {$identity}";
         my $dist  := $candi.dist;

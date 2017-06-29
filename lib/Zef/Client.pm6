@@ -697,11 +697,11 @@ class Zef::Client {
 
     method resolve($spec, :@at) {
         my $candis := self.list-installed(|@at).grep(*.dist.contains-spec($spec));
-        $candis.sort({ Version.new($^b.dist.ver) <=> Version.new($^a.dist.ver) }).head;
+        $candis.sort({ Version.new($^b.dist.ver) cmp Version.new($^a.dist.ver) });
     }
 
     method is-installed(|c) {
-        ?self.resolve(|c)
+        self.resolve(|c).so
     }
 
     method sort-candidates(@candis, *%_) {

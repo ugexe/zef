@@ -8,15 +8,14 @@ class Zef::Service::PowerShell::unzip is Zef::Service::Shell::PowerShell does Ex
     method extract($archive-file, $out) {
         die "file does not exist: {$archive-file}" unless $archive-file.IO.e && $archive-file.IO.f;
         die "\$out folder does not exist and could not be created" unless (($out.IO.e && $out.IO.d) || mkdir($out));
-        my $extract-to = $out.IO.child(self.list($archive-file).head).absolute;
-        my $proc = $.zrun(%?RESOURCES<scripts/win32unzip.ps1>, $archive-file, $out);
-        $ = (?$proc && $extract-to.IO.e) ?? $extract-to !! False;
+        my $extracted-to = $out.IO.child(self.list($archive-file).head).absolute;
+        my $proc = run(|@.invocation, %?RESOURCES<scripts/win32unzip.ps1>, $archive-file, $out);
+        ($proc.exitcode == 0 && $extracted-to.IO.e) ?? $extracted-to !! False;
     }
 
     method list($archive-file) {
-        my $proc = $.zrun(%?RESOURCES<scripts/win32unzip.ps1>, $archive-file, :out);
-        my @extracted-paths = |$proc.out.lines.map({ $_.IO.relative($archive-file) });
-        $proc.out.close;
-        @ = ?$proc ?? @extracted-paths.grep(*.defined) !! ();
+        my $proc = run(|@.invocation, %?RESOURCES<scripts/win32unzip.ps1>, $archive-file, :out);
+        my @extracted-paths = $proc.out.slurp(:close).lines.map({ $_.IO.relative($archive-file) });
+        $proc.exitcode == 0 ?? @extracted-paths.grep(*.defined) !! ();
     }
 }

@@ -1,23 +1,16 @@
 use Zef;
-use Zef::Shell;
 
-class Zef::Service::Shell::curl is Zef::Shell does Fetcher does Probeable does Messenger {
+class Zef::Service::Shell::curl does Fetcher does Probeable does Messenger {
     method fetch-matcher($url) { $ = $url.lc.starts-with('http://' | 'https://') }
 
     method probe {
-        state $curl-probe = try {
-            CATCH {
-                when X::Proc::Unsuccessful { return False }
-                default { return False }
-            }
-            so zrun('curl', '--help');
-        }
-        ?$curl-probe;
+        state $probe = try { run('curl', '--help', :out, :err).exitcode == 0 ?? True !! False };
+        ?$probe;
     }
 
     method fetch($url, $save-as) {
-        mkdir($save-as.IO.parent) unless $save-as.IO.parent.IO.e;
-        my $proc = $.zrun('curl', '--silent', '-L', '-o', $save-as, $url);
-        $ = ?$proc ?? $save-as !! False;
+        my $cwd = $save-as.IO.parent andthen { .mkdir unless .e };
+        my $proc = run('curl', '--silent', '-L', '-o', $save-as, $url, :$cwd, :out, :err);
+        $proc.exitcode == 0 ?? $save-as !! False;
     }
 }

@@ -1,8 +1,7 @@
 use Zef;
-use Zef::Shell;
 use Zef::Utils::FileSystem;
 
-class Zef::Service::Shell::Build is Zef::Shell does Builder does Messenger {
+class Zef::Service::Shell::Build does Builder does Messenger {
     method build-matcher($path) { $path.IO.child("Build.pm").e }
 
     method probe { True }
@@ -81,30 +80,19 @@ my sub legacy-build($path, :@includes, :$stderr, :$stdout) {
     # my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$path.IO.absolute}'); exit(0);";
     my $cmd = "::('Build').new.build('{$path.IO.absolute}'); exit(0);";
 
-    my $result;
+    my $exitcode = -1;
     try {
-        use Zef::Shell;
-        CATCH { default { $result = False; } }
-
         # see: https://github.com/ugexe/zef/issues/93
         # my @exec = |($*EXECUTABLE, '-Ilib', '-I.', |@cl-includes, '-e', "$cmd");
         my @exec = |($*EXECUTABLE, '-Ilib', '-I.', '-MBuild', |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
 
         $stdout.emit("Command: {@exec.join(' ')}") if $DEBUG;
 
-        my $proc = zrun(|@exec, :cwd($path), :out, :err);
+        my $proc = run(|@exec, :cwd($path), :out, :err);
+        $proc.out.Supply.tap: { $stdout.emit($_) };
+        $proc.err.Supply.tap: { $stderr.emit($_) };
 
-        # Build phase can freeze up based on the order of these 2 assignments
-        # This is a rakudo bug with an unknown cause, so may still occur based on the process's output
-        my @out = $proc.out.lines;
-        my @err = $proc.err.lines;
-
-        $ = $proc.out.close unless +@err;
-        $ = $proc.err.close;
-        $result = ?$proc;
-
-        $stdout.emit(@out.join("\n")) if +@out;
-        $stderr.emit(@err.join("\n")) if +@err;
+        $exitcode = $proc.exitcode;
     }
 
     if my $bak = "{$builder-path}.bak" and $bak.IO.e {
@@ -114,5 +102,5 @@ my sub legacy-build($path, :@includes, :$stderr, :$stdout) {
         } if $bak.IO.f;
     }
 
-    $ = ?$result;
+    $exitcode == 0 ?? True !! False;
 }

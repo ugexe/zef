@@ -1,29 +1,20 @@
 use Zef;
-use Zef::Shell;
 
-class Zef::Service::Shell::prove is Zef::Shell does Tester does Messenger {
+class Zef::Service::Shell::prove does Tester does Messenger {
     method test-matcher($path) { True }
 
     method probe {
-        state $prove-probe;
+        state $probe;
         once {
             # `prove --help` has exitcode == 1 unlike most other processes
             # so it requires a more convoluted probe check
             try {
-                my $proc = zrun('prove', '--help', :out, :err);
-                my @out  = $proc.out.lines;
-                my @err  = $proc.err.lines;
-                $proc.out.close;
-                $proc.err.close;
-                CATCH {
-                    when X::Proc::Unsuccessful {
-                        $prove-probe = True if $proc.exitcode == 1 && @out.first(*.contains("-exec"));
-                    }
-                    default { return False }
-                }
+                my $proc = run('prove', '--help', :out, :err);
+                $probe = True if $proc.exitcode == 0;
+                $probe = True if $proc.exitcode == 1 && ?$proc.out.slurp.contains("-exec" | "Mac OS X");
             }
         }
-        ?$prove-probe;
+        ?$probe;
     }
 
     method test($path, :@includes) {
@@ -36,14 +27,11 @@ class Zef::Service::Shell::prove is Zef::Shell does Tester does Messenger {
         my @new-p6lib  = $path.IO.child('lib').absolute, |@includes;
         $env<PERL6LIB> = (|@new-p6lib, |@cur-p6lib).join($*DISTRO.cur-sep);
 
-        my $proc = zrun('prove', '-r', '-e', $*EXECUTABLE,
-            $test-path.relative($path), :cwd($path), :$env, :out, :err);
+        my $proc = run(:cwd($path), :$env, :out, :err,
+            'prove', '-r', '-e', $*EXECUTABLE.absolute, $test-path.relative($path) );
+        $proc.out.Supply.tap: { $.stdout.emit($_) };
+        $proc.err.Supply.tap: { $.stderr.emit($_) };
 
-        $.stdout.emit($_) for $proc.out.lines;
-        $.stderr.emit($_) for $proc.err.lines;
-        $proc.out.close;
-        $proc.err.close;
-
-        $ = ?$proc;
+        $proc.exitcode == 0 ?? True !! False;
     }
 }

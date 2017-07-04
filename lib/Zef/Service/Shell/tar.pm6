@@ -1,23 +1,16 @@
 use Zef;
-use Zef::Shell;
 
 # XXX: when passing command line arguments to tar in this module be sure to use
 # relative paths. ex: set :cwd to $tar-file.parent, and use $tar-file.basename as the target
 # This is because gnu tar on windows can't handle a windows style volume in path arguments
 
-class Zef::Service::Shell::tar is Zef::Shell does Extractor does Messenger {
+class Zef::Service::Shell::tar does Extractor does Messenger {
     method extract-matcher($path) { so $path.lc.ends-with('.tar.gz' | '.tgz') }
 
     method probe {
         # todo: check without spawning process (slow)
-        state $tar-probe = try {
-            CATCH {
-                when X::Proc::Unsuccessful { return False }
-                default { return False }
-            }
-            so zrun('tar', '--help');
-        }
-        ?$tar-probe;
+        state $probe = try { run('tar', '--help', :out, :err).exitcode == 0 ?? True !! False };
+        ?$probe;
     }
 
     method extract($archive-file, $save-as) {
@@ -32,25 +25,18 @@ class Zef::Service::Shell::tar is Zef::Shell does Extractor does Messenger {
         my @files    = self.list($archive-file);
         my $root-dir = $save-as.IO.child(@files[0]);
 
-        my $proc = $.zrun('tar', '-zxvf', $from, '-C', $save-as.IO.relative($cwd), :$cwd, :out, :err);
-        my @out  = |$proc.out.lines;
-        my @err  = |$proc.err.lines;
-        $proc.out.close;
-        $proc.err.close;
+        my $proc = run('tar', '-zxvf', $from, '-C', $save-as.IO.relative($cwd), :$cwd, :out, :err);
 
-        $ = (?$proc && $root-dir.IO.e) ?? $root-dir !! False;
+        my $extracted-to = $save-as.IO.child(self.list($archive-file).head);
+        ($proc.exitcode == 0 && $extracted-to.IO.e) ?? $extracted-to !! False;
     }
 
     method list($archive-file) {
         my $from = $archive-file.IO.basename;
         my $cwd  = $archive-file.IO.parent;
 
-        my $proc  = $.zrun('tar', '--list', '-f', $from, :$cwd, :out, :err);
-        my @files = |$proc.out.lines;
-        my @err   = |$proc.err.lines;
-        $proc.out.close;
-        $proc.err.close;
-
-        @ = ?$proc ?? @files.grep(*.defined) !! ();
+        my $proc = run('tar', '--list', '-f', $from, :$cwd, :out, :err);
+        my @extracted-paths = $proc.out.slurp(:close).lines;
+        $proc.exitcode == 0 ?? @extracted-paths.grep(*.defined) !! ();
     }
 }

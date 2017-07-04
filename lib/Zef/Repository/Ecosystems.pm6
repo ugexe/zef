@@ -28,10 +28,10 @@ class Zef::Repository::Ecosystems does Repository {
         }
     }
 
-    method update(--> Bool) {
+    method update {
         $!update-counter++;
 
-        so $!mirrors.first: -> $uri {
+        $!mirrors.first: -> $uri {
             # TODO: use the logger to send these as events
             UNDO note "!!!> Failed to update $!name mirror: $uri";
             KEEP note "===> Updated $!name mirror: $uri";
@@ -50,6 +50,8 @@ class Zef::Repository::Ecosystems does Repository {
                 self!spurt-package-list($saved-as.slurp(:bin))
             });
         }
+
+        self!gather-dists;
     }
 
     # todo: handle %fields

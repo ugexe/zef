@@ -23,7 +23,7 @@ class Zef::Service::Shell::PowerShell::download is Zef::Service::Shell::PowerShe
 
     method fetch($url, $save-as) {
         mkdir($save-as.IO.parent) unless $save-as.IO.parent.IO.e;
-        my $proc = $.zrun(%?RESOURCES<scripts/win32http.ps1>.IO.absolute, $url, $save-as.IO.absolute, :!out, ;!err);
+        my $proc = $.zrun(%?RESOURCES<scripts/win32http.ps1>.IO.absolute, $url, $save-as.IO.absolute, :!out, :!err);
         ?$proc ?? $save-as !! False;
     }
 }

@@ -12,7 +12,7 @@ class Zef::Service::FetchPath does Fetcher does Messenger does Extractor {
     method fetch($from, $to) {
         return False    if !$from.IO.e;
         return $from    if $from.IO.absolute eq $to.IO.absolute; # fakes a fetch
-        my $dest-path = $from.IO.d ?? $to.IO.child("{$from.IO.absolute.IO.basename}_{time}") !! $to;
+        my $dest-path = $from.IO.d ?? $to.IO.child("{$from.IO.basename}_{time}") !! $to;
         mkdir($dest-path) if $from.IO.d && !$to.IO.e;
         return $dest-path if copy-paths($from, $dest-path).elems;
         False;

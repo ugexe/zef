@@ -15,7 +15,7 @@ class Zef::Service::Shell::tar is Zef::Shell does Extractor does Messenger {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-            so zrun('tar', '--help');
+            so zrun('tar', '--help', :!out, :!err);
         }
         ?$tar-probe;
     }
@@ -32,11 +32,7 @@ class Zef::Service::Shell::tar is Zef::Shell does Extractor does Messenger {
         my @files    = self.list($archive-file);
         my $root-dir = $save-as.IO.child(@files[0]);
 
-        my $proc = $.zrun('tar', '-zxvf', $from, '-C', $save-as.IO.relative($cwd), :$cwd, :out, :err);
-        my @out  = |$proc.out.lines;
-        my @err  = |$proc.err.lines;
-        $proc.out.close;
-        $proc.err.close;
+        my $proc = $.zrun('tar', '-zxvf', $from, '-C', $save-as.IO.relative($cwd), :$cwd, :!out, :!err);
 
         $ = (?$proc && $root-dir.IO.e) ?? $root-dir !! False;
     }
@@ -45,11 +41,9 @@ class Zef::Service::Shell::tar is Zef::Shell does Extractor does Messenger {
         my $from = $archive-file.IO.basename;
         my $cwd  = $archive-file.IO.parent;
 
-        my $proc  = $.zrun('tar', '--list', '-f', $from, :$cwd, :out, :err);
+        my $proc  = $.zrun('tar', '--list', '-f', $from, :$cwd, :out, :!err);
         my @files = |$proc.out.lines;
-        my @err   = |$proc.err.lines;
         $proc.out.close;
-        $proc.err.close;
 
         @ = ?$proc ?? @files.grep(*.defined) !! ();
     }

@@ -10,14 +10,14 @@ class Zef::Service::Shell::curl is Zef::Shell does Fetcher does Probeable does M
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-            so zrun('curl', '--help');
+            so zrun('curl', '--help', :!out :!err);
         }
         ?$curl-probe;
     }
 
     method fetch($url, $save-as) {
         mkdir($save-as.IO.parent) unless $save-as.IO.parent.IO.e;
-        my $proc = $.zrun('curl', '--silent', '-L', '-o', $save-as, $url);
+        my $proc = $.zrun('curl', '--silent', '-L', '-o', $save-as, $url, :!out :!err);
         $ = ?$proc ?? $save-as !! False;
     }
 }

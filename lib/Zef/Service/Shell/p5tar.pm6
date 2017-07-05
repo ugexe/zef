@@ -11,7 +11,7 @@ class Zef::Service::Shell::p5tar is Zef::Shell does Extractor does Messenger {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-            so zrun('perl', %?RESOURCES<scripts/perl5tar.pl>);
+            so zrun('perl', %?RESOURCES<scripts/perl5tar.pl>, :!out, :!err);
         }
         ?$p5module-probe;
     }
@@ -19,7 +19,7 @@ class Zef::Service::Shell::p5tar is Zef::Shell does Extractor does Messenger {
     method extract($archive-file, $out) {
         die "file does not exist: {$archive-file}" unless $archive-file.IO.e && $archive-file.IO.f;
         die "\$out folder does not exist and could not be created" unless (($out.IO.e && $out.IO.d) || mkdir($out));
-        my $proc = $.zrun('perl', %?RESOURCES<scripts/perl5tar.pl>, $archive-file.IO.absolute, :cwd($out), :out);
+        my $proc = $.zrun('perl', %?RESOURCES<scripts/perl5tar.pl>, $archive-file.IO.absolute, :cwd($out), :out, :!err);
         my @stdout = $proc.out.lines;
         $proc.out.close;
         my $extracted-to := IO::Path.new(self.list($archive-file)[0].Str, :CWD($out));
@@ -27,7 +27,7 @@ class Zef::Service::Shell::p5tar is Zef::Shell does Extractor does Messenger {
     }
 
     method list($archive-file) {
-        my $proc = $.zrun('perl', %?RESOURCES<scripts/perl5tar.pl>, '--list', $archive-file, :out);
+        my $proc = $.zrun('perl', %?RESOURCES<scripts/perl5tar.pl>, '--list', $archive-file, :out, :!err);
         my @extracted-paths = |$proc.out.lines;
         $proc.out.close;
         $ = ?$proc ?? @extracted-paths.grep(*.defined) !! False;

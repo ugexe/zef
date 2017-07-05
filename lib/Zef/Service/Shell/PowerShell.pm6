@@ -10,7 +10,7 @@ class Zef::Service::Shell::PowerShell is Zef::Shell does Probeable {
                 when X::Proc::Unsuccessful { return False }
                 default { return False }
             }
-            so zrun('powershell', '-help');
+            so zrun('powershell', '-help', :!out, :!err);
         }
         ?$powershell-probe;
     }

@@ -11,8 +11,9 @@ sub GET-TERM-COLUMNS is export {
     if $*DISTRO.is-win {
         # Windowsy
         my $default = 80 - 1;
-        my $r    = shell("mode", :out, :enc('latin-1'));
+        my $r    = shell("mode", :out, :!err, :enc('latin-1'));
         my $line = $r.out.lines.join("\n");
+        $r.out.close;
         return $default unless $line;
 
         if $line ~~ /'CON:' \n <.ws> '-'+ \n .*? \n \N+? $<cols>=[<.digit>+]/ {
@@ -24,8 +25,10 @@ sub GET-TERM-COLUMNS is export {
     else {
         # Linuxy
         my $default = 120 - 1;
-        my $tput    = run("tput", "cols", :out, :enc('latin-1'));
-        if $tput.out.get ~~ /$<cols>=<.digit>+/ {
+        my $tput    = run("tput", "cols", :out, :!err :enc('latin-1'));
+        my @lines   = $tput.out.lines;
+        $tput.out.close;
+        if @lines[0] ~~ /$<cols>=<.digit>+/ {
             my $cols = ~$/<cols>.comb(/\d/).join;
             return +$cols - 1 if try { +$cols }
         }

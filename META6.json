@@ -1,7 +1,7 @@
 {
     "perl"        : "6",
     "name"        : "zef",
-    "version"     : "0.1.20",
+    "version"     : "0.1.21",
     "auth"        : "github:ugexe",
     "description" : "It's like [cpanm] wearing high heels with a tracksuit",
     "license"     : "Artistic-2.0",

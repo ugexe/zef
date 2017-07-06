@@ -420,7 +420,7 @@ package Zef::CLI {
     #| Browse a distribution's available support urls (homepage, bugtracker, source)
     multi MAIN('browse', $identity, $url-type where * ~~ any(<homepage bugtracker source>), Bool :$open = True) {
         my $client = get-client(:config($CONFIG));
-        my $candi  = $client.resolve($identity)
+        my $candi  = $client.resolve($identity).head
                 ||   $client.search($identity, :strict, :max-results(1))[0]\
                 ||   abort "!!!> Found no candidates matching identity: {$identity}";
         my %support  = $candi.dist.compat.meta<support>;

@@ -17,7 +17,7 @@ class Zef::Service::Shell::curl is Zef::Shell does Fetcher does Probeable does M
 
     method fetch($url, $save-as) {
         mkdir($save-as.IO.parent) unless $save-as.IO.parent.IO.e;
-        my $proc = $.zrun('curl', '--silent', '-L', '-o', $save-as, $url, :!out :!err);
-        $ = ?$proc ?? $save-as !! False;
+        my $proc = $.zrun('curl', '--silent', '-L', '-z', $save-as, '-o', $save-as, $url, :!out :!err);
+        $proc.so ?? $save-as !! False;
     }
 }

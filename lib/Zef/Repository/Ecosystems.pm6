@@ -93,10 +93,14 @@ class Zef::Repository::Ecosystems does Repository {
         }
     }
 
+    method !is-package-list-stale {
+        return !self!package-list-path.e
+            || ($!auto-update && self!package-list-path.modified < now.DateTime.earlier(:hours($!auto-update)).Instant);
+    }
+
     # Abstraction to handle automatic updating of package list and/or local index
     method !gather-dists(--> List) {
-        # Only update once, and only update automatically if $!auto-update is enabled or no package list exists yet
-        self.update if !$!update-counter && ($!auto-update || !self!package-list-path.e);
+        self.update if !$!update-counter && self!is-package-list-stale;
         return @!dists if +@!dists;
 
         @!dists = eager gather for self!slurp-package-list -> $meta {

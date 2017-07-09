@@ -154,7 +154,8 @@ Note: Requires a bleeding edge rakudo (not available in 6.c)
 Update the package indexes for all C<Repository> backends
 
 Note: Some C<Repository> backends, like the default Ecosystems, have an C<auto-update> option
-in C<resources/config.json> that can be enabled
+in C<resources/config.json> that can be enabled. This should be the number of hours until it should
+auto update based on the file system last modified time of the ecosystem json file location.
 
 =head4 B<upgrade> [*@identities] I<BETA>
 

@@ -73,7 +73,7 @@ class Zef::Repository does Pluggable {
 
     method update(*@names) {
         eager gather for self!plugins(|@names) -> $plugin {
-            next() R, warn "Specified plugin by name {$plugin.short-name} doesn't support `.update`"\
+            next() R, warn "Plugin {$plugin.short-name} doesn't support `.update`"\
                 if +@names && !$plugin.can('update'); # `.update` is an optional interface requirement
             take $plugin.id => $plugin.update.elems;
         }

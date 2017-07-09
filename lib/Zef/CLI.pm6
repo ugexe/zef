@@ -100,11 +100,11 @@ package Zef::CLI {
         );
 
         # LOCAL PATHS
-        abort "The follow were recognized as file paths and don't exist as such - {@paths.grep(!*.IO.e)}"
+        abort "The following were recognized as file paths but don't exist as such - {@paths.grep(!*.IO.e)}"
             if +@paths.grep(!*.IO.e);
         my (:@wanted-paths, :@skip-paths) := @paths\
             .classify: {$client.is-installed(Zef::Distribution::Local.new($_).identity, :at($install-to.map(*.&str2cur))) ?? <skip-paths> !! <wanted-paths>}
-        say "The following local paths candidates are already installed: {@skip-paths.join(', ')}"\
+        say "The following local path candidates are already installed: {@skip-paths.join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-paths;
         my @requested-paths = ?$force-install ?? @paths !! @wanted-paths;
         my @path-candidates = @requested-paths.map(*.&path2candidate);

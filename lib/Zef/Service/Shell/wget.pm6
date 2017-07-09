@@ -16,8 +16,8 @@ class Zef::Service::Shell::wget is Zef::Shell does Fetcher does Probeable does M
     }
 
     method fetch($url, $save-as) {
-        mkdir($save-as.IO.parent) unless $save-as.IO.parent.IO.e;
-        my $proc = $.zrun('wget', '--quiet', $url, '-O', $save-as, :!out, :!err);
-        $ = ?$proc ?? $save-as !! False;
+        my $cwd = $save-as.IO.parent andthen {.IO.mkdir unless .IO.e};
+        my $proc = $.zrun('wget', '-N', '-P', $cwd, '--quiet', $url, '-O', $save-as, :!out, :!err, :$cwd);
+        $proc.so ?? $save-as !! False;
     }
 }

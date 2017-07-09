@@ -76,12 +76,12 @@
             "module" : "Zef::Service::FetchPath"
         },
         {
-            "short-name" : "wget",
-            "module" : "Zef::Service::Shell::wget"
-        },
-        {
             "short-name" : "curl",
             "module" : "Zef::Service::Shell::curl"
+        },
+        {
+            "short-name" : "wget",
+            "module" : "Zef::Service::Shell::wget"
         },
         {
             "short-name" : "pswebrequest",

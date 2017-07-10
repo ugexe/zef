@@ -45,37 +45,6 @@ class Zef::Service::Shell::Build does Builder does Messenger {
 my sub legacy-build($path, :@includes, :$stderr, :$stdout) {
     my $DEBUG = ?%*ENV<ZEF_BUILDPM_DEBUG>;
 
-    my $meta-path = first *.e, $path.IO.child('META6.json'), $path.IO.child('META.info');
-    my %meta-hash = from-json($meta-path.slurp).hash;
-
-    my $builder-path = $path.IO.child('Build.pm');
-    my $legacy-code  = $builder-path.IO.slurp;
-
-    # if panda is declared as a dependency then there is no need to fix the code, although
-    # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
-    my $needs-panda = ?$legacy-code.contains('use Panda');
-    my $reqs-panda  = ?%meta-hash<depends build-depends test-depends>.grep(*.so).flatmap(*.grep(/^[:i 'panda']/));
-
-    if ?$needs-panda && !$reqs-panda {
-        $stderr.emit("`build-depends` is missing entries. Attemping to workaround via source mangling...") if $DEBUG;
-
-        my $legacy-fixer-code = q:to/END_LEGACY_FIX/;
-            class Build {
-                method isa($what) {
-                    return True if $what.^name eq 'Panda::Builder';
-                    callsame;
-                }
-            END_LEGACY_FIX
-
-        $legacy-code.subst-mutate(/'use Panda::' \w+ ';'/, '', :g);
-        $legacy-code.subst-mutate('class Build is Panda::Builder {', "{$legacy-fixer-code}\n");
-
-        try {
-            move "{$builder-path}", "{$builder-path}.bak";
-            spurt "{$builder-path}", $legacy-code;
-        }
-    }
-
     # Rakudo bug related to using path instead of module name
     # my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$path.IO.absolute}'); exit(0);";
     my $cmd = "::('Build').new.build('{$path.IO.absolute}'); exit(0);";
@@ -93,13 +62,9 @@ my sub legacy-build($path, :@includes, :$stderr, :$stdout) {
         $proc.err.Supply.tap: { $stderr.emit($_) };
 
         $exitcode = $proc.exitcode;
-    }
 
-    if my $bak = "{$builder-path}.bak" and $bak.IO.e {
-        try {
-            unlink $builder-path;
-            move $bak, $builder-path;
-        } if $bak.IO.f;
+        $proc.out.close; 
+        $proc.err.close;
     }
 
     $exitcode == 0 ?? True !! False;

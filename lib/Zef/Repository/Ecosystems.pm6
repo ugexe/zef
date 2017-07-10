@@ -28,10 +28,10 @@ class Zef::Repository::Ecosystems does Repository {
         }
     }
 
-    method update(--> Bool) {
+    method update {
         $!update-counter++;
 
-        so $!mirrors.first: -> $uri {
+        $!mirrors.first: -> $uri {
             # TODO: use the logger to send these as events
             UNDO note "!!!> Failed to update $!name mirror: $uri";
             KEEP note "===> Updated $!name mirror: $uri";
@@ -39,7 +39,7 @@ class Zef::Repository::Ecosystems does Repository {
 
             my $save-as  = $!cache.IO.child($uri.IO.basename);
             my $saved-as = try $!fetcher.fetch($uri, $save-as);
-            next unless $saved-as.e;
+            next unless $saved-as.?chars && $saved-as.IO.e;
 
             # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
             # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)
@@ -50,6 +50,8 @@ class Zef::Repository::Ecosystems does Repository {
                 self!spurt-package-list($saved-as.slurp(:bin))
             });
         }
+
+        self!gather-dists;
     }
 
     # todo: handle %fields
@@ -91,10 +93,14 @@ class Zef::Repository::Ecosystems does Repository {
         }
     }
 
+    method !is-package-list-stale {
+        return !self!package-list-path.e
+            || ($!auto-update && self!package-list-path.modified < now.DateTime.earlier(:hours($!auto-update)).Instant);
+    }
+
     # Abstraction to handle automatic updating of package list and/or local index
     method !gather-dists(--> List) {
-        # Only update once, and only update automatically if $!auto-update is enabled or no package list exists yet
-        self.update if !$!update-counter && ($!auto-update || !self!package-list-path.e);
+        self.update if !$!update-counter && self!is-package-list-stale;
         return @!dists if +@!dists;
 
         @!dists = eager gather for self!slurp-package-list -> $meta {

@@ -9,7 +9,7 @@ class Zef::Service::Shell::prove does Tester does Messenger {
             # `prove --help` has exitcode == 1 unlike most other processes
             # so it requires a more convoluted probe check
             try {
-                my $proc = run('prove', '--help', :out, :err);
+                my $proc = run('prove', '--help', :out, :!err);
                 $probe = True if $proc.exitcode == 0;
                 $probe = True if $proc.exitcode == 1 && ?$proc.out.slurp.contains("-exec" | "Mac OS X");
             }
@@ -32,6 +32,10 @@ class Zef::Service::Shell::prove does Tester does Messenger {
         $proc.out.Supply.tap: { $.stdout.emit($_) };
         $proc.err.Supply.tap: { $.stderr.emit($_) };
 
-        $proc.exitcode == 0 ?? True !! False;
+        my $result = $proc.so;
+        $proc.out.close;
+        $proc.err.close;
+
+        return $result;
     }
 }

@@ -4,7 +4,7 @@ use Zef::Utils::FileSystem;
 class Zef::Service::Shell::Test does Tester does Messenger {
     method test-matcher($path) { True }
 
-    method probe { $ = True }
+    method probe { True }
 
     method test($path, :@includes) {
         die "path does not exist: {$path}" unless $path.IO.e;
@@ -30,7 +30,11 @@ class Zef::Service::Shell::Test does Tester does Messenger {
             $proc.out.Supply.tap: { $.stdout.emit($_) };
             $proc.err.Supply.tap: { $.stderr.emit($_) };
 
-            $proc.exitcode == 0 ?? True !! False;
+            my $result = $proc.so;
+            $proc.out.close;
+            $proc.err.close;
+
+            $result;
         }
 
         return @results.all.so

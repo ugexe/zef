@@ -43,7 +43,7 @@ subtest {
 
 
 subtest {
-    my $wanted   = 'Base64';
+    my $wanted   = 'zef';
     my @mirrors  = 'git://github.com/ugexe/Perl6-ecosystems.git';
     my @backends = [
         { module => "Zef::Service::Shell::git" },
@@ -59,7 +59,7 @@ subtest {
     ok $p6c.available > 0;
 
     subtest {
-        my @candidates = $p6c.search('Base64', :strict);
+        my @candidates = $p6c.search($wanted, :strict);
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
     }, 'search';
@@ -67,8 +67,8 @@ subtest {
 
 
 subtest {
-    my $wanted   = 'P6TCI';
-    my @mirrors  = 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/667d2f0c6f9f43dfd05926c561e828b06dc2bf23/cpan.json';
+    my $wanted   = 'zef';
+    my @mirrors  = 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/11efd9077b398df3766eaa7cf8e6a9519f63c272/cpan.json';
     my @backends = [
         { module => "Zef::Service::Shell::wget" },
         { module => "Zef::Service::Shell::curl" },
@@ -82,7 +82,7 @@ subtest {
     ok $cpan.available > 0;
 
     subtest {
-        my @candidates = $cpan.search('P6TCI', :strict);
+        my @candidates = $cpan.search($wanted, :strict);
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
     }, 'search';

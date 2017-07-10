@@ -100,11 +100,11 @@ package Zef::CLI {
         );
 
         # LOCAL PATHS
-        abort "The follow were recognized as file paths and don't exist as such - {@paths.grep(!*.IO.e)}"
+        abort "The following were recognized as file paths but don't exist as such - {@paths.grep(!*.IO.e)}"
             if +@paths.grep(!*.IO.e);
         my (:@wanted-paths, :@skip-paths) := @paths\
             .classify: {$client.is-installed(Zef::Distribution::Local.new($_).identity, :at($install-to.map(*.&str2cur))) ?? <skip-paths> !! <wanted-paths>}
-        say "The following local paths candidates are already installed: {@skip-paths.join(', ')}"\
+        say "The following local path candidates are already installed: {@skip-paths.join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-paths;
         my @requested-paths = ?$force-install ?? @paths !! @wanted-paths;
         my @path-candidates = @requested-paths.map(*.&path2candidate);
@@ -420,7 +420,7 @@ package Zef::CLI {
     #| Browse a distribution's available support urls (homepage, bugtracker, source)
     multi MAIN('browse', $identity, $url-type where * ~~ any(<homepage bugtracker source>), Bool :$open = True) {
         my $client = get-client(:config($CONFIG));
-        my $candi  = $client.resolve($identity)
+        my $candi  = $client.resolve($identity).head
                 ||   $client.search($identity, :strict, :max-results(1))[0]\
                 ||   abort "!!!> Found no candidates matching identity: {$identity}";
         my %support  = $candi.dist.compat.meta<support>;

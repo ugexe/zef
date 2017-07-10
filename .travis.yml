@@ -47,21 +47,39 @@ script:
 
     # change path to make sure next `zef` commands aren't using any files in cwd or lib/
     - cd $TRAVIS_BUILD_DIR/..
+    - zef update
+
+    # test informational commands
+    - zef --help
+    - zef locate Zef::CLI
+    - zef locate lib/Zef/CLI.pm6
+    - zef browse zef bugtracker --/open
+    - zef info zef
 
     # test bells and whistles
     - zef --debug test ./zef
-    - zef --debug update
     - zef --debug search Base64
-    - zef --debug info Base64
     - zef --debug rdepends Base64
     - zef --debug fetch Base64
-    - zef --debug install Base64
+    # test installing from what `fetch` put in ::LocalCache
+    - zef --debug --/cpan --/p6c install Base64
+
     - zef --debug --max=10 list
     - zef --debug --installed list
     - zef --debug --force-install install Base64
 
+    # test tar + upgrade
     - zef --debug install http://hack.p6c.org:5001/authors/id/P/PS/PSIXDISTS/Perl6/CSV-Parser-0.000.002_1601022004.tar.gz
     - zef --debug upgrade CSV::Parser
+    - zef uninstall CSV::Parser
+
+    # test zip
+    - zef --debug install https://github.com/tony-o/perl6-csv-parser/archive/master.zip
+    - zef uninstall CSV::Parser
+
+    # test remote git repo
+    - zef --debug install https://github.com/tony-o/perl6-csv-parser.git
+    - zef uninstall CSV::Parser
 
     - zef --/confirm nuke TempDir StoreDir RootDir
     - zef update cached # test single repository update; should be 0 after previous nuke

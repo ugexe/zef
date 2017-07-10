@@ -8,9 +8,7 @@ class Zef::Service::Shell::tar does Extractor does Messenger {
     method extract-matcher($path) { so $path.lc.ends-with('.tar.gz' | '.tgz') }
 
     method probe {
-        # todo: check without spawning process (slow)
-        state $probe = try { run('tar', '--help', :out, :err).exitcode == 0 ?? True !! False };
-        ?$probe;
+        state $probe = try { run('tar', '--help', :!out, :!err).so };
     }
 
     method extract($archive-file, $save-as) {
@@ -25,18 +23,19 @@ class Zef::Service::Shell::tar does Extractor does Messenger {
         my @files    = self.list($archive-file);
         my $root-dir = $save-as.IO.child(@files[0]);
 
-        my $proc = run('tar', '-zxvf', $from, '-C', $save-as.IO.relative($cwd), :$cwd, :out, :err);
+        my $proc = run('tar', '-zxvf', $from, '-C', $save-as.IO.relative($cwd), :$cwd, :!out, :!err);
 
         my $extracted-to = $save-as.IO.child(self.list($archive-file).head);
-        ($proc.exitcode == 0 && $extracted-to.IO.e) ?? $extracted-to !! False;
+        ($proc.so && $extracted-to.IO.e) ?? $extracted-to !! False;
     }
 
     method list($archive-file) {
         my $from = $archive-file.IO.basename;
         my $cwd  = $archive-file.IO.parent;
 
-        my $proc = run('tar', '--list', '-f', $from, :$cwd, :out, :err);
-        my @extracted-paths = $proc.out.slurp(:close).lines;
-        $proc.exitcode == 0 ?? @extracted-paths.grep(*.defined) !! ();
+        my $proc = run('tar', '--list', '-f', $from, :$cwd, :out, :!err);
+        my @extracted-paths = $proc.out.lines;
+        $proc.out.close;
+        $proc.so ?? @extracted-paths.grep(*.defined) !! ();
     }
 }

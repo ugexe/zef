@@ -19,17 +19,10 @@ my role GitFetcher {
         # allow overriding the default scheme of git urls
         my $url = $!scheme ?? $orig-url.subst(/^\w+ '://'/, "{$!scheme}://") !! $orig-url;
 
-        if !$save-as.IO.e || !$save-as.IO.dir.elems {
-            my $clone-proc = run('git', 'clone', $url, $save-as.IO.absolute, :cwd($save-as.IO.parent));
-            return $save-as if $clone-proc.exitcode == 0;
-        }
+        my $clone-proc := run('git', 'clone', $url, $save-as.IO.absolute, '--quiet', :!out, :!err, :cwd($save-as.IO.parent));
+        my $pull-proc  := run('git', 'pull', '--quiet', :!out, :!err, :cwd($save-as.IO.absolute));
 
-        if $save-as.IO.e {
-            my $pull-proc  = run('git', 'pull', :cwd($save-as.IO.absolute));
-            return $save-as if $pull-proc.exitcode == 0;
-        }
-
-        return False;
+        return ($clone-proc.so || $pull-proc.so) ?? $save-as !! False;
     }
 }
 
@@ -38,8 +31,8 @@ my role GitExtractor {
     method extract-matcher($str) {
         my ($repo, $checkout) = $str.match(/^(.+?)['#' (.*)]?$/);
         return False unless $repo.IO.d;
-        my $proc = run('git', 'status', :cwd($repo));
-        $proc.exitcode == 0 ?? True !! False;
+        my $proc = run('git', 'status', :!out, :!err, :cwd($repo));
+        $proc.so ?? True !! False;
     }
 
     method extract($path, $work-tree) {
@@ -52,21 +45,23 @@ my role GitExtractor {
         die "\{$work-tree} folder does not exist and could not be created"
             unless ($work-tree.IO.d || mkdir($work-tree));
 
-        my $sha-proc = run('git', 'rev-parse', $checkout, :cwd($repo), :out, :err);
-        my $sha      = $sha-proc.out.slurp.lines.head;
+        my $sha-proc = run('git', 'rev-parse', $checkout, :cwd($repo), :out, :!err);
+        my $sha      = $sha-proc.out.slurp(:close).lines.head;
+
         my $sha-dir  = $work-tree.IO.child($sha);
         die "Failed to checkout to directory: {$sha-dir}"
             unless ($sha-dir.IO.d || mkdir($sha-dir));
 
-        my $co-proc  = run('git', '--work-tree', $sha-dir, 'checkout', $sha, '.', :cwd($repo), :out, :err);
+        my $co-proc  = run('git', '--work-tree', $sha-dir, 'checkout', $sha, '.', :cwd($repo), :!out, :!err);
 
-        ($sha-proc.exitcode == 0 && $co-proc.exitcode == 0) ?? $sha-dir.absolute !! False;
+        ($sha-proc.so && $co-proc.so) ?? $sha-dir.absolute !! False;
     }
 
     method list($repo) {
-        my $proc = $.run('git', 'ls-files', :cwd($repo), :out);
-        my @extracted-paths = $proc.out.slurp(:close).lines;
-        $proc.exitcode == 0 ?? @extracted-paths.grep(*.defined) !! ();
+        my $proc = $.run('git', 'ls-files', :cwd($repo), :out, :!err);
+        my @extracted-paths = $proc.out.lines;
+        $proc.out.close;
+        $proc.so ?? @extracted-paths.grep(*.defined) !! ();
     }
 }
 
@@ -75,7 +70,6 @@ class Zef::Service::Shell::git does Probeable does Messenger {
     also does GitExtractor;
 
     method probe {
-        state $probe = try { run('git', '--help', :out, :err).exitcode == 0 ?? True !! False };
-        ?$probe;
+        state $probe = try { run('git', '--help', :!out, :!err).so };
     }
 }

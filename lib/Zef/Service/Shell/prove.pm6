@@ -12,8 +12,12 @@ class Zef::Service::Shell::prove does Tester does Messenger {
                 my $proc = run('prove', '--help', :out, :!err);
                 my @out  = $proc.out.lines;
                 $proc.out.close;
-                $probe = True if $proc.exitcode == 0;
-                $probe = True if $proc.exitcode == 1 && @out.first(*.contains("-exec" | "Mac OS X"));
+                CATCH {
+                    when X::Proc::Unsuccessful {
+                        $probe = True if $proc.exitcode == 1 && @out.first(*.contains("-exec" | "Mac OS X"));
+                    }
+                    default { return False }
+                }
             }
         }
         ?$probe;

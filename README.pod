@@ -76,9 +76,10 @@ To install via rakudobrew, please use the following command:
 
 =head4 B<install> [*@identities]
 
-Note: The install process does not install anything until all phases have completed. So, if the user requested to C<install A>, and A required module B: both would be downloaded, potentially built, tested,
-and installed -- but only if both passed all their tests. For example: if module A failed its
-tests, then module B would not be installed (even if it passed its own tests) unless forced.
+Note: The install process does not install anything until all phases have completed. So, if the user requested to
+C<install A>, and A required module B: both would be downloaded, potentially built, tested, and installed -- but only
+if both passed all their tests. For example: if module A failed its tests, then module B would not be installed
+(even if it passed its own tests) unless forced.
 
 [C<@identities>] can take the form of a file path (starting with B<.> or B</>), URNs, URLs, paths, or identities:
 
@@ -93,6 +94,7 @@ tests, then module B would not be installed (even if it passed its own tests) un
     # URL
     zef -v install git://github.com/ugexe/zef.git
     zef -v install https://github.com/ugexe/zef/archive/master.tar.gz
+    zef -v install https://github.com/ugexe/zef.git@v0.1.22
 
     # URN
     zef install github:tony-o:CSV--Parser:0.1.2

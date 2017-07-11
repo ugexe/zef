@@ -86,7 +86,7 @@ script:
     - zef uninstall CSV::Parser
 
     # test zip
-    - zef --debug install https://github.com/ugexe/P6TCI/archive/v0.0.4.zip
+    - zef --debug install https://github.com/ugexe/Perl6-Net--HTTP/archive/master.zip
 
     # test remote git repo + tag
     - zef --debug install https://github.com/ugexe/P6TCI.git#v0.0.5

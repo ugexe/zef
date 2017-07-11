@@ -6,7 +6,7 @@ my role GitFetcher {
 
     # FETCH (clone/pull) INTERFACE
     method fetch-matcher($url) {
-        return $url.starts-with('git://' | 'http' | 'ssh') && $url.path.match(/'.git'[\/|\#.*?]?$/);
+        return $url.starts-with('git://' | 'git+ssh://' | 'http' | 'ssh') && $url.path.match(/'.git'[\/|\#.*?]?$/);
     }
 
     multi method fetch($orig-url, $save-as) {

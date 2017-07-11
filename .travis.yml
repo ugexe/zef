@@ -89,7 +89,7 @@ script:
     - zef --debug install https://github.com/ugexe/Perl6-Net--HTTP/archive/master.zip
 
     # test remote git repo + tag
-    - zef --debug install https://github.com/ugexe/P6TCI.git#v0.0.5
+    - zef --debug install https://github.com/ugexe/Perl6-Text--Table--Simple.git@v0.0.4
 
     - zef --/confirm nuke TempDir StoreDir RootDir
     - zef update cached # test single repository update; should be 0 after previous nuke

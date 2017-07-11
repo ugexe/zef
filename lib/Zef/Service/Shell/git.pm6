@@ -5,16 +5,16 @@ my role GitFetcher {
     has $.scheme;
 
     # FETCH (clone/pull) INTERFACE
-    method fetch-matcher($url) {
-        return $url.starts-with('git://' | 'git+ssh://' | 'http' | 'ssh') && $url.path.match(/'.git'[\/|\#.*?]?$/);
+    method fetch-matcher($orig-url) {
+        my $url = $.repo-url($orig-url);
+        return $url.starts-with('git' | 'http' | 'ssh') && $url.ends-with('.git');
     }
 
     multi method fetch($orig-url, $save-as) {
-        # allow overriding the default scheme of git urls
-        my ($url, $checkout) = |($!scheme ?? $orig-url.subst(/^\w+ '://'/, "{$!scheme}://") !! $orig-url).match(/^(.*?)[\/|\#(.*?)]?$/);
-
+        my $url      = $.repo-url($orig-url);
+        my $checkout = $.repo-checkout($orig-url);
         my $clone-proc := zrun('git', 'clone', $url, $save-as.IO.absolute, '--quiet', :!out, :!err, :cwd($save-as.IO.parent));
-        my $pull-proc  := zrun('git', 'pull', '--quiet', :!out, :!err, :cwd($save-as.IO.absolute));
+        my $pull-proc  := zrun('git', 'fetch', '--quiet', :!out, :!err, :cwd($save-as.IO.absolute));
 
         return ($clone-proc.so || $pull-proc.so) ?? $save-as !! False;
     }
@@ -23,14 +23,14 @@ my role GitFetcher {
 my role GitExtractor {
     # EXTRACT (checkout) interface
     method extract-matcher($str) {
-        my ($repo, $checkout) = |$str.match(/^(.*?)[\/|\#(.*?)]?$/);
         return False unless $str.IO.d;
         my $proc = zrun('git', 'status', :!out, :!err, :cwd($str));
         $proc.so;
     }
 
     method extract($path, $work-tree) {
-        my ($repo, $checkout) = |$path.match(/^(.*?)[\/|\#(.*?)]?$/)|| return False;
+        my $repo     = $.repo-url($path);
+        my $checkout = $.repo-checkout($path);
         $checkout = $checkout.?chars ?? $checkout !! 'HEAD';
         return False unless $path.IO.d && $path.IO.child('.git').d;
 
@@ -67,5 +67,16 @@ class Zef::Service::Shell::git does Probeable does Messenger {
 
     method probe {
         state $probe = try { run('git', '--help', :!out, :!err).so };
+    }
+
+    method repo-url($url) {
+        my $uri = uri($!scheme ?? $url.subst(/^\w+ '://'/, "{$!scheme}://") !! $url) || return False; #'
+        ($uri.scheme // '') ~ '://' ~ ($uri.host // '') ~ ($uri.path // '').subst(/\@.*[\/|\@|\?|\#]?/, '');
+    }
+
+    method repo-checkout($url) {
+        my $uri      = uri($url) || return False;
+        my $checkout = ($uri.path // '').match(/\@(.*)[\/|\@|\?|\#]?/)[0];
+        return $checkout ?? $checkout.Str !! 'HEAD';
     }
 }

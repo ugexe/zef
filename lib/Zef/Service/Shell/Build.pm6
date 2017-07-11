@@ -60,11 +60,11 @@ my sub legacy-build($path, :@includes, :$stderr, :$stdout) {
         # So if someone has a problem with a Build.pm they should try with and without --debug
         # (the problem this avoids is a stdout/stderr buffer race condition in pre-2017.06 rakudo)
         if !$DEBUG {
-            my $proc = run(|@exec, :cwd($path), :!out, :!err);
+            my $proc = zrun(|@exec, :cwd($path), :!out, :!err);
             return $proc.so;
         }
         else {
-            my $proc = run(|@exec, :cwd($path), :out, :err);
+            my $proc = zrun(|@exec, :cwd($path), :out, :err);
             $proc.out.Supply.tap: { $stdout.emit($_) };
             $proc.err.Supply.tap: { $stderr.emit($_) };
             $proc.out.close;

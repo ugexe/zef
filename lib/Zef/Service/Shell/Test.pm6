@@ -25,7 +25,7 @@ class Zef::Service::Shell::Test does Tester does Messenger {
             my @new-p6lib  = $path.IO.child('lib').absolute, |@includes;
             $env<PERL6LIB> = (|@new-p6lib, |@cur-p6lib).join($*DISTRO.cur-sep);
 
-            my $proc = run(:cwd($path), :$env, :out, :err,
+            my $proc = zrun(:cwd($path), :$env, :out, :err,
                 $*EXECUTABLE.absolute, $relpath);
             $proc.out.Supply.tap: { $.stdout.emit($_) };
             $proc.err.Supply.tap: { $.stderr.emit($_) };

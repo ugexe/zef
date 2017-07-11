@@ -9,7 +9,7 @@ class Zef::Service::Shell::prove does Tester does Messenger {
             # `prove --help` has exitcode == 1 unlike most other processes
             # so it requires a more convoluted probe check
             try {
-                my $proc = run('prove', '--help', :out, :!err);
+                my $proc = zrun('prove', '--help', :out, :!err);
                 my @out  = $proc.out.lines;
                 $proc.out.close;
                 CATCH {
@@ -33,7 +33,7 @@ class Zef::Service::Shell::prove does Tester does Messenger {
         my @new-p6lib  = $path.IO.child('lib').absolute, |@includes;
         $env<PERL6LIB> = (|@new-p6lib, |@cur-p6lib).join($*DISTRO.cur-sep);
 
-        my $proc = run(:cwd($path), :$env, :out, :err,
+        my $proc = zrun(:cwd($path), :$env, :out, :err,
             'prove', '-r', '-e', $*EXECUTABLE.absolute, $test-path.relative($path) );
         $proc.out.Supply.tap: { $.stdout.emit($_) };
         $proc.err.Supply.tap: { $.stderr.emit($_) };

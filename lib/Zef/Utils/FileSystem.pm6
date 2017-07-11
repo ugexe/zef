@@ -21,6 +21,7 @@ sub copy-paths($from-path, $to-path, Bool :$d, Bool :$f = True, Bool :$r = True,
         my $from-relpath = $from-file.relative($from-path);
         my $to-file      = IO::Path.new($from-relpath, :CWD($to-path)).absolute;
         mkdir($to-file.IO.parent) unless $to-file.IO.e;
+        next if $from-file eq $to-file; # copy deadlocks on older rakudos otherwise
         take $to-file.IO.absolute if copy($from-file, $to-file);
     }
 }

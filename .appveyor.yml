@@ -64,7 +64,7 @@ test_script:
     - zef --debug upgrade CSV::Parser
 
     # test zip
-    - zef --debug install https://github.com/ugexe/Perl6-Net--HTTP/archive/master.zip
+    - zef --debug install https://github.com/ugexe/Perl6-Text--Table--Simple/archive/v0.0.3.zip
 
     # test remote git repo + tag
     - zef --debug install https://github.com/ugexe/Perl6-Text--Table--Simple.git@v0.0.4

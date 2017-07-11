@@ -39,7 +39,7 @@ class Zef::Repository::Ecosystems does Repository {
 
             my $save-as  = $!cache.IO.child($uri.IO.basename);
             my $saved-as = try $!fetcher.fetch($uri, $save-as);
-            next unless $saved-as.e;
+            next unless $saved-as.?chars && $saved-as.IO.e;
 
             # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
             # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)

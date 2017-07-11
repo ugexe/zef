@@ -72,7 +72,7 @@ class Zef::Repository::LocalCache does Repository {
     # identities installed, keep a cache of anything installed (how its used here), etc
     method store(*@new --> Bool) {
         for @new.unique(:as(*.identity)).map(*.IO.parent.IO).unique -> $from {
-            try copy-paths( $from, $.cache.IO.add($from.basename) )
+            try copy-paths( $from, $.cache.IO.child($from.basename) )
         }
         self!update;
     }

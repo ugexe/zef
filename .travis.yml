@@ -6,20 +6,24 @@ os:
 
 env:
     - BACKEND=moar
+    - BACKEND=moar-2017.05
     - BACKEND=jvm
 
 matrix:
     allow_failures:
+        - env: BACKEND=moar-2017.05
         - env: BACKEND=jvm
     fast_finish: true
 
 sudo: false
 
 before_install:
-    - 'if [[ $BACKEND == "moar" ]]; then export VM_OPTS="--gen-moar"; fi'
     - git clone https://github.com/rakudo/rakudo.git $HOME/rakudo
     - cd $HOME/rakudo
-    - perl Configure.pl $VM_OPTS --gen-nqp --backends=$BACKEND
+    - 'if [[ $BACKEND == "moar" ]];         then export OPTS="--gen-moar --gen-nqp --backends=moar"; fi'
+    - 'if [[ $BACKEND == "moar-2017.05" ]]; then export OPTS="--gen-moar --gen-nqp --backends=moar"; git checkout "2017.05"; fi'
+    - 'if [[ $BACKEND == "jvm" ]];          then export OPTS="--gen-nqp --backends=jvm"; fi'
+    - perl Configure.pl $OPTS
     - make install
     - export PATH=$HOME/rakudo/install/bin:$PATH
     - export ZEF_PLUGIN_DEBUG=1
@@ -36,11 +40,19 @@ script:
     - perl6 -Ilib xt/repository.t
     - perl6 -Ilib xt/install.t
 
+    # test explicitly via `prove t/*` and `perl6 t/foo.t && perl6 t/bar.t`
+    # both should work, since all our CI envs have prove
+    - perl6 -Ilib bin/zef --debug --/tap-harness --/prove --perl6-test  test .
+    - perl6 -Ilib bin/zef --debug --/tap-harness --prove  --/perl6-test test .
+
     # run relative local path test + install
     - perl6 -Ilib bin/zef --debug install .
 
     # test uninstall
     - perl6 -Ilib bin/zef uninstall zef
+
+    # run relative local path test + install
+    - perl6 -Ilib bin/zef --debug install .
 
     # run absolute local path test + install
     - perl6 -Ilib bin/zef install $TRAVIS_BUILD_DIR

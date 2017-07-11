@@ -16,7 +16,6 @@
         "Zef::Identity" : "lib/Zef/Identity.pm6",
         "Zef::Test"     : "lib/Zef/Test.pm6",
         "Zef::Fetch"    : "lib/Zef/Fetch.pm6",
-        "Zef::Shell"    : "lib/Zef/Shell.pm6",
         "Zef::Report"   : "lib/Zef/Report.pm6",
 
         "Zef::Repository"             : "lib/Zef/Repository.pm6",

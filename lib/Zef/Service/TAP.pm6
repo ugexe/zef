@@ -4,7 +4,7 @@ use Zef::Utils::FileSystem;
 class Zef::Service::TAP does Tester does Messenger {
     method test-matcher($path) { True }
 
-    method probe { state $probe = (try require TAP) !~~ Nil ?? True !! False }
+    method probe { state $probe = (try require TAP::Harness) !~~ Nil ?? True !! False }
 
     method test($path, :@includes) {
         die "path does not exist: {$path}" unless $path.IO.e;

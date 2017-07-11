@@ -1,8 +1,7 @@
 use Zef;
-use Zef::Shell;
 use Zef::Utils::FileSystem;
 
-class Zef::Service::Shell::Build is Zef::Shell does Builder does Messenger {
+class Zef::Service::Shell::Build does Builder does Messenger {
     method build-matcher($path) { $path.IO.child("Build.pm").e }
 
     method probe { True }
@@ -46,73 +45,31 @@ class Zef::Service::Shell::Build is Zef::Shell does Builder does Messenger {
 my sub legacy-build($path, :@includes, :$stderr, :$stdout) {
     my $DEBUG = ?%*ENV<ZEF_BUILDPM_DEBUG>;
 
-    my $meta-path = first *.e, $path.IO.child('META6.json'), $path.IO.child('META.info');
-    my %meta-hash = from-json($meta-path.slurp).hash;
-
-    my $builder-path = $path.IO.child('Build.pm');
-    my $legacy-code  = $builder-path.IO.slurp;
-
-    # if panda is declared as a dependency then there is no need to fix the code, although
-    # it would still be wise for the author to change their code as outlined in $legacy-fixer-code
-    my $needs-panda = ?$legacy-code.contains('use Panda');
-    my $reqs-panda  = ?%meta-hash<depends build-depends test-depends>.grep(*.so).flatmap(*.grep(/^[:i 'panda']/));
-
-    if ?$needs-panda && !$reqs-panda {
-        $stderr.emit("`build-depends` is missing entries. Attemping to workaround via source mangling...") if $DEBUG;
-
-        my $legacy-fixer-code = q:to/END_LEGACY_FIX/;
-            class Build {
-                method isa($what) {
-                    return True if $what.^name eq 'Panda::Builder';
-                    callsame;
-                }
-            END_LEGACY_FIX
-
-        $legacy-code.subst-mutate(/'use Panda::' \w+ ';'/, '', :g);
-        $legacy-code.subst-mutate('class Build is Panda::Builder {', "{$legacy-fixer-code}\n");
-
-        try {
-            move "{$builder-path}", "{$builder-path}.bak";
-            spurt "{$builder-path}", $legacy-code;
-        }
-    }
-
     # Rakudo bug related to using path instead of module name
     # my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$path.IO.absolute}'); exit(0);";
     my $cmd = "::('Build').new.build('{$path.IO.absolute}'); exit(0);";
 
-    my $result;
-    try {
-        use Zef::Shell;
-        CATCH { default { $result = False; } }
-
+    return try {
         # see: https://github.com/ugexe/zef/issues/93
         # my @exec = |($*EXECUTABLE, '-Ilib', '-I.', |@cl-includes, '-e', "$cmd");
         my @exec = |($*EXECUTABLE, '-Ilib', '-I.', '-MBuild', |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
 
         $stdout.emit("Command: {@exec.join(' ')}") if $DEBUG;
 
-        my $proc = zrun(|@exec, :cwd($path), :out, :err);
-
-        # Build phase can freeze up based on the order of these 2 assignments
-        # This is a rakudo bug with an unknown cause, so may still occur based on the process's output
-        my @out = $proc.out.lines;
-        my @err = $proc.err.lines;
-
-        $ = $proc.out.close unless +@err;
-        $ = $proc.err.close;
-        $result = ?$proc;
-
-        $stdout.emit(@out.join("\n")) if +@out;
-        $stderr.emit(@err.join("\n")) if +@err;
+        # A workaround where, if --debug is not used, we don't bother setting up handles for :out and :err.
+        # So if someone has a problem with a Build.pm they should try with and without --debug
+        # (the problem this avoids is a stdout/stderr buffer race condition in pre-2017.06 rakudo)
+        if !$DEBUG {
+            my $proc = zrun(|@exec, :cwd($path), :!out, :!err);
+            return $proc.so;
+        }
+        else {
+            my $proc = zrun(|@exec, :cwd($path), :out, :err);
+            $proc.out.Supply.tap: { $stdout.emit($_) };
+            $proc.err.Supply.tap: { $stderr.emit($_) };
+            $proc.out.close;
+            $proc.err.close;
+            return $proc.so;
+        }
     }
-
-    if my $bak = "{$builder-path}.bak" and $bak.IO.e {
-        try {
-            unlink $builder-path;
-            move $bak, $builder-path;
-        } if $bak.IO.f;
-    }
-
-    $ = ?$result;
 }

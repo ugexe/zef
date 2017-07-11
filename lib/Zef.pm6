@@ -2,6 +2,8 @@ class Zef { }
 
 our $PRE-DIST-INTERFACE is export = ::("Distribution::Hash") ~~ Failure;
 
+sub zrun(*@_, *%_) is export { run (($*DISTRO.is-win ?? <cmd.exe /x/d/c>.Slip !! ''), @_).grep(*.?chars), |%_ }
+
 # rakudo must be able to parse json, so it doesn't
 # make sense to require a dependency to parse it
 sub from-json($text) is export {

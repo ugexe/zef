@@ -6,7 +6,6 @@ subtest {
     use-ok("Zef");
     # Just `use Zef::CLI` will make it output usage
     # use-ok("Zef::CLI");
-    use-ok("Zef::Shell");
     use-ok("Zef::Build");
     use-ok("Zef::Config");
     use-ok("Zef::Extract");

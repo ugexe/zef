@@ -11,8 +11,7 @@ my role GitFetcher {
     }
 
     multi method fetch($orig-url, $save-as) {
-        my $url      = $.repo-url($orig-url);
-        my $checkout = $.repo-checkout($orig-url);
+        my $url = $.repo-url($orig-url);
         my $clone-proc := zrun('git', 'clone', $url, $save-as.IO.absolute, '--quiet', :!out, :!err, :cwd($save-as.IO.parent));
         my $pull-proc  := zrun('git', 'fetch', '--quiet', :!out, :!err, :cwd($save-as.IO.absolute));
 
@@ -29,9 +28,6 @@ my role GitExtractor {
     }
 
     method extract($path, $work-tree) {
-        my $repo     = $.repo-url($path);
-        my $checkout = $.repo-checkout($path);
-        $checkout = $checkout.?chars ?? $checkout !! 'HEAD';
         return False unless $path.IO.d && $path.IO.child('.git').d;
 
         die "repo directory does not exist: {$path}"
@@ -39,6 +35,7 @@ my role GitExtractor {
         die "\{$work-tree} folder does not exist and could not be created"
             unless ($work-tree.IO.d || mkdir($work-tree));
 
+        my $checkout = $.repo-checkout($path);
         my $sha-proc = zrun('git', 'rev-parse', $checkout, :cwd($path), :out, :!err);
         my @out      = $sha-proc.out.lines;
         $sha-proc.out.close;
@@ -53,8 +50,9 @@ my role GitExtractor {
         ($sha-proc.so && $co-proc.so) ?? $sha-dir.absolute !! False;
     }
 
-    method list($repo) {
-        my $proc = zrun('git', 'ls-files', :cwd($repo), :out, :!err);
+    method list($path) {
+        my $checkout = $.repo-checkout($path);
+        my $proc     = zrun('git', 'ls-tree', '-r', '--name-only', $checkout, :cwd($path), :out, :!err);
         my @extracted-paths = $proc.out.lines;
         $proc.out.close;
         $proc.so ?? @extracted-paths.grep(*.defined) !! ();

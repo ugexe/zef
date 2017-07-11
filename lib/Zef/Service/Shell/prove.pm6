@@ -10,8 +10,10 @@ class Zef::Service::Shell::prove does Tester does Messenger {
             # so it requires a more convoluted probe check
             try {
                 my $proc = run('prove', '--help', :out, :!err);
+                my @out  = $proc.out.lines;
+                $proc.out.close;
                 $probe = True if $proc.exitcode == 0;
-                $probe = True if $proc.exitcode == 1 && ?$proc.out.slurp.contains("-exec" | "Mac OS X");
+                $probe = True if $proc.exitcode == 1 && @out.first(*.contains("-exec" | "Mac OS X"));
             }
         }
         ?$probe;
@@ -31,11 +33,9 @@ class Zef::Service::Shell::prove does Tester does Messenger {
             'prove', '-r', '-e', $*EXECUTABLE.absolute, $test-path.relative($path) );
         $proc.out.Supply.tap: { $.stdout.emit($_) };
         $proc.err.Supply.tap: { $.stderr.emit($_) };
-
-        my $result = $proc.so;
         $proc.out.close;
         $proc.err.close;
 
-        return $result;
+        $proc.so;
     }
 }

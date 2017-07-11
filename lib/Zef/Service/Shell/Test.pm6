@@ -29,12 +29,10 @@ class Zef::Service::Shell::Test does Tester does Messenger {
                 $*EXECUTABLE.absolute, $relpath);
             $proc.out.Supply.tap: { $.stdout.emit($_) };
             $proc.err.Supply.tap: { $.stderr.emit($_) };
-
-            my $result = $proc.so;
             $proc.out.close;
             $proc.err.close;
 
-            $result;
+            $proc.so;
         }
 
         return @results.all.so

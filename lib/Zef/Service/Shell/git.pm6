@@ -47,8 +47,9 @@ my role GitExtractor {
 
         my $sha-proc = zrun('git', 'rev-parse', $checkout, :cwd($repo), :out, :!err);
         my @out      = $sha-proc.out.lines;
-        my $sha      = @out[0];
+        $sha-proc.out.close;
 
+        my $sha      = @out[0];
         my $sha-dir  = $work-tree.IO.child($sha);
         die "Failed to checkout to directory: {$sha-dir}"
             unless ($sha-dir.IO.d || mkdir($sha-dir));

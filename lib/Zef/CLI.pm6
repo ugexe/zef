@@ -241,7 +241,7 @@ package Zef::CLI {
                     .dist.name         eq $candi.dist.name
                 &&  .dist.auth-matcher eq $candi.dist.auth-matcher
             });
-            (($latest-installed.dist.ver cmp $candi.dist.ver) === Order::More) ?? <upgradable> !! <current>;
+            ((Version.new($latest-installed.dist.ver) cmp Version.new($candi.dist.ver)) === Order::Less) ?? <upgradable> !! <current>;
         }
         abort "The following distributions are already at their latest versions: {@current.map(*.dist.identity).join(', ')}" if +@current;
         abort "All requested distributions are already at their latest versions" unless +@upgradable;

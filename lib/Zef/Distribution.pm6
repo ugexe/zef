@@ -15,8 +15,8 @@ class Distribution::DEPRECATED {
     has %.provides;
     has %.files;
     has $.source-url;
-    method auth { $!auth // $!author // $!authority }
-    method ver  { $!ver // $!version }
+    method auth { with $!auth // $!author // $!authority { .Str } else { Nil } }
+    method ver  { with $!ver // $!version { .Str } else { Nil } }
     method hash {
         {
             :$!name,

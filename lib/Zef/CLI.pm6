@@ -252,7 +252,7 @@ package Zef::CLI {
         say "===> Updating: " ~ @sorted-candidates.map(*.dist.identity).join(', ');
         my (:@upgraded, :@failed) := @sorted-candidates.map(*.uri).classify: -> $uri {
             my &*EXIT = sub ($code) { return $code == 0 ?? True !! False };
-            try &MAIN('install', $uri) ?? <upgraded> !! <failed>;
+            try { &MAIN('install', $uri) } ?? <upgraded> !! <failed>;
         }
         abort "!!!> Failed upgrading *all* modules" unless +@upgraded;
 

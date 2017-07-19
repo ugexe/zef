@@ -42,9 +42,21 @@ class Zef::Distribution::DependencySpecification {
         }
 
         if $spec.version-matcher.chars && $spec.version-matcher ne '*' {
+            my $spec-version = Version.new($spec.version-matcher);
+            my $self-version = Version.new($.version-matcher);
+
+            # Normalize the parts between version so that Version ~~ Version works in the way we need
+            # Example: for `0.1 ~~ 0.1.1` we want `0.1.0` ~~ `0.1.1`
+            my $self-add-parts = $spec-version.parts.elems - $self-version.parts.elems;
+            $self-version = Version.new( (|$self-version.parts, |(0 xx $self-add-parts), ("+" if $self-version.plus)).join('.') )
+                if $self-add-parts > 0;
+            my $spec-add-parts = $self-version.parts.elems - $spec-version.parts.elems;
+            $spec-version = Version.new( (|$spec-version.parts, |(0 xx $spec-add-parts), ("+" if $spec-version.plus)).join('.') )
+                if $spec-add-parts;
+
             return False unless ?$.version-matcher
                 && $.version-matcher ne '*'
-                && Version.new($.version-matcher) ~~ Version.new($spec.version-matcher);
+                && $self-version ~~ $spec-version;
         }
         if $spec.auth-matcher.chars {
             return False unless $.auth-matcher.chars && $spec.auth-matcher eq $.auth-matcher;

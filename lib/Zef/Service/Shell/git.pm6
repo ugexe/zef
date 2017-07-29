@@ -22,9 +22,9 @@ class Zef::Service::Shell::git does Probeable does Messenger {
     multi method fetch($orig-url, $save-as) {
         my $url = self!repo-url($orig-url);
         my $clone-proc := zrun('git', 'clone', $url, $save-as.IO.absolute, '--quiet', :!out, :!err, :cwd($save-as.IO.parent));
-        my $fetch-proc := zrun('git', 'fetch', '--quiet', :!out, :!err, :cwd($save-as.IO.absolute));
+        my $pull-proc  := zrun('git', 'pull', '--quiet', :!out, :!err, :cwd($save-as.IO.absolute));
 
-        return ($clone-proc.so || $fetch-proc.so) ?? $save-as !! False;
+        return ($clone-proc.so || $pull-proc.so) ?? $save-as !! False;
     }
 
     method extract($path, $work-tree) {

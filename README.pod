@@ -15,7 +15,7 @@ Perl6 Module Management
 
     $ git clone https://github.com/ugexe/zef.git
     $ cd zef
-    $ perl6 -Ilib bin/zef install .
+    $ perl6 -I. bin/zef install .
 
 =head4 Rakudobrew
 
@@ -379,13 +379,13 @@ Second, third, and fourth we look at the path pointed to by `%?RESOURCES<config.
 
 =item * The prefix of a rakudo installation location - This is the case if the modules loaded for bin/zef come from an installation CompUnit::Repository.
 
-=item * The current working directory C<$*CWD> - This is the case when modules loaded for bin/zef come from a non-installation CompUnit::Repository (such as C<-I $lib>).
+=item * The current working directory C<$*CWD> - This is the case when modules loaded for bin/zef come from a non-installation CompUnit::Repository (such as C<-I $dist-path>).
 
 To understand how this is chosen, consider:
 
     # Modules not loaded from an ::Installation,
     # so %?RESOURCES is $*CWD/resources
-    $ perl6 -Ilib bin/zef --help
+    $ perl6 -I. bin/zef --help
     ...
     CONFIGURATION /home/user/perl6/zef/resources/config.json
     ...
@@ -407,7 +407,7 @@ To summarize:
 
 =item * You can edit the C<resources/config.json> file before you install zef.
 
-When you C<perl6 -Ilib bin/zef install .> that configuration file be be used to install zef and will also be installed with zef such that it will be the default.
+When you C<perl6 -I. bin/zef install .> that configuration file be be used to install zef and will also be installed with zef such that it will be the default.
 
 =item * You can create a C<%configE<lt>RootDirE<gt>/config.json> file.
 

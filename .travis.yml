@@ -37,25 +37,25 @@ install:
 
 script:
     # run xtests
-    - perl6 -Ilib xt/repository.t
-    - perl6 -Ilib xt/install.t
+    - perl6 -I. xt/repository.t
+    - perl6 -I. xt/install.t
 
     # test explicitly via `prove t/*` and `perl6 t/foo.t && perl6 t/bar.t`
     # both should work, since all our CI envs have prove
-    - perl6 -Ilib bin/zef --debug --/tap-harness --/prove --perl6-test  test .
-    - perl6 -Ilib bin/zef --debug --/tap-harness --prove  --/perl6-test test .
+    - perl6 -I. bin/zef --debug --/tap-harness --/prove --perl6-test  test .
+    - perl6 -I. bin/zef --debug --/tap-harness --prove  --/perl6-test test .
 
     # run relative local path test + install
-    - perl6 -Ilib bin/zef --debug install .
+    - perl6 -I. bin/zef --debug install .
 
     # test uninstall
-    - perl6 -Ilib bin/zef uninstall zef
+    - perl6 -I. bin/zef uninstall zef
 
     # run relative local path test + install
-    - perl6 -Ilib bin/zef --debug install .
+    - perl6 -I. bin/zef --debug install .
 
     # run absolute local path test + install
-    - perl6 -Ilib bin/zef install $TRAVIS_BUILD_DIR
+    - perl6 -I. bin/zef install $TRAVIS_BUILD_DIR
 
     # change path to make sure next `zef` commands aren't using any files in cwd or lib/
     - cd $TRAVIS_BUILD_DIR/..

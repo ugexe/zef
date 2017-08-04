@@ -46,7 +46,7 @@ class Zef::Service::TAP does Tester does Messenger {
             chdir($path);
             $*OUT = OUT_CAPTURE.new;
             $*ERR = ERR_CAPTURE.new;
-            my @incdirs  = $path.IO.child('lib').absolute, |@includes;
+            my @incdirs  = $path.IO.absolute, $path.IO.child('lib').absolute, |@includes;
             my @handlers = ::("TAP::Harness::SourceHandler::Perl6").new(:@incdirs);
             my $parser   = ::("TAP::Harness").new(:@handlers);
             my $promise  = $parser.run(@test-files>>.relative($path));

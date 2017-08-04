@@ -22,7 +22,7 @@ class Zef::Service::Shell::Test does Tester does Messenger {
 
             my $env = %*ENV;
             my @cur-p6lib  = $env<PERL6LIB>.?chars ?? $env<PERL6LIB>.split($*DISTRO.cur-sep) !! ();
-            my @new-p6lib  = $path.IO.child('lib').absolute, |@includes;
+            my @new-p6lib  = $path.IO.absolute, $path.IO.child('lib').absolute, |@includes;
             $env<PERL6LIB> = (|@new-p6lib, |@cur-p6lib).join($*DISTRO.cur-sep);
 
             my $proc = zrun(:cwd($path), :$env, :out, :err,

@@ -2,6 +2,7 @@ use Zef;
 use Zef::Distribution;
 use Zef::Distribution::Local;
 use Zef::Repository;
+use Zef::Utils::FileSystem;
 
 use Zef::Fetch;
 use Zef::Extract;
@@ -273,14 +274,15 @@ class Zef::Client {
                     !! die("Aborting due to extract failure: {$candi.dist.?identity // $candi.uri} (use --force-extract to override)");
             }
             else {
+                try { delete-paths($candi.uri) }
+
                 self.logger.emit({
-                    level   => DEBUG,
+                    level   => VERBOSE,
                     stage   => EXTRACT,
                     phase   => AFTER,
                     payload => $candi,
                     message => "Extraction [OK]: {$candi.as} to {$extract-to}",
                 });
-
             }
 
             $candi.uri = $extracted-to;

@@ -16,5 +16,4 @@
 ## Your Environment
 <!--- Show the output from the following commands to tell us more about your environment -->
 * perl6 -v
-* perl6 -e "say $*VM.config<os>"
-* zef info zef
+* zef list --installed

@@ -276,6 +276,7 @@ package Zef::CLI {
     #| Lookup locally installed distributions by short-name, name-path, or sha1 id
     multi MAIN('locate', $identity, Bool :$sha1) is export {
         my $client = get-client(:config($CONFIG));
+        my $not-first = False;
         if !$sha1 {
             if $identity.ends-with('.pm' | '.pm6') {
                 my @candis = $client.list-installed.grep({
@@ -284,7 +285,8 @@ package Zef::CLI {
 
                 for @candis -> $candi {
                     LAST exit 0;
-                    NEXT say '';
+                    NEXT $not-first = True if not $not-first;
+                    say '' if $not-first;
 
                     if $candi {
                         my $libs = $candi.dist.compat.meta<provides>;
@@ -301,7 +303,8 @@ package Zef::CLI {
 
                 for @candis -> $candi {
                     LAST exit 0;
-                    NEXT say '';
+                    NEXT $not-first = True if not $not-first;
+                    say '' if $not-first;
 
                     if $candi {
                         my $libs = $candi.dist.compat.meta<files>;
@@ -315,9 +318,10 @@ package Zef::CLI {
             elsif $client.resolve($identity) -> @candis {
                 for @candis -> $candi {
                     LAST exit 0;
-                    NEXT say '';
+                    NEXT $not-first = True if not $not-first;
+                    say '' if $not-first;
 
-                    say "===> From Distribution: {~$candi.dist}";
+                    say "===> From Distribution: '{~$candi.dist}'";
                     my $source-prefix = $candi.from.prefix.child('sources');
                     my $source-path   = $source-prefix.child($candi.dist.compat.meta<provides>{$identity}.values[0]<file> // '');
                     say "{$identity} => {$source-path}" if $source-path.IO.f;
@@ -334,7 +338,8 @@ package Zef::CLI {
 
             for @candis -> $candi {
                 LAST exit 0;
-                NEXT say '';
+                NEXT $not-first = True if not $not-first;
+                say '' if $not-first;
 
                 if $candi {
                     say "===> From Distribution: {~$candi.dist}";

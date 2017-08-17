@@ -201,7 +201,7 @@ class Zef::Client {
                 message => "Fetching: {$candi.as}",
             });
 
-            my $tmp      = $!config<TempDir>.IO;
+            my $tmp      = $!config<TempDir>.IO.child("{time}.{$*PID}.{(^10000).pick(1)}");
             my $stage-at = $tmp.child($candi.uri.IO.basename);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
@@ -251,8 +251,8 @@ class Zef::Client {
                 message => "Extracting: {$candi.as}",
             });
 
-            my $tmp        = $!config<TempDir>.IO;
-            my $stage-at   = $tmp.child($candi.uri.IO.basename);
+            my $tmp        = $candi.uri.parent;
+            my $stage-at   = $candi.uri;
             my $relpath    = $stage-at.relative($tmp);
             my $extract-to = $!cache.IO.child($relpath);
             die "failed to create directory: {$tmp.absolute}"
@@ -274,7 +274,7 @@ class Zef::Client {
                     !! die("Aborting due to extract failure: {$candi.dist.?identity // $candi.uri} (use --force-extract to override)");
             }
             else {
-                try { delete-paths($candi.uri) }
+                try { delete-paths($tmp) }
 
                 self.logger.emit({
                     level   => VERBOSE,

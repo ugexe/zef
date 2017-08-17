@@ -51,9 +51,6 @@ script:
     # test uninstall
     - perl6 -I. bin/zef uninstall zef
 
-    # run relative local path test + install
-    - perl6 -I. bin/zef --debug install .
-
     # run absolute local path test + install
     - perl6 -I. bin/zef install $TRAVIS_BUILD_DIR
 

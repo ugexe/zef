@@ -1,45 +1,48 @@
 unit module Zef::Utils::FileSystem;
 
-sub list-paths($path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot) is export {
-    die "{$path} is not a valid path" unless ?$path && +$path.?chars;
-    die "{$path} does not exists" unless $path.IO.e;
-    my @stack = $path.IO.f ?? $path !! dir($path);
-    my $paths := gather while ( @stack ) {
-        my $current = @stack.pop;
-        next if $current.IO.basename.starts-with('.') && !$dot;
-        take $current.IO if ($current.IO.f && ?$f) || ($current.IO.d && ?$d);
-        @stack.append(dir($current)>>.path) if ?$r && $current.IO.d;
+sub list-paths(IO() $path!, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot) is export {
+    die "{$path} does not exists" unless $path.e;
+    my &wanted-paths := -> @_ { grep { .basename.starts-with('.') && !$dot ?? 0 !! 1 }, @_ }
+
+    gather {
+        my @stack = $path.f ?? $path !! dir($path);
+        while @stack.splice -> @paths {
+            for wanted-paths(@paths) -> IO() $current {
+                take $current if ($current.f && ?$f) || ($current.d && ?$d);
+                @stack.append(dir($current)) if ?$r && $current.d;
+            }
+        }
     }
 }
 
-sub copy-paths($from-path, $to-path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot) is export {
-    die "{$from-path} is not a valid path" unless ?$from-path && +$from-path.?chars;
+sub copy-paths(IO() $from-path!, IO() $to-path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot) is export {
     die "{$from-path} does not exists" unless $from-path.IO.e;
-    mkdir($to-path) unless $to-path.IO.e;
-    my @files  = list-paths($from-path, :$d, :$f, :$r, :$dot).sort;
-    my @copied = gather for @files -> $from-file {
+    mkdir($to-path) unless $to-path.e;
+
+    eager gather for list-paths($from-path, :$d, :$f, :$r, :$dot).sort -> $from-file {
         my $from-relpath = $from-file.relative($from-path);
-        my $to-file      = IO::Path.new($from-relpath, :CWD($to-path)).absolute;
-        mkdir($to-file.IO.parent) unless $to-file.IO.e;
+        my $to-file      = IO::Path.new($from-relpath, :CWD($to-path));
+        mkdir($to-file.parent) unless $to-file.e;
         next if $from-file eq $to-file; # copy deadlocks on older rakudos otherwise
-        take $to-file.IO.absolute if copy($from-file, $to-file);
+        take $to-file if copy($from-file, $to-file);
     }
 }
 
-sub move-paths($from-path, $to-path, Bool :$d = True, Bool :$f = True, Bool :$r = True, Bool :$dot) is export {
+sub move-paths(IO() $from-path, IO() $to-path, Bool :$d = True, Bool :$f = True, Bool :$r = True, Bool :$dot) is export {
     my @copied  = copy-paths($from-path, $to-path, :$d, :$f, :$r, :$dot);
     my @deleted = delete-paths($from-path, :$d, :$f, :$r, :$dot);
     @copied;
 }
 
-sub delete-paths($path, Bool :$d = True, Bool :$f = True, Bool :$r = True, Bool :$dot = True) is export {
-    my @paths   = list-paths($path, :$d, :$f, :$r, :$dot).unique(:as(*.absolute));
-    my @files   = @paths.grep(*.f);
-    my @dirs    = @paths.grep(*.d);
-    $path.IO.f ?? @files.push($path.IO) !! @dirs.push($path.IO);
-    my @deleted = do gather {
-        for @files.sort(*.chars).reverse { unlink($_) && take $_ }
-        for @dirs\.sort(*.chars).reverse { rmdir($_)  && take $_ }
+sub delete-paths(IO() $path, Bool :$d = True, Bool :$f = True, Bool :$r = True, Bool :$dot = True) is export {
+    my @paths = list-paths($path, :$d, :$f, :$r, :$dot).unique(:as(*.absolute));
+    my @files = @paths.grep(*.f);
+    my @dirs  = @paths.grep(*.d);
+    $path.f ?? @files.push($path.IO) !! @dirs.push($path.IO);
+
+    eager gather {
+        for @files.sort(*.chars).reverse { take $_ if try unlink($_) }
+        for @dirs\.sort(*.chars).reverse { take $_ if try rmdir($_) }
     }
 }
 

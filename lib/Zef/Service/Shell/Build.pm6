@@ -49,27 +49,19 @@ my sub legacy-build($path, :@includes, :$stderr, :$stdout) {
     # my $cmd = "require <{$builder-path.basename}>; ::('Build').new.build('{$path.IO.absolute}'); exit(0);";
     my $cmd = "::('Build').new.build('{$path.IO.absolute}'); exit(0);";
 
-    return try {
-        # see: https://github.com/ugexe/zef/issues/93
-        # my @exec = |($*EXECUTABLE, '-Ilib', '-I.', |@cl-includes, '-e', "$cmd");
-        my @exec = |($*EXECUTABLE, '-Ilib', '-I.', '-MBuild', |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
+    # see: https://github.com/ugexe/zef/issues/93
+    # my @exec = |($*EXECUTABLE, '-Ilib', '-I.', |@cl-includes, '-e', "$cmd");
+    my @exec = |($*EXECUTABLE, '-Ilib', '-I.', '-MBuild', |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
 
-        $stdout.emit("Command: {@exec.join(' ')}") if $DEBUG;
+    $stdout.emit("Command: {@exec.join(' ')}") if $DEBUG;
 
-        # A workaround where, if --debug is not used, we don't bother setting up handles for :out and :err.
-        # So if someone has a problem with a Build.pm they should try with and without --debug
-        # (the problem this avoids is a stdout/stderr buffer race condition in pre-2017.06 rakudo)
-        if !$DEBUG {
-            my $proc = zrun(|@exec, :cwd($path), :!out, :!err);
-            return $proc.so;
-        }
-        else {
-            my $proc = zrun(|@exec, :cwd($path), :out, :err);
-            $proc.out.Supply.tap: { $stdout.emit($_) };
-            $proc.err.Supply.tap: { $stderr.emit($_) };
-            $proc.out.close;
-            $proc.err.close;
-            return $proc.so;
-        }
+    my $ENV := %*ENV;
+    my $passed;
+    react {
+        my $proc = zrun-async(@exec);
+        whenever $proc.stdout { $stdout.emit($_.chomp) }
+        whenever $proc.stderr { $stderr.emit($_.chomp) }
+        whenever $proc.start(:$ENV, :cwd($path)) { $passed = $_.so }
     }
+    return $passed;
 }

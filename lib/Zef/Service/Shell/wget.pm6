@@ -7,9 +7,20 @@ class Zef::Service::Shell::wget does Fetcher does Probeable does Messenger {
         state $probe = try { zrun('wget', '--help', :!out, :!err).so };
     }
 
-    method fetch($url, $save-as) {
-        my $cwd = $save-as.IO.parent andthen { .mkdir unless .e };
-        my $proc = zrun('wget', '-N', '-P', $cwd, '--quiet', $url, '-O', $save-as, :!out, :!err, :$cwd);
-        $proc.so ?? $save-as !! False;
+    method fetch($url, IO() $save-as) {
+        die "target download directory {$save-as.parent} does not exist and could not be created"
+            unless $save-as.parent.d || mkdir($save-as.parent);
+
+        my $passed;
+        react {
+            my $cwd := $save-as.parent;
+            my $ENV := %*ENV;
+            my $proc = zrun-async('wget', '-N', '-P', $cwd, '--quiet', $url, '-O', $save-as.absolute);
+            whenever $proc.stdout { }
+            whenever $proc.stderr { }
+            whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
+        }
+
+        ($passed && $save-as.e) ?? $save-as !! False;
     }
 }

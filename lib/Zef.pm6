@@ -2,7 +2,9 @@ class Zef { }
 
 our $PRE-DIST-INTERFACE is export = ::("Distribution::Hash") ~~ Failure;
 
-sub zrun(*@_, *%_) is export { run (($*DISTRO.is-win ?? <cmd.exe /x/d/c>.Slip !! ''), @_).grep(*.?chars), |%_ }
+my @zrun-invoke = BEGIN $*DISTRO.is-win ?? <cmd.exe /x/d/c>.Slip !! '';
+sub zrun(*@_, *%_) is export { run (|@zrun-invoke, |@_).grep(*.?chars), |%_ }
+sub zrun-async(*@_, *%_) is export { Proc::Async.new( (|@zrun-invoke, |@_).grep(*.?chars), |%_ ) }
 
 # rakudo must be able to parse json, so it doesn't
 # make sense to require a dependency to parse it

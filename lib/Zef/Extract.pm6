@@ -16,7 +16,7 @@ class Zef::Extract does Pluggable {
             ~   "You may need to configure one of the following backends, or install its underlying software - [{@report_disabled}]";
         }
 
-        my $got = first *.IO.e, grep *.defined, gather for $extractors -> $extractor {
+        my $got = first *.IO.e, gather for $extractors -> $extractor {
             if ?$logger {
                 $logger.emit({ level => DEBUG, stage => EXTRACT, phase => START, payload => self, message => "Extracting with plugin: {$extractor.^name}" });
                 $extractor.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, message => $out }) }
@@ -27,7 +27,7 @@ class Zef::Extract does Pluggable {
 
             $extractor.stdout.done;
             $extractor.stderr.done;
-            take $out;
+            take $out if $out.?chars;
         }
 
         die "something went wrong extracting {$path} to {$extract-to} with {$.plugins.join(',')}" unless $got;

@@ -11,31 +11,41 @@ class Zef::Service::Shell::tar does Extractor does Messenger {
         state $probe = try { zrun('tar', '--help', :!out, :!err).so };
     }
 
-    method extract($archive-file, $save-as) {
-        my $from = $archive-file.IO.basename;
-        my $cwd  = $archive-file.IO.parent;
+    method extract(IO() $archive-file, IO() $extract-to) {
+        die "archive file does not exist: {$archive-file.absolute}"
+            unless $archive-file.e && $archive-file.f;
+        die "target extraction directory {$extract-to.absolute} does not exist and could not be created"
+            unless ($extract-to.e && $extract-to.d) || mkdir($extract-to);
 
-        die "archive file does not exist: {$from}"
-            unless $archive-file.IO.e && $archive-file.IO.f;
-        die "target extraction directory {$save-as} does not exist and could not be created"
-            unless (($save-as.IO.e && $save-as.IO.d) || mkdir($save-as));
+        my $passed;
+        react {
+            my $cwd := $archive-file.parent;
+            my $ENV := %*ENV;
+            my $proc = zrun-async('tar', '-zxvf', $archive-file.basename, '-C', $extract-to.relative($cwd));
+            whenever $proc.stdout { }
+            whenever $proc.stderr { }
+            whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
+        }
 
-        my @files    = self.list($archive-file);
-        my $root-dir = $save-as.IO.child(@files[0]);
-
-        my $proc = zrun('tar', '-zxvf', $from, '-C', $save-as.IO.relative($cwd), :$cwd, :!out, :!err);
-
-        my $extracted-to = $save-as.IO.child(self.list($archive-file).head);
-        ($proc.so && $extracted-to.IO.e) ?? $extracted-to !! False;
+        my $extracted-to = $extract-to.child(self.list($archive-file).head);
+        ($passed && $extracted-to.e) ?? $extracted-to !! False;
     }
 
-    method list($archive-file) {
-        my $from = $archive-file.IO.basename;
-        my $cwd  = $archive-file.IO.parent;
+    method list(IO() $archive-file) {
+        die "archive file does not exist: {$archive-file.absolute}"
+            unless $archive-file.e && $archive-file.f;
 
-        my $proc = zrun('tar', '--list', '-f', $from, :$cwd, :out, :!err);
-        my @extracted-paths = $proc.out.lines;
-        $proc.out.close;
-        $proc.so ?? @extracted-paths.grep(*.defined) !! ();
+        my $passed;
+        my @extracted-paths;
+        react {
+            my $cwd := $archive-file.parent;
+            my $ENV := %*ENV;
+            my $proc = zrun-async('tar', '--list', '-f', $archive-file.basename);
+            whenever $proc.stdout { @extracted-paths.append(.lines) }
+            whenever $proc.stderr { }
+            whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
+        }
+
+        $passed ?? @extracted-paths.grep(*.defined) !! ();
     }
 }

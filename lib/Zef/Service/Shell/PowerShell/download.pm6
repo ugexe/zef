@@ -5,9 +5,21 @@ class Zef::Service::Shell::PowerShell::download is Zef::Service::Shell::PowerShe
     method fetch-matcher($url) { $ = $url.lc.starts-with('http://' | 'https://') }
     method probe { nextsame }
 
-    method fetch($url, $save-as) {
-        mkdir($save-as.IO.parent) unless $save-as.IO.parent.IO.e;
-        my $proc = zrun(|@.invocation, %?RESOURCES<scripts/win32http.ps1>.IO.absolute, $url, $save-as.IO.absolute, :!out, :!err);
-        $proc.so ?? $save-as !! False;
+    method fetch($url, IO() $save-as) {
+        die "target download directory {$save-as.parent} does not exist and could not be created"
+            unless $save-as.parent.d || mkdir($save-as.parent);
+
+        my $passed;
+        react {
+            my $cwd := $save-as.IO.parent;
+            my $ENV := %*ENV;
+            my $script := %?RESOURCES<scripts/win32http.ps1>.IO.absolute;
+            my $proc = zrun-async(|@.ps-invocation, $script, $url, $save-as.absolute);
+            whenever $proc.stdout { }
+            whenever $proc.stderr { }
+            whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
+        }
+
+        ($passed && $save-as.IO.e) ?? $save-as !! False;
     }
 }

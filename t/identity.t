@@ -109,8 +109,8 @@ subtest {
     ok ?str2identity("***not valid***");
 
     subtest {
-        my $expected  = "Net::HTTP:ver('1.0+'):auth('github:ugexe')";
-        my $require   = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
+        my $expected  = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
+        my $require   = "Net::HTTP:ver('v1.0+'):auth<github:ugexe>";
         my $urn       = "github:ugexe:Net--HTTP:1.0+";
         my $i-require = str2identity($require);
         my $i-urn     = str2identity($urn);
@@ -158,5 +158,5 @@ subtest {
 
     my $i-require = hash2identity(%hash);
 
-    is $i-require, "Net::HTTP:ver('1.0+'):auth('github:ugexe')";
+    is $i-require, "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
 }, 'hash2identity';

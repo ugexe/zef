@@ -260,7 +260,46 @@ package Zef::CLI {
         exit +@upgraded < +@upgradable ?? 1 !! 0;
     }
 
-    #| View reverse dependencies of a distribution
+    #| View dependencies of a distribution
+    multi MAIN(
+        'depends',
+        $identity,
+        Bool :$depends       = True,
+        Bool :$test-depends  = True,
+        Bool :$build-depends = True,
+    ) {
+        # TODO: refactor this stuff which was copied from 'install'
+        # So really we just need a function to handle separating the different identity types
+        # and optionally delivering a message for each section.
+        my @wants = ($identity,).map: *.&str2identity;
+        my (:@paths, :@uris, :@identities) := @wants.classify: -> $wanted {
+            $wanted ~~ /^[\. | \/]/                                           ?? <paths>
+                !! ?Zef::Identity($wanted)                                    ?? <identities>
+                !! (my $uri = Zef::Utils::URI($wanted) and !$uri.is-relative) ?? <uris>
+                !! abort("Don't understand identity: {$wanted}");
+        }
+        my $client = Zef::Client.new(:config($CONFIG), :$depends, :$test-depends, :$build-depends,);
+
+        abort "The following were recognized as file paths but don't exist as such - {@paths.grep(!*.IO.e)}"
+            if +@paths.grep(!*.IO.e);
+        my @path-candidates = @paths.map(*.&path2candidate);
+
+        my @uri-candidates-to-check = $client.fetch( |@uris.map({ Candidate.new(:as($_), :uri($_)) }) ) if +@uris;
+        abort "No candidates found matching uri: {@uri-candidates-to-check.join(', ')}" if +@uris && +@uri-candidates-to-check == 0;
+        my @uri-candidates = @uri-candidates-to-check.grep: { $_ ~~ none(@path-candidates.map(*.dist.identity)) }
+
+        my @requested-identities = @identities.grep: { $_ ~~ none(@uri-candidates.map(*.dist.identity)) }
+        my @requested = |$client.find-candidates(@requested-identities) if +@requested-identities;
+        abort "No candidates found matching identity: {@requested-identities.join(', ')}"\
+            if +@requested-identities && +@requested == 0;
+
+        my @prereqs = |$client.find-prereq-candidates(:!skip-installed, |@path-candidates, |@uri-candidates, |@requested)\
+            if +@path-candidates || +@uri-candidates || +@requested;
+
+        .say for @prereqs.map(*.dist.identity);
+    }
+
+    #| View direct reverse dependencies of a distribution
     multi MAIN(
         'rdepends',
         $identity,
@@ -578,6 +617,7 @@ package Zef::CLI {
                 info                    Show detailed distribution information
                 browse                  Open browser to various support urls (homepage, bugtracker, source)
                 list                    List known available distributions, or installed distributions with `--installed`
+                depends                 List all direct and transitive dependencies for a given identity
                 rdepends                List all distributions directly depending on a given identity
                 locate                  Lookup installed module information by short-name, name-path, or sha1 (with --sha1 flag)
                 smoke                   Run smoke testing on available modules

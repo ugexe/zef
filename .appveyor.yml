@@ -51,6 +51,7 @@ test_script:
     - zef --debug test ./zef
     - zef --debug search Base64
     - zef --debug rdepends Base64
+    - zef --debug depends Cro::SSL
     - zef --debug fetch Base64
     # test installing from what `fetch` put in ::LocalCache
     - zef --debug --/cpan --/p6c install Base64

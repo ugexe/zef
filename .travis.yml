@@ -6,12 +6,12 @@ os:
 
 env:
     - BACKEND=moar
-    - BACKEND=moar-2017.05
+    - BACKEND=moar-2017.06
     - BACKEND=jvm
 
 matrix:
     allow_failures:
-        - env: BACKEND=moar-2017.05
+        - env: BACKEND=moar-2017.06
         - env: BACKEND=jvm
     fast_finish: true
 
@@ -21,7 +21,7 @@ before_install:
     - git clone https://github.com/rakudo/rakudo.git $HOME/rakudo
     - cd $HOME/rakudo
     - 'if [[ $BACKEND == "moar" ]];         then export OPTS="--gen-moar --gen-nqp --backends=moar"; fi'
-    - 'if [[ $BACKEND == "moar-2017.05" ]]; then export OPTS="--gen-moar --gen-nqp --backends=moar"; git checkout "2017.05"; fi'
+    - 'if [[ $BACKEND == "moar-2017.06" ]]; then export OPTS="--gen-moar --gen-nqp --backends=moar"; git checkout "2017.05"; fi'
     - 'if [[ $BACKEND == "jvm" ]];          then export OPTS="--gen-nqp --backends=jvm"; fi'
     - perl Configure.pl $OPTS
     - make install
@@ -69,6 +69,7 @@ script:
     - zef --debug test ./zef
     - zef --debug search Base64
     - zef --debug rdepends Base64
+    - zef --debug depends Cro::SSL
     - zef --debug fetch Base64
     # test installing from what `fetch` put in ::LocalCache
     - zef --debug --/cpan --/p6c install Base64

@@ -254,6 +254,15 @@ B<Options>
     # Additionally list the modules of discovered distributions
     -v
 
+=head4 B<depends> [$identity]
+
+List direct and transitive dependencies to the first successful build graph for C<$identity>
+
+    $ zef depends Cro::SSL
+    Cro::Core:ver('0.7')
+    IO::Socket::Async::SSL:ver('0.3')
+    OpenSSL:ver('0.1.14'):auth('github:sergot')
+
 =head4 B<rdepends> [$identity]
 
 List available distributions that directly depend on C<$identity>

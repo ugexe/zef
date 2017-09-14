@@ -109,7 +109,7 @@ class Zef::Client {
             .unique(:as(*.dist.identity));
     }
 
-    method find-prereq-candidates(Bool :$upgrade, *@candis ($, *@)) {
+    method find-prereq-candidates(Bool :$skip-installed = True, Bool :$upgrade, *@candis ($, *@)) {
         my @skip = @candis.map(*.dist);
 
         my $prereqs := gather {
@@ -126,7 +126,7 @@ class Zef::Client {
 
                 next unless my @needed = @specs-batch\               # The current set of specs
                     .grep({ not @skip.first(*.contains-spec($_)) })\ # Dists in @skip are not needed
-                    .grep({ not self.is-installed($_)            }); # Installed dists are not needed
+                    .grep({ $skip-installed ?? self.is-installed($_).not !! True });
                 my @identities = @needed.map(*.identity);
                 self.logger.emit({
                     level   => INFO,

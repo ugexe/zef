@@ -1,9 +1,10 @@
-param (
-    [string]$file = $(throw "-file is required."),
-    [string]$out
+Param (
+    [Parameter(Mandatory=$True)] [string]$FilePath,
+    $out = ""
 )
 $shell = New-Object -com shell.application
-$zip = $shell.NameSpace($file)
+$FilePath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($FilePath)
+$items = $shell.NameSpace($FilePath).items()
 
 function List-ZipFiles {
     $ns = $shell.NameSpace($args[0])
@@ -12,17 +13,15 @@ function List-ZipFiles {
             List-ZipFiles($item)
         } else {
             $path = $item | Select -ExpandProperty Path
-            Write-Host($path)
+            Write-Host $path
         }
     }
 }
 
 if( $out -ne '' ) {
-    $items = $zip.items()
     $to = $shell.NameSpace($out)
     $to.CopyHere($items, 0x14)
 } else {
-    $items = $zip.items()
     $path = $items | Select -ExpandProperty Path
     Write-Host $path
     List-ZipFiles $path

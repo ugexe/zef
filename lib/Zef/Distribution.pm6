@@ -56,8 +56,7 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     # attach arbitrary data, like for topological sort, that won't be saved on install
     has %.metainfo is rw;
 
-    method BUILDALL(|) {
-        my $self = callsame;
+    method TWEAK(--> Nil) {
         # Distribution.new(|%meta6) causes fields like `"depends": [1, 2, 3]` to
         # get assigned such that `Distribution.depends.perl` -> `([1,2,3])` instead
         # of just `[1, 2, 3]`. Because its nice to pass in |%meta to the constructor
@@ -66,7 +65,6 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
         @!test-depends  = @!test-depends.flatmap(*.flat);
         @!build-depends = @!build-depends.flatmap(*.flat);
         @!resources     = @!resources.flatmap(*.flat);
-        $self;
     }
 
     # make matching dependency names against a dist easier

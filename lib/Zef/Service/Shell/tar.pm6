@@ -22,12 +22,13 @@ class Zef::Service::Shell::tar does Extractor does Messenger {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
             my $proc = zrun-async('tar', '-zxvf', $archive-file.basename, '-C', $extract-to.relative($cwd));
-            whenever $proc.stdout { }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
-        my $extracted-to = $extract-to.child(self.list($archive-file).head);
+        my $meta6-prefix = self.list($archive-file).sort.first({ .IO.basename eq 'META6.json' });
+        my $extracted-to = $extract-to.child($meta6-prefix);
         ($passed && $extracted-to.e) ?? $extracted-to !! False;
     }
 
@@ -36,16 +37,17 @@ class Zef::Service::Shell::tar does Extractor does Messenger {
             unless $archive-file.e && $archive-file.f;
 
         my $passed;
-        my @extracted-paths;
+        my $output = Buf.new;
         react {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
             my $proc = zrun-async('tar', '--list', '-f', $archive-file.basename);
-            whenever $proc.stdout { @extracted-paths.append(.lines) }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { $output.append($_) }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
+        my @extracted-paths = $output.decode.lines;
         $passed ?? @extracted-paths.grep(*.defined) !! ();
     }
 }

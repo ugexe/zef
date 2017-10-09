@@ -18,12 +18,13 @@ class Zef::Service::Shell::unzip does Extractor does Messenger {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
             my $proc = zrun-async('unzip', '-o', '-qq', $archive-file.basename, '-d', $extract-to.absolute);
-            whenever $proc.stdout { }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
-        my $extracted-to = $extract-to.child(self.list($archive-file).head);
+        my $meta6-prefix = self.list($archive-file).sort.first({ .IO.basename eq 'META6.json' });
+        my $extracted-to = $extract-to.child($meta6-prefix);
         ($passed && $extracted-to.e) ?? $extracted-to !! False;
     }
 
@@ -32,16 +33,17 @@ class Zef::Service::Shell::unzip does Extractor does Messenger {
             unless $archive-file.e && $archive-file.f;
 
         my $passed;
-        my @extracted-paths;
+        my $output = Buf.new;
         react {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
             my $proc = zrun-async('unzip', '-Z', '-1', $archive-file.basename);
-            whenever $proc.stdout { @extracted-paths.append(.lines) }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { $output.append($_) }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
+        my @extracted-paths = $output.decode.lines;
         $passed ?? @extracted-paths.grep(*.defined) !! ();
     }
 }

@@ -16,8 +16,8 @@ class Zef::Service::Shell::wget does Fetcher does Probeable does Messenger {
             my $cwd := $save-as.parent;
             my $ENV := %*ENV;
             my $proc = zrun-async('wget', '-N', '-P', $cwd, '--quiet', $url, '-O', $save-as.absolute);
-            whenever $proc.stdout { }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 

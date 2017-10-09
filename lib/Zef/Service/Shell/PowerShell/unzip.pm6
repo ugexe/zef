@@ -22,7 +22,8 @@ class Zef::Service::Shell::PowerShell::unzip is Zef::Service::Shell::PowerShell 
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
-        my $extracted-to = $extract-to.child(self.list($archive-file).head);
+        my $meta6-prefix = self.list($archive-file).sort.first({ .IO.basename eq 'META6.json' }).IO.dirname;
+        my $extracted-to = $extract-to.child($meta6-prefix);
         ($passed && $extracted-to.e) ?? $extracted-to !! False;
     }
 

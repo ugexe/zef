@@ -16,8 +16,8 @@ class Zef::Service::Shell::curl does Fetcher does Probeable does Messenger {
             my $cwd := $save-as.parent;
             my $ENV := %*ENV;
             my $proc = zrun-async('curl', '--silent', '-L', '-z', $save-as.absolute, '-o', $save-as.absolute, $url);
-            whenever $proc.stdout { }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 

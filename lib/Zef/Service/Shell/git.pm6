@@ -43,16 +43,17 @@ class Zef::Service::Shell::git does Probeable does Messenger {
             unless $repo-path.child('.git').d;
 
         my $passed;
-        my @extracted-paths;
+        my $output = Buf.new;
         react {
             my $cwd := $repo-path.absolute;
             my $ENV := %*ENV;
             my $proc = zrun-async('git', 'ls-tree', '-r', '--name-only', self!checkout-name($repo-path));
-            whenever $proc.stdout { @extracted-paths.append(.lines) }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { $output.append($_) }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
+        my @extracted-paths = $output.decode.lines;
         $passed ?? @extracted-paths.grep(*.defined) !! ();
     }
 
@@ -65,8 +66,8 @@ class Zef::Service::Shell::git does Probeable does Messenger {
             my $cwd := $save-as.parent;
             my $ENV := %*ENV;
             my $proc = zrun-async('git', 'clone', $url, $save-as.basename, '--quiet');
-            whenever $proc.stdout { }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
@@ -82,8 +83,8 @@ class Zef::Service::Shell::git does Probeable does Messenger {
             my $cwd := $repo-path.absolute;
             my $ENV := %*ENV;
             my $proc = zrun-async('git', 'pull', '--quiet');
-            whenever $proc.stdout { }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
@@ -99,8 +100,8 @@ class Zef::Service::Shell::git does Probeable does Messenger {
             my $cwd := $repo-path.absolute;
             my $ENV := %*ENV;
             my $proc = zrun-async('git', 'fetch', '--quiet');
-            whenever $proc.stdout { }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
@@ -113,8 +114,8 @@ class Zef::Service::Shell::git does Probeable does Messenger {
             my $cwd := $repo-path.absolute;
             my $ENV := %*ENV;
             my $proc = zrun-async('git', '--work-tree', $extract-to, 'checkout', $target, '.');
-            whenever $proc.stdout { }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
@@ -126,16 +127,17 @@ class Zef::Service::Shell::git does Probeable does Messenger {
             unless $save-as.child('.git').d;
 
         my $passed;
-        my @extracted-refs;
+        my $output = Buf.new;
         react {
             my $cwd := $save-as.absolute;
             my $ENV := %*ENV;
             my $proc = zrun-async('git', 'rev-parse', self!checkout-name($save-as));
-            whenever $proc.stdout { @extracted-refs.append(.lines) }
-            whenever $proc.stderr { }
+            whenever $proc.stdout(:bin) { $output.append($_) }
+            whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
+        my @extracted-refs = $output.decode.lines;
         $passed ?? @extracted-refs.grep(*.defined) !! ();
     }
 

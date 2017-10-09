@@ -4,7 +4,7 @@ class Zef::Report does Pluggable does Reporter {
     method report($dist, Supplier :$logger) {
         my $reporters := self.plugins.grep(*.so).cache;
 
-        my $reports := $reporters.map: -> $reporter {
+        my @reports = $reporters.map: -> $reporter {
             if ?$logger {
                 $logger.emit({ level => DEBUG, stage => REPORT, phase => START, payload => self, message => "Reporting with plugin: {$reporter.^name}" });
                 $reporter.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => REPORT, phase => LIVE, message => $out }) }
@@ -19,6 +19,6 @@ class Zef::Report does Pluggable does Reporter {
             $report;
         }
 
-        $reports;
+        return @reports.grep(*.defined);
     }
 }

@@ -224,7 +224,10 @@ package Zef::CLI {
     multi MAIN('upgrade', :to(:$install-to) = $CONFIG<DefaultCUR>, *@identities) is export {
         abort "Upgrading requires rakudo 2016.04 or later" unless try &*EXIT;
 
-        # XXX: This is a very inefficient prototype inefficient
+        # XXX: This is a very inefficient prototype. Not sure how to handle an 'upgrade' when
+        # multiple versions are already installed, so for now an 'upgrade' always means we
+        # leave the previous version installed.
+
         my $client = get-client(:config($CONFIG));
 
         my @missing = @identities.grep: { not $client.is-installed($_) };
@@ -237,14 +240,13 @@ package Zef::CLI {
             ?? |$client.find-candidates(|@identities.map(*.&str2identity))
             !! |$client.find-candidates(|@installed.map(*.dist.clone(ver => "*")).map(*.identity).unique);
         my (:@upgradable, :@current) := @requested.classify: -> $candi {
-            my $latest-installed = @installed.first({
-                    .dist.name         eq $candi.dist.name
-                &&  .dist.auth-matcher eq $candi.dist.auth-matcher
-            });
+            my $latest-installed = @installed.grep({ .dist.name eq $candi.dist.name })\
+                .sort({ .dist.auth-matcher ne $candi.dist.auth-matcher }).head; # this is to handle auths that changed. need to find a better way...
+            next() R, note "Unsure how to update '{$candi.dist.identity}'" unless $latest-installed;
             ((Version.new($latest-installed.dist.ver) cmp Version.new($candi.dist.ver)) === Order::Less) ?? <upgradable> !! <current>;
         }
-        abort "The following distributions are already at their latest versions: {@current.map(*.dist.identity).join(', ')}" if +@current;
         abort "All requested distributions are already at their latest versions" unless +@upgradable;
+        say "The following distributions will be upgraded: {@upgradable.map(*.dist.identity).join(', ')}";
 
         # Sort these ahead of time so they can be installed individually by passing
         # the .uri instead of the identities (which would require another search)

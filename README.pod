@@ -226,10 +226,10 @@ B<Options>
 List known available distributions
 
     $ zef --installed list
-    ===> Found via /home/nickl/.rakudobrew/moar-nom/install/share/perl6/site
+    ===> Found via /home/nickl/.rakudobrew/moar-master/install/share/perl6/site
     CSV::Parser:ver('0.1.2'):auth('github:tony-o')
     Zef:auth('github:ugexe')
-    ===> Found via /home/nickl/.rakudobrew/moar-nom/install/share/perl6
+    ===> Found via /home/nickl/.rakudobrew/moar-master/install/share/perl6
     CORE:ver('6.c'):auth('perl')
 
 Note that not every Repository may provide such a list, and such lists may only

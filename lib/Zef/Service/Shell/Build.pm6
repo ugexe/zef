@@ -59,8 +59,8 @@ my sub legacy-build($path, :@includes, :$stderr, :$stdout) {
     my $passed;
     react {
         my $proc = zrun-async(@exec);
-        whenever $proc.stdout { $stdout.emit($_.chomp) }
-        whenever $proc.stderr { $stderr.emit($_.chomp) }
+        whenever $proc.stdout.lines { $stdout.emit($_) }
+        whenever $proc.stderr.lines { $stderr.emit($_) }
         whenever $proc.start(:$ENV, :cwd($path)) { $passed = $_.so }
     }
     return $passed;

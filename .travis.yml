@@ -6,12 +6,10 @@ os:
 
 env:
     - BACKEND=moar
-    - BACKEND=moar-2017.06
     - BACKEND=jvm
 
 matrix:
     allow_failures:
-        - env: BACKEND=moar-2017.06
         - env: BACKEND=jvm
     fast_finish: true
 
@@ -21,7 +19,6 @@ before_install:
     - git clone https://github.com/rakudo/rakudo.git $HOME/rakudo
     - cd $HOME/rakudo
     - 'if [[ $BACKEND == "moar" ]];         then export OPTS="--gen-moar --gen-nqp --backends=moar"; fi'
-    - 'if [[ $BACKEND == "moar-2017.06" ]]; then export OPTS="--gen-moar --gen-nqp --backends=moar"; git checkout "2017.05"; fi'
     - 'if [[ $BACKEND == "jvm" ]];          then export OPTS="--gen-nqp --backends=jvm"; fi'
     - perl Configure.pl $OPTS
     - make install

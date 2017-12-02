@@ -376,7 +376,7 @@ class Zef::Client {
                     ?? say('Failed to get passing tests, but continuing with --force-test')
                     !! die("Aborting due to test failure: {$candi.dist.?identity // $candi.uri // $candi.test-results } (use --force-test to override)");
 
-                die "Aborting due to test failure: {$candi.dist.?identity // $candi.as} "
+                die "Aborting due to test failure: {$candi.dist.?identity // $candi.as // $candi.test-results} "
                 ~   "(use --force-test to override)" unless ?$!force-test;
             }
             else {

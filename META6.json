@@ -3,7 +3,7 @@
     "name"        : "zef",
     "version"     : "0.1.32",
     "auth"        : "github:ugexe",
-    "description" : "It's like [cpanm] wearing high heels with a tracksuit",
+    "description" : "A Perl 6 module manager",
     "license"     : "Artistic-2.0",
     "depends"     : [ ],
     "provides"    : {

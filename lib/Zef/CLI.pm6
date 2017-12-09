@@ -596,6 +596,62 @@ package Zef::CLI {
         exit 0;
     }
 
+    #| Create META6.json with sensible defaults
+    multi MAIN('init') {
+	if "META6.json".IO.e {
+	    say "'META6.json' already exists";
+	    exit 255;
+	}
+	# Find out if we are in a git directory
+	say "===> Generating META6.json";
+	my $auth = "";
+	my $server = "";
+	my $source-url = "";
+	if ".git/config".IO.e {
+	    my $git-config = ".git/config".IO.slurp;
+	    $source-url = ($git-config ~~  m{ \[remote \s+ \"origin\"\] \s+ url \s+ \= \s+ <(\S*)> });
+        }
+	    
+	if $source-url {
+	    say "===> Found source-url → $source-url";
+        }	
+
+	given $source-url {
+	      when "" { proceed }
+      	      when /\.com/ { ($server,$auth) = ($source-url ~~ /(\w+).com.(\w+)\//).list;  }
+      	      default { $auth = ($source-url ~~ m{\.\w+\/(\w+)\/}) }	
+	}
+	# " Closes quotes to allow syntax hiliting in emacs
+	my $meta-json = qq:to/END/;
+\{
+    "authors" : [
+	"Your name"
+    ],
+    "build-depends" : [ ],
+    "description" : "Give a description",
+    "name" : "Your Name",
+    "auth" : "{$server}:{$auth}",
+    "license" : "Provide a License",
+    "perl" : "6",
+    "provides" : \{ "Module": "lib/Module.pm6"  },
+    "tags" : [],
+    "resources" : [ ],
+    "source-url" : "{$source-url}",
+    "depends" : [
+    ],
+    "test-depends"  : [
+        "Test",
+        "Test::META"
+    ],
+    "version" : "0.0.3"
+}
+END
+
+        spurt("META6.json",$meta-json);	
+        say "Now edit META6.json to change defaults and add it to the repo";
+        exit 0;
+    }
+
     multi MAIN(Bool :h(:$help)?) {
         note qq:to/END_USAGE/
             Zef - Perl6 Module Management

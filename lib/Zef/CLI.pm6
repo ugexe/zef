@@ -680,7 +680,8 @@ END
                 locate                  Lookup installed module information by short-name, name-path, or sha1 (with --sha1 flag)
                 smoke                   Run smoke testing on available modules
                 nuke                    Delete directory/prefix containing matching configuration path or CURLI name
-
+                init                    Creates META6.json using information from repo
+		
             OPTIONS
 
                 --install-to=[name]     Short name or spec of CompUnit::Repository to install to

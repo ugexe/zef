@@ -72,6 +72,9 @@ To install via rakudobrew, please use the following command:
     # launch browser to named support urls from meta data
     zef browse zef bugtracker
 
+    # Create META6.json using git repo info
+    zef init
+
 =head2 More CLI
 
 =head4 B<install> [*@identities]
@@ -278,6 +281,11 @@ Fetches candidates for given identities
 =head4 B<test> [*@paths]
 
 Run tests on each distribution located at [C<@paths>]
+
+=head4 B<init> 
+
+Run from the main directory in a distribution, generates C<META6.json>
+using information from the repository configuration.
 
 =head4 B<build> [*@paths]
 

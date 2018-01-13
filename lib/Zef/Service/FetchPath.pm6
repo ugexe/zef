@@ -24,7 +24,7 @@ class Zef::Service::FetchPath does Fetcher does Messenger does Extractor {
         +@extracted ?? $extracted-to !! False;
     }
 
-    method list($path) {
+    method ls-files($path) {
         $ = list-paths($path, :f, :!d, :r);
     }
 }

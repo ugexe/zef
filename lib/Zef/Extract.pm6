@@ -6,17 +6,7 @@ class Zef::Extract does Pluggable {
         die "Can't extract non-existent path: {$path}" unless $path.IO.e;
         die "Can't extract to non-existent path: {$extract-to}" unless $extract-to.IO.e || $extract-to.IO.mkdir;
 
-        my $extractors := self.plugins.grep(*.extract-matcher($path)).cache;
-
-        unless +$extractors {
-            my @report_enabled  = self.plugins.map(*.short-name);
-            my @report_disabled = self.backends.map(*.<short-name>).grep({ $_ ~~ none(@report_enabled) });
-
-            die "Enabled extracting backends [{@report_enabled}] don't understand $path\n"
-            ~   "You may need to configure one of the following backends, or install its underlying software - [{@report_disabled}]";
-        }
-
-        my $got = first *.IO.e, gather for $extractors -> $extractor {
+        my $extractors = self!extractors($path).map(-> $extractor {
             if ?$logger {
                 $logger.emit({ level => DEBUG, stage => EXTRACT, phase => START, payload => self, message => "Extracting with plugin: {$extractor.^name}" });
                 $extractor.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, message => $out }) }
@@ -27,10 +17,39 @@ class Zef::Extract does Pluggable {
 
             $extractor.stdout.done;
             $extractor.stderr.done;
-            take $out if $out.?chars;
+
+            # really just saving $extractor for an error message later on. should do away with it later
+            $extractor => $out;
+        });
+
+        # gnu tar on windows doesn't always work as I expect, so try another plugin if extraction fails
+        my $extracted-to = $extractors.grep({
+            $logger.emit({ level => WARN, stage => EXTRACT, phase => LIVE, payload => self, message => "Extracting with plugin {.key.^name} aborted." })
+                if ?$logger && not .value.IO.e;
+            .value.IO.e;
+        }).map(*.value).head;
+        die "something went wrong extracting {$path} to {$extract-to} with {$.plugins.join(',')}" unless $extracted-to.IO.e;
+
+        return $extracted-to.IO;
+    }
+
+    method ls-files($path, :$logger) {
+        my $extractors := self!extractors($path);
+        my $name-paths := $extractors.map(*.ls-files($path)).first(*.so).map(*.IO);
+        $name-paths.map({ .is-absolute ?? $path.child(.relative($path)).cleanup.relative($path) !! $_ });
+    }
+
+    method !extractors($path) {
+        my $extractors := self.plugins.grep(*.extract-matcher($path)).cache;
+
+        unless +$extractors {
+            my @report_enabled  = self.plugins.map(*.short-name);
+            my @report_disabled = self.backends.map(*.<short-name>).grep({ $_ ~~ none(@report_enabled) });
+
+            die "Enabled extracting backends [{@report_enabled}] don't understand $path\n"
+            ~   "You may need to configure one of the following backends, or install its underlying software - [{@report_disabled}]";
         }
 
-        die "something went wrong extracting {$path} to {$extract-to} with {$.plugins.join(',')}" unless $got;
-        return $got;
+        $extractors;
     }
 }

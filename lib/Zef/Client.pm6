@@ -258,6 +258,9 @@ class Zef::Client {
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
 
+            my $meta6-prefix = $!extractor.ls-files($candi.uri).sort.first({ .IO.basename eq 'META6.json' });
+            warn 'Failed to find a META6.json file -- failure is likely' unless $meta6-prefix;
+
             my $extracted-to = $!extractor.extract($candi.uri, $extract-to, :$!logger);
 
             if !$extracted-to {
@@ -285,7 +288,7 @@ class Zef::Client {
                 });
             }
 
-            $candi.uri = $extracted-to;
+            $candi.uri = $extracted-to.child($meta6-prefix);
             take $candi;
         }
     }

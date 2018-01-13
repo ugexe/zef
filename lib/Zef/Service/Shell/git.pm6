@@ -38,7 +38,7 @@ class Zef::Service::Shell::git does Probeable does Messenger {
         return self!checkout($repo-path, $checkout-to, $sha1);
     }
 
-    method list(IO() $repo-path) {
+    method ls-files(IO() $repo-path) {
         die "target repo directory {$repo-path.absolute} does not contain a .git/ folder"
             unless $repo-path.child('.git').d;
 

@@ -25,12 +25,10 @@ class Zef::Service::Shell::p5tar does Extractor does Messenger {
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
-        my $meta6-prefix = self.list($archive-file).sort.first({ .IO.basename eq 'META6.json' });
-        my $extracted-to = $extract-to.child($meta6-prefix);
-        ($passed && $extracted-to.e) ?? $extracted-to !! False;
+        $passed ?? $extract-to !! False;
     }
 
-    method list(IO() $archive-file) {
+    method ls-files(IO() $archive-file) {
         die "archive file does not exist: {$archive-file.absolute}"
             unless $archive-file.e && $archive-file.f;
 

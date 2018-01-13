@@ -56,7 +56,7 @@ role Fetcher {
 # a specific version from a commit/tag)
 role Extractor {
     method extract($archive-file, $target-dir) { ... }
-    method list($archive-file) { ... }
+    method ls-files($archive-file) { ... }
     method extract-matcher($path) { ... }
 }
 

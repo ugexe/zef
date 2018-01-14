@@ -86,7 +86,7 @@ if both passed all their tests. For example: if module A failed its tests, then 
     # IDENTITY
     zef install CSV::Parser
     zef install "CSV::Parser:auth<tony-o>:ver<0.1.2>"
-    zef install "CSV::Parser:ver('0.1.2')"
+    zef install "CSV::Parser:ver<0.1.2>"
 
     # PATH
     zef install ./Perl6-Net--HTTP
@@ -169,16 +169,16 @@ How these are handled depends on the C<Repository> engine used, which by default
 
     $ zef -v --cpan --metacpan search URI
     ===> Found 4 results
-    ---------------------------------------------------------------------------
+    -------------------------------------------------------------------------
     ID|From                              |Package             |Description
-    ---------------------------------------------------------------------------
-    1 |Zef::Repository::LocalCache       |URI:ver('0.1.1')    |A URI impleme...
-    2 |Zef::Repository::Ecosystems<p6c>  |URI:ver('0.1.1')    |A URI impleme...
-    3 |Zef::Repository::Ecosystems<cpan> |URI:ver('0.1.1')    |A URI impleme...
-    4 |Zef::Repository::Ecosystems<cpan> |URI:ver('0.000.001')|A URI impleme...
-    5 |Zef::Repository::MetaCPAN         |URI:ver('0.1.1')    |A URI impleme...
-    6 |Zef::Repository::MetaCPAN         |URI:ver('0.000.001')|A URI impleme...
-    ---------------------------------------------------------------------------
+    -------------------------------------------------------------------------
+    1 |Zef::Repository::LocalCache       |URI:ver<0.1.1>    |A URI impleme...
+    2 |Zef::Repository::Ecosystems<p6c>  |URI:ver<0.1.1>    |A URI impleme...
+    3 |Zef::Repository::Ecosystems<cpan> |URI:ver<0.1.1>    |A URI impleme...
+    4 |Zef::Repository::Ecosystems<cpan> |URI:ver<0.000.001>|A URI impleme...
+    5 |Zef::Repository::MetaCPAN         |URI:ver<0.1.1>    |A URI impleme...
+    6 |Zef::Repository::MetaCPAN         |URI:ver<0.000.001>|A URI impleme...
+    -------------------------------------------------------------------------
 
 =head4 B<info> [$identity]
 
@@ -186,7 +186,7 @@ View meta information of a distribution
 
     $ zef -v info HTTP::UserAgent
     - Info for: HTTP::UserAgent
-    - Identity: HTTP::UserAgent:ver('1.1.16'):auth('github:sergot')
+    - Identity: HTTP::UserAgent:ver<1.1.16>:auth<github:sergot>
     - Recommended By: Zef::Repository::LocalCache
     Author:  github:sergot
     Description:     Web user agent
@@ -227,10 +227,10 @@ List known available distributions
 
     $ zef --installed list
     ===> Found via /home/nickl/.rakudobrew/moar-master/install/share/perl6/site
-    CSV::Parser:ver('0.1.2'):auth('github:tony-o')
-    Zef:auth('github:ugexe')
+    CSV::Parser:ver<0.1.2>:auth<github:tony-o>
+    Zef:auth<github:ugexe>
     ===> Found via /home/nickl/.rakudobrew/moar-master/install/share/perl6
-    CORE:ver('6.c'):auth('perl')
+    CORE:ver<6.c>:auth<perl>
 
 Note that not every Repository may provide such a list, and such lists may only
 be a subset. For example: We may not be able to get a list of every distribution
@@ -259,17 +259,17 @@ B<Options>
 List direct and transitive dependencies to the first successful build graph for C<$identity>
 
     $ zef depends Cro::SSL
-    Cro::Core:ver('0.7')
-    IO::Socket::Async::SSL:ver('0.3')
-    OpenSSL:ver('0.1.14'):auth('github:sergot')
+    Cro::Core:ver<0.7>
+    IO::Socket::Async::SSL:ver<0.3>
+    OpenSSL:ver<0.1.14>:auth<github:sergot>
 
 =head4 B<rdepends> [$identity]
 
 List available distributions that directly depend on C<$identity>
 
     $ zef rdepends Net::HTTP
-    Minecraft-Tools:ver('0.1.0')
-    LendingClub:ver('0.1.0')
+    Minecraft-Tools:ver<0.1.0>
+    LendingClub:ver<0.1.0>
 
 =head4 B<fetch> [*@identities]
 
@@ -501,9 +501,9 @@ Pass a path to the I<-to> / I<--install-to> option and prefix the path with C<in
 
     $ zef -to="inst#/home/perl6/custom" install Text::Table::Simple
     ===> Searching for: Text::Table::Simple
-    ===> Testing: Text::Table::Simple:ver('0.0.3'):auth('github:ugexe')
-    ===> Testing [OK] for Text::Table::Simple:ver('0.0.3'):auth('github:ugexe')
-    ===> Installing: Text::Table::Simple:ver('0.0.3'):auth('github:ugexe')
+    ===> Testing: Text::Table::Simple:ver<0.0.3>:auth<github:ugexe>
+    ===> Testing [OK] for Text::Table::Simple:ver<0.0.3>:auth<github:ugexe>
+    ===> Installing: Text::Table::Simple:ver<0.0.3>:auth<github:ugexe>
 
 To make the custom location discoverable:
 

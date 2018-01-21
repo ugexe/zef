@@ -258,8 +258,15 @@ class Zef::Client {
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
 
-            my $meta6-prefix = $!extractor.ls-files($candi.uri).sort.first({ .IO.basename eq 'META6.json' });
-            warn 'Failed to find a META6.json file -- failure is likely' unless $meta6-prefix;
+            my $meta6-prefix = '' R// $!extractor.ls-files($candi.uri).sort.first({ .IO.basename eq 'META6.json' });
+
+            self.logger.emit({
+                level   => WARN,
+                stage   => EXTRACT,
+                phase   => BEFORE,
+                payload => $candi,
+                message => "Extraction: Failed to find a META6.json file for {$candi.dist.?identity // $candi.as} -- failure is likely",
+            }) unless $meta6-prefix;
 
             my $extracted-to = $!extractor.extract($candi.uri, $extract-to, :$!logger);
 

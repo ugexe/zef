@@ -84,7 +84,6 @@ class Zef::Client {
             level   => INFO,
             stage   => RESOLVE,
             phase   => BEFORE,
-            payload => @identities,
             message => "Searching for: {@identities.join(', ')}",
         });
 
@@ -95,7 +94,6 @@ class Zef::Client {
                 level   => VERBOSE,
                 stage   => RESOLVE,
                 phase   => AFTER,
-                payload => $found,
                 message => "Found: {$found.map(*.dist.identity).join(', ')} [via {$from}]",
             })
         }
@@ -120,7 +118,6 @@ class Zef::Client {
                     level   => DEBUG,
                     stage   => RESOLVE,
                     phase   => BEFORE,
-                    payload => @specs-batch,
                     message => "Dependencies: {@specs-batch.map(*.name).unique.join(', ')}",
                 });
 
@@ -132,7 +129,6 @@ class Zef::Client {
                     level   => INFO,
                     stage   => RESOLVE,
                     phase   => BEFORE,
-                    payload => @needed,
                     message => "Searching for missing dependencies: {@identities.join(', ')}",
                 });
 
@@ -146,7 +142,6 @@ class Zef::Client {
                             level   => VERBOSE,
                             stage   => RESOLVE,
                             phase   => AFTER,
-                            payload => $found,
                             message => "Found dependencies: {$found.map(*.dist.identity).join(', ')} [via {$from}]",
                         })
                     }
@@ -156,7 +151,6 @@ class Zef::Client {
                         level   => ERROR,
                         stage   => RESOLVE,
                         phase   => AFTER,
-                        payload => @prereq-candidates,
                         message => "Failed to find dependencies: {$not-found.join(', ')}",
                     });
 
@@ -197,7 +191,6 @@ class Zef::Client {
                 level   => DEBUG,
                 stage   => FETCH,
                 phase   => BEFORE,
-                payload => $candi,
                 message => "Fetching: {$candi.as}",
             });
 
@@ -219,7 +212,6 @@ class Zef::Client {
                     level   => ERROR,
                     stage   => FETCH,
                     phase   => AFTER,
-                    payload => $candi,
                     message => "Fetching [FAIL]: {$candi.dist.?identity // $candi.as} from {$candi.uri}",
                 });
 
@@ -232,7 +224,6 @@ class Zef::Client {
                     level   => VERBOSE,
                     stage   => FETCH,
                     phase   => AFTER,
-                    payload => $candi,
                     message => "Fetching [OK]: {$candi.dist.?identity // $candi.as} to $save-to",
                 });
             }
@@ -247,7 +238,6 @@ class Zef::Client {
                 level   => DEBUG,
                 stage   => EXTRACT,
                 phase   => BEFORE,
-                payload => $candi,
                 message => "Extracting: {$candi.as}",
             });
 
@@ -264,7 +254,6 @@ class Zef::Client {
                 level   => WARN,
                 stage   => EXTRACT,
                 phase   => BEFORE,
-                payload => $candi,
                 message => "Extraction: Failed to find a META6.json file for {$candi.dist.?identity // $candi.as} -- failure is likely",
             }) unless $meta6-prefix;
 
@@ -275,7 +264,6 @@ class Zef::Client {
                     level   => ERROR,
                     stage   => EXTRACT,
                     phase   => AFTER,
-                    payload => $candi,
                     message => "Extraction [FAIL]: {$candi.dist.?identity // $candi.as} from {$candi.uri}",
                 });
 
@@ -290,7 +278,6 @@ class Zef::Client {
                     level   => VERBOSE,
                     stage   => EXTRACT,
                     phase   => AFTER,
-                    payload => $candi,
                     message => "Extraction [OK]: {$candi.as} to {$extract-to}",
                 });
             }
@@ -310,7 +297,6 @@ class Zef::Client {
                     level   => DEBUG,
                     stage   => BUILD,
                     phase   => BEFORE,
-                    payload => $candi,
                     message => "# SKIP: No Build.pm for {$candi.dist.?identity // $candi.as}",
                 });
                 take $candi;
@@ -321,7 +307,6 @@ class Zef::Client {
                 level   => INFO,
                 stage   => BUILD,
                 phase   => BEFORE,
-                payload => $candi,
                 message => "Building: {$candi.dist.?identity // $candi.as}",
             });
 
@@ -334,7 +319,6 @@ class Zef::Client {
                     level   => ERROR,
                     stage   => BUILD,
                     phase   => AFTER,
-                    payload => $candi,
                     message => "Building [FAIL]: {$candi.dist.?identity // $candi.as}",
                 });
 
@@ -347,7 +331,6 @@ class Zef::Client {
                     level   => INFO,
                     stage   => BUILD,
                     phase   => AFTER,
-                    payload => $candi,
                     message => "Building [OK] for {$candi.dist.?identity // $candi.as}",
                 });
             }
@@ -365,7 +348,6 @@ class Zef::Client {
                 level   => INFO,
                 stage   => TEST,
                 phase   => BEFORE,
-                payload => $candi,
                 message => "Testing: {$candi.dist.?identity // $candi.as}",
             });
 
@@ -378,7 +360,6 @@ class Zef::Client {
                     level   => ERROR,
                     stage   => TEST,
                     phase   => AFTER,
-                    payload => $candi,
                     message => "Testing [FAIL]: {$candi.dist.?identity // $candi.as}",
                 });
 
@@ -394,7 +375,6 @@ class Zef::Client {
                     level   => INFO,
                     stage   => TEST,
                     phase   => AFTER,
-                    payload => $candi,
                     message => "Testing [OK] for {$candi.dist.?identity // $candi.as}",
                 });
             }
@@ -429,7 +409,6 @@ class Zef::Client {
                     level   => WARN,
                     stage   => INSTALL,
                     phase   => BEFORE,
-                    payload => $cur,
                     message => "CompUnit::Repository install target is not writeable/installable: {$cur}"
                 });
             }
@@ -438,7 +417,6 @@ class Zef::Client {
                     level   => TRACE,
                     stage   => INSTALL,
                     phase   => BEFORE,
-                    payload => $cur,
                     message => "CompUnit::Repository install target is valid: {$cur}"
                 });
             }
@@ -471,7 +449,6 @@ class Zef::Client {
                 level   => DEBUG,
                 stage   => FILTER,
                 phase   => BEFORE,
-                payload => $candi,
                 message => "Filtering: {$dist.identity}",
             });
 
@@ -494,13 +471,11 @@ class Zef::Client {
                 level   => ERROR,
                 stage   => FILTER,
                 phase   => AFTER,
-                payload => $candi,
                 message => "Filtering [FAIL] for {$candi.dist.?identity // $candi.as}: $msg",
             }) !! $!logger.emit({
                 level   => DEBUG,
                 stage   => FILTER,
                 phase   => AFTER,
-                payload => $candi,
                 message => "Filtering [OK] for {$candi.dist.?identity // $candi.as}",
             });
 
@@ -553,7 +528,6 @@ class Zef::Client {
                     level   => INFO,
                     stage   => INSTALL,
                     phase   => BEFORE,
-                    payload => $candi,
                     message => "Installing: {$candi.dist.?identity // $candi.as}",
                 });
 
@@ -563,7 +537,6 @@ class Zef::Client {
                             level   => VERBOSE,
                             stage   => INSTALL,
                             phase   => AFTER,
-                            payload => $candi,
                             message => "(dry) Installed: {$candi.dist.?identity // $candi.as}",
                         });
                     }
@@ -576,7 +549,6 @@ class Zef::Client {
                                         level   => INFO,
                                         stage   => INSTALL,
                                         phase   => AFTER,
-                                        payload => $candi,
                                         message => "Install [SKIP] for {$candi.dist.?identity // $candi.as}: {$_}",
                                     });
                                 }
@@ -585,7 +557,6 @@ class Zef::Client {
                                         level   => ERROR,
                                         stage   => INSTALL,
                                         phase   => AFTER,
-                                        payload => $candi,
                                         message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
                                     });
                                     $_.rethrow;
@@ -608,7 +579,6 @@ class Zef::Client {
                                 level   => VERBOSE,
                                 stage   => INSTALL,
                                 phase   => AFTER,
-                                payload => $candi,
                                 message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
                             }) if ?$install;
                             $ = ?$install;

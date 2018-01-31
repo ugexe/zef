@@ -8,7 +8,7 @@ class Zef::Extract does Pluggable {
 
         my $extractors = self!extractors($path).map(-> $extractor {
             if ?$logger {
-                $logger.emit({ level => DEBUG, stage => EXTRACT, phase => START, payload => self, message => "Extracting with plugin: {$extractor.^name}" });
+                $logger.emit({ level => DEBUG, stage => EXTRACT, phase => START, message => "Extracting with plugin: {$extractor.^name}" });
                 $extractor.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, message => $out }) }
                 $extractor.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, message => $err }) }
             }
@@ -24,7 +24,7 @@ class Zef::Extract does Pluggable {
 
         # gnu tar on windows doesn't always work as I expect, so try another plugin if extraction fails
         my $extracted-to = $extractors.grep({
-            $logger.emit({ level => WARN, stage => EXTRACT, phase => LIVE, payload => self, message => "Extracting with plugin {.key.^name} aborted." })
+            $logger.emit({ level => WARN, stage => EXTRACT, phase => LIVE, message => "Extracting with plugin {.key.^name} aborted." })
                 if ?$logger && not .value.IO.e;
             .value.IO.e;
         }).map(*.value).head;

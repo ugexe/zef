@@ -6,7 +6,7 @@ class Zef::Report does Pluggable does Reporter {
 
         my @reports = $reporters.map: -> $reporter {
             if ?$logger {
-                $logger.emit({ level => DEBUG, stage => REPORT, phase => START, payload => self, message => "Reporting with plugin: {$reporter.^name}" });
+                $logger.emit({ level => DEBUG, stage => REPORT, phase => START, message => "Reporting with plugin: {$reporter.^name}" });
                 $reporter.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => REPORT, phase => LIVE, message => $out }) }
                 $reporter.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => REPORT, phase => LIVE, message => $err }) }
             }

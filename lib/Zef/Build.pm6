@@ -9,7 +9,7 @@ class Zef::Build does Pluggable {
         my $stdmerge;
 
         if ?$logger {
-            $logger.emit({ level => DEBUG, stage => BUILD, phase => START, payload => self, message => "Building with plugin: {$builder.^name}" });
+            $logger.emit({ level => DEBUG, stage => BUILD, phase => START, message => "Building with plugin: {$builder.^name}" });
             $builder.stdout.Supply.grep(*.defined).act: -> $out { $stdmerge ~= $out; $logger.emit({ level => VERBOSE, stage => BUILD, phase => LIVE, message => $out }) }
             $builder.stderr.Supply.grep(*.defined).act: -> $err { $stdmerge ~= $err; $logger.emit({ level => ERROR,   stage => BUILD, phase => LIVE, message => $err }) }
         }

@@ -21,7 +21,7 @@ class Zef::Test does Pluggable {
             $lock.protect({ $stdmerge ~= $str });
         }
         if ?$logger {
-            $logger.emit({ level => DEBUG, stage => TEST, phase => START, payload => self, message => "Testing with plugin: {$tester.^name}" });
+            $logger.emit({ level => DEBUG, stage => TEST, phase => START, message => "Testing with plugin: {$tester.^name}" });
             $tester.stdout.Supply.grep(*.defined).act: -> $out { save-test-output($out); $logger.emit({ level => VERBOSE, stage => TEST, phase => LIVE, message => $out }) }
             $tester.stderr.Supply.grep(*.defined).act: -> $err { save-test-output($err); $logger.emit({ level => ERROR,   stage => TEST, phase => LIVE, message => $err }) }
         }

@@ -7,27 +7,27 @@ class Zef::Repository does Pluggable {
     method candidates(Bool :$upgrade, *@identities ($, *@)) {
         # todo: have a `file` identity in Zef::Identity
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });
-        my @unsorted-candis = gather for self!plugins -> $storage {
+
+        my $unsorted-candis := self!plugins.map: -> $storage {
             # todo: (cont. from above): Each Repository should just filter this themselves
             my @search-for = $storage.id eq 'Zef::Repository::LocalCache' ?? @identities !! @searchable;
-            for $storage.search(|@search-for, :strict) -> $candi { # :strict means exact short-name match
-                take $candi;
-            }
+            $storage.search(|@search-for, :strict).Slip
         }
 
+        my $unsorted-grouped-candis := $unsorted-candis.categorize({.dist.name}).values;
+
         # Take the distribution with the highest version out of all matching distributions from all repositories
-        my @sorted-candis = gather for @unsorted-candis.categorize(*.dist.name).values -> $candis {
+        my $sorted-candis := $unsorted-grouped-candis.map: -> $candis {
             # Put the cache in front so if its one of multiple sources with the identity it gets used
-            take .head for $candis
-                .sort({ $^a.^name ne 'Zef::Repository::LocalCache '})
-                .sort({ Version.new($^b.dist.ver) <=> Version.new($^a.dist.ver) });
+            my $presorted := $candis.sort({ $^a.^name ne 'Zef::Repository::LocalCache '});
+            $presorted.sort(*.dist.ver).reverse.head
         }
 
         # $candi.as tells us what string was used to request its distribution ($candi.dist)
         # So this is similar to the .categorize(*.dist.name) filter above, except it
         # covers when two different repositories have a matching candidate with different
         # distribution names (likely matching *module* names in provides)
-        my @distinct-requested-as = @sorted-candis.unique(:as(*.as));
+        my @distinct-requested-as = $sorted-candis.unique(:as(*.as));
     }
 
     # todo: Find a better way to allow plugins access to other plugins
@@ -42,19 +42,9 @@ class Zef::Repository does Pluggable {
     method search(:$max-results = 5, Bool :$strict, *@identities ($, *@), *%fields) {
         return () unless @identities || %fields;
 
-        my @unsorted-candis = eager gather for self!plugins -> $storage {
-            take $_ for $storage.search(|@identities, |%fields, :$max-results, :$strict);
+        self!plugins.map: -> $storage {
+            $storage.search(|@identities, |%fields, :$max-results, :$strict).Slip
         }
-
-        # Take the distribution with the highest version out of all matching distributions from all repositories
-        my @sorted-candis = gather for @unsorted-candis -> $candis {
-            # Put the cache in front so if its one of multiple sources with the identity it gets used
-            my $prefer-order := $candis.sort({ $^a.^name ne 'Zef::Repository::LocalCache '});
-
-            take $_ for $prefer-order.sort({ Version.new($^b.dist.ver) <=> Version.new($^a.dist.ver) });
-        }
-
-        @sorted-candis.head($max-results);
     }
 
     method store(*@dists) {

@@ -103,7 +103,7 @@ class Zef::Client {
     method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
         my $candidates := $!recommendation-manager.candidates(|@identities, :$upgrade)\
             .grep(-> $dist { not @!exclude.first(-> $spec {$dist.dist.contains-spec($spec)}) })\
-            .sort({ Version.new($^b.dist.ver) cmp Version.new($^a.dist.ver) })\
+            .sort(*.dist.ver).reverse\
             .unique(:as(*.dist.identity));
     }
 
@@ -679,7 +679,7 @@ class Zef::Client {
 
     method resolve($spec, :@at) {
         my $candis := self.list-installed(|@at).grep(*.dist.contains-spec($spec));
-        $candis.sort({ Version.new($^b.dist.ver) cmp Version.new($^a.dist.ver) });
+        $candis.sort(*.dist.ver).reverse;
     }
 
     method is-installed(|c) {

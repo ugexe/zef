@@ -233,17 +233,18 @@ package Zef::CLI {
         my @missing = @identities.grep: { not $client.is-installed($_) };
         abort "Can't upgrade identities that aren't installed: {@missing.join(', ')}" if +@missing;
 
-        my @installed = $client.list-installed(|$install-to.map(*.&str2cur))
-            .sort({Version.new($^b.dist.ver) > Version.new($^a.dist.ver)})
-            .unique(:as({"{.dist.name}:ver<{.dist.auth-matcher}>"}));
+        my @installed = $client.list-installed(|$install-to.map(*.&str2cur))\
+            .sort(*.dist.ver).reverse\
+            .unique(:as({"{.dist.name}:auth<{.dist.auth-matcher}>"}));
         my @requested = +@identities
             ?? |$client.find-candidates(|@identities.map(*.&str2identity))
             !! |$client.find-candidates(|@installed.map(*.dist.clone(ver => "*")).map(*.identity).unique);
+
         my (:@upgradable, :@current) := @requested.classify: -> $candi {
             my $latest-installed = @installed.grep({ .dist.name eq $candi.dist.name })\
                 .sort({ .dist.auth-matcher ne $candi.dist.auth-matcher }).head; # this is to handle auths that changed. need to find a better way...
             next() R, note "Unsure how to update '{$candi.dist.identity}'" unless $latest-installed;
-            ((Version.new($latest-installed.dist.ver) cmp Version.new($candi.dist.ver)) === Order::Less) ?? <upgradable> !! <current>;
+            (($latest-installed.dist.ver <=> $candi.dist.ver) === Order::Less) ?? <upgradable> !! <current>;
         }
         abort "All requested distributions are already at their latest versions" unless +@upgradable;
         say "The following distributions will be upgraded: {@upgradable.map(*.dist.identity).join(', ')}";
@@ -395,14 +396,18 @@ package Zef::CLI {
     #| Detailed distribution information
     multi MAIN('info', $identity, Int :$wrap = False) is export {
         my $client = get-client(:config($CONFIG));
-        my $candi  = $client.resolve($identity).head
-                ||   $client.search($identity, :strict, :max-results(1))[0]\
-                ||   abort "!!!> Found no candidates matching identity: {$identity}";
+        my $latest-installed-candi = $client.resolve($identity).head;
+        my $latest-remote-candi = $client.search($identity, :strict, :max-results(1)).reverse[0];
+        abort "!!!> Found no candidates matching identity: {$identity}"
+            unless $latest-installed-candi || $latest-remote-candi;
+
+        my $candi := ($latest-installed-candi, $latest-remote-candi).grep(*.defined).sort(*.dist.ver).reverse.head;
         my $dist  := $candi.dist;
 
         say "- Info for: $identity";
         say "- Identity: {$dist.identity}";
         say "- Recommended By: {$candi.from}";
+        say "- Installed: {$latest-installed-candi??$latest-installed-candi.dist.identity eq $dist.identity??qq|Yes|!!qq|Yes, as $latest-installed-candi.dist.identity()|!!'No'}";
         say "Author:\t {$dist.author}"                if $dist.author;
         say "Description:\t {$dist.description}"      if $dist.description;
         say "License:\t {$dist.compat.meta<license>}" if $dist.compat.meta<license>;

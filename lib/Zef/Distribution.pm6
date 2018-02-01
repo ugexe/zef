@@ -15,8 +15,9 @@ class Distribution::DEPRECATED {
     has %.provides;
     has %.files;
     has $.source-url;
+
     method auth { with $!auth // $!author // $!authority { .Str } else { Nil } }
-    method ver  { with $!ver // $!version { .Str } else { Nil } }
+    method ver  { with $!ver // $!version { $!ver ~~ Version ?? $_ !! $!ver = Version.new($_ // 0) } }
     method hash {
         {
             :$!name,
@@ -121,9 +122,6 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
         %hash;
     }
 
-    # use Distribution's .ver but filter off a leading 'v'
-    method ver { my $v = callsame; $v.subst(/^v/, '') }
-
     method WHICH(Zef::Distribution:D:) { "{self.^name}|{self.Str()}" }
 
     # For now we will use $dist.compat in spots where we pass to rakudo and there
@@ -138,10 +136,4 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
                 method auth { self.meta<auth> // self.meta<authority> // self.meta<author> }
             });
     }
-}
-
-# allow easier sorting of an array of Distribution objects by version
-# (intended that the rest of the identity is the same)
-multi sub infix:<cmp>(Distribution $lhs, Distribution $rhs) is export {
-    Version.new($lhs.ver) cmp Version.new($rhs.ver)
 }

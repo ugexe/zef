@@ -38,7 +38,7 @@ class Zef::Distribution::DependencySpecification {
         }
         else {
             my $name = $spec.name;
-            return False unless self.name ~~ /$name/;
+            return False unless self.name ~~ /[:i $name]/;
         }
 
         if $spec.version-matcher.chars && $spec.version-matcher ne '*' {

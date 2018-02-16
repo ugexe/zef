@@ -61,6 +61,12 @@
             "options" : {
                 "mirrors" : ["http://hack.p6c.org:5000/v0/release/"]
             }
+        },
+        {
+            "short-name" : "installations",
+            "enabled" : 1,
+            "module" : "Zef::Repository::LocalInstallations",
+            "options" : { }
         }
     ],
     "Fetch" : [

@@ -22,6 +22,7 @@
         "Zef::Repository::MetaCPAN"   : "lib/Zef/Repository/MetaCPAN.pm6",
         "Zef::Repository::LocalCache" : "lib/Zef/Repository/LocalCache.pm6",
         "Zef::Repository::Ecosystems" : "lib/Zef/Repository/Ecosystems.pm6",
+        "Zef::Repository::LocalInstallations" : "lib/Zef/Repository/LocalInstallations.pm6",
 
         "Zef::Distribution"                          : "lib/Zef/Distribution.pm6",
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",

@@ -18,6 +18,7 @@ subtest {
     use-ok("Zef::Repository::MetaCPAN");
     use-ok("Zef::Repository::LocalCache");
     use-ok("Zef::Repository::Ecosystems");
+    use-ok("Zef::Repository::LocalInstallations");
 
     use-ok("Zef::Distribution");
     use-ok("Zef::Distribution::DependencySpecification");

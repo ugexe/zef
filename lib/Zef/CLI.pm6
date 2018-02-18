@@ -240,12 +240,12 @@ package Zef::CLI {
             ?? |$client.find-candidates(|@identities.map(*.&str2identity))
             !! |$client.find-candidates(|@installed.map(*.dist.clone(ver => "*")).map(*.identity).unique);
 
-        my (:@upgradable, :@current) := @requested.classify: -> $candi {
+        my (:@upgradable, :@current, :@unknown) := @requested.classify: -> $candi {
             my $latest-installed = @installed.grep({ .dist.name eq $candi.dist.name })\
                 .sort({ .dist.auth-matcher ne $candi.dist.auth-matcher }).head; # this is to handle auths that changed. need to find a better way...
-            next() R, note "Unsure how to update '{$candi.dist.identity}'" unless $latest-installed;
-            (($latest-installed.dist.ver <=> $candi.dist.ver) === Order::Less) ?? <upgradable> !! <current>;
+            !$latest-installed ?? <unknown> !! (($latest-installed.dist.ver <=> $candi.dist.ver) === Order::Less) ?? <upgradable> !! <current>;
         }
+        note "Unsure of how to handle the following distributions: {@unknown.map(*.dist.identity),join(',')}" if +@unknown;
         abort "All requested distributions are already at their latest versions" unless +@upgradable;
         say "The following distributions will be upgraded: {@upgradable.map(*.dist.identity).join(', ')}";
 

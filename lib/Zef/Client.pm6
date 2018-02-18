@@ -23,8 +23,8 @@ class Zef::Client {
 
     has $.logger = Supplier.new;
 
-    has @.exclude;
-    has @!ignore = <Test NativeCall lib MONKEY-TYPING nqp>;
+    has @.exclude; # user supplied
+    has @!ignore;  # internal use
 
     has Bool $.force-resolve is rw = False;
     has Bool $.force-fetch   is rw = False;
@@ -37,6 +37,11 @@ class Zef::Client {
     has Bool $.build-depends is rw = True;
     has Bool $.test-depends  is rw = True;
 
+    submethod TWEAK() {
+        # xxx: a workaround. eventually better CompUnit::Repository integration will make this unneeded.
+        @!ignore = <Test NativeCall Telemetry CompUnit::Repository::Staging snapper experimental newline>\
+            .map({ (require ::('Zef::Distribution::DependencySpecification')).new($_) });
+    }
 
     method new(
         :cache(:$zcache),
@@ -102,7 +107,8 @@ class Zef::Client {
     }
     method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
         my $candidates := $!recommendation-manager.candidates(|@identities, :$upgrade)\
-            .grep(-> $dist { not @!exclude.first(-> $spec {$dist.dist.contains-spec($spec)}) })\
+            .grep(-> $candi { not @!exclude.first({$candi.dist.contains-spec($_)}) })\
+            .grep(-> $candi { not @!ignore.first({$candi.dist.contains-spec($_)}) })\
             .sort(*.dist.ver).reverse\
             .unique(:as(*.dist.identity));
     }
@@ -123,6 +129,8 @@ class Zef::Client {
 
                 next unless my @needed = @specs-batch\               # The current set of specs
                     .grep({ not @skip.first(*.contains-spec($_)) })\ # Dists in @skip are not needed
+                    .grep(-> $spec { not @!exclude.first({ $_.spec-matcher($spec) }) })\
+                    .grep(-> $spec { not @!ignore.first({ $_.spec-matcher($spec) }) })\
                     .grep({ $skip-installed ?? self.is-installed($_).not !! True });
                 my @identities = @needed.map(*.identity);
                 self.logger.emit({

@@ -1,5 +1,6 @@
 use Zef;
 use Zef::Distribution::DependencySpecification;
+use Zef::Utils::SystemQuery;
 
 # XXX: Needed for backwards compat. Will be removed when I rework Distribution related items
 class Distribution::DEPRECATED {
@@ -71,18 +72,21 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     # make matching dependency names against a dist easier
     # when sorting the install order from the meta hash
     method depends-specs       {
-        gather for @.depends.grep(*.defined) {
-            take Zef::Distribution::DependencySpecification.new($_);
-        }
-    }
-    method build-depends-specs {
-        gather for @.build-depends.grep(*.defined) {
-            take Zef::Distribution::DependencySpecification.new($_);
-        }
-    }
-    method test-depends-specs  {
-        gather for @.test-depends.grep(*.defined) {
-            take Zef::Distribution::DependencySpecification.new($_);
+        gather for [@.depends.grep(*.defined).Slip, @.build-depends.grep(*.defined).Slip, @.test-depends.grep(*.defined).Slip].flat -> $dep is rw {
+            $dep = system-collapse(%($dep));
+            if $dep<native>.defined || $dep<build>.defined || $dep<runtime>.defined || $dep<test>.defined {
+                # new style of depends:
+                my $type = $dep.keys[0];
+                for $dep.values.map({.flat}).flat -> $k {
+                    if $type ~~ any (qw<native build runtime test>) {
+                        take Zef::Distribution::DependencySpecification.new($k, $type);
+                    } else {
+                        take Zef::Distribution::DependencySpecification.new($k);
+                    }
+                }
+            } else {
+                take Zef::Distribution::DependencySpecification.new($dep);
+            }
         }
     }
 

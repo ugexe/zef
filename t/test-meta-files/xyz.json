@@ -1,0 +1,30 @@
+{
+    "perl":"6",
+    "name":"xyz",
+    "version":"0",
+    "auth":"github:stranger",
+    "description":"no native depends",
+    "license":"none",
+    "depends": {
+      "runtime": [
+        "Zef::Client"
+      ],
+      "build": [
+        "Zef::Build"
+      ],
+      "native": [
+        { 
+          "by-distro.name": {
+            "macosx": "mac",
+            "win32" : "win",
+            "linux" : "linux",
+            ""      : "unknown"
+          }
+        }
+      ],
+      "test": [
+        "Zef::Test"
+      ]
+    },
+    "provides": { }
+}

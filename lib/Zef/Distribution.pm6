@@ -73,7 +73,7 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     # when sorting the install order from the meta hash
     method depends-specs       {
         gather for [@.depends.grep(*.defined).Slip, @.build-depends.grep(*.defined).Slip, @.test-depends.grep(*.defined).Slip].flat -> $dep is rw {
-            $dep = system-collapse(%($dep)) if $dep ~~ Hash;
+            $dep = system-collapse(%($dep)) if $dep ~~ Associative;
             if $dep<native>.defined || $dep<build>.defined || $dep<runtime>.defined || $dep<test>.defined {
                 # new style of depends:
                 my $type = $dep.keys[0];

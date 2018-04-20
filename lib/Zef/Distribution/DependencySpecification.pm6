@@ -29,7 +29,7 @@ class Zef::Distribution::DependencySpecification {
 
     method api-matcher     { self.spec-parts<api>  // '*' }
 
-    method from-matcher     { self.spec-parts<from>  // 'Perl6' }
+    method from-matcher     { self.spec-parts<from> // '' }
 
     method !spec { $.spec || self.Str }
 

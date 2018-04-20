@@ -126,54 +126,55 @@ class Zef::Client {
                     phase   => BEFORE,
                     message => "Dependencies: {@specs-batch.map(*.name).unique.join(', ')}",
                 });
-
                 next unless my @needed = @specs-batch\               # The current set of specs
                     .grep({ not @skip.first(*.contains-spec($_)) })\ # Dists in @skip are not needed
-                    .grep(-> $spec { ($spec.from-matcher // '') eq ':from<bin>' })\
-                    .grep(-> $spec { ($spec.from-matcher // '') eq ':from<native>' })\
+                    .grep(-> $spec { ($spec.from-matcher // 'Perl6') eq 'Perl6' })\
                     .grep(-> $spec { not @!exclude.first({ $_.spec-matcher($spec) }) })\
                     .grep(-> $spec { not @!ignore.first({ $_.spec-matcher($spec) }) })\
                     .grep({ $skip-installed ?? self.is-installed($_).not !! True });
                 my @identities = @needed.map(*.identity);
-                self.logger.emit({
-                    level   => INFO,
-                    stage   => RESOLVE,
-                    phase   => BEFORE,
-                    message => "Searching for missing dependencies: {@identities.join(', ')}",
-                });
 
-                my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
-                my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
-
-                # The failing part of this should ideally be handled in Zef::CLI I think
-                if +@prereq-candidates == +@needed || $not-found.cache.elems == 0 {
-                    for @prereq-candidates.classify({.from}).kv -> $from, $found {
-                        self.logger.emit({
-                            level   => VERBOSE,
-                            stage   => RESOLVE,
-                            phase   => AFTER,
-                            message => "Found dependencies: {$found.map(*.dist.identity).join(', ')} [via {$from}]",
-                        })
-                    }
-                }
-                else {
+                if +@identities {
                     self.logger.emit({
-                        level   => ERROR,
+                        level   => INFO,
                         stage   => RESOLVE,
-                        phase   => AFTER,
-                        message => "Failed to find dependencies: {$not-found.join(', ')}",
+                        phase   => BEFORE,
+                        message => "Searching for missing dependencies: {@identities.join(', ')}",
                     });
 
-                    $!force-resolve
-                        ?? say('Failed to resolve missing dependencies, but continuing with --force-resolve')
-                        !! die('Failed to resolve some missing dependencies');
-                };
+                    my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
+                    my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
 
-                @skip.append: @prereq-candidates.map(*.dist);
-                @specs = self.list-dependencies(@prereq-candidates);
-                for @prereq-candidates -> $prereq {
-                    $prereq.is-dependency = True;
-                    take $prereq;
+                    # The failing part of this should ideally be handled in Zef::CLI I think
+                    if +@prereq-candidates == +@needed || $not-found.cache.elems == 0 {
+                        for @prereq-candidates.classify({.from}).kv -> $from, $found {
+                            self.logger.emit({
+                                level   => VERBOSE,
+                                stage   => RESOLVE,
+                                phase   => AFTER,
+                                message => "Found dependencies: {$found.map(*.dist.identity).join(', ')} [via {$from}]",
+                            })
+                        }
+                    }
+                    else {
+                        self.logger.emit({
+                            level   => ERROR,
+                            stage   => RESOLVE,
+                            phase   => AFTER,
+                            message => "Failed to find dependencies: {$not-found.join(', ')}",
+                        });
+
+                        $!force-resolve
+                            ?? say('Failed to resolve missing dependencies, but continuing with --force-resolve')
+                            !! die('Failed to resolve some missing dependencies');
+                    };
+
+                    @skip.append: @prereq-candidates.map(*.dist);
+                    @specs = self.list-dependencies(@prereq-candidates);
+                    for @prereq-candidates -> $prereq {
+                        $prereq.is-dependency = True;
+                        take $prereq;
+                    }
                 }
             }
         }
@@ -677,9 +678,10 @@ class Zef::Client {
         }
     }
 
-    method list-dependencies(*@candis) {
+    method list-dependencies(*@candis, :$from) {
         my $deps := gather for @candis -> $candi {
             take $_ for grep *.defined,
+                grep { .from-matcher eq 'Perl6' },
                 ($candi.dist.depends-specs       if ?$!depends).Slip,
                 ($candi.dist.test-depends-specs  if ?$!test-depends).Slip,
                 ($candi.dist.build-depends-specs if ?$!build-depends).Slip;

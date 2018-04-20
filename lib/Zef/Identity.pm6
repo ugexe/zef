@@ -3,6 +3,7 @@ class Zef::Identity {
     has $.version;
     has $.auth;
     has $.api;
+    has $.from;
 
     method CALL-ME($id) { try self.new(|$id) }
 
@@ -48,7 +49,16 @@ class Zef::Identity {
     multi method new(Str $id) {
         state %id-cache;
         %id-cache{$id} := %id-cache{$id}:exists ?? %id-cache{$id} !! do {
-            if $id !~~ /':ver' | ':auth' | ':api' | ':from'/ and URN.parse($id) -> $urn {
+            if $id.starts-with('.' | '/') {
+                self.bless(
+                    name    => $id,
+                    version => '',
+                    auth    => '',
+                    api     => '',
+                    from    => '',
+                );
+            }
+            elsif $id !~~ /':ver' | ':auth' | ':api' | ':from'/ and URN.parse($id) -> $urn {
                 self.bless(
                     name    => ~($urn<name>.subst('--','::') // ''),
                     version => ~($urn<version>               // ''),
@@ -57,7 +67,7 @@ class Zef::Identity {
                     from    => ~($urn<from>                  // 'Perl6'),
                 );
             }
-            elsif try REQUIRE.parse($id, :actions(REQUIRE::Actions.new)).ast -> $ident {
+            elsif REQUIRE.parse($id, :actions(REQUIRE::Actions.new)).ast -> $ident {
                 self.bless(
                     name    => ~($ident<name>    // ''),
                     version => ~($ident<ver>     // ''),
@@ -81,7 +91,8 @@ class Zef::Identity {
         $!name
             ~ (($!version // '' ) ne ('*' | '') ?? ":ver<"  ~ ($!version.starts-with('v') ?? $!version.substr(1) !! $!version) ~ ">" !! '')
             ~ (($!auth    // '' ) ne ('*' | '') ?? ":auth<" ~ $!auth     ~ ">" !! '')
-            ~ (($!api     // '' ) ne ('*' | '') ?? ":api<"  ~ $!api      ~ ">" !! '');
+            ~ (($!api     // '' ) ne ('*' | '') ?? ":api<"  ~ $!api      ~ ">" !! '')
+            ~ (($!from    // '' ) ne ('*' | '') ?? ":from<" ~ $!from     ~ ">" !! '');
     }
 
     method hash {

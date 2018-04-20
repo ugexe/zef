@@ -22,40 +22,13 @@ class Zef::Identity {
     }
 
     my grammar REQUIRE {
-        token TOP {
-            <name>
-            [
-            || [ <auth>    [[<version>  <api>? ] || [ <api> <version>?]?]?   ]
-            || [ <version> [[<auth> <api>? ]     || [ <api> <auth>? ]?]?     ]
-            || [ <api>     [[<auth> <version>? ] || [ <version> <auth>? ]?]? ]
-            ]?
-        }
+        regex TOP { ^^ <name> [':' <key> <value>]* $$ }
 
-        token name    { <.token>+ }
+        regex name  { <-restricted +name-sep>+ }
+        token key   { <-restricted>+ }
+        token value { '<' ~ '>'  [<( [[ <!before \>|\\> . ]+]* % ['\\' . ] )>] }
 
-        proto token version {*};
-        token version:sym(":ver(v") { <.sym> $<value>=[<.token>*?] ")"  }
-        token version:sym(":ver('") { <.sym> $<value>=[<.token>*?] "')" }
-        token version:sym(':ver("') { <.sym> $<value>=[<.token>*?] '")' }
-        token version:sym(":ver<")  { <.sym> $<value>=[<.token>*?] '>'  }
-        token version:sym(":version(v") { <.sym> $<value>=[<.token>*?] ")"  }
-        token version:sym(":version('") { <.sym> $<value>=[<.token>*?] "')" }
-        token version:sym(':version("') { <.sym> $<value>=[<.token>*?] '")' }
-        token version:sym(":version<")  { <.sym> $<value>=[<.token>*?] '>'  }
-
-        proto token api {*};
-        token api:sym(":api(v") { <.sym> $<value>=[<.token>*?] ")"  }
-        token api:sym(":api('") { <.sym> $<value>=[<.token>*?] "')" }
-        token api:sym(':api("') { <.sym> $<value>=[<.token>*?] '")' }
-        token api:sym(":api<")  { <.sym> $<value>=[<.token>*?] '>'  }
-
-        proto token auth {*};
-        token auth:sym(":auth('") { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>*?] "')" }
-        token auth:sym(':auth("') { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>*?] '")' }
-        token auth:sym(":auth<")  { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>*?] '>'  }
-
-        token token      { <-restricted +name-sep> }
-        token restricted { < : > }
+        token restricted { [':' | '<' | '>' | '(' | ')'] }
         token name-sep   { < :: > }
     }
 
@@ -64,6 +37,7 @@ class Zef::Identity {
         self.bless(:$name, :$version, :$auth, :$api);
     }
     multi method new(Str $id) {
+
         state %id-cache;
         %id-cache{$id} := %id-cache{$id}:exists ?? %id-cache{$id} !! do {
             if $id !~~ /':ver' | ':auth' | ':api'/ and URN.parse($id) -> $urn {
@@ -72,6 +46,7 @@ class Zef::Identity {
                     version => ~($urn<version>               // ''),
                     auth    => ~($urn<auth>                  // ''),
                     api     => ~($urn<api>                   // ''),
+                    from    => ~($urn<from>                  // 'Perl6'),
                 );
             }
             elsif REQUIRE.parse($id) -> $ident {
@@ -80,6 +55,7 @@ class Zef::Identity {
                     version => ~($ident<version><value> // ''),
                     auth    => ~($ident<auth><value>    // ''),
                     api     => ~($ident<api><value>     // ''),
+                    from    => ~($ident<from>           // 'Perl6'),
                 );
             }
         }

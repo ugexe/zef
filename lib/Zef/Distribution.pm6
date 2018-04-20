@@ -52,7 +52,7 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     has $.license;
     has $.build-depends;
     has $.test-depends;
-    has $.resources;
+    has @.resources;
     has %.support;
 
     # attach arbitrary data, like for topological sort, that won't be saved on install
@@ -66,7 +66,7 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
         #$.depends       = $.depends.map({.flat.Slip});
         #$!test-depends  = $!test-depends.flatmap(*.flat);
         #$!build-depends = $!build-depends.flatmap(*.flat);
-        #$!resources     = $!resources.flatmap(*.flat);
+        @!resources     = @!resources.flatmap(*.flat);
     }
 
     # make matching dependency names against a dist easier
@@ -111,7 +111,7 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
 
     # Add new entries missing from original Distribution.hash
     method hash {
-        my %hash = callsame.append({ :$.api, :$!build-depends, :$!test-depends, :$!resources });
+        my %hash = callsame.append({ :$.api, :$!build-depends, :$!test-depends, :@!resources });
         %hash<license>  = $.license;
         %hash<support>  = %.support;
 

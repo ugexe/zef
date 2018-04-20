@@ -129,6 +129,7 @@ class Zef::Client {
 
                 next unless my @needed = @specs-batch\               # The current set of specs
                     .grep({ not @skip.first(*.contains-spec($_)) })\ # Dists in @skip are not needed
+                    .grep(-> $spec { ($spec.from-matcher // '') eq ':from<bin>' })\
                     .grep(-> $spec { ($spec.from-matcher // '') eq ':from<native>' })\
                     .grep(-> $spec { not @!exclude.first({ $_.spec-matcher($spec) }) })\
                     .grep(-> $spec { not @!ignore.first({ $_.spec-matcher($spec) }) })\

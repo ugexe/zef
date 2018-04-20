@@ -90,6 +90,14 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
         }
     }
 
+    method build-depends-specs {
+        self.depends-specs.grep(*.dist-type eq 'build');
+    }
+
+    method test-depends-specs  {
+        self.depends-specs.grep(*.dist-type eq 'test');
+    }
+
     # make locating a module that is part of a distribution (ex. URI::Escape of URI) easier.
     # it doesn't need to be a hash mapping as its just for matching
     method provides-specs {

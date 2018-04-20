@@ -8,7 +8,7 @@ class Zef::Distribution::DependencySpecification {
     submethod new($spec) { self.bless(:$spec) }
 
     method identity {
-        my $hash = %(:name($.name), :ver($.version-matcher), :auth($.auth-matcher), :api($.api-matcher));
+        my $hash = %(:name($.name), :ver($.version-matcher), :auth($.auth-matcher), :api($.api-matcher), :from($.from-matcher));
         my $identity = hash2identity( $hash );
         $identity;
     }
@@ -28,6 +28,8 @@ class Zef::Distribution::DependencySpecification {
     method auth-matcher    { self.spec-parts<auth> // ''  }
 
     method api-matcher     { self.spec-parts<api>  // '*' }
+
+    method from-matcher     { self.spec-parts<from> // '' }
 
     method !spec { $.spec || self.Str }
 

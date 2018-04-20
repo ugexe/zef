@@ -128,7 +128,6 @@ class Zef::Client {
                 });
                 next unless my @needed = @specs-batch\               # The current set of specs
                     .grep({ not @skip.first(*.contains-spec($_)) })\ # Dists in @skip are not needed
-                    .grep(-> $spec { ($spec.from-matcher // 'Perl6') eq 'Perl6' })\
                     .grep(-> $spec { not @!exclude.first({ $_.spec-matcher($spec) }) })\
                     .grep(-> $spec { not @!ignore.first({ $_.spec-matcher($spec) }) })\
                     .grep({ $skip-installed ?? self.is-installed($_).not !! True });

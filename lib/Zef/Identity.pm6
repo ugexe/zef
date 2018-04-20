@@ -73,7 +73,7 @@ class Zef::Identity {
                     version => ~($ident<ver>     // ''),
                     auth    => ~($ident<auth>    // ''),
                     api     => ~($ident<api>     // ''),
-                    from    => ~($ident<from>    // 'Perl6'),
+                    from    => ~($ident<from>    || 'Perl6'),
                 );
             }
         }
@@ -91,8 +91,7 @@ class Zef::Identity {
         $!name
             ~ (($!version // '' ) ne ('*' | '') ?? ":ver<"  ~ ($!version.starts-with('v') ?? $!version.substr(1) !! $!version) ~ ">" !! '')
             ~ (($!auth    // '' ) ne ('*' | '') ?? ":auth<" ~ $!auth     ~ ">" !! '')
-            ~ (($!api     // '' ) ne ('*' | '') ?? ":api<"  ~ $!api      ~ ">" !! '')
-            ~ (($!from    // '' ) ne ('*' | '') ?? ":from<" ~ $!from     ~ ">" !! '');
+            ~ (($!api     // '' ) ne ('*' | '') ?? ":api<"  ~ $!api      ~ ">" !! '');
     }
 
     method hash {
@@ -101,6 +100,7 @@ class Zef::Identity {
         %hash<ver>  = $!version // '';
         %hash<auth> = $!auth    // '';
         %hash<api>  = $!api     // '';
+        %hash<from> = $!from    // '';
         %hash;
     }
 }

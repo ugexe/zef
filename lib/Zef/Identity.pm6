@@ -32,15 +32,23 @@ class Zef::Identity {
         token name-sep   { < :: > }
     }
 
-    proto method new(|) {*}
-    multi method new(Str :$name!, :ver(:$version), :$auth, :$api) {
-        self.bless(:$name, :$version, :$auth, :$api);
-    }
-    multi method new(Str $id) {
+    my class REQUIRE::Actions {
+        method TOP($/) { make %('name'=> $/<name>.made, %($/<key> Z=> $/<value>>>.ast)) if $/ }
 
+        method name($/)  { make $/.Str }
+        method key($/)   { my $str = make $/.Str; ($str eq 'ver') ?? 'version' !! $str }
+        method value($/) { make $/.Str }
+    }
+
+    proto method new(|) {*}
+    multi method new(Str :$name!, :ver(:$version), :$auth, :$api, :$from) {
+        self.bless(:$name, :$version, :$auth, :$api, :$from);
+    }
+
+    multi method new(Str $id) {
         state %id-cache;
         %id-cache{$id} := %id-cache{$id}:exists ?? %id-cache{$id} !! do {
-            if $id !~~ /':ver' | ':auth' | ':api'/ and URN.parse($id) -> $urn {
+            if $id !~~ /':ver' | ':auth' | ':api' | ':from'/ and URN.parse($id) -> $urn {
                 self.bless(
                     name    => ~($urn<name>.subst('--','::') // ''),
                     version => ~($urn<version>               // ''),
@@ -49,13 +57,13 @@ class Zef::Identity {
                     from    => ~($urn<from>                  // 'Perl6'),
                 );
             }
-            elsif REQUIRE.parse($id) -> $ident {
+            elsif try REQUIRE.parse($id, :actions(REQUIRE::Actions.new)).ast -> $ident {
                 self.bless(
-                    name    => ~($ident<name>           // ''),
-                    version => ~($ident<version><value> // ''),
-                    auth    => ~($ident<auth><value>    // ''),
-                    api     => ~($ident<api><value>     // ''),
-                    from    => ~($ident<from>           // 'Perl6'),
+                    name    => ~($ident<name>    // ''),
+                    version => ~($ident<ver>     // ''),
+                    auth    => ~($ident<auth>    // ''),
+                    api     => ~($ident<api>     // ''),
+                    from    => ~($ident<from>    // 'Perl6'),
                 );
             }
         }

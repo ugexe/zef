@@ -449,7 +449,7 @@ package Zef::CLI {
             }
         }
 
-        my @deps = (|$dist.depends-specs, |$dist.test-depends-specs, |$dist.build-depends-specs).grep(*.defined).unique;
+        my @deps = (|$dist.depends-specs).grep(*.defined).unique;
         say "Depends: {@deps.elems} items";
         if ?($verbosity >= VERBOSE) {
             my @rows = eager gather for @deps -> $spec {

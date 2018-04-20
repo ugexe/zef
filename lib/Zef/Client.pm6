@@ -3,6 +3,7 @@ use Zef::Distribution;
 use Zef::Distribution::Local;
 use Zef::Repository;
 use Zef::Utils::FileSystem;
+use Zef::Utils::SystemQuery;
 
 use Zef::Fetch;
 use Zef::Extract;
@@ -133,6 +134,26 @@ class Zef::Client {
                     .grep({ $skip-installed ?? self.is-installed($_).not !! True });
                 my @identities = @needed.map(*.identity);
 
+                my %native-needed;
+                for @needed.grep({ $_.dist-type eq 'native' }) -> $native {
+                    %native-needed{Any ~~ system-native-dep($native.spec) ?? 'found' !! 'lost'}.push($native.spec);
+                }
+                @needed.=grep(*.dist-type ne 'native');
+                self.logger.emit({
+                    level   => WARN,
+                    stage   => RESOLVE,
+                    phase   => AFTER,
+                    message => "Failed to load native dependenc{%native-needed<lost>.elems>1??'ies'!!'y'}: {%native-needed<lost>.join(', ')} (perhaps you need to install), continuing anyway",
+                }) if %native-needed<lost>.elems;
+                self.logger.emit({
+                    level   => VERBOSE,
+                    stage   => RESOLVE,
+                    phase   => AFTER,
+                    message => "Loaded native dependenc{%native-needed<found>.elems>1??'ies'!!'y'}: {%native-needed<found>.join(', ')}",
+                }) if %native-needed<found>.elems;
+
+                my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
+                my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
                 if +@identities {
                     self.logger.emit({
                         level   => INFO,
@@ -682,8 +703,6 @@ class Zef::Client {
             take $_ for grep *.defined,
                 grep { .from-matcher eq 'Perl6' },
                 ($candi.dist.depends-specs       if ?$!depends).Slip,
-                ($candi.dist.test-depends-specs  if ?$!test-depends).Slip,
-                ($candi.dist.build-depends-specs if ?$!build-depends).Slip;
         }
         $deps.unique(:as(*.identity));
     }

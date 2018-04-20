@@ -69,10 +69,8 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
         @!resources     = @!resources.flatmap(*.flat);
     }
 
-    # make matching dependency names against a dist easier
-    # when sorting the install order from the meta hash
-    method depends-specs       {
-        gather for [@.depends.grep(*.defined).Slip, @.build-depends.grep(*.defined).Slip, @.test-depends.grep(*.defined).Slip].flat -> $dep is rw {
+    method !parse-depends      {
+        gather for @.depends.grep(*.defined).Slip, @.build-depends.grep(*.defined).Slip, @.test-depends.grep(*.defined).Slip].flat -> $dep is rw {
             $dep = system-collapse(%($dep)) if $dep ~~ Associative;
             if $dep<native>.defined || $dep<build>.defined || $dep<runtime>.defined || $dep<test>.defined {
                 # new style of depends:
@@ -90,12 +88,18 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
         }
     }
 
+    # make matching dependency names against a dist easier
+    # when sorting the install order from the meta hash
+    method depends-specs       {
+        self!parse-depends.grep(*.dist-type ~~ 'runtime');
+    }
+
     method build-depends-specs {
-        self.depends-specs.grep(*.dist-type eq 'build');
+        self!parse-depends.grep(*.dist-type eq 'build');
     }
 
     method test-depends-specs  {
-        self.depends-specs.grep(*.dist-type eq 'test');
+        self!parse-depends.grep(*.dist-type eq 'test');
     }
 
     # make locating a module that is part of a distribution (ex. URI::Escape of URI) easier.

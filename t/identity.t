@@ -35,11 +35,8 @@ subtest {
 subtest {
     my @variations = (
         "Net::HTTP:ver<1.0>:auth<github:ugexe>",
-        "Net::HTTP:ver('1.0'):auth<github:ugexe>",
-        "Net::HTTP:ver('1.0'):auth('github:ugexe')",
-        'Net::HTTP:ver("1.0"):auth("github:ugexe")',
-        "Net::HTTP:auth<github:ugexe>:ver(v1.0):api<>",
-        "Net::HTTP:ver(v1.0):api<>:auth<github:ugexe>";
+        "Net::HTTP:auth<github:ugexe>:ver<v1.0>:api<>",
+        "Net::HTTP:ver<v1.0>:api<>:auth<github:ugexe>";
     );
 
     for @variations -> $identity {
@@ -55,9 +52,6 @@ subtest {
 subtest {
     my @variations = (
         "Net::HTTP:ver<*>:auth<github:ugexe>",
-        "Net::HTTP:ver('*'):auth<github:ugexe>",
-        "Net::HTTP:ver('*'):auth('github:ugexe')",
-        'Net::HTTP:ver("*"):auth("github:ugexe")',
     );
 
     for @variations -> $identity {
@@ -73,11 +67,8 @@ subtest {
 subtest {
     my @variations = (
         "Net::HTTP:ver<1.0+>:auth<github:ugexe>",
-        "Net::HTTP:ver('1.0+'):auth<github:ugexe>",
-        "Net::HTTP:ver('1.0+'):auth('github:ugexe')",
-        'Net::HTTP:ver("1.0+"):auth("github:ugexe")',
-        "Net::HTTP:auth<github:ugexe>:ver(v1.0+):api<>",
-        "Net::HTTP:ver(v1.0+):api<>:auth<github:ugexe>";
+        "Net::HTTP:auth<github:ugexe>:ver<1.0+>:api<>",
+        "Net::HTTP:auth<github:ugexe>:ver<v1.0+>:api<>",
     );
 
     for @variations -> $identity {
@@ -110,7 +101,7 @@ subtest {
 
     subtest {
         my $expected  = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
-        my $require   = "Net::HTTP:ver('v1.0+'):auth<github:ugexe>";
+        my $require   = "Net::HTTP:ver<v1.0+>:auth<github:ugexe>:api<>";
         my $urn       = "github:ugexe:Net--HTTP:1.0+";
         my $i-require = str2identity($require);
         my $i-urn     = str2identity($urn);

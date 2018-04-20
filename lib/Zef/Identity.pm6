@@ -3,6 +3,7 @@ class Zef::Identity {
     has $.version;
     has $.auth;
     has $.api;
+    has $.from;
 
     method CALL-ME($id) { try self.new(|$id) }
 
@@ -22,64 +23,57 @@ class Zef::Identity {
     }
 
     my grammar REQUIRE {
-        token TOP {
-            <name>
-            [
-            || [ <auth>    [[<version>  <api>? ] || [ <api> <version>?]?]?   ]
-            || [ <version> [[<auth> <api>? ]     || [ <api> <auth>? ]?]?     ]
-            || [ <api>     [[<auth> <version>? ] || [ <version> <auth>? ]?]? ]
-            ]?
-        }
+        regex TOP { ^^ <name> [':' <key> <value>]* $$ }
 
-        token name    { <.token>+ }
+        regex name  { <-restricted +name-sep>+ }
+        token key   { <-restricted>+ }
+        token value { '<' ~ '>'  [<( [[ <!before \>|\\> . ]+]* % ['\\' . ] )>] }
 
-        proto token version {*};
-        token version:sym(":ver(v") { <.sym> $<value>=[<.token>*?] ")"  }
-        token version:sym(":ver('") { <.sym> $<value>=[<.token>*?] "')" }
-        token version:sym(':ver("') { <.sym> $<value>=[<.token>*?] '")' }
-        token version:sym(":ver<")  { <.sym> $<value>=[<.token>*?] '>'  }
-        token version:sym(":version(v") { <.sym> $<value>=[<.token>*?] ")"  }
-        token version:sym(":version('") { <.sym> $<value>=[<.token>*?] "')" }
-        token version:sym(':version("') { <.sym> $<value>=[<.token>*?] '")' }
-        token version:sym(":version<")  { <.sym> $<value>=[<.token>*?] '>'  }
-
-        proto token api {*};
-        token api:sym(":api(v") { <.sym> $<value>=[<.token>*?] ")"  }
-        token api:sym(":api('") { <.sym> $<value>=[<.token>*?] "')" }
-        token api:sym(':api("') { <.sym> $<value>=[<.token>*?] '")' }
-        token api:sym(":api<")  { <.sym> $<value>=[<.token>*?] '>'  }
-
-        proto token auth {*};
-        token auth:sym(":auth('") { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>*?] "')" }
-        token auth:sym(':auth("') { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>*?] '")' }
-        token auth:sym(":auth<")  { <.sym> $<value>=[$<cs>=<.token>*? ':'? $<owner>=<.token>*?] '>'  }
-
-        token token      { <-restricted +name-sep> }
-        token restricted { < : > }
+        token restricted { [':' | '<' | '>' | '(' | ')'] }
         token name-sep   { < :: > }
     }
 
-    proto method new(|) {*}
-    multi method new(Str :$name!, :ver(:$version), :$auth, :$api) {
-        self.bless(:$name, :$version, :$auth, :$api);
+    my class REQUIRE::Actions {
+        method TOP($/) { make %('name'=> $/<name>.made, %($/<key> Z=> $/<value>>>.ast)) if $/ }
+
+        method name($/)  { make $/.Str }
+        method key($/)   { my $str = make $/.Str; ($str eq 'ver') ?? 'version' !! $str }
+        method value($/) { make $/.Str }
     }
+
+    proto method new(|) {*}
+    multi method new(Str :$name!, :ver(:$version), :$auth, :$api, :$from) {
+        self.bless(:$name, :$version, :$auth, :$api, :$from);
+    }
+
     multi method new(Str $id) {
         state %id-cache;
         %id-cache{$id} := %id-cache{$id}:exists ?? %id-cache{$id} !! do {
-            if $id !~~ /':ver' | ':auth' | ':api'/ and URN.parse($id) -> $urn {
+            if $id.starts-with('.' | '/') {
+                self.bless(
+                    name    => $id,
+                    version => '',
+                    auth    => '',
+                    api     => '',
+                    from    => '',
+                );
+            }
+            elsif $id !~~ /':ver' | ':auth' | ':api' | ':from'/ and URN.parse($id) -> $urn {
                 self.bless(
                     name    => ~($urn<name>.subst('--','::') // ''),
                     version => ~($urn<version>               // ''),
                     auth    => ~($urn<auth>                  // ''),
                     api     => ~($urn<api>                   // ''),
+                    from    => ~($urn<from>                  // 'Perl6'),
                 );
             }
-            elsif REQUIRE.parse($id) -> $ident {
+            elsif REQUIRE.parse($id, :actions(REQUIRE::Actions.new)).ast -> $ident {
                 self.bless(
-                    name    => ~($ident<name>           // ''),
-                    version => ~($ident<version><value> // ''),
-                    auth    => ~($ident<auth><value>    // ''),
-                    api     => ~($ident<api><value>     // ''),
+                    name    => ~($ident<name>    // ''),
+                    version => ~($ident<ver>     // ''),
+                    auth    => ~($ident<auth>    // ''),
+                    api     => ~($ident<api>     // ''),
+                    from    => ~($ident<from>    || 'Perl6'),
                 );
             }
         }
@@ -106,6 +100,7 @@ class Zef::Identity {
         %hash<ver>  = $!version // '';
         %hash<auth> = $!auth    // '';
         %hash<api>  = $!api     // '';
+        %hash<from> = $!from    // '';
         %hash;
     }
 }

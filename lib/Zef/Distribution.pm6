@@ -1,5 +1,6 @@
 use Zef;
 use Zef::Distribution::DependencySpecification;
+use Zef::Utils::SystemQuery;
 
 # XXX: Needed for backwards compat. Will be removed when I rework Distribution related items
 class Distribution::DEPRECATED {
@@ -11,7 +12,7 @@ class Distribution::DEPRECATED {
     has $.ver;
     has $.version;
     has $.description;
-    has @.depends;
+    has $.depends;
     has %.provides;
     has %.files;
     has $.source-url;
@@ -24,7 +25,7 @@ class Distribution::DEPRECATED {
             :$.auth,
             :$.ver,
             :$!description,
-            :@!depends,
+            :$!depends,
             :%!provides,
             :%!files,
             :$!source-url,
@@ -44,13 +45,13 @@ class Distribution::DEPRECATED {
 # Distribution (cant just add `role Distribution { }; class Zef::Distribution does Distribution`
 # as it will still not pass the parameter type validation on `Distribution`. It must actually
 # subclass the core Distribution itself, which is also why some attributes are left defined
-# in Distribution itself instead of Zef::Distribution (@.depends is already an attribute of
-# Distribution for example, so we don't have a `has @.depends`)
+# in Distribution itself instead of Zef::Distribution ($.depends is already an attribute of
+# Distribution for example, so we don't have a `has $.depends`)
 class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::DependencySpecification {
     # missing from Distribution
     has $.license;
-    has @.build-depends;
-    has @.test-depends;
+    has $.build-depends;
+    has $.test-depends;
     has @.resources;
     has %.support;
 
@@ -62,27 +63,27 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
         # get assigned such that `Distribution.depends.perl` -> `([1,2,3])` instead
         # of just `[1, 2, 3]`. Because its nice to pass in |%meta to the constructor
         # we'll just flatten them manually instead of writing a better constructor
-        @.depends       = @.depends.flatmap(*.flat);
-        @!test-depends  = @!test-depends.flatmap(*.flat);
-        @!build-depends = @!build-depends.flatmap(*.flat);
+        #$.depends       = $.depends.map({.flat.Slip});
+        #$!test-depends  = $!test-depends.flatmap(*.flat);
+        #$!build-depends = $!build-depends.flatmap(*.flat);
         @!resources     = @!resources.flatmap(*.flat);
     }
 
     # make matching dependency names against a dist easier
     # when sorting the install order from the meta hash
     method depends-specs       {
-        gather for @.depends.grep(*.defined) {
-            take Zef::Distribution::DependencySpecification.new($_);
+        gather for $.depends.grep(*.defined) {
+            take Zef::Distribution::DependencySpecification.new(system-collapse($_));
         }
     }
     method build-depends-specs {
-        gather for @.build-depends.grep(*.defined) {
-            take Zef::Distribution::DependencySpecification.new($_);
+        gather for $.build-depends.grep(*.defined) {
+            take Zef::Distribution::DependencySpecification.new(system-collapse($_));
         }
     }
     method test-depends-specs  {
-        gather for @.test-depends.grep(*.defined) {
-            take Zef::Distribution::DependencySpecification.new($_);
+        gather for $.test-depends.grep(*.defined) {
+            take Zef::Distribution::DependencySpecification.new(system-collapse($_));
         }
     }
 
@@ -110,7 +111,7 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
 
     # Add new entries missing from original Distribution.hash
     method hash {
-        my %hash = callsame.append({ :$.api, :@!build-depends, :@!test-depends, :@!resources });
+        my %hash = callsame.append({ :$.api, :$!build-depends, :$!test-depends, :@!resources });
         %hash<license>  = $.license;
         %hash<support>  = %.support;
 

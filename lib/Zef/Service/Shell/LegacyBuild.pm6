@@ -2,7 +2,6 @@ use Zef;
 
 class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
     method build-matcher($dist) {
-        note 'Legacy ' ~ $dist.meta-version;
         ($dist.meta-version // 0) == 0 and $dist.path.IO.child("Build.pm").e
     }
 

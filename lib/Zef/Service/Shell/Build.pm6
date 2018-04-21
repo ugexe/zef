@@ -1,7 +1,7 @@
 use Zef;
 
 class Zef::Service::Shell::Build does Builder does Messenger {
-    method build-matcher($dist) { note $dist.meta-version; ($dist.meta-version // 0) == 1 }
+    method build-matcher($dist) { ($dist.meta-version // 0) == 1 }
 
     method probe { True }
 

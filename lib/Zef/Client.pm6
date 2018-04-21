@@ -1,6 +1,7 @@
 use Zef;
 use Zef::Distribution;
 use Zef::Distribution::Local;
+use Zef::Identity;
 use Zef::Repository;
 use Zef::Utils::FileSystem;
 
@@ -503,6 +504,13 @@ class Zef::Client {
         # that allows us to return to a previous state in our plan (xxx: Zef::Plan is planned)
         my @sorted-candidates = self.sort-candidates(@filtered-candidates, |%_);
         die "Something went terribly wrong determining the build order" unless +@sorted-candidates;
+
+
+        for @sorted-candidates.grep: *.dist.builder -> $candi {
+            my $builder = "Distribution::Builder::$candi.dist.builder()";
+            try require ::($builder);
+            self.install(:@to, |self.fetch(|self.find-candidates(str2identity($builder)))) if $!;
+        }
 
 
         # Setup(?) Phase:

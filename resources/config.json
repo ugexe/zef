@@ -120,6 +120,10 @@
         {
             "short-name" : "default-builder",
             "module" : "Zef::Service::Shell::Build"
+        },
+        {
+            "short-name" : "legacy-builder",
+            "module" : "Zef::Service::Shell::LegacyBuild"
         }
     ],
     "Test" : [

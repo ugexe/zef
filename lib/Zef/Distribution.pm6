@@ -3,6 +3,7 @@ use Zef::Distribution::DependencySpecification;
 use Zef::Utils::SystemQuery;
 
 class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecification {
+    has $.meta-version;
     has $.name;
     has $.auth;
     has $.author;
@@ -20,6 +21,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     has $.test-depends;
     has @.resources;
     has %.support;
+    has $.builder;
 
     # attach arbitrary data, like for topological sort, that won't be saved on install
     has %.metainfo is rw;
@@ -33,6 +35,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     method meta { $.hash }
     method hash {
         {
+            :$!meta-version,
             :$!name,
             :$.auth,
             :$.ver,
@@ -49,6 +52,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
             :%!support,
             :$.identity,
             :$.id,
+            :$.builder,
             :Str($.Str()),
         }
     }

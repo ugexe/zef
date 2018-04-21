@@ -1,7 +1,5 @@
 class Zef { }
 
-our $PRE-DIST-INTERFACE is export = ::("Distribution::Hash") ~~ Failure;
-
 my @zrun-invoke = BEGIN $*DISTRO.is-win ?? <cmd.exe /x/d/c>.Slip !! '';
 sub zrun(*@_, *%_) is export { run (|@zrun-invoke, |@_).grep(*.?chars), |%_ }
 sub zrun-async(*@_, *%_) is export { Proc::Async.new( (|@zrun-invoke, |@_).grep(*.?chars), |%_ ) }

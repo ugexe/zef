@@ -577,13 +577,7 @@ class Zef::Client {
                             # but that doesn't play nicely with relative paths. We want to keep the original meta
                             # paths for newer rakudos so we must avoid using :absolute for the source paths by
                             # using the newer CURI.install if available
-                            my $install = $PRE-DIST-INTERFACE
-                                ?? do {
-                                    # CURI.install is bugged; $dist.provides/files will both get modified and fuck up
-                                    # any subsequent .install as the fuck up involves changing the data structures
-                                    my $dist = $candi.dist.clone(provides => $candi.dist.provides, files => $candi.dist.files);
-                                    $cur.install($dist.compat, $dist.sources(:absolute), $dist.scripts(:absolute), $dist.resources(:absolute), :force($!force-install))
-                                } !! $cur.install($candi.dist.compat, :force($!force-install));
+                            my $install = $cur.install($candi.dist.compat, :force($!force-install));
 
                             self.logger.emit({
                                 level   => VERBOSE,

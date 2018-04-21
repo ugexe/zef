@@ -2,8 +2,7 @@ use Zef;
 use Zef::Distribution::DependencySpecification;
 use Zef::Utils::SystemQuery;
 
-# XXX: Needed for backwards compat. Will be removed when I rework Distribution related items
-class Distribution::DEPRECATED {
+class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecification {
     has $.name;
     has $.auth;
     has $.author;
@@ -16,39 +15,6 @@ class Distribution::DEPRECATED {
     has %.provides;
     has %.files;
     has $.source-url;
-
-    method auth { with $!auth // $!author // $!authority { .Str } else { Nil } }
-    method ver  { with $!ver // $!version { $!ver ~~ Version ?? $_ !! $!ver = Version.new($_ // 0) } }
-    method hash {
-        {
-            :$!name,
-            :$.auth,
-            :$.ver,
-            :$!description,
-            :$!depends,
-            :%!provides,
-            :%!files,
-            :$!source-url,
-        }
-    }
-    method Str() {
-        return "{$.name}:ver<{$.ver  // ''}>:auth<{$.auth // ''}>:api<{$.api // ''}>";
-    }
-    method id() {
-        use nqp;
-        return nqp::sha1(self.Str);
-    }
-}
-
-# NOTE: Everything referencing `Distribution` in the below comment now refers to `Distribution::DEPRECAED`
-# "is Distribution" because CU::R::I.install(Distribution $dist) requires it to be the core
-# Distribution (cant just add `role Distribution { }; class Zef::Distribution does Distribution`
-# as it will still not pass the parameter type validation on `Distribution`. It must actually
-# subclass the core Distribution itself, which is also why some attributes are left defined
-# in Distribution itself instead of Zef::Distribution ($.depends is already an attribute of
-# Distribution for example, so we don't have a `has $.depends`)
-class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::DependencySpecification {
-    # missing from Distribution
     has $.license;
     has $.build-depends;
     has $.test-depends;
@@ -59,14 +25,32 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     has %.metainfo is rw;
 
     method TWEAK(--> Nil) {
-        # Distribution.new(|%meta6) causes fields like `"depends": [1, 2, 3]` to
-        # get assigned such that `Distribution.depends.perl` -> `([1,2,3])` instead
-        # of just `[1, 2, 3]`. Because its nice to pass in |%meta to the constructor
-        # we'll just flatten them manually instead of writing a better constructor
-        #$.depends       = $.depends.map({.flat.Slip});
-        #$!test-depends  = $!test-depends.flatmap(*.flat);
-        #$!build-depends = $!build-depends.flatmap(*.flat);
-        @!resources     = @!resources.flatmap(*.flat);
+        @!resources = @!resources.flatmap(*.flat);
+    }
+
+    method auth { with $!auth // $!author // $!authority { .Str } else { Nil } }
+    method ver  { with $!ver // $!version { $!ver ~~ Version ?? $_ !! $!ver = Version.new($_ // 0) } }
+    method meta { $.hash }
+    method hash {
+        {
+            :$!name,
+            :$.auth,
+            :$.ver,
+            :$.api,
+            :$!description,
+            :$!depends,
+            :$!build-depends,
+            :$!test-depends,
+            :%!provides,
+            :%!files,
+            :@!resources,
+            :$!source-url,
+            :$!license,
+            :%!support,
+            :$.identity,
+            :$.id,
+            :Str($.Str()),
+        }
     }
 
     # make matching dependency names against a dist easier
@@ -109,18 +93,12 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     multi method contains-spec(Zef::Distribution::DependencySpecification $spec, Bool :$strict = True)
         { so self.spec-matcher($spec, :$strict) || self.provides-spec-matcher($spec, :$strict)  }
 
-    # Add new entries missing from original Distribution.hash
-    method hash {
-        my %hash = callsame.append({ :$.api, :$!build-depends, :$!test-depends, :@!resources });
-        %hash<license>  = $.license;
-        %hash<support>  = %.support;
-
-        # debugging stuff
-        %hash<identity> = $.identity;
-        %hash<id>       = $.id;
-        %hash<Str>      = $.Str();
-
-        %hash;
+    method Str() {
+        return "{$.name}:ver<{$.ver  // ''}>:auth<{$.auth // ''}>:api<{$.api // ''}>";
+    }
+    method id() {
+        use nqp;
+        return nqp::sha1(self.Str);
     }
 
     method WHICH(Zef::Distribution:D:) { "{self.^name}|{self.Str()}" }
@@ -129,12 +107,10 @@ class Zef::Distribution is Distribution::DEPRECATED is Zef::Distribution::Depend
     # are Distribution constraints (install and uninstall?). This provides backwards compatibility
     # until a more robust solution is worked out
     method compat {
-        $PRE-DIST-INTERFACE
-            ?? Distribution.new(|$.hash)
-            !! (::("Distribution::Hash").new(self.?meta || $.hash, :prefix(self.?IO // $*CWD)) but role {
-                method name { self.meta<name> }
-                method ver  { self.meta<ver> // self.meta<version> }
-                method auth { self.meta<auth> // self.meta<authority> // self.meta<author> }
-            });
+        (::("Distribution::Hash").new(self.?meta || $.hash, :prefix(self.?IO // $*CWD)) but role {
+            method name { self.meta<name> }
+            method ver  { self.meta<ver> // self.meta<version> }
+            method auth { self.meta<auth> // self.meta<authority> // self.meta<author> }
+        });
     }
 }

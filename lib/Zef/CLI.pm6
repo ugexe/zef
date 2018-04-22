@@ -164,8 +164,6 @@ package Zef::CLI {
     ) is export {
         my $client = get-client(:config($CONFIG));
         my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
-        abort "Uninstall requires rakudo v2016.02 or later"\
-            unless any(@from>>.can('uninstall'));
 
         my @uninstalled = $client.uninstall( :@from, |@identities>>.&str2identity );
         my @fail        = @identities.grep(* !~~ any(@uninstalled.map(*.as)));
@@ -222,8 +220,6 @@ package Zef::CLI {
 
     #| Upgrade installed distributions (BETA)
     multi MAIN('upgrade', :to(:$install-to) = $CONFIG<DefaultCUR>, *@identities) is export {
-        abort "Upgrading requires rakudo 2016.04 or later" unless try &*EXIT;
-
         # XXX: This is a very inefficient prototype. Not sure how to handle an 'upgrade' when
         # multiple versions are already installed, so for now an 'upgrade' always means we
         # leave the previous version installed.
@@ -518,7 +514,6 @@ package Zef::CLI {
         :$exclude is copy,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
     ) is export {
-        abort "Smoke testing requires rakudo 2016.04 or later" unless try &*EXIT;
         my @excluded = $exclude.map(*.&identity2spec);
         my $client   = get-client(
             :config($CONFIG) :exclude(|@excluded),
@@ -548,7 +543,6 @@ package Zef::CLI {
         );
 
         for @identities -> $identity {
-            # &*EXIT requires rakudo 2016.04
             my &*EXIT = sub ($code) { return $code == 0 ?? True !! False };
             my $result = try smoker($identity);
             say "===> Smoke result for {$identity}: {?$result??'OK'!!'NOT OK'}";

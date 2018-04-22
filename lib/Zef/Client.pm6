@@ -187,7 +187,10 @@ class Zef::Client {
         my @fetched   = self!fetch(|@candidates);
         my @extracted = self!extract(|@candidates);
 
-        my @local-candis = @extracted.map: { Zef::Distribution::Local.new(~$_.uri) }
+        my @local-candis = @extracted.map: -> $candi {
+            my $dist = Zef::Distribution::Local.new(~$candi.uri);
+            $candi.clone(:$dist);
+        }
 
         $!recommendation-manager.store(|@local-candis.map(*.dist));
 

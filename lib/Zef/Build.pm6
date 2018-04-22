@@ -1,6 +1,9 @@
 use Zef;
 
 class Zef::Build does Pluggable {
+    method needs-build($dist) {
+        [||] self.plugins.map(*.needs-build($dist))
+    }
     method build($dist, :@includes, Supplier :$logger, :$meta) {
         die "Can't build non-existent path: {$dist.path}" unless $dist.path.IO.e;
         my $builder = self.plugins.first(*.build-matcher($dist));

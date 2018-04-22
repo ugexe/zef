@@ -303,12 +303,12 @@ class Zef::Client {
     method build(*@candidates ($, *@)) {
         my @built = eager gather for @candidates -> $candi {
             my $dist := $candi.dist;
-            unless ?$dist.IO.child('Build.pm').e {
+            unless $!builder.needs-build($dist) {
                 self.logger.emit({
                     level   => DEBUG,
                     stage   => BUILD,
                     phase   => BEFORE,
-                    message => "# SKIP: No Build.pm for {$candi.dist.?identity // $candi.as}",
+                    message => "# SKIP: No need to build {$candi.dist.?identity // $candi.as}",
                 });
                 take $candi;
                 next();

@@ -25,8 +25,8 @@ class Zef::Extract does Pluggable {
         # gnu tar on windows doesn't always work as I expect, so try another plugin if extraction fails
         my $extracted-to = $extractors.grep({
             $logger.emit({ level => WARN, stage => EXTRACT, phase => LIVE, message => "Extracting with plugin {.key.^name} aborted." })
-                if ?$logger && not .value.IO.e;
-            .value.IO.e;
+                if ?$logger && !(.value.defined && .value.IO.e);
+            .value.defined && .value.IO.e;
         }).map(*.value).head;
         die "something went wrong extracting {$path} to {$extract-to} with {$.plugins.join(',')}" unless $extracted-to.IO.e;
 

@@ -16,7 +16,7 @@ class Zef::Service::Shell::PowerShell::unzip is Zef::Service::Shell::PowerShell 
             my $cwd := $archive-file.IO.parent;
             my $ENV := %*ENV;
             my $script := %?RESOURCES<scripts/win32unzip.ps1>.IO.absolute;
-            my $proc = zrun-async(|@.ps-invocation, $script, $archive-file.basename, $extract-to.absolute);
+            my $proc = zrun-async(|@.ps-invocation, $script, $archive-file.basename, '"' ~ $extract-to.absolute ~ '"');
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

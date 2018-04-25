@@ -118,6 +118,10 @@ class Zef::Utils::URI {
         token windows-path   { <drive-letter> <path-absolute> }
         token drive-letter   { <alpha> [ <drive-marker> ]? }
         token drive-marker   { ":" || "|" }
+
+        # XXX: this is a bit of a hack -- see:
+        # https://github.com/ugexe/zef/issues/204#issuecomment-366957374
+        token pchar { <.unreserved> || <.pct-encoded> || <.sub-delims> || ':' || '@' || ' ' }
     }
 
     method new($id is copy) {

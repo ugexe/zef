@@ -14,7 +14,7 @@ class Zef::Service::Shell::PowerShell::download is Zef::Service::Shell::PowerShe
             my $cwd := $save-as.IO.parent;
             my $ENV := %*ENV;
             my $script := %?RESOURCES<scripts/win32http.ps1>.IO.absolute;
-            my $proc = zrun-async(|@.ps-invocation, $script, $url, $save-as.absolute);
+            my $proc = zrun-async(|@.ps-invocation, $script, $url, '"' ~ $save-as.absolute ~ '"');
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

@@ -346,7 +346,6 @@ package Zef::CLI {
                         my $lib  = $libs.first({.key eq $identity});
                         say "===> From Distribution: {~$candi.dist}";
                         say "{$identity} => {$candi.from.prefix.child('resources').child($lib.value)}";
-                        exit 0;
                     }
                 }
             }

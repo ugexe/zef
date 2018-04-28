@@ -134,47 +134,45 @@ class Zef::Client {
                     .grep({ $skip-installed ?? self.is-installed($_).not !! True });
                 my @identities = @needed.map(*.identity);
 
-                if +@identities {
-                    self.logger.emit({
-                        level   => INFO,
-                        stage   => RESOLVE,
-                        phase   => BEFORE,
-                        message => "Searching for missing dependencies: {@identities.join(', ')}",
-                    });
+                self.logger.emit({
+                    level   => INFO,
+                    stage   => RESOLVE,
+                    phase   => BEFORE,
+                    message => "Searching for missing dependencies: {@identities.join(', ')}",
+                });
 
-                    my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
-                    my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
+                my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
+                my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
 
-                    # The failing part of this should ideally be handled in Zef::CLI I think
-                    if +@prereq-candidates == +@needed || $not-found.cache.elems == 0 {
-                        for @prereq-candidates.classify({.from}).kv -> $from, $found {
-                            self.logger.emit({
-                                level   => VERBOSE,
-                                stage   => RESOLVE,
-                                phase   => AFTER,
-                                message => "Found dependencies: {$found.map(*.dist.identity).join(', ')} [via {$from}]",
-                            })
-                        }
-                    }
-                    else {
+                # The failing part of this should ideally be handled in Zef::CLI I think
+                if +@prereq-candidates == +@needed || $not-found.cache.elems == 0 {
+                    for @prereq-candidates.classify({.from}).kv -> $from, $found {
                         self.logger.emit({
-                            level   => ERROR,
+                            level   => VERBOSE,
                             stage   => RESOLVE,
                             phase   => AFTER,
-                            message => "Failed to find dependencies: {$not-found.join(', ')}",
-                        });
-
-                        $!force-resolve
-                            ?? say('Failed to resolve missing dependencies, but continuing with --force-resolve')
-                            !! die('Failed to resolve some missing dependencies');
-                    };
-
-                    @skip.append: @prereq-candidates.map(*.dist);
-                    @specs = self.list-dependencies(@prereq-candidates);
-                    for @prereq-candidates -> $prereq {
-                        $prereq.is-dependency = True;
-                        take $prereq;
+                            message => "Found dependencies: {$found.map(*.dist.identity).join(', ')} [via {$from}]",
+                        })
                     }
+                }
+                else {
+                    self.logger.emit({
+                        level   => ERROR,
+                        stage   => RESOLVE,
+                        phase   => AFTER,
+                        message => "Failed to find dependencies: {$not-found.join(', ')}",
+                    });
+
+                    $!force-resolve
+                        ?? say('Failed to resolve missing dependencies, but continuing with --force-resolve')
+                        !! die('Failed to resolve some missing dependencies');
+                };
+
+                @skip.append: @prereq-candidates.map(*.dist);
+                @specs = self.list-dependencies(@prereq-candidates);
+                for @prereq-candidates -> $prereq {
+                    $prereq.is-dependency = True;
+                    take $prereq;
                 }
             }
         }
@@ -682,7 +680,6 @@ class Zef::Client {
     method list-dependencies(*@candis, :$from) {
         my $deps := gather for @candis -> $candi {
             take $_ for grep *.defined,
-                grep { .from-matcher eq 'Perl6' },
                 ($candi.dist.depends-specs       if ?$!depends).Slip,
                 ($candi.dist.test-depends-specs  if ?$!test-depends).Slip,
                 ($candi.dist.build-depends-specs if ?$!build-depends).Slip;
@@ -695,8 +692,18 @@ class Zef::Client {
         $candis.sort(*.dist.ver).reverse;
     }
 
-    method is-installed(|c) {
-        self.resolve(|c).so
+    method is-installed($spec, |c) {
+        do given $spec.?from-matcher {
+            when 'bin'    { so Zef::Utils::FileSystem::which($spec.name) }
+            when 'native' { so self!native-library-is-installed($spec.name) }
+            default       { so self.resolve($spec, |c).so }
+        }
+    }
+
+    method !native-library-is-installed(Str() $lib) {
+        use NativeCall;
+        try sub :: is native(sub{ $*VM.platform-library-name($lib.IO).basename }){}();
+        return !$!.payload.starts-with("Cannot locate native library");
     }
 
     method sort-candidates(@candis, *%_) {

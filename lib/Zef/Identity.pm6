@@ -89,9 +89,10 @@ class Zef::Identity {
     # Acme::Foo::SomeModule:auth<cpan:ugexe>:ver('1.0')
     method identity {
         $!name
-            ~ (($!version // '' ) ne ('*' | '') ?? ":ver<"  ~ ($!version.starts-with('v') ?? $!version.substr(1) !! $!version) ~ ">" !! '')
-            ~ (($!auth    // '' ) ne ('*' | '') ?? ":auth<" ~ $!auth     ~ ">" !! '')
-            ~ (($!api     // '' ) ne ('*' | '') ?? ":api<"  ~ $!api      ~ ">" !! '');
+            ~ (($!version // '' ) ne ('*' | '')     ?? ":ver<"  ~ ($!version.starts-with('v') ?? $!version.substr(1) !! $!version) ~ ">" !! '')
+            ~ (($!auth    // '' ) ne ('*' | '')     ?? ":auth<" ~ $!auth   ~ ">" !! '')
+            ~ (($!api     // '' ) ne ('*' | '')     ?? ":api<"  ~ $!api    ~ ">" !! '')
+            ~ (($!from    // '' ) ne ('Perl6' | '') ?? ":from<" ~ $!from   ~ ">" !! '');
     }
 
     method hash {

@@ -23,8 +23,12 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     has %.support;
     has $.builder;
 
+    has $.meta; # Holds a copy of the original meta data so we don't lose non-spec meta fields like 'build'
+
     # attach arbitrary data, like for topological sort, that won't be saved on install
     has %.metainfo is rw;
+
+    method new(*%_) { self.bless(|%_, :meta(%_)) }
 
     method TWEAK(--> Nil) {
         @!resources = @!resources.flatmap(*.flat);
@@ -34,7 +38,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     method ver  { with $!ver // $!version { $!ver ~~ Version ?? $_ !! $!ver = Version.new($_ // 0) } }
     method meta { $.hash }
     method hash {
-        {
+        my %normalized = %(
             :$!meta-version,
             :$!name,
             :$.auth,
@@ -52,9 +56,13 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
             :%!support,
             :$.identity,
             :$.id,
-            :$.builder,
-            :Str($.Str()),
-        }
+            :$.builder;
+        );
+
+        # Add non-spec keys back into the has output ( will do this properly when refactoring Distribution )
+        %normalized{$_} //= $!meta{$_} for $!meta.hash.keys;
+
+        return %normalized;
     }
 
     # make matching dependency names against a dist easier

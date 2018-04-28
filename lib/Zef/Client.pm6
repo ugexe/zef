@@ -321,11 +321,11 @@ class Zef::Client {
                 message => "Building: {$candi.dist.?identity // $candi.as}",
             });
 
-            my $result = $!builder.build($candi.dist, :includes($candi.dist.metainfo<includes> // []), :$!logger);
+            my $result := $!builder.build($candi.dist, :includes($candi.dist.metainfo<includes> // []), :$!logger);
 
             $candi does role :: { has $.build-results is rw = $result; };
 
-            if !$result {
+            if $result.grep(*.not).elems {
                 self.logger.emit({
                     level   => ERROR,
                     stage   => BUILD,

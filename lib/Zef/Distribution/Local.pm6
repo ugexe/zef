@@ -13,7 +13,7 @@ class Zef::Distribution::Local is Zef::Distribution {
         my $abspath   = $meta-path.parent.absolute;
         my %meta      = try { %(from-json($meta-path.slurp)) } || die "Invalid json? File: {$meta-path}";
         my $IO        = $abspath.IO;
-        self.bless(:path($abspath), :$IO, |%(%meta.grep(?*.value.elems)));
+        self.bless(:path($abspath), :$IO, |%(%meta.grep(?*.value.elems)), :meta(%meta));
     }
 
     method find-meta(Zef::Distribution::Local: $path? is copy) {

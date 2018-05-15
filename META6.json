@@ -31,7 +31,7 @@
         "Zef::Service::TAP"         : "lib/Zef/Service/TAP.pm6",
         "Zef::Service::P6CReporter" : "lib/Zef/Service/P6CReporter.pm6",
 
-        "Zef::Service::DistributionBuilder" : "lib/Zef/Service/DistributionBuilder.pm6",
+        "Zef::Service::Shell::DistributionBuilder" : "lib/Zef/Service/Shell/DistributionBuilder.pm6",
         "Zef::Service::Shell::LegacyBuild"  : "lib/Zef/Service/Shell/LegacyBuild.pm6",
         "Zef::Service::Shell::Test"         : "lib/Zef/Service/Shell/Test.pm6",
         "Zef::Service::Shell::prove"        : "lib/Zef/Service/Shell/prove.pm6",

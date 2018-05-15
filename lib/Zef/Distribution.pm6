@@ -73,8 +73,15 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         }
     }
     method build-depends-specs {
-        gather for $.build-depends.grep(*.defined) {
-            take Zef::Distribution::DependencySpecification.new(system-collapse($_));
+        gather {
+            for $.build-depends.grep(*.defined) {
+                take Zef::Distribution::DependencySpecification.new(system-collapse($_));
+            }
+
+            # XXX: Maybe the full namespace should be required? Otherwise makes it harder
+            # to handle :ver<> etc like everything else. It also requires external tools
+            # to have prior knowledge of this special build depends naming convention.
+            take Zef::Distribution::DependencySpecification.new("Distribution::Builder::{$.builder}") if $.builder
         }
     }
     method test-depends-specs  {

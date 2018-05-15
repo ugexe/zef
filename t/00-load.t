@@ -31,7 +31,7 @@ subtest {
 subtest {
     use-ok("Zef::Service::FetchPath");
     use-ok("Zef::Service::TAP");
-    use-ok("Zef::Service::DistributionBuilder");
+    use-ok("Zef::Service::Shell::DistributionBuilder");
     use-ok("Zef::Service::Shell::LegacyBuild");
     use-ok("Zef::Service::Shell::Test");
     use-ok("Zef::Service::Shell::prove");

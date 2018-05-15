@@ -119,7 +119,7 @@
     "Build" : [
         {
             "short-name" : "default-builder",
-            "module" : "Zef::Service::DistributionBuilder"
+            "module" : "Zef::Service::Shell::DistributionBuilder"
         },
         {
             "short-name" : "legacy-builder",

@@ -507,7 +507,11 @@ class Zef::Client {
         for @sorted-candidates.grep: *.dist.builder -> $candi {
             my $builder = "Distribution::Builder::$candi.dist.builder()";
             try require ::($builder);
-            self.install(:@to, |self.fetch(|self.find-candidates(str2identity($builder)))) if $!;
+            if $! {
+                my @builder-candidates = self.find-candidates(str2identity($builder));
+                @builder-candidates.append(self.find-prereq-candidates(|@builder-candidates));
+                self.install(:@to, |self.fetch(|@builder-candidates));
+            }
         }
 
 

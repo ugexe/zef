@@ -680,7 +680,7 @@ class Zef::Client {
 
         # if .name is not defined then its invalid but probably a deeply nested
         # depends hash so just ignore it since it might be valid in the near future.
-        $deps.grep(*.name.defined).unique(:as(*.identity));
+        $deps.unique(:as(*.identity));
     }
 
     method resolve($spec, :@at) {

@@ -68,9 +68,11 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     # make matching dependency names against a dist easier
     # when sorting the install order from the meta hash
     method depends-specs       {
-        gather for $.depends.grep(*.defined) {
-            take Zef::Distribution::DependencySpecification.new(system-collapse($_));
-        }
+        my $deps := $.depends ~~ Hash
+            ?? $.depends<runtime build>.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.Slip)
+            !! $.depends;
+
+        $deps.grep(*.defined).map({ Zef::Distribution::DependencySpecification.new(system-collapse($_)) })
     }
     method build-depends-specs {
         gather {

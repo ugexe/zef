@@ -677,7 +677,10 @@ class Zef::Client {
                 ($candi.dist.test-depends-specs  if ?$!test-depends).Slip,
                 ($candi.dist.build-depends-specs if ?$!build-depends).Slip;
         }
-        $deps.unique(:as(*.identity));
+
+        # if .name is not defined then its invalid but probably a deeply nested
+        # depends hash so just ignore it since it might be valid in the near future.
+        $deps.grep(*.name.defined).unique(:as(*.identity));
     }
 
     method resolve($spec, :@at) {

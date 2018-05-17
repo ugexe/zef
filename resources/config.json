@@ -36,6 +36,7 @@
                 "name" : "cpan",
                 "auto-update" : 1,
                 "mirrors" : [
+                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan1.json",
                     "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json",
                     "git://github.com/ugexe/Perl6-ecosystems.git"
                 ]
@@ -49,6 +50,7 @@
                 "name" : "p6c",
                 "auto-update" : 1,
                 "mirrors" : [
+                    "http://ecosystem-api.p6c.org/projects1.json",
                     "http://ecosystem-api.p6c.org/projects.json",
                     "git://github.com/ugexe/Perl6-ecosystems.git"
                 ]

@@ -7,22 +7,11 @@ sub zrun-async(*@_, *%_) is export { Proc::Async.new( (|@zrun-invoke, |@_).grep(
 # rakudo must be able to parse json, so it doesn't
 # make sense to require a dependency to parse it
 sub from-json($text) is export {
-    INIT my $INTERNAL_JSON = (so try { ::("Rakudo::Internals::JSON") !~~ Failure }) == True;
-    $INTERNAL_JSON
-        ?? ::("Rakudo::Internals::JSON").from-json($text)
-        !! do {
-            my $a = ::("JSONPrettyActions").new();
-            my $o = ::("JSONPrettyGrammar").parse($text, :actions($a));
-            JSONException.new(:$text).throw unless $o;
-            $o.ast;
-        }
+    ::("Rakudo::Internals::JSON").from-json($text)
 }
 
 sub to-json(|c) is export {
-    INIT my $INTERNAL_JSON = (so try { ::("Rakudo::Internals::JSON") !~~ Failure }) == True;
-    $INTERNAL_JSON
-        ?? ::("Rakudo::Internals::JSON").to-json(|c)
-        !! &::("to-json").(|c);
+    ::("Rakudo::Internals::JSON").to-json(|c)
 }
 
 # todo: define all the additional options in these signatures, such as passing :$jobs

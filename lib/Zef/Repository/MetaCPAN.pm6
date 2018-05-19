@@ -44,6 +44,8 @@ class Zef::Repository::MetaCPAN does Repository {
         my $matches := gather for |@identities -> $wants {
             my $spec = Zef::Distribution::DependencySpecification.new($wants);
 
+            next unless ($spec.from-matcher // '') eq 'Perl6';
+
             temp %fields<distribution> = $spec.name.subst('::', '-', :g)
                 if ?$spec && $spec.name ne '*';
             temp %fields<version> = $spec.version-matcher.subst(/^v?/, '?')

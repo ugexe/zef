@@ -51,12 +51,15 @@ class Zef::Repository::LocalCache does Repository {
     # note this doesn't apply the $max-results per identity searched, and always returns a 1 dist
     # max for a single identity (todo: update to handle $max-results for each @identities)
     method search(:$max-results = 5, Bool :$strict, *@identities, *%fields --> Seq) {
-        return () unless @identities || %fields;
-        my %specs  = @identities.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
+        return ().Seq unless @identities || %fields;
+
+        my %specs = @identities.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
+        my @searchable-identities = %specs.classify({ .value.from-matcher })<Perl6>.grep(*.defined).hash.keys;
+        return ().Seq unless @searchable-identities;
 
         # identities that are cached in the localcache manifest
         gather for |self!gather-dists -> $dist {
-            for @identities.grep({ $dist.contains-spec(%specs{$_}, :$strict) }) -> $wanted-as {
+            for @searchable-identities.grep({ $dist.contains-spec(%specs{$_}, :$strict) }) -> $wanted-as {
                 take Candidate.new(
                     dist => $dist,
                     uri  => $dist.IO.absolute,

@@ -36,7 +36,6 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
 
     method auth { with $!auth // $!author // $!authority { .Str } else { Nil } }
     method ver  { with $!ver // $!version { $!ver ~~ Version ?? $_ !! $!ver = Version.new($_ // 0) } }
-    method meta { $.hash }
     method hash {
         my %normalized = %(
             :$!meta-version,
@@ -134,4 +133,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
             method auth { self.meta<auth> }
         });
     }
+
+    method meta { $.hash }
+    method content($name-path) { self.compat.content($name-path) }
 }

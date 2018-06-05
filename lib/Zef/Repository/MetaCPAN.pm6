@@ -77,7 +77,7 @@ class Zef::Repository::MetaCPAN does Repository {
             my $search-save-as = self.IO.child('search').IO.child("{time}.{$*THREAD.id}.json")
                 andthen {.parent.mkdir unless .parent.e};
 
-            my $response-path  = $!fetcher.fetch($search-url, ~$search-save-as);
+            my $response-path  = $!fetcher.fetch($search-url, ~$search-save-as, :timeout(180));
             next() R, note "!!!> MetaCPAN query failed to fetch [$search-url]"
                 unless $response-path && $response-path.IO.e;
             note "===> MetaCPAN query responded [$search-url]";

@@ -33,6 +33,8 @@ class Zef::Client {
     has Bool $.force-test    is rw = False;
     has Bool $.force-install is rw = False;
 
+    has Int $.fetch-timeout  is rw = 600;
+
     has Bool $.depends       is rw = True;
     has Bool $.build-depends is rw = True;
     has Bool $.test-depends  is rw = True;
@@ -211,7 +213,7 @@ class Zef::Client {
             # It could be a file or url; $dist.source-url contains where the source was
             # originally located but we may want to use a local copy (while retaining
             # the original source-url for some other purpose like updating)
-            my $save-to    = $!fetcher.fetch($candi.uri, $stage-at, :$!logger);
+            my $save-to    = $!fetcher.fetch($candi.uri, $stage-at, :$!logger, :timeout($!fetch-timeout));
             my $relpath    = $stage-at.relative($tmp);
             my $extract-to = $!cache.IO.child($relpath);
 

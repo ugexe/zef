@@ -18,8 +18,13 @@ package Zef::CLI {
     @*ARGS = @*ARGS.map: { $_ eq '--depsonly' ?? '--deps-only' !! $_ }
 
     #| Download specific distributions
-    multi MAIN('fetch', Bool :force(:$force-fetch), *@identities ($, *@)) is export {
-        my $client = get-client(:config($CONFIG) :$force-fetch);
+    multi MAIN(
+        'fetch',
+        Bool :force(:$force-fetch),
+        Int  :timeout(:$fetch-timeout),
+        *@identities ($, *@)
+    ) is export {
+        my $client = get-client(:config($CONFIG), :$force-fetch, :$fetch-timeout);
         my @candidates = |$client.find-candidates(|@identities>>.&str2identity);
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @fetched    = |$client.fetch(|@candidates);
@@ -32,7 +37,7 @@ package Zef::CLI {
 
     #| Run tests
     multi MAIN('test', Bool :force(:$force-test), *@paths ($, *@)) is export {
-        my $client     = get-client(:config($CONFIG) :$force-test);
+        my $client     = get-client(:config($CONFIG), :$force-test);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @tested = |$client.test(|@candidates);
@@ -45,7 +50,7 @@ package Zef::CLI {
 
     #| Run Build.pm
     multi MAIN('build', Bool :force(:$force-build), *@paths ($, *@)) is export {
-        my $client = get-client(:config($CONFIG) :$force-build);
+        my $client = get-client(:config($CONFIG), :$force-build);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
 
@@ -73,6 +78,8 @@ package Zef::CLI {
         Bool :$force-build   = $force,
         Bool :$force-test    = $force,
         Bool :$force-install = $force,
+        Int  :$timeout,
+        Int  :$fetch-timeout = $timeout,
         Bool :$dry,
         Bool :$update,
         Bool :$upgrade,
@@ -93,10 +100,11 @@ package Zef::CLI {
 
         my @excluded =  $exclude.map(*.&identity2spec);
         my $client   = get-client(
-            :config($CONFIG) :exclude(|@excluded),
-            :$depends,       :$test-depends, :$build-depends,
-            :$force-resolve, :$force-fetch,  :$force-extract,
-            :$force-build,   :$force-test,   :$force-install,
+            :config($CONFIG), :exclude(|@excluded),
+            :$depends,        :$test-depends, :$build-depends,
+            :$force-resolve,  :$force-fetch,  :$force-extract,
+            :$force-build,    :$force-test,   :$force-install,
+            :$fetch-timeout,
         );
 
         # LOCAL PATHS
@@ -219,12 +227,36 @@ package Zef::CLI {
     }
 
     #| Upgrade installed distributions (BETA)
-    multi MAIN('upgrade', :to(:$install-to) = $CONFIG<DefaultCUR>, *@identities) is export {
+    multi MAIN(
+        'upgrade',
+        Bool :$depends       = True,
+        Bool :$test-depends  = True,
+        Bool :$build-depends = True,
+        Bool :$force,
+        Bool :$force-resolve = $force,
+        Bool :$force-fetch   = $force,
+        Bool :$force-extract = $force,
+        Bool :$force-build   = $force,
+        Bool :$force-test    = $force,
+        Bool :$force-install = $force,
+        Int  :$timeout,
+        Int  :$fetch-timeout = $timeout,
+        Bool :$dry,
+        :$exclude is copy,
+        :to(:$install-to) = $CONFIG<DefaultCUR>,
+        *@identities
+    ) is export {
         # XXX: This is a very inefficient prototype. Not sure how to handle an 'upgrade' when
         # multiple versions are already installed, so for now an 'upgrade' always means we
         # leave the previous version installed.
-
-        my $client = get-client(:config($CONFIG));
+        my @excluded =  $exclude.map(*.&identity2spec);
+        my $client   = get-client(
+            :config($CONFIG), :exclude(|@excluded),
+            :$depends,        :$test-depends, :$build-depends,
+            :$force-resolve,  :$force-fetch,  :$force-extract,
+            :$force-build,    :$force-test,   :$force-install,
+            :$fetch-timeout,
+        );
 
         my @missing = @identities.grep: { not $client.is-installed($_) };
         abort "Can't upgrade identities that aren't installed: {@missing.join(', ')}" if +@missing;
@@ -251,7 +283,7 @@ package Zef::CLI {
         say "===> Updating: " ~ @sorted-candidates.map(*.dist.identity).join(', ');
         my (:@upgraded, :@failed) := @sorted-candidates.map(*.uri).classify: -> $uri {
             my &*EXIT = sub ($code) { return $code == 0 ?? True !! False };
-            try { &MAIN('install', $uri) } ?? <upgraded> !! <failed>;
+            try { &MAIN('install', $uri, :$dry) } ?? <upgraded> !! <failed>;
         }
         abort "!!!> Failed upgrading *all* modules" unless +@upgraded;
 
@@ -507,6 +539,8 @@ package Zef::CLI {
         Bool :$force-build   = $force,
         Bool :$force-test    = $force,
         Bool :$force-install = $force,
+        Int  :$timeout,
+        Int  :$fetch-timeout = $timeout,
         Bool :$update,
         Bool :$upgrade,
         Bool :$deps-only,
@@ -515,10 +549,11 @@ package Zef::CLI {
     ) is export {
         my @excluded = $exclude.map(*.&identity2spec);
         my $client   = get-client(
-            :config($CONFIG) :exclude(|@excluded),
-            :$depends,       :$test-depends, :$build-depends,
-            :$force-resolve, :$force-fetch,  :$force-extract,
-            :$force-build,   :$force-test,   :$force-install,
+            :config($CONFIG), :exclude(|@excluded),
+            :$depends,        :$test-depends, :$build-depends,
+            :$force-resolve,  :$force-fetch,  :$force-extract,
+            :$force-build,    :$force-test,   :$force-install,
+            :$fetch-timeout,
         );
 
         my @identities = $client.list-available.map(*.dist.identity).unique;
@@ -533,12 +568,17 @@ package Zef::CLI {
             :$test,
             :$fetch,
             :$build,
-            :$force,
             :$update,
             :$upgrade,
             :$deps-only,
             :$exclude,
             :$install-to,
+            :$force-resolve,
+            :$force-fetch,
+            :$force-build,
+            :$force-test,
+            :$force-install,
+            :$fetch-timeout,
         );
 
         for @identities -> $identity {

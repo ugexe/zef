@@ -38,7 +38,7 @@ class Zef::Repository::Ecosystems does Repository {
             KEEP self!gather-dists;
 
             my $save-as  = $!cache.IO.child($uri.IO.basename);
-            my $saved-as = try $!fetcher.fetch($uri, $save-as);
+            my $saved-as = try $!fetcher.fetch($uri, $save-as, :timeout(180));
             next unless $saved-as.?chars && $saved-as.IO.e;
 
             # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org

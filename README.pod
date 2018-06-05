@@ -128,6 +128,15 @@ B<Options>
     # or set the default to all unset --force-* flags to True
     --force
 
+    # Set the timeout for corresponding phases
+    --fetch-timeout=600
+    --extract-timeout=3600
+    --build-timeout=3600
+    --test-timeout=3600
+
+    # or set the default to all unset --*-timeout flags to 0
+    --timeout=0
+
     # Do everything except the actual installations
     --dry
 

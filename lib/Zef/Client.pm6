@@ -33,6 +33,11 @@ class Zef::Client {
     has Bool $.force-test    is rw = False;
     has Bool $.force-install is rw = False;
 
+    has Int $.fetch-timeout   is rw = 600;
+    has Int $.extract-timeout is rw = 3600;
+    has Int $.build-timeout   is rw = 3600;
+    has Int $.test-timeout    is rw = 3600;
+
     has Bool $.depends       is rw = True;
     has Bool $.build-depends is rw = True;
     has Bool $.test-depends  is rw = True;
@@ -211,7 +216,7 @@ class Zef::Client {
             # It could be a file or url; $dist.source-url contains where the source was
             # originally located but we may want to use a local copy (while retaining
             # the original source-url for some other purpose like updating)
-            my $save-to    = $!fetcher.fetch($candi.uri, $stage-at, :$!logger);
+            my $save-to    = $!fetcher.fetch($candi.uri, $stage-at, :$!logger, :timeout($!fetch-timeout));
             my $relpath    = $stage-at.relative($tmp);
             my $extract-to = $!cache.IO.child($relpath);
 
@@ -265,7 +270,7 @@ class Zef::Client {
                 message => "Extraction: Failed to find a META6.json file for {$candi.dist.?identity // $candi.as} -- failure is likely",
             }) unless $meta6-prefix;
 
-            my $extracted-to = $!extractor.extract($candi.uri, $extract-to, :$!logger);
+            my $extracted-to = $!extractor.extract($candi.uri, $extract-to, :$!logger, :timeout($!extract-timeout));
 
             if !$extracted-to {
                 self.logger.emit({
@@ -319,7 +324,7 @@ class Zef::Client {
                 message => "Building: {$candi.dist.?identity // $candi.as}",
             });
 
-            my $result := $!builder.build($candi.dist, :includes($candi.dist.metainfo<includes> // []), :$!logger);
+            my $result := $!builder.build($candi.dist, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!build-timeout)).cache;
 
             $candi does role :: { has $.build-results is rw = $result; };
 
@@ -360,7 +365,7 @@ class Zef::Client {
                 message => "Testing: {$candi.dist.?identity // $candi.as}",
             });
 
-            my $result := $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$!logger).cache;
+            my $result := $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!test-timeout)).cache;
 
             $candi does role :: { has $.test-results is rw = $result; };
 

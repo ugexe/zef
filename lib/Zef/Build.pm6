@@ -4,7 +4,7 @@ class Zef::Build does Pluggable {
     method needs-build($dist) {
         [||] self.plugins.map(*.needs-build($dist))
     }
-    method build($dist, :@includes, Supplier :$logger, :$meta) {
+    method build($dist, :@includes, Supplier :$logger, Int :$timeout, :$meta) {
         die "Can't build non-existent path: {$dist.path}" unless $dist.path.IO.e;
         my $builder = self.plugins.first(*.build-matcher($dist));
         die "No building backend available" unless ?$builder;
@@ -17,7 +17,13 @@ class Zef::Build does Pluggable {
             $builder.stderr.Supply.grep(*.defined).act: -> $err { $stdmerge ~= $err; $logger.emit({ level => ERROR,   stage => BUILD, phase => LIVE, message => $err }) }
         }
 
-        my @got = try $builder.build($dist, :@includes);
+        my $todo    = start { try $builder.build($dist, :@includes) };
+        my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
+        await Promise.anyof: $todo, $time-up;
+        $logger.emit({ level => DEBUG, stage => FETCH, phase => LIVE, message => "Building {$dist.path} timed out" })
+            if $time-up.so && $todo.not;
+
+        my @got = $todo.so ?? $todo.result !! False;
 
         $builder.stdout.done;
         $builder.stderr.done;

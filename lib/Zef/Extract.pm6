@@ -2,7 +2,7 @@ use Zef;
 use Zef::Utils::FileSystem;
 
 class Zef::Extract does Pluggable {
-    method extract($path, $extract-to, Supplier :$logger) {
+    method extract($path, $extract-to, Supplier :$logger, Int :$timeout) {
         die "Can't extract non-existent path: {$path}" unless $path.IO.e;
         die "Can't extract to non-existent path: {$extract-to}" unless $extract-to.IO.e || $extract-to.IO.mkdir;
 
@@ -13,7 +13,14 @@ class Zef::Extract does Pluggable {
                 $extractor.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, message => $err }) }
             }
 
-            my $out = lock-file-protect("{$extract-to}.lock", -> { try $extractor.extract($path, $extract-to) });
+            my $out = lock-file-protect("{$extract-to}.lock", -> {
+                my $todo    = start { try $extractor.extract($path, $extract-to) };
+                my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
+                await Promise.anyof: $todo, $time-up;
+                $logger.emit({ level => DEBUG, stage => FETCH, phase => LIVE, message => "Testing $path timed out" })
+                    if $time-up.so && $todo.not;
+                $todo.so ?? $todo.result !! Nil
+            });
 
             $extractor.stdout.done;
             $extractor.stderr.done;

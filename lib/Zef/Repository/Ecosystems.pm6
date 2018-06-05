@@ -33,7 +33,6 @@ class Zef::Repository::Ecosystems does Repository {
 
         $!mirrors.first: -> $uri {
             # TODO: use the logger to send these as events
-            note "===> Updating $!name mirror: $uri";
             UNDO note "!!!> Failed to update $!name mirror: $uri";
             KEEP note "===> Updated $!name mirror: $uri";
             KEEP self!gather-dists;

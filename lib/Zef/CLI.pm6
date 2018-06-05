@@ -36,8 +36,13 @@ package Zef::CLI {
     }
 
     #| Run tests
-    multi MAIN('test', Bool :force(:$force-test), *@paths ($, *@)) is export {
-        my $client     = get-client(:config($CONFIG), :$force-test);
+    multi MAIN(
+        'test',
+        Bool :force(:$force-test),
+        Int  :timeout(:$test-timeout),
+        *@paths ($, *@)
+    ) is export {
+        my $client     = get-client(:config($CONFIG), :$force-test, :$test-timeout);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @tested = |$client.test(|@candidates);
@@ -49,13 +54,18 @@ package Zef::CLI {
     }
 
     #| Run Build.pm
-    multi MAIN('build', Bool :force(:$force-build), *@paths ($, *@)) is export {
-        my $client = get-client(:config($CONFIG), :$force-build);
+    multi MAIN(
+        'build',
+        Bool :force(:$force-build),
+        Int  :timeout(:$build-timeout),
+        *@paths ($, *@)
+    ) is export {
+        my $client = get-client(:config($CONFIG), :$force-build, :$build-timeout);
         my @candidates = |$client.link-candidates( @paths.map(*.&path2candidate) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
 
         my @built = |$client.build(|@candidates);
-        my (:@pass, :@fail) := @built.classify: {$_.?build-results !=== False ?? <pass> !! <fail> }
+        my (:@pass, :@fail) := @built.classify: {.?build-results.grep(*.so).elems ?? <pass> !! <fail> }
 
         say "!!!> Build failure: {.as}{?($verbosity >= VERBOSE)??' at '~.dist.path!!''}" for @fail;
 
@@ -79,7 +89,10 @@ package Zef::CLI {
         Bool :$force-test    = $force,
         Bool :$force-install = $force,
         Int  :$timeout,
-        Int  :$fetch-timeout = $timeout,
+        Int  :$fetch-timeout   = $timeout,
+        Int  :$extract-timeout = $timeout,
+        Int  :$build-timeout   = $timeout,
+        Int  :$test-timeout    = $timeout,
         Bool :$dry,
         Bool :$update,
         Bool :$upgrade,
@@ -101,10 +114,11 @@ package Zef::CLI {
         my @excluded =  $exclude.map(*.&identity2spec);
         my $client   = get-client(
             :config($CONFIG), :exclude(|@excluded),
-            :$depends,        :$test-depends, :$build-depends,
-            :$force-resolve,  :$force-fetch,  :$force-extract,
-            :$force-build,    :$force-test,   :$force-install,
-            :$fetch-timeout,
+            :$depends,        :$test-depends,    :$build-depends,
+            :$force-resolve,  :$force-fetch,     :$force-extract,
+            :$force-build,    :$force-test,      :$force-install,
+            :$fetch-timeout,  :$extract-timeout, :$build-timeout,
+            :$test-timeout,
         );
 
         # LOCAL PATHS
@@ -240,7 +254,10 @@ package Zef::CLI {
         Bool :$force-test    = $force,
         Bool :$force-install = $force,
         Int  :$timeout,
-        Int  :$fetch-timeout = $timeout,
+        Int  :$fetch-timeout   = $timeout,
+        Int  :$extract-timeout = $timeout,
+        Int  :$build-timeout   = $timeout,
+        Int  :$test-timeout    = $timeout,
         Bool :$dry,
         :$exclude is copy,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
@@ -252,10 +269,11 @@ package Zef::CLI {
         my @excluded =  $exclude.map(*.&identity2spec);
         my $client   = get-client(
             :config($CONFIG), :exclude(|@excluded),
-            :$depends,        :$test-depends, :$build-depends,
-            :$force-resolve,  :$force-fetch,  :$force-extract,
-            :$force-build,    :$force-test,   :$force-install,
-            :$fetch-timeout,
+            :$depends,        :$test-depends,  :$build-depends,
+            :$force-resolve,  :$force-fetch,   :$force-extract,
+            :$force-build,    :$force-test,    :$force-install,
+            :$fetch-timeout,  :$extract-timeout, :$build-timeout,
+            :$test-timeout,
         );
 
         my @missing = @identities.grep: { not $client.is-installed($_) };
@@ -540,7 +558,10 @@ package Zef::CLI {
         Bool :$force-test    = $force,
         Bool :$force-install = $force,
         Int  :$timeout,
-        Int  :$fetch-timeout = $timeout,
+        Int  :$fetch-timeout   = $timeout,
+        Int  :$extract-timeout = $timeout,
+        Int  :$build-timeout   = $timeout,
+        Int  :$test-timeout    = $timeout,
         Bool :$update,
         Bool :$upgrade,
         Bool :$deps-only,
@@ -550,10 +571,10 @@ package Zef::CLI {
         my @excluded = $exclude.map(*.&identity2spec);
         my $client   = get-client(
             :config($CONFIG), :exclude(|@excluded),
-            :$depends,        :$test-depends, :$build-depends,
-            :$force-resolve,  :$force-fetch,  :$force-extract,
-            :$force-build,    :$force-test,   :$force-install,
-            :$fetch-timeout,
+            :$depends,        :$test-depends,  :$build-depends,
+            :$force-resolve,  :$force-fetch,   :$force-extract,
+            :$force-build,    :$force-test,    :$force-install,
+            :$fetch-timeout,  :$build-timeout, :$test-timeout,
         );
 
         my @identities = $client.list-available.map(*.dist.identity).unique;
@@ -579,6 +600,9 @@ package Zef::CLI {
             :$force-test,
             :$force-install,
             :$fetch-timeout,
+            :$extract-timeout,
+            :$build-timeout,
+            :$test-timeout,
         );
 
         for @identities -> $identity {
@@ -667,6 +691,7 @@ package Zef::CLI {
 
                 --install-to=[name]     Short name or spec of CompUnit::Repository to install to
                 --config-path=[path]    Load a specific Zef config file
+                --[phase]-timeout=[int] Set a timeout (in seconds) for the corresponding phase ( phase: fetch, extract, build, test )
 
             VERBOSITY LEVEL (from least to most verbose)
                 --error, --warn, --info (default), --verbose, --debug
@@ -686,9 +711,6 @@ package Zef::CLI {
             FORCE FLAGS
                 Ignore errors occuring during the corresponding phase:
                 --force-resolve --force-fetch --force-extract --force-build --force-test --force-install
-
-                or enable all unset --force-* flags with:
-                --force
 
             CONFIGURATION {$CONFIG.IO.absolute}
                 Enable or disable plugins that match the configuration that has field `short-name` that matches <short-name>

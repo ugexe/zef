@@ -22,12 +22,12 @@ class Zef::Fetch does Pluggable {
             }
 
             my $ret = lock-file-protect("{$save-to}.lock", -> {
-                my $ok      = start { try $fetcher.fetch($uri, $save-to) };
+                my $todo    = start { try $fetcher.fetch($uri, $save-to) };
                 my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
-                await Promise.anyof: $ok, $time-up;
+                await Promise.anyof: $todo, $time-up;
                 $logger.emit({ level => DEBUG, stage => FETCH, phase => LIVE, message => "Fetching $uri timed out" })
-                    if $time-up.so && $ok.not;
-                $ok.result;
+                    if $time-up.so && $todo.not;
+                $todo.so ?? $todo.result !! Nil;
             });
 
             $fetcher.stdout.done;

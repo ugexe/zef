@@ -81,12 +81,12 @@ package Zef::CLI {
     #| Install
     multi MAIN(
         'install',
-        Bool :$depends       = True,
-        Bool :$test-depends  = True,
-        Bool :$build-depends = True,
-        Bool :$test          = True,
         Bool :$fetch         = True,
         Bool :$build         = True,
+        Bool :$test          = True,
+        Bool :$depends       = True,
+        Bool :$test-depends  = $test,
+        Bool :$build-depends = $build,
         Bool :$force,
         Bool :$force-resolve = $force,
         Bool :$force-fetch   = $force,
@@ -104,7 +104,7 @@ package Zef::CLI {
         Bool :$upgrade,
         Bool :$deps-only,
         Bool :$serial,
-        :$exclude is copy,
+        :$exclude,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
         *@wants ($, *@)
     ) {
@@ -117,9 +117,8 @@ package Zef::CLI {
                 !! abort("Don't understand identity: {$wanted}");
         }
 
-        my @excluded =  $exclude.map(*.&identity2spec);
-        my $client   = get-client(
-            :config($CONFIG), :exclude(|@excluded),
+        my $client = get-client(
+            :config($CONFIG), :exclude($exclude.map({ Zef::Distribution::DependencySpecification.new($_) })),
             :$depends,        :$test-depends,    :$build-depends,
             :$force-resolve,  :$force-fetch,     :$force-extract,
             :$force-build,    :$force-test,      :$force-install,
@@ -249,9 +248,12 @@ package Zef::CLI {
     #| Upgrade installed distributions (BETA)
     multi MAIN(
         'upgrade',
+        Bool :$fetch         = True,
+        Bool :$build         = True,
+        Bool :$test          = True,
         Bool :$depends       = True,
-        Bool :$test-depends  = True,
-        Bool :$build-depends = True,
+        Bool :$test-depends  = $test,
+        Bool :$build-depends = $build,
         Bool :$force,
         Bool :$force-resolve = $force,
         Bool :$force-fetch   = $force,
@@ -265,16 +267,18 @@ package Zef::CLI {
         Int  :$build-timeout   = $timeout,
         Int  :$test-timeout    = $timeout,
         Bool :$dry,
-        :$exclude is copy,
+        Bool :$update,
+        Bool :$serial,
+        :$exclude,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
         *@identities
     ) {
         # XXX: This is a very inefficient prototype. Not sure how to handle an 'upgrade' when
         # multiple versions are already installed, so for now an 'upgrade' always means we
         # leave the previous version installed.
-        my @excluded =  $exclude.map(*.&identity2spec);
-        my $client   = get-client(
-            :config($CONFIG), :exclude(|@excluded),
+
+        my $client = get-client(
+            :config($CONFIG), :exclude($exclude.map({ Zef::Distribution::DependencySpecification.new($_) })),
             :$depends,        :$test-depends,  :$build-depends,
             :$force-resolve,  :$force-fetch,   :$force-extract,
             :$force-build,    :$force-test,    :$force-install,
@@ -301,13 +305,37 @@ package Zef::CLI {
         abort("All requested distributions are already at their latest versions", 0) unless +@upgradable;
         say "The following distributions will be upgraded: {@upgradable.map(*.dist.identity).join(', ')}";
 
+        my &installer = &MAIN.assuming(
+            'install',
+            :$depends,
+            :$test-depends,
+            :$build-depends,
+            :$test,
+            :$fetch,
+            :$build,
+            :$update,
+            :$exclude,
+            :$install-to,
+            :$force-resolve,
+            :$force-fetch,
+            :$force-build,
+            :$force-test,
+            :$force-install,
+            :$fetch-timeout,
+            :$extract-timeout,
+            :$build-timeout,
+            :$test-timeout,
+            :$dry,
+            :$serial,
+        );
+
         # Sort these ahead of time so they can be installed individually by passing
         # the .uri instead of the identities (which would require another search)
         my @sorted-candidates = $client.sort-candidates(@upgradable);
         say "===> Updating: " ~ @sorted-candidates.map(*.dist.identity).join(', ');
         my (:@upgraded, :@failed) := @sorted-candidates.map(*.uri).classify: -> $uri {
             my &*EXIT = sub ($code) { return $code == 0 ?? True !! False };
-            try { &MAIN('install', $uri, :$dry) } ?? <upgraded> !! <failed>;
+            try { &installer('install', $uri) } ?? <upgraded> !! <failed>;
         }
         abort "!!!> Failed upgrading *all* modules" unless +@upgraded;
 
@@ -550,12 +578,12 @@ package Zef::CLI {
     #| Smoke test
     multi MAIN(
         'smoke',
-        Bool :$depends       = True,
-        Bool :$test-depends  = True,
-        Bool :$build-depends = True,
-        Bool :$test          = True,
         Bool :$fetch         = True,
         Bool :$build         = True,
+        Bool :$test          = True,
+        Bool :$depends       = True,
+        Bool :$test-depends  = $test,
+        Bool :$build-depends = $build,
         Bool :$force,
         Bool :$force-resolve = $force,
         Bool :$force-fetch   = $force,
@@ -570,13 +598,13 @@ package Zef::CLI {
         Int  :$test-timeout    = $timeout,
         Bool :$update,
         Bool :$upgrade,
-        Bool :$deps-only,
-        :$exclude is copy,
+        Bool :$dry,
+        Bool :$serial,
+        :$exclude,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
     ) {
-        my @excluded = $exclude.map(*.&identity2spec);
-        my $client   = get-client(
-            :config($CONFIG), :exclude(|@excluded),
+        my $client = get-client(
+            :config($CONFIG), :exclude($exclude.map({ Zef::Distribution::DependencySpecification.new($_) })),
             :$depends,        :$test-depends,  :$build-depends,
             :$force-resolve,  :$force-fetch,   :$force-extract,
             :$force-build,    :$force-test,    :$force-install,
@@ -587,7 +615,7 @@ package Zef::CLI {
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         say "===> Smoke testing with {+@identities} distributions...";
 
-        my &smoker = &MAIN.assuming(
+        my &installer = &MAIN.assuming(
             'install',
             :$depends,
             :$test-depends,
@@ -597,7 +625,6 @@ package Zef::CLI {
             :$build,
             :$update,
             :$upgrade,
-            :$deps-only,
             :$exclude,
             :$install-to,
             :$force-resolve,
@@ -609,11 +636,13 @@ package Zef::CLI {
             :$extract-timeout,
             :$build-timeout,
             :$test-timeout,
+            :$dry,
+            :$serial,
         );
 
         for @identities -> $identity {
             my &*EXIT = sub ($code) { return $code == 0 ?? True !! False };
-            my $result = try smoker($identity);
+            my $result = try installer($identity);
             say "===> Smoke result for {$identity}: {?$result??'OK'!!'NOT OK'}";
         }
 
@@ -856,14 +885,10 @@ package Zef::CLI {
 
     sub path2candidate($path) {
         Candidate.new(
-                as   => $path,
-                uri  => $path.IO.absolute,
-                dist => Zef::Distribution::Local.new($path),
+            as   => $path,
+            uri  => $path.IO.absolute,
+            dist => Zef::Distribution::Local.new($path),
         )
-    }
-
-    sub identity2spec($identity) {
-        Zef::Distribution::DependencySpecification.new($identity);
     }
 
     # prints a table with rows and columns. expects a header row.

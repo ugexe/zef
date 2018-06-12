@@ -19,7 +19,7 @@ package Zef::CLI {
 
     proto MAIN(|) is export {
         # Supress backtrace
-        CATCH { default { try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! .payload.&note; &*EXIT(1) } }
+        CATCH { default { try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! .message.&note; &*EXIT(1) } }
         {*}
     }
 

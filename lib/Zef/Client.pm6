@@ -1,6 +1,7 @@
 use Zef;
 use Zef::Distribution;
 use Zef::Distribution::Local;
+use Zef::Distribution::DependencySpecification;
 use Zef::Repository;
 use Zef::Utils::FileSystem;
 
@@ -42,51 +43,22 @@ class Zef::Client {
     has Bool $.build-depends is rw = True;
     has Bool $.test-depends  is rw = True;
 
-    submethod TWEAK() {
-        # xxx: a workaround. eventually better CompUnit::Repository integration will make this unneeded.
+    submethod TWEAK(
+        :$!cache                  = $!config<StoreDir>,
+        :$!fetcher                = Zef::Fetch.new(:backends(|$!config<Fetch>)),
+        :$!extractor              = Zef::Extract.new(:backends(|$!config<Extract>)),
+        :$!builder                = Zef::Build.new(:backends(|$!config<Build>)),
+        :$!tester                 = Zef::Test.new(:backends(|$!config<Test>)),
+        :$!reporter               = Zef::Report.new(:backends(|$!config<Report>)),
+        :$!recommendation-manager = Zef::Repository.new(:backends(|$!config<Repository>)),
+    ) {
+        mkdir $!cache unless $!cache.IO.e;
+
+        $!recommendation-manager.cache   //= $!cache;
+        $!recommendation-manager.fetcher //= $!fetcher;
+
         @!ignore = <Test NativeCall Telemetry CompUnit::Repository::Staging snapper experimental newline>\
-            .map({ (require ::('Zef::Distribution::DependencySpecification')).new($_) });
-    }
-
-    method new(
-        :cache(:$zcache),
-        :fetcher(:$zfetcher),
-        :recommendation-manager(:$zrecommendation-manager),
-        :extractor(:$zextractor),
-        :tester(:$ztester),
-        :reporter(:$zreporter),
-        :builder(:$zbuilder),
-        :$config,
-        *%_
-        ) {
-        my $cache := ?$zcache ?? $zcache !! ?$config<StoreDir>
-            ?? $config<StoreDir>
-            !! die "Zef::Client requires a cache parameter";
-        my $fetcher := ?$zfetcher ?? $zfetcher !! ?$config<Fetch>
-            ?? Zef::Fetch.new(:backends(|$config<Fetch>))
-            !! die "Zef::Client requires a fetcher parameter";
-        my $extractor := ?$zextractor ?? $zextractor !! ?$config<Extract>
-            ?? Zef::Extract.new(:backends(|$config<Extract>))
-            !! die "Zef::Client requires an extractor parameter";
-        my $tester := ?$ztester ?? $ztester !! ?$config<Test>
-            ?? Zef::Test.new(:backends(|$config<Test>))
-            !! die "Zef::Client requires a tester parameter";
-        my $builder := ?$zbuilder ?? $zbuilder !! ?$config<Build>
-            ?? Zef::Build.new(:backends(|$config<Build>))
-            !! die "Zef::Client requires a builder parameter";
-        my $reporter := ?$zreporter ?? $zreporter !! ?$config<Report>
-            ?? Zef::Report.new(:backends(|$config<Report>))
-            !! die "Zef::Client requires a reporter parameter";
-
-        my $recommendation-manager :=
-            ?$zrecommendation-manager ?? $zrecommendation-manager !! ?$config<Repository>
-                ?? Zef::Repository.new(:backends(|$config<Repository>))
-                !! die "Zef::Client requires a recommendation-manager parameter";
-        $recommendation-manager.cache   //= $cache;
-        $recommendation-manager.fetcher //= $fetcher;
-
-        mkdir $cache unless $cache.IO.e;
-        self.bless(:$cache, :$reporter, :$fetcher, :$recommendation-manager, :$extractor, :$tester, :$builder, :$config, |%_);
+            .map({ Zef::Distribution::DependencySpecification.new($_) });
     }
 
     method find-candidates(Bool :$upgrade, *@identities ($, *@)) {

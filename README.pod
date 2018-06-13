@@ -15,7 +15,7 @@ Perl6 Module Management
 
     $ git clone https://github.com/ugexe/zef.git
     $ cd zef
-    $ perl6 -Ilib bin/zef install .
+    $ perl6 -I. bin/zef install .
 
 =head4 Rakudobrew
 

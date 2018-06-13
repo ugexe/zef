@@ -97,7 +97,7 @@ class Zef::Client {
             message => "Searching for: {@identities.join(', ')}",
         });
 
-        my @candidates = self!find-candidates(:$upgrade, |@identities);
+        my @candidates = self!find-candidates(:$upgrade, @identities);
 
         for @candidates.classify({.from}).kv -> $from, $found {
             self.logger.emit({
@@ -111,7 +111,7 @@ class Zef::Client {
         return @candidates;
     }
     method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
-        my $candidates := $!recommendation-manager.candidates(|@identities, :$upgrade)\
+        my $candidates := $!recommendation-manager.candidates(@identities, :$upgrade)\
             .grep(-> $candi { not @!exclude.first({$candi.dist.contains-spec($_)}) })\
             .grep(-> $candi { not @!ignore.first({$candi.dist.contains-spec($_)}) })\
             .sort(*.dist.ver).reverse\
@@ -145,7 +145,7 @@ class Zef::Client {
                     message => "Searching for missing dependencies: {@identities.join(', ')}",
                 });
 
-                my @prereq-candidates = self!find-candidates(:$upgrade, |@identities);
+                my @prereq-candidates = self!find-candidates(:$upgrade, @identities);
                 my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
 
                 # The failing part of this should ideally be handled in Zef::CLI I think
@@ -186,15 +186,15 @@ class Zef::Client {
 
 
     method fetch(*@candidates ($, *@)) {
-        my @fetched   = self!fetch(|@candidates);
-        my @extracted = self!extract(|@candidates);
+        my @fetched   = self!fetch(@candidates);
+        my @extracted = self!extract(@candidates);
 
         my @local-candis = @extracted.map: -> $candi {
             my $dist = Zef::Distribution::Local.new(~$candi.uri);
             $candi.clone(:$dist);
         }
 
-        $!recommendation-manager.store(|@local-candis.map(*.dist));
+        $!recommendation-manager.store(@local-candis.map(*.dist));
 
         @local-candis;
     }
@@ -402,7 +402,7 @@ class Zef::Client {
 
     # xxx: needs some love
     method search(*@identities ($, *@), *%fields, Bool :$strict = False) {
-        $!recommendation-manager.search(|@identities, :$strict, |%fields);
+        $!recommendation-manager.search(@identities, :$strict, |%fields);
     }
 
 
@@ -512,13 +512,13 @@ class Zef::Client {
         # Setup(?) Phase:
         # Attach appropriate metadata so we can do --dry runs using -I/some/dep/path
         # and can install after we know they pass any required tests
-        my @linked-candidates = self.link-candidates(|@sorted-candidates);
+        my @linked-candidates = self.link-candidates(@sorted-candidates);
         die "Something went terribly wrong linking the distributions" unless +@linked-candidates;
 
 
         my $installer = sub (*@_) {
             # Build Phase:
-            my @built-candidates = ?$build ?? self.build(|@_) !! @_;
+            my @built-candidates = ?$build ?? self.build(@_) !! @_;
             die "No installable candidates remain after `build` failures" unless +@built-candidates;
 
 
@@ -545,7 +545,7 @@ class Zef::Client {
                     message => "Installing: {$candi.dist.?identity // $candi.as}",
                 });
 
-                my @installed-at = |@curs.grep: -> $cur {
+                my @installed-at = @curs.grep: -> $cur {
                     if ?$dry {
                         self.logger.emit({
                             level   => VERBOSE,
@@ -618,12 +618,12 @@ class Zef::Client {
             @installed-candidates;
         } # sub installer
 
-        my @installed = ?$serial ?? @linked-candidates.map({ |$installer($_) }) !! $installer(|@linked-candidates);
+        my @installed = ?$serial ?? @linked-candidates.map({ |$installer($_) }) !! $installer(@linked-candidates);
     }
 
     method uninstall(CompUnit::Repository :@from!, *@identities) {
         my @specs = @identities.map: { Zef::Distribution::DependencySpecification.new($_) }
-        eager gather for self.list-installed(|@from) -> $candi {
+        eager gather for self.list-installed(@from) -> $candi {
             my $dist = $candi.dist;
             if @specs.first({ $dist.spec-matcher($_) }) {
                 my $cur = CompUnit::RepositoryRegistry.repository-for-spec("inst#{$candi.from}", :next-repo($*REPO));
@@ -646,7 +646,7 @@ class Zef::Client {
     }
 
     method list-available(*@recommendation-manager-names) {
-        my $available := $!recommendation-manager.available(|@recommendation-manager-names);
+        my $available := $!recommendation-manager.available(@recommendation-manager-names);
     }
 
     # XXX: an idea is to make CURI install locations a Repository as well. then this method
@@ -654,8 +654,8 @@ class Zef::Client {
     method list-installed(*@curis) {
         my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
         my @repo-dirs  = @curs>>.prefix;
-        my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
-        my @dist-files = |@dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
+        my @dist-dirs  = @repo-dirs.map(*.child('dist')).grep(*.e);
+        my @dist-files = @dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
 
         my $dists := gather for @dist-files -> $file {
             if try { Zef::Distribution.new( |%(from-json($file.IO.slurp)) ) } -> $dist {
@@ -689,7 +689,7 @@ class Zef::Client {
     }
 
     method resolve($spec, :@at) {
-        my $candis := self.list-installed(|@at).grep(*.dist.contains-spec($spec));
+        my $candis := self.list-installed(@at).grep(*.dist.contains-spec($spec));
         $candis.sort(*.dist.ver).reverse;
     }
 
@@ -748,13 +748,13 @@ class Zef::Client {
         # can be distributions that are part of a different dependency
         # chain will end up with some extra includes
 
-        my @linked = self.link-candidates(|@candidates);
+        my @linked = self.link-candidates(@candidates);
         @ = @linked.map: -> $candi { # can probably use rotor instead of doing the `@a[$index + 1..*]` dance
-            my @direct-includes    = |$candi.dist.metainfo<includes>.grep(*.so);
-            my @recursive-includes = try |@linked[(state $i += 1)..*]\
+            my @direct-includes    = $candi.dist.metainfo<includes>.grep(*.so);
+            my @recursive-includes = try @linked[(state $i += 1)..*]\
                 .map(*.dist.metainfo<includes>).flatmap(*.flat);
-            my @unique-includes    = |unique(|@direct-includes, |@recursive-includes);
-            $candi.dist.metainfo<includes> = |@unique-includes.grep(*.so);
+            my @unique-includes    = unique(@direct-includes, @recursive-includes);
+            $candi.dist.metainfo<includes> = @unique-includes.grep(*.so);
             $candi;
         }
     }
@@ -764,7 +764,7 @@ class Zef::Client {
         #   - Foo::XXX -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
         #   - Bar::YYY -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
         #   - Baz::ZZZ -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
-        my @linked = self.link-candidates(|@candidates);
+        my @linked = self.link-candidates(@candidates);
         @ = @linked.map(*.dist.metainfo<includes>).flatmap(*.flat).unique;
     }
     multi method link-candidates(*@candidates) {

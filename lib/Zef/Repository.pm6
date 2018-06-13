@@ -11,7 +11,7 @@ class Zef::Repository does Pluggable {
         my $unsorted-candis := self!plugins.map: -> $storage {
             # todo: (cont. from above): Each Repository should just filter this themselves
             my @search-for = $storage.id eq 'Zef::Repository::LocalCache' ?? @identities !! @searchable;
-            $storage.search(|@search-for, :strict).Slip
+            $storage.search(@search-for, :strict).Slip
         }
 
         my $unsorted-grouped-candis := $unsorted-candis.categorize({.dist.name}).values;
@@ -43,13 +43,13 @@ class Zef::Repository does Pluggable {
         return () unless @identities || %fields;
 
         self!plugins.map: -> $storage {
-            $storage.search(|@identities, |%fields, :$max-results, :$strict).Slip
+            $storage.search(@identities, |%fields, :$max-results, :$strict).Slip
         }
     }
 
     method store(*@dists) {
         for self!plugins.grep(*.^can('store')) -> $storage {
-            $storage.?store(|@dists);
+            $storage.?store(@dists);
         }
     }
 
@@ -62,7 +62,7 @@ class Zef::Repository does Pluggable {
     }
 
     method update(*@names) {
-        eager gather for self!plugins(|@names) -> $plugin {
+        eager gather for self!plugins(@names) -> $plugin {
             next() R, warn "Plugin {$plugin.short-name} doesn't support `.update`"\
                 if +@names && !$plugin.can('update'); # `.update` is an optional interface requirement
             take $plugin.id => $plugin.update.elems;

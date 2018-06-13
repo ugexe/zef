@@ -34,7 +34,7 @@ class Zef::Repository::LocalCache does Repository {
 
     # Rebuild the manifest/index by recursively searching for META files
     method update {
-        LEAVE { self.store(|@!dists) }
+        LEAVE { self.store(@!dists) }
         self!update;
         self!gather-dists;
     }

@@ -41,7 +41,7 @@ class Zef::Repository::MetaCPAN does Repository {
         # requested identity) and filter out those that do not instead of assuming metacpan
         # will always do what we expect
 
-        my $matches := gather for |@identities -> $wants {
+        my $matches := gather for @identities -> $wants {
             my $spec = Zef::Distribution::DependencySpecification.new($wants);
 
             next unless ($spec.from-matcher // '') eq 'Perl6';

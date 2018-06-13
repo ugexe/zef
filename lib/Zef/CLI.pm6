@@ -217,7 +217,7 @@ package Zef::CLI {
 
         my @rows = eager gather for @results -> $candi {
             FIRST { take [<ID From Package Description>] }
-            take [ "{state $id += 1}", $candi.from, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
+            take [ $++, $candi.from, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
         }
         print-table(@rows, :$wrap);
 

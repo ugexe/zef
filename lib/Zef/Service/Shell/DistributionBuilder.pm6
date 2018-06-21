@@ -9,7 +9,12 @@ class Zef::Service::Shell::DistributionBuilder does Builder does Messenger {
     method build($dist, :@includes) {
         die "path does not exist: {$dist.path}" unless $dist.path.IO.e;
 
-        my $cmd = "exit((require ::(q|Distribution::Builder::$dist.builder()|)).new("
+        # todo: remove this ( and corresponding code in Zef::Distribution.build-depends-specs ) in the near future
+        my $dist-builder-compat = "$dist.builder()" eq 'MakeFromJSON'
+            ?? "Distribution::Builder::MakeFromJSON"
+            !!  "$dist.builder()";
+
+        my $cmd = "exit((require ::('$dist-builder-compat')).new("
                 ~ ':meta(EVAL($*IN.slurp(:close)))'
                 ~ ").build(q|$dist.path()|)"
                 ~ '??0!!1)';

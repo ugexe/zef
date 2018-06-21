@@ -14,7 +14,7 @@ class Zef::Service::Shell::DistributionBuilder does Builder does Messenger {
             ?? "Distribution::Builder::MakeFromJSON"
             !!  "$dist.builder()";
 
-        my $cmd = "exit((require ::('$dist-builder-compat')).new("
+        my $cmd = "exit((require ::(q|$dist-builder-compat|)).new("
                 ~ ':meta(EVAL($*IN.slurp(:close)))'
                 ~ ").build(q|$dist.path()|)"
                 ~ '??0!!1)';

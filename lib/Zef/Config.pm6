@@ -21,11 +21,10 @@ our sub guess-path {
     my @path-candidates = (
         (%*ENV<XDG_CONFIG_HOME> // "$*HOME/.config").IO.child('/zef/config.json'),
         %?RESOURCES<config.json>.IO,
-        $*HOME.child('.zef')
     );
     for @path-candidates -> $path {
         if $path.e {
-            %default-conf = try { parse-file($path) }
+            %default-conf = try { parse-file($path) } // Hash.new;
             die "Failed to parse the zef config file '$path'" if !%default-conf;
             $local-conf-path = $path;
             last;

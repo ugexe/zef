@@ -625,7 +625,7 @@ class Zef::Client {
     # would be grouped into the above `list-available` method
     method list-installed(*@curis) {
         my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
-        my @repo-dirs  = @curs>>.prefix;
+        my @repo-dirs  = @curs.map({.?prefix // .path-spec.?path}).map(*.IO); #.path-spec.?path is for CUR::Unknown
         my @dist-dirs  = @repo-dirs.map(*.child('dist')).grep(*.e);
         my @dist-files = @dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
 

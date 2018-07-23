@@ -180,6 +180,8 @@ class Zef::Client {
             });
 
             my $tmp      = $!config<TempDir>.IO.child("{time}.{$*PID}.{(^10000).pick(1)}");
+            die "Missing source URL in distribution"
+                unless $candi.uri;
             my $stage-at = $tmp.child($candi.uri.IO.basename);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));

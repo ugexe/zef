@@ -4,14 +4,20 @@ my @zrun-invoke = BEGIN $*DISTRO.is-win ?? <cmd.exe /x/d/c>.Slip !! '';
 sub zrun(*@_, *%_) is export { run (|@zrun-invoke, |@_).grep(*.?chars), |%_ }
 sub zrun-async(*@_, *%_) is export { Proc::Async.new( (|@zrun-invoke, |@_).grep(*.?chars), |%_ ) }
 
-# rakudo must be able to parse json, so it doesn't
-# make sense to require a dependency to parse it
+# Use JSON::Fast if it is installed else fall back to the internal rakudo
+# implementation which is currently (2018-07-28) slower.
 sub from-json($text) is export {
-    ::("Rakudo::Internals::JSON").from-json($text)
+    try {
+        require JSON::Fast;
+        JSON::Fast::<&from-json>($text);
+    } // ::("Rakudo::Internals::JSON").from-json($text)
 }
 
 sub to-json(|c) is export {
-    ::("Rakudo::Internals::JSON").to-json(|c)
+    try {
+        require JSON::Fast;
+        JSON::Fast::<&to-json>(|c);
+    } // ::("Rakudo::Internals::JSON").to-json(|c)
 }
 
 # todo: define all the additional options in these signatures, such as passing :$jobs

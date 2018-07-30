@@ -22,8 +22,7 @@ sub GET-TERM-COLUMNS is export {
             if $output ~~ /'CON:' \n <.ws> '-'+ \n .*? \n \N+? $<cols>=[<.digit>+]/ {
                 my $cols = $/<cols>.comb(/\d/).join;
                 my $got_cols = (+$cols - 1) if $cols.chars;
-                return ($default-only = $default) unless $got_cols;
-                return max $default, $got_cols;
+                return ($default-only = ($got_cols ?? max($default, $got_cols) !! $default));
             }
         }
         return $default;
@@ -36,9 +35,7 @@ sub GET-TERM-COLUMNS is export {
             my $proc = run('tput', 'cols', :out, :!err, :enc('latin-1'));
             my $cols = $proc.out.slurp(:close).lines.head if $ = $proc.so;
             my $got_cols = (+$cols - 1) if $cols.chars;
-            $default-only = $cols.chars;
-            return ($default-only = $default) unless $got_cols;
-            return max $default, $got_cols;
+            return ($default-only = ($got_cols ?? max($default, $got_cols) !! $default));
         }
 
         return $default;

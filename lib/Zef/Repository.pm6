@@ -18,9 +18,12 @@ class Zef::Repository does Pluggable {
 
         # Take the distribution with the highest version out of all matching distributions from all repositories
         my $sorted-candis := $unsorted-grouped-candis.map: -> $candis {
-            # Put the cache in front so if its one of multiple sources with the identity it gets used
-            my $presorted := $candis.sort({ $^a.^name ne 'Zef::Repository::LocalCache '});
-            $presorted.sort(*.dist.ver).reverse.head
+            my @presorted = $candis.sort(*.dist.ver);
+            my $version   = @presorted.tail.dist.ver;
+
+            # Prefer candidates from Zef::Repository::Local to avoid redownloading cached items
+            my @sorted = @presorted.grep({ .dist.ver eq $version }).sort({ $^a.from eq 'Zef::Repository::LocalCache' });
+            @sorted.tail;
         }
 
         # $candi.as tells us what string was used to request its distribution ($candi.dist)

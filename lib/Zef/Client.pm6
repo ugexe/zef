@@ -50,12 +50,9 @@ class Zef::Client {
         :$!builder                = Zef::Build.new(:backends(|$!config<Build>)),
         :$!tester                 = Zef::Test.new(:backends(|$!config<Test>)),
         :$!reporter               = Zef::Report.new(:backends(|$!config<Report>)),
-        :$!recommendation-manager = Zef::Repository.new(:backends(|$!config<Repository>)),
+        :$!recommendation-manager = Zef::Repository.new(:backends(|$!config<Repository>), :$!cache, :$!fetcher),
     ) {
         mkdir $!cache unless $!cache.IO.e;
-
-        $!recommendation-manager.cache   //= $!cache;
-        $!recommendation-manager.fetcher //= $!fetcher;
 
         @!ignore = <Test NativeCall Telemetry CompUnit::Repository::Staging snapper experimental newline>\
             .map({ Zef::Distribution::DependencySpecification.new($_) });

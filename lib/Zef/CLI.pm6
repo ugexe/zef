@@ -173,10 +173,10 @@ package Zef::CLI {
         }
 
         my (:@local, :@remote) := @candidates.classify: {.dist ~~ Zef::Distribution::Local ?? <local> !! <remote>}
-        my @fetched = grep *.so, |@local, ($client.fetch(@remote).Slip if +@remote);
+        my @fetched = grep *.so, |@local, ($client.fetch(@remote).Slip if +@remote && $fetch);
 
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
-        my @installed  = $client.install( :@to, :$test, :$build, :$upgrade, :$update, :$dry, :$serial, @fetched );
+        my @installed  = $client.install( :@to, :$fetch, :$test, :$build, :$upgrade, :$update, :$dry, :$serial, @fetched );
         my @fail       = @candidates.grep: {.as !~~ any(@installed>>.as)}
 
         say "!!!> Install failures: {@fail.map(*.dist.identity).join(', ')}" if +@fail;

@@ -387,7 +387,7 @@ class Zef::Client {
         Bool :$serial,
         *@candidates ($, *@),
         *%_
-        ) {
+    ) {
         my @curs = @to.grep: -> $cur {
             UNDO {
                 self.logger.emit({
@@ -418,7 +418,7 @@ class Zef::Client {
         # Fetch Stage:
         # Use the results from searching Repositorys and download/fetch the distributions they point at
         my @fetched-candidates = eager gather for @candidates -> $store {
-            take $_ for $store.dist.^name.contains('Zef::Distribution::Local') ?? $store !! |self.fetch($store, |%_);
+            take $_ for ($store.dist.^name.contains('Zef::Distribution::Local') || !$fetch) ?? $store !! self.fetch($store, |%_);
         }
         die "Failed to fetch any candidates. No reason to proceed" unless +@fetched-candidates;
 

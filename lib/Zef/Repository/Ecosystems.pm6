@@ -63,16 +63,18 @@ class Zef::Repository::Ecosystems does Repository {
         my @searchable-identities = %specs.classify({ .value.from-matcher })<Perl6>.grep(*.defined).hash.keys;
         return ().Seq unless @searchable-identities;
 
-        gather for |self!gather-dists -> $dist {
-            for @searchable-identities.grep({ $dist.contains-spec(%specs{$_}, :$strict) }) -> $wanted-as {
-                take Candidate.new(
+        my $matches := self!gather-dists.race.map: -> $dist {
+            @searchable-identities.grep({ $dist.contains-spec(%specs{$_}, :$strict) }).map({
+                Candidate.new(
                     dist => $dist,
                     uri  => ($dist.source-url || $dist.hash<support><source>),
-                    as   => $wanted-as,
+                    as   => $_,
                     from => self.id,
                 );
-            }
+            }).Slip
         }
+
+        return $matches.Seq;
     }
 
     method !package-list-path(--> IO::Path) { self.IO.child($!name ~ '.json') }

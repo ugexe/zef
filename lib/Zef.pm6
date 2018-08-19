@@ -78,7 +78,7 @@ role Repository {
 
     # max-results is meant so we can :max-results(1) when we are interested in using it like
     # `.candidates` (i.e. 1 match per identity) so we can stop iterating search plugins earlier
-    method search(:$max-results, *@identities, *%fields --> Array of Candidate) { ... }
+    method search(:$max-results, *@identities, *%fields --> Iterable) { ... }
 
     # Optional method currently being called after a search/fetch
     # to assist ::Repository::LocalCache in updating its MANIFEST path cache.

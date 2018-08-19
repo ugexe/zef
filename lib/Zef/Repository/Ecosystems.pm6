@@ -57,14 +57,14 @@ class Zef::Repository::Ecosystems does Repository {
 
     # todo: handle %fields
     # todo: search for up to $max-results number of candidates for each *dist* (currently only 1 candidate per identity)
-    method search(:$max-results = 5, Bool :$strict, *@identities, *%fields --> Seq) {
+    method search(:$max-results = 5, Bool :$strict, *@identities, *%fields) {
         return ().Seq unless @identities || %fields;
 
         my %specs = @identities.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
         my @searchable-identities = %specs.classify({ .value.from-matcher })<Perl6>.grep(*.defined).hash.keys;
         return ().Seq unless @searchable-identities;
 
-        my $matches := self!gather-dists.race.map: -> $dist {
+        my @matches = self!gather-dists.race.map: -> $dist {
             @searchable-identities.grep({ $dist.contains-spec(%specs{$_}, :$strict) }).map({
                 Candidate.new(
                     dist => $dist,
@@ -75,7 +75,7 @@ class Zef::Repository::Ecosystems does Repository {
             }).Slip
         }
 
-        return $matches.Seq;
+        return @matches;
     }
 
     method !package-list-path(--> IO::Path) { self.IO.child($!name ~ '.json') }

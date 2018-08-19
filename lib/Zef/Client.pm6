@@ -542,7 +542,7 @@ class Zef::Client {
                     # but that doesn't play nicely with relative paths. We want to keep the original meta
                     # paths for newer rakudos so we must avoid using :absolute for the source paths by
                     # using the newer CURI.install if available
-                    try $cur.install($candi.dist.compat, :force($!force-install));
+                    $cur.install($candi.dist.compat, :force($!force-install));
                 }).Slip
             }
 

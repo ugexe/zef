@@ -418,6 +418,11 @@ class Zef::Client {
         # Fetch Stage:
         # Use the results from searching Repositorys and download/fetch the distributions they point at
         my @fetched-candidates = eager gather for @candidates -> $store {
+            # Note that this method of not fetching Zef::Distribution::Local means we cannot
+            # show fetching messages that would be fired in self.fetch(|) ( such as the download uri ).
+            # The reason it doesn't just fetch regardless is because it avoids caching local dev dists
+            # ala `zef install .` from polluting the name/auth/api/ver namespace of the local cache.
+            # TODO: Find a solution for the issues noted above which will resolve GH#261 "zef install should tell user where the install was from"
             take $_ for ($store.dist.^name.contains('Zef::Distribution::Local') || !$fetch) ?? $store !! self.fetch($store, |%_);
         }
         die "Failed to fetch any candidates. No reason to proceed" unless +@fetched-candidates;
@@ -428,43 +433,37 @@ class Zef::Client {
         # problem outlined below under `Sort Phase` (a depends on [A, B] where A gets filtered out
         # below because it has the wrong license means we don't need anything that depends on A but
         # *do* need to replace those items with things depended on by B [which replaces A])
-        my @filtered-candidates = eager gather for @fetched-candidates -> $candi {
-            my $dist := $candi.dist;
+        my @filtered-candidates = @fetched-candidates.grep: -> $candi {
+            my $*error;
             self.logger.emit({
                 level   => DEBUG,
                 stage   => FILTER,
                 phase   => BEFORE,
-                message => "Filtering: {$dist.identity}",
+                message => "Filtering: {$candi.dist.identity}",
             });
-
-            # todo: Change config.json to `"Filter" : { "License" : "xxx" }`)
-            my $msg = do given $!config<License> {
-                CATCH { default {
-                    die "{$_.message}\n"
-                    ~   "Allowed licenses: {$!config<License>.<whitelist>.join(',')    || 'n/a'}\n"
-                    ~   "Disallowed licenses: {$!config<License>.<blacklist>.join(',') || 'n/a'}";
-                } }
-                when .<blacklist>.?chars && any(|.<blacklist>) ~~ any('*', $dist.meta<license> // '') {
-                    $ = "License blacklist configuration exists and matches {$dist.meta<license> // 'n/a'} for {$dist.name}";
-                }
-                when .<whitelist>.?chars && any(|.<whitelist>) ~~ none('*', $dist.meta<license> // '') {
-                    $ = "License whitelist configuration exists and does not match {$dist.meta<license> // 'n/a'} for {$dist.name}";
-                }
-            }
-
-            ?$msg ?? $!logger.emit({
-                level   => ERROR,
-                stage   => FILTER,
-                phase   => AFTER,
-                message => "Filtering [FAIL] for {$candi.dist.?identity // $candi.as}: $msg",
-            }) !! $!logger.emit({
+            KEEP $!logger.emit({
                 level   => DEBUG,
                 stage   => FILTER,
                 phase   => AFTER,
                 message => "Filtering [OK] for {$candi.dist.?identity // $candi.as}",
             });
+            UNDO $!logger.emit({
+                level   => ERROR,
+                stage   => FILTER,
+                phase   => AFTER,
+                message => "Filtering [FAIL] for {$candi.dist.?identity // $candi.as}: {$*error}",
+            });
 
-            take $candi unless ?$msg;
+            $*error = do given $!config<License> {
+                when .<blacklist>.?chars && any(|.<blacklist>) ~~ any('*', $candi.dist.meta<license> // '') {
+                    "License blacklist configuration exists and matches {$candi.dist.meta<license> // 'n/a'} for {$candi.dist.name}";
+                }
+                when .<whitelist>.?chars && any(|.<whitelist>) ~~ none('*', $candi.dist.meta<license> // '') {
+                    "License whitelist configuration exists and does not match {$candi.dist.meta<license> // 'n/a'} for {$candi.dist.name}";
+                }
+            }
+
+            $*error.?chars;
         }
         die "All candidates have been filtered out. No reason to proceed" unless +@filtered-candidates;
 
@@ -494,13 +493,8 @@ class Zef::Client {
 
 
             # Test Phase:
-            my @tested-candidates = gather for @built-candidates -> $candi {
-                next() R, take($candi) unless ?$test;
-
-                my $tested = self.test($candi);
-                my $failed = $tested.map(*.test-results.grep(!*.so).elems).sum;
-
-                take $candi unless ?$failed && !$!force-test;
+            my @tested-candidates = !$test ?? @built-candidates !! @built-candidates.grep: -> $candi {
+                self.test($candi).map(*.test-results.grep(!*.so).elems).sum || !$!force-test;
             }
             # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
             die "All candidates failed building and/or testing. No reason to proceed" unless +@tested-candidates;
@@ -508,7 +502,7 @@ class Zef::Client {
             # Install Phase:
             # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
             # and contain only the modules needed for this specific run/plan
-            my @installed-candidates = eager gather for @tested-candidates -> $candi {
+            my @installed-candidates = ?$dry ?? @tested-candidates !! @tested-candidates.grep: -> $candi {
                 self.logger.emit({
                     level   => INFO,
                     stage   => INSTALL,
@@ -516,57 +510,40 @@ class Zef::Client {
                     message => "Installing: {$candi.dist.?identity // $candi.as}",
                 });
 
-                my @installed-at = @curs.grep: -> $cur {
-                    if ?$dry {
-                        self.logger.emit({
-                            level   => VERBOSE,
-                            stage   => INSTALL,
-                            phase   => AFTER,
-                            message => "(dry) Installed: {$candi.dist.?identity // $candi.as}",
-                        });
-                    }
-                    else {
-                        #$!lock.protect({
-                        try {
-                            CATCH {
-                                when /'already installed'/ {
-                                    self.logger.emit({
-                                        level   => INFO,
-                                        stage   => INSTALL,
-                                        phase   => AFTER,
-                                        message => "Install [SKIP] for {$candi.dist.?identity // $candi.as}: {$_}",
-                                    });
-                                }
-                                default {
-                                    self.logger.emit({
-                                        level   => ERROR,
-                                        stage   => INSTALL,
-                                        phase   => AFTER,
-                                        message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
-                                    });
-                                    $_.rethrow;
-                                }
-                            }
+                @curs.grep(-> $cur {
+                    KEEP self.logger.emit({
+                        level   => VERBOSE,
+                        stage   => INSTALL,
+                        phase   => AFTER,
+                        message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
+                    });
 
-                            # Previously we put this through the deprecation CURI.install shim no matter what,
-                            # but that doesn't play nicely with relative paths. We want to keep the original meta
-                            # paths for newer rakudos so we must avoid using :absolute for the source paths by
-                            # using the newer CURI.install if available
-                            my $install = $cur.install($candi.dist.compat, :force($!force-install));
-
+                    CATCH {
+                        when /'already installed'/ {
                             self.logger.emit({
-                                level   => VERBOSE,
+                                level   => INFO,
                                 stage   => INSTALL,
                                 phase   => AFTER,
-                                message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
-                            }) if ?$install;
-                            $ = ?$install;
+                                message => "Install [SKIP] for {$candi.dist.?identity // $candi.as}: {$_}",
+                            });
                         }
-                        #});
+                        default {
+                            self.logger.emit({
+                                level   => ERROR,
+                                stage   => INSTALL,
+                                phase   => AFTER,
+                                message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
+                            });
+                            $_.rethrow;
+                        }
                     }
-                }
 
-                take $candi if +@installed-at;
+                    # Previously we put this through the deprecation CURI.install shim no matter what,
+                    # but that doesn't play nicely with relative paths. We want to keep the original meta
+                    # paths for newer rakudos so we must avoid using :absolute for the source paths by
+                    # using the newer CURI.install if available
+                    try $cur.install($candi.dist.compat, :force($!force-install));
+                }).Slip
             }
 
             # Report phase:

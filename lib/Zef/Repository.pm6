@@ -1,6 +1,10 @@
 use Zef;
 
 class Zef::Repository does Pluggable {
+    submethod TWEAK(|) {
+        @ = self.plugins; # preload plugins
+    }
+
     method candidates(Bool :$upgrade, *@identities ($, *@)) {
         # todo: have a `file` identity in Zef::Identity
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });

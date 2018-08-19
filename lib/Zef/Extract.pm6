@@ -2,6 +2,10 @@ use Zef;
 use Zef::Utils::FileSystem;
 
 class Zef::Extract does Pluggable {
+    submethod TWEAK(|) {
+        @ = self.plugins; # preload plugins
+    }
+
     method extract($path, $extract-to, Supplier :$logger, Int :$timeout) {
         die "Can't extract non-existent path: {$path}" unless $path.IO.e;
         die "Can't extract to non-existent path: {$extract-to}" unless $extract-to.IO.e || $extract-to.IO.mkdir;

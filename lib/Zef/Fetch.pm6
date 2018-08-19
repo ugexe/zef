@@ -3,6 +3,10 @@ use Zef::Utils::FileSystem;
 use Zef::Utils::URI;
 
 class Zef::Fetch does Pluggable {
+    submethod TWEAK(|) {
+        @ = self.plugins; # preload plugins
+    }
+
     method fetch($uri, $save-to, Supplier :$logger, Int :$timeout) {
         my $fetchers := self.plugins.grep(*.fetch-matcher($uri)).cache;
 

@@ -1,6 +1,10 @@
 use Zef;
 
 class Zef::Report does Pluggable does Reporter {
+    submethod TWEAK(|) {
+        @ = self.plugins; # preload plugins
+    }
+
     method report($dist, Supplier :$logger) {
         my $reporters := self.plugins.grep(*.so).cache;
 

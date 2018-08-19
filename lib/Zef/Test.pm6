@@ -1,6 +1,10 @@
 use Zef;
 
 class Zef::Test does Pluggable {
+    submethod TWEAK(|) {
+        @ = self.plugins; # preload plugins
+    }
+
     method test($path, :@includes, Supplier :$logger, Int :$timeout) {
         die "Can't test non-existent path: {$path}" unless $path.IO.e;
         my $testers := self.plugins.grep(*.test-matcher($path)).cache;

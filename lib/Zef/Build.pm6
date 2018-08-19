@@ -1,6 +1,10 @@
 use Zef;
 
 class Zef::Build does Pluggable {
+    submethod TWEAK(|) {
+        @ = self.plugins; # preload plugins
+    }
+
     method needs-build($dist) {
         [||] self.plugins.map(*.needs-build($dist))
     }

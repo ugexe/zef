@@ -48,19 +48,25 @@ class Zef::Repository does Pluggable {
         }
     }
 
-    method available(*@from) {
-        my %dists;
-        my $check-plugins := +@from ?? self.plugins.grep({.short-name ~~ any(@from)}) !! self.plugins;
-        my $candis := gather for $check-plugins.grep(*.^can('available')) -> $storage {
-            take $_ for |$storage.available;
+    method available(*@plugins) {
+        my @available = self!plugins(@plugins).grep: -> $plugin {
+            note "Plugin '{$plugin.short-name}' does not support `.available`" unless $plugin.can('available'); # UNDO doesn't work here yet
+            $plugin.can('available'); # `.update` is an optional interface requirement
         }
+
+        @available.race(:batch(1)).map({ $_.available.Slip }).list;
     }
 
-    method update(*@names) {
-        eager gather for self.plugins(@names) -> $plugin {
-            next() R, warn "Plugin {$plugin.short-name} doesn't support `.update`"\
-                if +@names && !$plugin.can('update'); # `.update` is an optional interface requirement
-            take $plugin.id => $plugin.update.elems;
+    method update(*@plugins) {
+        my @updatable = self!plugins(@plugins).grep: -> $plugin {
+            note "Plugin '{$plugin.short-name}' does not support `.update`" unless $plugin.can('update'); # UNDO doesn't work here yet
+            $plugin.can('update'); # `.update` is an optional interface requirement
         }
+
+        @updatable.race(:batch(1)).map({ $_.id => $_.update.elems }).hash
+    }
+
+    method !plugins(*@_) {
+        +@_ ?? self.plugins.grep({.short-name ~~ any(@_)}) !! self.plugins
     }
 }

@@ -654,7 +654,8 @@ package Zef::CLI {
         my $client  = get-client(:config($CONFIG));
         my %results = $client.recommendation-manager.update(@names);
         my $rows    = %results.map: {[.key, .value]};
-        abort "An unknown plugin name used" if +@names && (+@names > +$rows);
+        abort "A plugin name was provided that does not exist or does not support 'update'"
+            if +@names && (+@names > +$rows);
 
         print-table( [["Content Storage", "Distribution Count"], |$rows], wrap => True );
 

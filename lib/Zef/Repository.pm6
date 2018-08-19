@@ -9,16 +9,16 @@ class Zef::Repository does Pluggable {
         # todo: have a `file` identity in Zef::Identity
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });
 
-        my $unsorted-candis := self.plugins.map: -> $storage {
+        my @unsorted-candis = self!plugins.race(:batch(1)).map: -> $storage {
             # todo: (cont. from above): Each Repository should just filter this themselves
             my @search-for = $storage.id eq 'Zef::Repository::LocalCache' ?? @identities !! @searchable;
             $storage.search(@search-for, :strict).Slip
         }
 
-        my $unsorted-grouped-candis := $unsorted-candis.categorize({.dist.name}).values;
+        my @unsorted-grouped-candis = @unsorted-candis.categorize({.dist.name}).values;
 
         # Take the distribution with the highest version out of all matching distributions from all repositories
-        my $sorted-candis := $unsorted-grouped-candis.map: -> $candis {
+        my @sorted-candis = @unsorted-grouped-candis.map: -> $candis {
             my @presorted = $candis.sort(*.dist.ver);
             my $version   = @presorted.tail.dist.ver;
 
@@ -31,39 +31,47 @@ class Zef::Repository does Pluggable {
         # So this is similar to the .categorize(*.dist.name) filter above, except it
         # covers when two different repositories have a matching candidate with different
         # distribution names (likely matching *module* names in provides)
-        my @distinct-requested-as = $sorted-candis.unique(:as(*.as));
+        my @distinct-requested-as = @sorted-candis.unique(:as(*.as));
+
+        return @distinct-requested-as;
     }
 
     method search(:$max-results = 5, Bool :$strict, *@identities ($, *@), *%fields) {
         return () unless @identities || %fields;
 
-        self.plugins.map: -> $storage {
+        my @unsorted-candis = self!plugins.race(:batch(1)).map: -> $storage {
             $storage.search(@identities, |%fields, :$max-results, :$strict).Slip
         }
+
+        return @unsorted-candis;
     }
 
     method store(*@dists) {
-        for self.plugins.grep(*.^can('store')) -> $storage {
+        for self!plugins.grep(*.^can('store')) -> $storage {
             $storage.?store(@dists);
         }
     }
 
     method available(*@plugins) {
-        my @available = self!plugins(@plugins).grep: -> $plugin {
-            note "Plugin '{$plugin.short-name}' does not support `.available`" unless $plugin.can('available'); # UNDO doesn't work here yet
-            $plugin.can('available'); # `.update` is an optional interface requirement
+        my @can-available = self!plugins(@plugins).grep: -> $plugin {
+            note "Plugin '{$plugin.short-name}' does not support `.available` -- Skipping" unless $plugin.can('available'); # UNDO doesn't work here yet
+            $plugin.can('available');
         }
 
-        @available.race(:batch(1)).map({ $_.available.Slip }).list;
+        my @available = @can-available.race(:batch(1)).map({ $_.available.Slip });
+
+        return @available;
     }
 
     method update(*@plugins) {
-        my @updatable = self!plugins(@plugins).grep: -> $plugin {
-            note "Plugin '{$plugin.short-name}' does not support `.update`" unless $plugin.can('update'); # UNDO doesn't work here yet
-            $plugin.can('update'); # `.update` is an optional interface requirement
+        my @can-update = self!plugins(@plugins).grep: -> $plugin {
+            note "Plugin '{$plugin.short-name}' does not support `.update` -- Skipping" unless $plugin.can('update'); # UNDO doesn't work here yet
+            $plugin.can('update');
         }
 
-        @updatable.race(:batch(1)).map({ $_.id => $_.update.elems }).hash
+        my %updates = @can-update.race(:batch(1)).map({ $_.id => $_.update.elems }).hash;
+
+        return %updates;
     }
 
     method !plugins(*@_) {

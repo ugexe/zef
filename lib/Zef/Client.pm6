@@ -50,7 +50,7 @@ class Zef::Client {
         :$!builder                = Zef::Build.new(:backends(|$!config<Build>)),
         :$!tester                 = Zef::Test.new(:backends(|$!config<Test>)),
         :$!reporter               = Zef::Report.new(:backends(|$!config<Report>)),
-        :$!recommendation-manager = Zef::Repository.new(:backends(|$!config<Repository>), :$!cache, :$!fetcher),
+        :$!recommendation-manager = Zef::Repository.new(:backends($!config<Repository>.map({ $_<options><cache> = $!cache; $_<options><fetcher> = $!fetcher; $_ }).Slip)),
     ) {
         mkdir $!cache unless $!cache.IO.e;
 

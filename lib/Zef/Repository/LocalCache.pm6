@@ -15,8 +15,7 @@ use Zef::Utils::FileSystem;
 class Zef::Repository::LocalCache does Repository {
     has $.mirrors;
     has $.auto-update;
-
-    has $.cache is rw;
+    has $.cache;
     has @!dists;
 
     method IO(--> IO::Path) { my $dir = $!cache.IO; $dir.mkdir unless $dir.e; $dir }

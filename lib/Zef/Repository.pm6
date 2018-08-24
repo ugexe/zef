@@ -9,7 +9,12 @@ class Zef::Repository does Pluggable {
         # todo: have a `file` identity in Zef::Identity
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });
 
-        my @unsorted-candis = self!plugins.race(:batch(1)).map: -> $storage {
+        # XXX: Delete this eventually
+        my $dispatchers := $*PERL.compiler.version < v2018.08
+            ?? self!plugins
+            !! self!plugins.race(:batch(1));
+
+        my @unsorted-candis = $dispatchers.map: -> $storage {
             # todo: (cont. from above): Each Repository should just filter this themselves
             my @search-for = $storage.id eq 'Zef::Repository::LocalCache' ?? @identities !! @searchable;
             $storage.search(@search-for, :strict).Slip
@@ -39,7 +44,12 @@ class Zef::Repository does Pluggable {
     method search(:$max-results = 5, Bool :$strict, *@identities ($, *@), *%fields) {
         return () unless @identities || %fields;
 
-        my @unsorted-candis = self!plugins.race(:batch(1)).map: -> $storage {
+        # XXX: Delete this eventually
+        my $dispatcher := $*PERL.compiler.version < v2018.08
+            ?? self!plugins
+            !! self!plugins.race(:batch(1));
+
+        my @unsorted-candis = $dispatcher.map: -> $storage {
             $storage.search(@identities, |%fields, :$max-results, :$strict).Slip
         }
 

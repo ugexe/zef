@@ -64,7 +64,12 @@ class Zef::Repository::Ecosystems does Repository {
         my @searchable-identities = %specs.classify({ .value.from-matcher })<Perl6>.grep(*.defined).hash.keys;
         return ().Seq unless @searchable-identities;
 
-        my @matches = self!gather-dists.race.map: -> $dist {
+        # XXX: Delete this eventually
+        my $dispatchers := $*PERL.compiler.version < v2018.08
+            ?? self!gather-dists
+            !! self!gather-dists.race;
+
+        my @matches = $dispatchers.map: -> $dist {
             @searchable-identities.grep({ $dist.contains-spec(%specs{$_}, :$strict) }).map({
                 Candidate.new(
                     dist => $dist,

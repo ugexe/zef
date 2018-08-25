@@ -1,12 +1,16 @@
 {
-    "perl"        : "6",
-    "name"        : "zef",
-    "version"     : "0.5.1",
-    "auth"        : "github:ugexe",
-    "description" : "A Perl 6 module manager",
-    "license"     : "Artistic-2.0",
-    "depends"     : [ ],
-    "provides"    : {
+    "meta-version"  : "0",
+    "perl"          : "6.c",
+    "name"          : "zef",
+    "api"           : "0",
+    "version"       : "0.5.1",
+    "auth"          : "github:ugexe",
+    "description"   : "A Perl 6 module manager",
+    "license"       : "Artistic-2.0",
+    "build-depends" : [ ],
+    "test-depends"  : [ "Test" ],
+    "depends"       : [ "NativeCall" ],
+    "provides"      : {
         "Zef"           : "lib/Zef.pm6",
         "Zef::Build"    : "lib/Zef/Build.pm6",
         "Zef::CLI"      : "lib/Zef/CLI.pm6",
@@ -62,7 +66,8 @@
         "Tony O'Dell"
     ],
     "support" : {
-        "bugtracker" : "https://github.com/ugexe/zef/issues"
+        "bugtracker" : "https://github.com/ugexe/zef/issues",
+        "source"     : "https://github.com/ugexe/zef.git"
     },
     "tags"        : [
         "package-manager",
@@ -72,6 +77,5 @@
         "ecosystem",
         "cpan",
         "toolchain"
-    ],
-    "source-url"  : "git://github.com/ugexe/zef.git"
+    ]
 }

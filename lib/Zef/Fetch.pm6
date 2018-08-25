@@ -7,8 +7,10 @@ class Zef::Fetch does Pluggable {
         @ = self.plugins; # preload plugins
     }
 
+    method fetch-matcher($uri) { self.plugins.grep(*.fetch-matcher($uri)) }
+
     method fetch($uri, $save-to, Supplier :$logger, Int :$timeout) {
-        my $fetchers := self.plugins.grep(*.fetch-matcher($uri)).cache;
+        my $fetchers := self.fetch-matcher($uri).cache;
 
         unless +$fetchers {
             my @report_enabled  = self.plugins.map(*.short-name);

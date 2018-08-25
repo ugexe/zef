@@ -277,7 +277,7 @@ class Zef::Client {
         my @built = eager gather for @candidates -> $candi {
             my $dist := $candi.dist;
 
-            unless $!builder.needs-build($dist) {
+            unless $!builder.build-matcher($dist) {
                 self.logger.emit({
                     level   => DEBUG,
                     stage   => BUILD,

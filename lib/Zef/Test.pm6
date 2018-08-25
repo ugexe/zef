@@ -5,9 +5,11 @@ class Zef::Test does Pluggable {
         @ = self.plugins; # preload plugins
     }
 
+    method test-matcher($path) { self.plugins.grep(*.test-matcher($path)) }
+
     method test($path, :@includes, Supplier :$logger, Int :$timeout) {
         die "Can't test non-existent path: {$path}" unless $path.IO.e;
-        my $testers := self.plugins.grep(*.test-matcher($path)).cache;
+        my $testers := self.test-matcher($path).cache;
 
         unless +$testers {
             my @report_enabled  = self.plugins.map(*.short-name);

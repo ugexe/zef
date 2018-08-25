@@ -5,12 +5,11 @@ class Zef::Build does Pluggable {
         @ = self.plugins; # preload plugins
     }
 
-    method needs-build($dist) {
-        [||] self.plugins.map(*.needs-build($dist))
-    }
+    method build-matcher($dist) { self.plugins.grep(*.build-matcher($dist)) }
+
     method build($dist, :@includes, Supplier :$logger, Int :$timeout, :$meta) {
         die "Can't build non-existent path: {$dist.path}" unless $dist.path.IO.e;
-        my $builder = self.plugins.first(*.build-matcher($dist));
+        my $builder = self.build-matcher($dist).first(*.so);
         die "No building backend available" unless ?$builder;
 
         my $stdmerge;

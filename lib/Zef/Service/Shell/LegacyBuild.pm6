@@ -3,10 +3,7 @@ use Zef;
 class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
     method !guess-build-file(IO() $prefix) { <Build.pm6 Build.pm>.map({ $prefix.child($_) }).first({ $_.e }) }
 
-    method build-matcher($dist) {
-        ($dist.meta-version // 0) == 0 and self!guess-build-file($dist.path)
-    }
-    method needs-build($dist) { self.build-matcher($dist) }
+    method build-matcher($dist) { so self!guess-build-file($dist.path) }
 
     method probe { True }
 

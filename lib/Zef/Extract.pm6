@@ -6,6 +6,8 @@ class Zef::Extract does Pluggable {
         @ = self.plugins; # preload plugins
     }
 
+    method extract-matcher($path) { self.plugins.grep(*.extract-matcher($path)) }
+
     method extract($path, $extract-to, Supplier :$logger, Int :$timeout) {
         die "Can't extract non-existent path: {$path}" unless $path.IO.e;
         die "Can't extract to non-existent path: {$extract-to}" unless $extract-to.IO.e || $extract-to.IO.mkdir;
@@ -46,12 +48,12 @@ class Zef::Extract does Pluggable {
 
     method ls-files($path, :$logger) {
         my $extractors := self!extractors($path);
-        my $name-paths := $extractors.map(*.ls-files($path)).first(*.so).map(*.IO);
+        my $name-paths := $extractors.map(*.ls-files($path)).first(*.defined).map(*.IO);
         $name-paths.map({ .is-absolute ?? $path.child(.relative($path)).cleanup.relative($path) !! $_ });
     }
 
     method !extractors($path) {
-        my $extractors := self.plugins.grep(*.extract-matcher($path)).cache;
+        my $extractors := self.extract-matcher($path).cache;
 
         unless +$extractors {
             my @report_enabled  = self.plugins.map(*.short-name);

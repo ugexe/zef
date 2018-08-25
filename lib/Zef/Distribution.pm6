@@ -78,10 +78,6 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
             for $.build-depends.grep(*.defined) {
                 take Zef::Distribution::DependencySpecification.new(system-collapse($_));
             }
-
-            # XXX: The special case code is to ease transition of Inline::Python ( the only known user of this api )
-            take Zef::Distribution::DependencySpecification.new($.builder eq 'MakeFromJSON' ?? "Distribution::Builder::MakeFromJSON" !! $.builder)
-                if $.builder;
         }
     }
     method test-depends-specs  {

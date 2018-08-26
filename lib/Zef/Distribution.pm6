@@ -50,16 +50,17 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
             :%!provides,
             :%!files,
             :@!resources,
-            :$!source-url,
             :$!license,
             :%!support,
-            :$.identity,
-            :$.id,
-            :$.builder;
+            :$!source-url,
+            :$.builder,
         );
 
         # Add non-spec keys back into the has output ( will do this properly when refactoring Distribution )
         %normalized{$_} //= $!meta{$_} for $!meta.hash.keys;
+
+        %normalized<builder>:delete unless %normalized<builder>;
+        %normalized<source-url>:delete unless %normalized<source-url>;
 
         return %normalized;
     }

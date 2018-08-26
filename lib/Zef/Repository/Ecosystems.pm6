@@ -8,8 +8,8 @@ class Zef::Repository::Ecosystems does Repository {
     has $.mirrors;
     has $.auto-update;
 
-    has $.fetcher is rw;
-    has $.cache   is rw;
+    has $.fetcher;
+    has $.cache;
     has $.update-counter;
     has @!dists;
 

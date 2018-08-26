@@ -5,8 +5,8 @@ use Zef::Distribution::DependencySpecification;
 # todo: clear search json files
 class Zef::Repository::MetaCPAN does Repository {
     has $.mirrors;
-    has $.fetcher is rw;
-    has $.cache is rw;
+    has $.fetcher;
+    has $.cache;
 
     # only recent, not *all*
     method available {

@@ -306,7 +306,6 @@ package Zef::CLI {
         say "The following distributions will be upgraded: {@upgradable.map(*.dist.identity).join(', ')}";
 
         my &installer = &MAIN.assuming(
-            'install',
             :$depends,
             :$test-depends,
             :$build-depends,

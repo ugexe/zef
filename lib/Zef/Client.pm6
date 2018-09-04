@@ -494,7 +494,7 @@ class Zef::Client {
 
             # Test Phase:
             my @tested-candidates = !$test ?? @built-candidates !! @built-candidates.grep: -> $candi {
-                self.test($candi).map(*.test-results.grep(!*.so).elems).sum || !$!force-test;
+                self.test($candi).map(*.test-results.grep(!*.so).elems).sum == 0 || $!force-test;
             }
             # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
             die "All candidates failed building and/or testing. No reason to proceed" unless +@tested-candidates;

@@ -47,35 +47,32 @@ class Zef::Identity {
     }
 
     multi method new(Str $id) {
-        state %id-cache;
-        %id-cache{$id} := %id-cache{$id}:exists ?? %id-cache{$id} !! do {
-            if $id.starts-with('.' | '/') {
-                self.bless(
-                    name    => $id,
-                    version => '',
-                    auth    => '',
-                    api     => '',
-                    from    => '',
-                );
-            }
-            elsif $id !~~ /':ver' | ':auth' | ':api' | ':from'/ and URN.parse($id) -> $urn {
-                self.bless(
-                    name    => ~($urn<name>.subst('--','::') // ''),
-                    version => ~($urn<version>               // ''),
-                    auth    => ~($urn<auth>                  // ''),
-                    api     => ~($urn<api>                   // ''),
-                    from    => ~($urn<from>                  // 'Perl6'),
-                );
-            }
-            elsif REQUIRE.parse($id, :actions(REQUIRE::Actions.new)).ast -> $ident {
-                self.bless(
-                    name    => ~($ident<name>    // ''),
-                    version => ~($ident<ver>     // ''),
-                    auth    => ~($ident<auth>    // ''),
-                    api     => ~($ident<api>     // ''),
-                    from    => ~($ident<from>    || 'Perl6'),
-                );
-            }
+        if $id.starts-with('.' | '/') {
+            self.bless(
+                name    => $id,
+                version => '',
+                auth    => '',
+                api     => '',
+                from    => '',
+            );
+        }
+        elsif $id !~~ /':ver' | ':auth' | ':api' | ':from'/ and URN.parse($id) -> $urn {
+            self.bless(
+                name    => ~($urn<name>.subst('--','::') // ''),
+                version => ~($urn<version>               // ''),
+                auth    => ~($urn<auth>                  // ''),
+                api     => ~($urn<api>                   // ''),
+                from    => ~($urn<from>                  // 'Perl6'),
+            );
+        }
+        elsif REQUIRE.parse($id, :actions(REQUIRE::Actions.new)).ast -> $ident {
+            self.bless(
+                name    => ~($ident<name>    // ''),
+                version => ~($ident<ver>     // ''),
+                auth    => ~($ident<auth>    // ''),
+                api     => ~($ident<api>     // ''),
+                from    => ~($ident<from>    || 'Perl6'),
+            );
         }
     }
 

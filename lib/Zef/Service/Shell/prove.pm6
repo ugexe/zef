@@ -28,17 +28,17 @@ class Zef::Service::Shell::prove does Tester does Messenger {
         my $test-path = $path.child('t');
         return True unless $test-path.e;
 
-        my $ENV := %*ENV;
-        my @cur-p6lib  = $ENV<PERL6LIB>.?chars ?? $ENV<PERL6LIB>.split($*DISTRO.cur-sep) !! ();
+        my %ENV = %*ENV;
+        my @cur-p6lib  = %ENV<PERL6LIB>.?chars ?? %ENV<PERL6LIB>.split($*DISTRO.cur-sep) !! ();
         my @new-p6lib  = $path.absolute, $path.child('lib').absolute, |@includes;
-        $ENV<PERL6LIB> = (|@new-p6lib, |@cur-p6lib).join($*DISTRO.cur-sep);
+        %ENV<PERL6LIB> = (|@new-p6lib, |@cur-p6lib).join($*DISTRO.cur-sep);
 
         my $passed;
         react {
             my $proc = zrun-async('prove', '-r', '-e', $*EXECUTABLE.absolute, $test-path.relative($path));
             whenever $proc.stdout.lines { $.stdout.emit($_) }
             whenever $proc.stderr.lines { $.stderr.emit($_) }
-            whenever $proc.start(:$ENV, :cwd($path)) { $passed = $_.so }
+            whenever $proc.start(:%ENV, :cwd($path)) { $passed = $_.so }
         }
         return $passed;
     }

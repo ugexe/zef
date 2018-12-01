@@ -47,8 +47,9 @@ class Zef::Distribution::Local is Zef::Distribution {
         # path to this new path so that CURI.install can understand it.
         # Example:
         #   META FILE: 'resources/libraries/mylib'
-        #   GENERATED: 'resources/libraries/mylib' => 'resources/libaries/mylib.so'
+        #   GENERATED: 'resources/libraries/mylib' => 'resources/libaries/libmylib.so'
         #           or 'resources/libraries/mylib' => 'resources/libaries/mylib.dll'
+        # Note that it does not add the "lib" prefix on Windows. Whether the generated file has the "lib" prefix is platform dependent. 
         my $lib-path = $res-path.child('libraries');
 
         % = self.hash<resources>.map: -> $resource {

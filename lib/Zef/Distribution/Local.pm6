@@ -48,7 +48,8 @@ class Zef::Distribution::Local is Zef::Distribution {
         # Example:
         #   META FILE: 'resources/libraries/mylib'
         #   GENERATED: 'resources/libraries/mylib' => 'resources/libaries/libmylib.so'
-        #           or 'resources/libraries/mylib' => 'resources/libaries/libmylib.dll'
+        #           or 'resources/libraries/mylib' => 'resources/libaries/mylib.dll'
+        # Note that it does not add the "lib" prefix on Windows. Whether the generated file has the "lib" prefix is platform dependent. 
         my $lib-path = $res-path.child('libraries');
 
         % = self.hash<resources>.map: -> $resource {

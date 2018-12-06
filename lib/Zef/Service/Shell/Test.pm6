@@ -27,7 +27,7 @@ class Zef::Service::Shell::Test does Tester does Messenger {
 
             my $passed;
             react {
-                my $proc = zrun-async('prove', '-r', '-e', $*EXECUTABLE.absolute, $test-path.relative($path));
+                my $proc = zrun-async($*EXECUTABLE.absolute, $relpath);
                 whenever $proc.stdout.lines { $.stdout.emit($_) }
                 whenever $proc.stderr.lines { $.stderr.emit($_) }
                 whenever $proc.start(:%ENV, :cwd($path)) { $passed = $_.so }

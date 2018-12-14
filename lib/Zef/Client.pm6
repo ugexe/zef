@@ -649,10 +649,15 @@ class Zef::Client {
         }
     }
 
-    method !native-library-is-installed(Str() $lib) {
+    method !native-library-is-installed(Str() $lib --> Bool) {
         use NativeCall;
-        try sub :: is native(sub{ $*VM.platform-library-name($lib.IO).basename }){}();
-        return !$!.payload.starts-with("Cannot locate native library");
+        my $throwaway-sub = sub { };
+        $throwaway-sub does NativeCall::Native[$throwaway-sub, sub { $*VM.platform-library-name($lib.IO).basename }];
+        try {
+            CATCH { default { return False if .payload.starts-with("Cannot locate native library") } }
+            $throwaway-sub();
+        }
+        return True;
     }
 
     method sort-candidates(@candis, *%_) {

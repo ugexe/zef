@@ -2,7 +2,7 @@ use v6;
 use Test;
 plan 2;
 
-subtest {
+subtest 'Core' => {
     use-ok("Zef");
     # Just `use Zef::CLI` will make it output usage
     # use-ok("Zef::CLI");
@@ -11,6 +11,7 @@ subtest {
     use-ok("Zef::Extract");
     use-ok("Zef::Identity");
     use-ok("Zef::Test");
+    use-ok("Zef::Install");
     use-ok("Zef::Fetch");
     use-ok("Zef::Client");
 
@@ -26,11 +27,13 @@ subtest {
     use-ok("Zef::Utils::FileSystem");
     use-ok("Zef::Utils::SystemInfo");
     use-ok("Zef::Utils::URI");
-}, 'Core';
+}
 
-subtest {
+subtest 'Plugins' => {
     use-ok("Zef::Service::FetchPath");
     use-ok("Zef::Service::TAP");
+    use-ok("Zef::Service::InstallPM6");
+    use-ok("Zef::Service::P6CReporter");
     use-ok("Zef::Service::Shell::DistributionBuilder");
     use-ok("Zef::Service::Shell::LegacyBuild");
     use-ok("Zef::Service::Shell::Test");
@@ -44,4 +47,4 @@ subtest {
     use-ok("Zef::Service::Shell::PowerShell");
     use-ok("Zef::Service::Shell::PowerShell::download");
     use-ok("Zef::Service::Shell::PowerShell::unzip");
-}, 'Plugins';
+}

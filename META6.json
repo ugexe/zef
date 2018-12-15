@@ -18,6 +18,7 @@
         "Zef::Config"   : "lib/Zef/Config.pm6",
         "Zef::Extract"  : "lib/Zef/Extract.pm6",
         "Zef::Identity" : "lib/Zef/Identity.pm6",
+        "Zef::Install"  : "lib/Zef/Install.pm6",
         "Zef::Test"     : "lib/Zef/Test.pm6",
         "Zef::Fetch"    : "lib/Zef/Fetch.pm6",
         "Zef::Report"   : "lib/Zef/Report.pm6",
@@ -31,6 +32,7 @@
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",
         "Zef::Distribution::Local"                   : "lib/Zef/Distribution/Local.pm6",
 
+        "Zef::Service::InstallPM6"  : "lib/Zef/Service/InstallPM6.pm6",
         "Zef::Service::FetchPath"   : "lib/Zef/Service/FetchPath.pm6",
         "Zef::Service::TAP"         : "lib/Zef/Service/TAP.pm6",
         "Zef::Service::P6CReporter" : "lib/Zef/Service/P6CReporter.pm6",

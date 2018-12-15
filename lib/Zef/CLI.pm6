@@ -99,6 +99,7 @@ package Zef::CLI {
         Int  :$extract-timeout = $timeout,
         Int  :$build-timeout   = $timeout,
         Int  :$test-timeout    = $timeout,
+        Int  :$install-timeout = $timeout,
         Bool :$dry,
         Bool :$update,
         Bool :$upgrade,
@@ -123,7 +124,7 @@ package Zef::CLI {
             :$force-resolve,  :$force-fetch,     :$force-extract,
             :$force-build,    :$force-test,      :$force-install,
             :$fetch-timeout,  :$extract-timeout, :$build-timeout,
-            :$test-timeout,
+            :$test-timeout,   :$install-timeout,
         );
 
         # LOCAL PATHS
@@ -176,7 +177,7 @@ package Zef::CLI {
         my @fetched = grep *.so, |@local, ($client.fetch(@remote).Slip if +@remote && $fetch);
 
         my CompUnit::Repository @to = $install-to.map(*.&str2cur);
-        my @installed  = $client.install( :@to, :$fetch, :$test, :$build, :$upgrade, :$update, :$dry, :$serial, @fetched );
+        my @installed  = $client.make-install( :@to, :$fetch, :$test, :$build, :$upgrade, :$update, :$dry, :$serial, @fetched );
         my @fail       = @candidates.grep: {.as !~~ any(@installed>>.as)}
 
         say "!!!> Install failures: {@fail.map(*.dist.identity).join(', ')}" if +@fail;
@@ -726,7 +727,7 @@ package Zef::CLI {
 
                 --install-to=[name]     Short name or spec of CompUnit::Repository to install to
                 --config-path=[path]    Load a specific Zef config file
-                --[phase]-timeout=[int] Set a timeout (in seconds) for the corresponding phase ( phase: fetch, extract, build, test )
+                --[phase]-timeout=[int] Set a timeout (in seconds) for the corresponding phase ( phase: fetch, extract, build, test, install )
 
             VERBOSITY LEVEL (from least to most verbose)
                 --error, --warn, --info (default), --verbose, --debug

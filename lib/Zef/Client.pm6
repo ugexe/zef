@@ -9,6 +9,7 @@ use Zef::Fetch;
 use Zef::Extract;
 use Zef::Build;
 use Zef::Test;
+use Zef::Install;
 use Zef::Report;
 
 class Zef::Client {
@@ -19,6 +20,7 @@ class Zef::Client {
     has $.extractor;
     has $.tester;
     has $.builder;
+    has $.installer;
     has $.reporter;
     has $.config;
 
@@ -38,6 +40,7 @@ class Zef::Client {
     has Int $.extract-timeout is rw = 3600;
     has Int $.build-timeout   is rw = 3600;
     has Int $.test-timeout    is rw = 3600;
+    has Int $.install-timeout is rw = 3600;
 
     has Bool $.depends       is rw = True;
     has Bool $.build-depends is rw = True;
@@ -48,6 +51,7 @@ class Zef::Client {
         :$!fetcher                = Zef::Fetch.new(:backends(|$!config<Fetch>)),
         :$!extractor              = Zef::Extract.new(:backends(|$!config<Extract>)),
         :$!builder                = Zef::Build.new(:backends(|$!config<Build>)),
+        :$!installer              = Zef::Install.new(:backends(|$!config<Install>)),
         :$!tester                 = Zef::Test.new(:backends(|$!config<Test>)),
         :$!reporter               = Zef::Report.new(:backends(|$!config<Report>)),
         :$!recommendation-manager = Zef::Repository.new(:backends($!config<Repository>.map({ $_<options><cache> = $!cache; $_<options><fetcher> = $!fetcher; $_ }).Slip)),
@@ -370,14 +374,74 @@ class Zef::Client {
         @tested
     }
 
-
     # xxx: needs some love
     method search(*@identities ($, *@), *%fields, Bool :$strict = False) {
         $!recommendation-manager.search(@identities, :$strict, |%fields);
     }
 
+    method uninstall(CompUnit::Repository :@from!, *@identities) {
+        my @specs = @identities.map: { Zef::Distribution::DependencySpecification.new($_) }
+        eager gather for self.list-installed(@from) -> $candi {
+            my $dist = $candi.dist;
+            if @specs.first({ $dist.spec-matcher($_) }) {
+                my $cur = CompUnit::RepositoryRegistry.repository-for-spec("inst#{$candi.from}", :next-repo($*REPO));
+                $cur.uninstall($dist.compat);
+                take $candi;
+            }
+        }
+    }
 
-    method install(
+    method install(:@curs, *@candidates ($, *@)) {
+        my @installed = eager gather for @candidates -> $candi {
+            self.logger.emit({
+                level   => INFO,
+                stage   => INSTALL,
+                phase   => BEFORE,
+                message => "Installing: {$candi.dist.?identity // $candi.as}",
+            });
+
+            for @curs -> $cur {
+                KEEP self.logger.emit({
+                    level   => VERBOSE,
+                    stage   => INSTALL,
+                    phase   => AFTER,
+                    message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
+                });
+
+                CATCH {
+                    when /'already installed'/ {
+                        self.logger.emit({
+                            level   => INFO,
+                            stage   => INSTALL,
+                            phase   => AFTER,
+                            message => "Install [SKIP] for {$candi.dist.?identity // $candi.as}: {$_}",
+                        });
+                    }
+                    default {
+                        self.logger.emit({
+                            level   => ERROR,
+                            stage   => INSTALL,
+                            phase   => AFTER,
+                            message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
+                        });
+                        $_.rethrow;
+                    }
+                }
+
+                # Previously we put this through the deprecation CURI.install shim no matter what,
+                # but that doesn't play nicely with relative paths. We want to keep the original meta
+                # paths for newer rakudos so we must avoid using :absolute for the source paths by
+                # using the newer CURI.install if available
+                take $candi if $!installer.install($candi.dist.compat, :$cur, :force($!force-install), :timeout($!install-timeout));
+            }
+        }
+
+        return @installed;
+    }
+
+    # Unlike test/build/install/etc methods, this organizes multiples phases for multiples candidates.
+    # Eventually this will move back to a role/task based method of managing such phase dependencies.
+    method make-install(
         CompUnit::Repository :@to!, # target CompUnit::Repository
         Bool :$fetch = True,        # try fetching whats missing
         Bool :$build = True,        # run Build.pm (DEPRECATED..?)
@@ -502,49 +566,7 @@ class Zef::Client {
             # Install Phase:
             # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
             # and contain only the modules needed for this specific run/plan
-            my @installed-candidates = ?$dry ?? @tested-candidates !! @tested-candidates.grep: -> $candi {
-                self.logger.emit({
-                    level   => INFO,
-                    stage   => INSTALL,
-                    phase   => BEFORE,
-                    message => "Installing: {$candi.dist.?identity // $candi.as}",
-                });
-
-                @curs.grep(-> $cur {
-                    KEEP self.logger.emit({
-                        level   => VERBOSE,
-                        stage   => INSTALL,
-                        phase   => AFTER,
-                        message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
-                    });
-
-                    CATCH {
-                        when /'already installed'/ {
-                            self.logger.emit({
-                                level   => INFO,
-                                stage   => INSTALL,
-                                phase   => AFTER,
-                                message => "Install [SKIP] for {$candi.dist.?identity // $candi.as}: {$_}",
-                            });
-                        }
-                        default {
-                            self.logger.emit({
-                                level   => ERROR,
-                                stage   => INSTALL,
-                                phase   => AFTER,
-                                message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
-                            });
-                            $_.rethrow;
-                        }
-                    }
-
-                    # Previously we put this through the deprecation CURI.install shim no matter what,
-                    # but that doesn't play nicely with relative paths. We want to keep the original meta
-                    # paths for newer rakudos so we must avoid using :absolute for the source paths by
-                    # using the newer CURI.install if available
-                    $cur.install($candi.dist.compat, :force($!force-install));
-                }).Slip
-            }
+            my @installed-candidates = ?$dry ?? @tested-candidates !! self.install(:@curs, @tested-candidates);
 
             # Report phase:
             # Handle exit codes for various option permutations like --force
@@ -567,18 +589,6 @@ class Zef::Client {
         } # sub installer
 
         my @installed = ?$serial ?? @linked-candidates.map({ |$installer($_) }) !! $installer(@linked-candidates);
-    }
-
-    method uninstall(CompUnit::Repository :@from!, *@identities) {
-        my @specs = @identities.map: { Zef::Distribution::DependencySpecification.new($_) }
-        eager gather for self.list-installed(@from) -> $candi {
-            my $dist = $candi.dist;
-            if @specs.first({ $dist.spec-matcher($_) }) {
-                my $cur = CompUnit::RepositoryRegistry.repository-for-spec("inst#{$candi.from}", :next-repo($*REPO));
-                $cur.uninstall($dist.compat);
-                take $candi;
-            }
-        }
     }
 
     method list-rev-depends($identity, Bool :$indirect) {

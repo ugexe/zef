@@ -41,7 +41,7 @@ sub test-install($path = $?FILE.IO.parent.parent) {
         as   => ~$path,
         from => ~$?FILE,
     );
-    my @got = |$client.install( :to(@cur), :!test, :!fetch, $candidate );
+    my @got = |$client.make-install( :to(@cur), :!test, :!fetch, $candidate );
     @installed = unique(|@installed, |@got, :as(*.dist.identity));
 }
 

@@ -8,6 +8,13 @@
         "whitelist" : "*",
         "blacklist" : []
     },
+    "Install" : [
+        { 
+            "short-name" : "installpm6",
+            "enabled" : 1,
+            "module" : "Zef::Service::InstallPM6"
+        }
+    ],
     "Report" : [
         { 
             "short-name" : "p6ctesters",

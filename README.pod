@@ -133,6 +133,7 @@ B<Options>
     --extract-timeout=3600
     --build-timeout=3600
     --test-timeout=3600
+    --install-timeout=3600
 
     # or set the default to all unset --*-timeout flags to 0
     --timeout=0

@@ -23,7 +23,7 @@ class Zef::Extract does Pluggable {
                 my $todo    = start { try $extractor.extract($path, $extract-to) };
                 my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
                 await Promise.anyof: $todo, $time-up;
-                $logger.emit({ level => DEBUG, stage => FETCH, phase => LIVE, message => "Testing $path timed out" })
+                $logger.emit({ level => DEBUG, stage => EXTRACT, phase => LIVE, message => "Testing $path timed out" })
                     if $time-up.so && $todo.not;
                 $todo.so ?? $todo.result !! Nil
             });

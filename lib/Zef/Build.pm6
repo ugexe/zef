@@ -23,7 +23,7 @@ class Zef::Build does Pluggable {
         my $todo    = start { try $builder.build($dist, :@includes) };
         my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
         await Promise.anyof: $todo, $time-up;
-        $logger.emit({ level => DEBUG, stage => FETCH, phase => LIVE, message => "Building {$dist.path} timed out" })
+        $logger.emit({ level => DEBUG, stage => BUILD, phase => LIVE, message => "Building {$dist.path} timed out" })
             if $time-up.so && $todo.not;
 
         my @got = $todo.so ?? $todo.result !! False;

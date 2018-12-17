@@ -18,7 +18,7 @@ class Zef::Service::Shell::DistributionBuilder does Builder does Messenger {
                 ~ ").build(q|$dist.path()|)"
                 ~ '??0!!1)';
 
-        my @exec = |($*EXECUTABLE, '-I.', |@includes.grep(*.defined).map({ "-I{$_}" }), '-MMONKEY-SEE-NO-EVAL', '-e', "$cmd");
+        my @exec = |($*EXECUTABLE.absolute, '-I.', |@includes.grep(*.defined).map({ "-I{$_}" }), '-MMONKEY-SEE-NO-EVAL', '-e', "$cmd");
 
         $.stdout.emit("Command: {@exec.join(' ')}");
 

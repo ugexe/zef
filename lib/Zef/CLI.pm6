@@ -694,6 +694,13 @@ package Zef::CLI {
         exit 0;
     }
 
+    multi MAIN($x where { Zef::Utils::FileSystem::which("zef-$_").elems }, *@y) {
+      my @candi = Zef::Utils::FileSystem::which("zef-$x").unique;
+      for @candi -> $c {
+          run($c, $x, @y);
+      }
+    }
+
     multi MAIN(Bool :h(:$help)?) {
         note qq:to/END_USAGE/
             Zef - Perl6 Module Management

@@ -8,7 +8,7 @@ class Zef::Distribution::Local is Zef::Distribution {
     # if $path = dir/meta6.json, $.path is set to dir
     # if $path = dir/, $.path is set to the first meta file (if any) thats found
     method new($path) {
-        die "Cannot create a Zef::Distribution from non-existant path: {$path}" unless $path.IO.e;
+        die "Cannot create a Zef::Distribution from non-existent path: {$path}" unless $path.IO.e;
         my $meta-path = self.find-meta($path)                  || die "No meta file? Path: {$path}";
         my $abspath   = $meta-path.parent.absolute;
         my %meta      = try { %(from-json($meta-path.slurp)) } || die "Invalid json? File: {$meta-path}";

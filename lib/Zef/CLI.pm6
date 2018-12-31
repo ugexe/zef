@@ -409,10 +409,16 @@ package Zef::CLI {
                     NEXT say '';
 
                     if $candi {
-                        my $libs = $candi.dist.compat.meta<provides>;
-                        my $lib  = $libs.first({.value.keys[0] eq $identity});
+                        # This is relying on implementation details for compatability purposes. It will
+                        # use something more appropriate sometime in 2019.
+                        use nqp;
+                        my %meta = $candi.dist.compat.meta;
+                        %meta<provides> = %meta<provides>.map({ $_.key => $_.value.keys[0] }).hash;
+                        my $lib = %meta<provides>.hash.antipairs.hash.{$identity};
+                        my $lib-sha1 = nqp::sha1($lib ~ CompUnit::Repository::Distribution.new($candi.dist.compat).id);
+
                         say "===> From Distribution: {~$candi.dist}";
-                        say "{$lib.keys[0]} => {$candi.from.prefix.child('sources').child($lib.value.values[0]<file>)}";
+                        say "{$lib} => {$candi.from.prefix.child('sources').child($lib-sha1)}";
                     }
                 }
             }

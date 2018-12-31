@@ -402,7 +402,7 @@ package Zef::CLI {
         if !$sha1 {
             if $identity.ends-with('.pm' | '.pm6') {
                 my @candis = $client.list-installed.grep({
-                    .dist.compat.meta<provides>.values.grep({.keys[0] eq $identity}).so;
+                    .dist.compat.meta<provides>.values.grep({parse-value($_) eq $identity}).so;
                 });
 
                 for @candis -> $candi {
@@ -413,7 +413,7 @@ package Zef::CLI {
                         # This is relying on implementation details for compatability purposes. It will
                         # use something more appropriate sometime in 2019.
                         my %meta = $candi.dist.compat.meta;
-                        %meta<provides> = %meta<provides>.map({ $_.key => $_.value.keys[0] }).hash;
+                        %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
                         my $lib = %meta<provides>.hash.antipairs.hash.{$identity};
                         my $lib-sha1 = nqp::sha1($lib ~ CompUnit::Repository::Distribution.new($candi.dist.compat).id);
 
@@ -457,7 +457,7 @@ package Zef::CLI {
                 # use something more appropriate sometime in 2019.
                 use nqp;
                 my %meta = $candi.dist.compat.meta;
-                %meta<provides> = %meta<provides>.map({ $_.key => $_.value.keys[0] }).hash;
+                %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
                 my @source_files   = %meta<provides>.map({ nqp::sha1($_.key ~ CompUnit::Repository::Distribution.new($candi.dist.compat).id) });
                 my @resource_files = %meta<files>.values.first({$_ eq $identity});
                 $identity ~~ any(grep *.defined, flat @source_files, @resource_files);
@@ -469,7 +469,7 @@ package Zef::CLI {
 
                 if $candi {
                     my %meta = $candi.dist.compat.meta;
-                    %meta<provides> = %meta<provides>.map({ $_.key => $_.value.keys[0] }).hash;
+                    %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
                     my %sources = %meta<provides>.map({ $_.key => nqp::sha1($_.key ~ CompUnit::Repository::Distribution.new($candi.dist.compat).id) }).hash;
 
                     say "===> From Distribution: {~$candi.dist}";
@@ -509,14 +509,6 @@ package Zef::CLI {
         my @provides = $dist.provides.sort(*.key.chars);
         say "Provides: {@provides.elems} modules";
         if ?($verbosity >= VERBOSE) {
-
-            my sub parse-value($str-or-kv) {
-                do given $str-or-kv {
-                    when Str  { $_ }
-                    when Hash { $_.keys[0] }
-                    when Pair { $_.key     }
-                }
-            }
 
             my $meta := $dist.compat.meta;
             my @rows = eager gather for @provides -> $lib {
@@ -940,6 +932,14 @@ package Zef::CLI {
             say "{$sep}\n{@fixed-rows[0]}\n{$sep}";
             .say for @fixed-rows[1..*];
             say $sep;
+        }
+    }
+
+    sub parse-value($str-or-kv) {
+        do given $str-or-kv {
+            when Str  { $_ }
+            when Hash { $_.keys[0] }
+            when Pair { $_.key     }
         }
     }
 }

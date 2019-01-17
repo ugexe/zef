@@ -11,7 +11,7 @@ class Zef::Service::Shell::Test does Tester does Messenger {
 
         my $test-path = $path.child('t');
         return True unless $test-path.e;
-        my @test-files = grep *.extension eq 't',
+        my @test-files = grep *.extension eq any('t', 't6'),
             list-paths($test-path.absolute, :f, :!d, :r).sort;
         return True unless +@test-files;
 
@@ -32,7 +32,7 @@ class Zef::Service::Shell::Test does Tester does Messenger {
                 whenever $proc.stderr.lines { $.stderr.emit($_) }
                 whenever $proc.start(:%ENV, :cwd($path)) { $passed = $_.so }
             }
-            return $passed;
+            $passed;
         }
 
         return @results.all.so

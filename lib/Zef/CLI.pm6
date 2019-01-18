@@ -14,6 +14,7 @@ package Zef::CLI {
     my $verbosity = preprocess-args-verbosity-mutate(@*ARGS);
     %*ENV<ZEF_BUILDPM_DEBUG> = $verbosity >= DEBUG;
     my $CONFIG    = preprocess-args-config-mutate(@*ARGS);
+    my $VERSION   = try EVAL q[$?DISTRIBUTION.meta<ver version>.first(*.so)];
 
     # TODO: deprecate usage of --depsonly
     @*ARGS = @*ARGS.map: { $_ eq '--depsonly' ?? '--deps-only' !! $_ }
@@ -691,6 +692,15 @@ package Zef::CLI {
 
         my @delete = |@curli-dirs, |@config-dirs;
         $confirm === False ?? @delete.map(*.&dir-delete) !! confirm-delete( @delete );
+
+        exit 0;
+    }
+
+    #| Detailed version information
+    multi MAIN(Bool :$version where .so) {
+        say $*PERL.compiler.version < v2019.01
+            ?? 'Version detection requires rakudo v2019.01 or newer'
+            !! ($VERSION // 'unknown');
 
         exit 0;
     }

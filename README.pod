@@ -26,6 +26,7 @@ To install via rakudobrew, please use the following command:
 =head1 USAGE
 
     zef --help
+    zef --version
 
     # install the CSV::Parser distribution
     zef install CSV::Parser

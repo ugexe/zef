@@ -33,6 +33,8 @@ install:
     - perl6 -v
 
 script:
+    - perl6 -I. bin/zef --version
+
     # run xtests
     - perl6 -I. xt/repository.t
     - perl6 -I. xt/install.t
@@ -56,6 +58,7 @@ script:
     - zef update
 
     # test informational commands
+    - zef --version
     - zef --help
     - zef locate Zef::CLI
     - zef locate lib/Zef/CLI.pm6

@@ -89,16 +89,18 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
 
     # make locating a module that is part of a distribution (ex. URI::Escape of URI) easier.
     # it doesn't need to be a hash mapping as its just for matching
+    has @!provides-specs;
     method provides-specs {
-        cache gather for %(self.hash<provides>) {
+        @!provides-specs := +@!provides-specs ?? @!provides-specs !! @(self.hash<provides>).map({
             # if $spec.name is not defined then .key (the module name of the current provides)
             # is not a valid module name (according to Zef::Identity grammar anyway). I ran into
             # this problem with `NativeCall::Errno` where one of the provides was: `X:NativeCall::Errorno`
             # The single colon cannot just be fixed to DWIM because that could just as easily denote
             # an identity part (identity parts are separated by a *single* colon; double colon is left alone)
             my $spec = Zef::Distribution::DependencySpecification.new(.key);
-            take $spec if defined($spec.name);
-        }
+            next unless defined($spec.name);
+            $spec;
+        }).grep(*.defined).Slip;
     }
 
     method provides-spec-matcher($spec, :$strict) { self.provides-specs.first({ ?$_.spec-matcher($spec, :$strict) }) }

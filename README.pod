@@ -6,7 +6,8 @@
 
 Perl6 Module Management
 
-=for HTML <a href="https://travis-ci.org/ugexe/zef"><img src="https://travis-ci.org/ugexe/zef.svg?branch=master"></a>
+=for HTML <a href="https://circleci.com/gh/ugexe/zef"><img src="https://circleci.com/gh/ugexe/zef.svg?style=shield"></a>
+          <a href="https://travis-ci.org/ugexe/zef"><img src="https://travis-ci.org/ugexe/zef.svg?branch=master"></a>
           <a href="https://ci.appveyor.com/project/ugexe/zef/branch/master"><img src="https://ci.appveyor.com/api/projects/status/github/ugexe/zef?branch=master&passingText=Windows%20-%20OK&failingText=Windows%20-%20FAIL&pendingText=Windows%20-%20pending&svg=true"></a>
 
 =head1 Installation

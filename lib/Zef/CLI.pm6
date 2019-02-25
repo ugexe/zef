@@ -491,11 +491,11 @@ package Zef::CLI {
     multi MAIN('info', $identity, Int :$wrap = False) {
         my $client = get-client(:config($CONFIG));
         my $latest-installed-candi = $client.resolve($identity).head;
-        my $latest-remote-candi = $client.search($identity, :strict, :max-results(1)).reverse[0];
+        my @remote-candis = $client.search($identity, :strict, :max-results(1));
         abort "!!!> Found no candidates matching identity: {$identity}"
-            unless $latest-installed-candi || $latest-remote-candi;
+            unless $latest-installed-candi || +@remote-candis;
 
-        my $candi := ($latest-installed-candi, $latest-remote-candi).grep(*.defined).sort(*.dist.ver).reverse.head;
+        my $candi := ($latest-installed-candi, |@remote-candis).grep(*.defined).sort(*.dist.ver).reverse.head;
         my $dist  := $candi.dist;
 
         say "- Info for: $identity";

@@ -83,7 +83,7 @@ C<install A>, and A required module B: both would be downloaded, potentially bui
 if both passed all their tests. For example: if module A failed its tests, then module B would not be installed
 (even if it passed its own tests) unless forced.
 
-[C<@identities>] can take the form of a file path (starting with B<.> or B</>), URNs, URLs, paths, or identities:
+[C<@identities>] can take the form of a file path (starting with B<.> or B</>), URLs, paths, or identities:
 
     # IDENTITY
     zef install CSV::Parser
@@ -98,14 +98,8 @@ if both passed all their tests. For example: if module A failed its tests, then 
     zef -v install https://github.com/ugexe/zef/archive/master.tar.gz
     zef -v install https://github.com/ugexe/zef.git@v0.1.22
 
-    # URN
-    zef install github:tony-o:CSV--Parser:0.1.2
-
 A request may contain any number and combination of these. Paths and URLs will be resolved first so they are available
 to fulfill any dependencies of other requested identities.
-
-Note: In the name portion of the B<URN> style, a double I<--> indicates a I<::>. This is because modules can have I<->
-as part of their name. I<--> is probably valid too, but this makes my life a lot easier for now!
 
 B<Options>
 

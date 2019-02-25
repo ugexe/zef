@@ -1,35 +1,8 @@
 use v6;
 use Test;
-plan 8;
+plan 6;
 
 use Zef::Identity;
-
-
-subtest {
-    subtest {
-        my $ident = Zef::Identity.new("github:ugexe:Net--HTTP:1.0");
-
-        is $ident.auth,    'github:ugexe';
-        is $ident.name,    'Net::HTTP';
-        is $ident.version, '1.0';
-    }, 'github:ugexe:Net--HTTP:1.0';
-
-    subtest {
-        my $ident = Zef::Identity.new("github:ugexe:Net--HTTP:*");
-
-        is $ident.auth,    'github:ugexe';
-        is $ident.name,    'Net::HTTP';
-        is $ident.version, '*';
-    }, 'github:ugexe:Net-HTTP:*';
-
-    subtest {
-        my $ident = Zef::Identity.new("github:ugexe:Net--HTTP:1.0+");
-
-        is $ident.auth,    'github:ugexe';
-        is $ident.name,    'Net::HTTP';
-        is $ident.version, '1.0+';
-    }, 'github:ugexe:Net-HTTP:1.0+';
-}, 'Distribution URN';
 
 
 subtest {
@@ -80,32 +53,14 @@ subtest {
 
 
 subtest {
-    my $require = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
-    my $urn     = "github:ugexe:Net--HTTP:1.0+";
-
-    ok ?Zef::Identity("***not valid***");
-
-    my $i-require = Zef::Identity.new($require);
-    my $i-urn     = Zef::Identity.new($urn);
-
-    ok $i-require.hash eqv $i-urn.hash;
-    is $i-require.urn, $i-urn.urn;
-    is $i-require.identity, $i-urn.identity;
-}, 'methods';
-
-
-subtest {
     ok ?str2identity("***not valid***");
 
     subtest {
         my $expected  = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
         my $require   = "Net::HTTP:ver<1.0+>:auth<github:ugexe>:api<>";
-        my $urn       = "github:ugexe:Net--HTTP:1.0+";
         my $i-require = str2identity($require);
-        my $i-urn     = str2identity($urn);
 
         is $i-require, $expected;
-        is $i-require, $i-urn;
     }, 'exact';
 
     subtest {
@@ -126,17 +81,14 @@ subtest {
 
 subtest {
     my $require = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
-    my $urn     = "github:ugexe:Net--HTTP:1.0+";
     my %hash    = %( :name<Net::HTTP>, :ver<1.0+>, :auth<github:ugexe> );
     ok ?identity2hash("***not valid***");
 
     my %i-require = identity2hash($require);
-    my %i-urn     = identity2hash($urn);
 
     is %i-require<name>, 'Net::HTTP';
     is %i-require<ver>,  '1.0+';
     is %i-require<auth>, 'github:ugexe';
-    ok %i-require eqv %i-urn;
 }, 'identity2hash';
 
 

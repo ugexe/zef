@@ -7,21 +7,6 @@ class Zef::Identity {
 
     method CALL-ME($id) { try self.new(|$id) }
 
-    my grammar URN {
-        token TOP { <auth> ':' <name> ':' <version> [':' <api>]? }
-
-        token name { <token>+ }
-
-        token auth    { <cs> ':' <owner> }
-        token cs      { <.token>+ }
-        token owner   { <.token>+ }
-        token version { <.token>+ }
-        token api     { <.token>+ }
-
-        token token      { <-restricted> }
-        token restricted { < : > }
-    }
-
     my grammar REQUIRE {
         regex TOP { ^^ <name> [':' <key> <value>]* $$ }
 
@@ -56,15 +41,6 @@ class Zef::Identity {
                 from    => '',
             );
         }
-        elsif $id !~~ /':ver' | ':auth' | ':api' | ':from'/ and URN.parse($id) -> $urn {
-            self.bless(
-                name    => ~($urn<name>.subst('--','::') // ''),
-                version => ~($urn<version>               // ''),
-                auth    => ~($urn<auth>                  // ''),
-                api     => ~($urn<api>                   // ''),
-                from    => ~($urn<from>                  // 'Perl6'),
-            );
-        }
         elsif REQUIRE.parse($id, :actions(REQUIRE::Actions.new)).ast -> $ident {
             self.bless(
                 name    => ~($ident<name>    // ''),
@@ -74,13 +50,6 @@ class Zef::Identity {
                 from    => ~($ident<from>    || 'Perl6'),
             );
         }
-    }
-
-    # cpan:UGEXE:Acme--Foo:1.0 # Module/Distrution Acme::Foo
-    # cpan:UGEXE:Acme-Foo:1.0  # Module/Distrution Acme-Foo
-    method urn {
-        return "{$!auth}:{$!name.subst('::', '--')}:{$!version}{$!api ?? ':$!api' !! ''}"
-            if ($!auth.?chars && $!name.?chars && $!version.?chars);
     }
 
     # Acme::Foo::SomeModule:auth<cpan:ugexe>:ver('1.0')

@@ -41,7 +41,7 @@ class Zef::Identity {
                 from    => '',
             );
         }
-        elsif REQUIRE.parse($id, :actions(REQUIRE::Actions.new)).ast -> $ident {
+        elsif REQUIRE.parse($id, :actions(REQUIRE::Actions)).ast -> $ident {
             self.bless(
                 name    => ~($ident<name>    // ''),
                 version => ~($ident<ver>     // ''),

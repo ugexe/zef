@@ -5,7 +5,10 @@ class Zef::Identity {
     has $.api;
     has $.from;
 
-    method CALL-ME($id) { try self.new(|$id) }
+    method CALL-ME($id) {
+        once { note 'Zef::Identity(...) is deprecated. Use Zef::Identity.new(...) instead' }
+        try self.new(|$id)
+    }
 
     my grammar REQUIRE {
         regex TOP { ^^ <name> [':' <key> <value>]* $$ }
@@ -74,13 +77,13 @@ class Zef::Identity {
 
 sub str2identity($str) is export {
     # todo: when $str is a path
-    Zef::Identity($str).?identity // $str;
+    Zef::Identity.new($str).?identity // $str;
 }
 
 sub identity2hash($identity) is export {
-    Zef::Identity($identity).?hash;
+    Zef::Identity.new($identity).?hash;
 }
 
 sub hash2identity($hash) is export {
-    Zef::Identity($hash).?identity;
+    Zef::Identity.new(|$hash).?identity;
 }

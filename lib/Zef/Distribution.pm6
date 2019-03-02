@@ -72,18 +72,22 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
             ?? $.depends<runtime build>.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.Slip)
             !! $.depends;
 
-        $deps.grep(*.defined).map({ Zef::Distribution::DependencySpecification.new(system-collapse($_)) })
+        $deps.grep(*.defined).map({ Zef::Distribution::DependencySpecification.new(system-collapse($_)) }).grep(*.name);
     }
     method build-depends-specs {
         gather {
             for $.build-depends.grep(*.defined) {
-                take Zef::Distribution::DependencySpecification.new(system-collapse($_));
+                with Zef::Distribution::DependencySpecification.new(system-collapse($_)) {
+                    take $_ if $_.name;
+                }
             }
         }
     }
     method test-depends-specs  {
         gather for $.test-depends.grep(*.defined) {
-            take Zef::Distribution::DependencySpecification.new(system-collapse($_));
+            with Zef::Distribution::DependencySpecification.new(system-collapse($_)) {
+                take $_ if $_.name;
+            }
         }
     }
 

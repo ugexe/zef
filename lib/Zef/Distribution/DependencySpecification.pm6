@@ -17,7 +17,7 @@ class Zef::Distribution::DependencySpecification {
 
     method spec-parts(Zef::Distribution::DependencySpecification:_: $spec = self!spec) {
         # Need to find a way to break this cache when a distribution gets cloned with a different version
-        $!ident //= Zef::Identity($spec);
+        $!ident //= Zef::Identity.new(|$spec);
         $!ident.?hash;
     }
 

@@ -116,7 +116,7 @@ package Zef::CLI {
         @wants .= map: *.&str2identity;
         my (:@paths, :@uris, :@identities) := @wants.classify: -> $wanted {
             $wanted ~~ /^[\. | \/]/                                           ?? <paths>
-                !! ?Zef::Identity($wanted)                                    ?? <identities>
+                !! ?Zef::Identity.new($wanted)                                ?? <identities>
                 !! (my $uri = Zef::Utils::URI($wanted) and !$uri.is-relative) ?? <uris>
                 !! abort("Don't understand identity: {$wanted}");
         }
@@ -360,7 +360,7 @@ package Zef::CLI {
         my @wants = ($identity,).map: *.&str2identity;
         my (:@paths, :@uris, :@identities) := @wants.classify: -> $wanted {
             $wanted ~~ /^[\. | \/]/                                           ?? <paths>
-                !! ?Zef::Identity($wanted)                                    ?? <identities>
+                !! ?Zef::Identity.new($wanted)                                ?? <identities>
                 !! (my $uri = Zef::Utils::URI($wanted) and !$uri.is-relative) ?? <uris>
                 !! abort("Don't understand identity: {$wanted}");
         }

@@ -699,8 +699,8 @@ package Zef::CLI {
 
     #| Detailed version information
     multi MAIN(Bool :$version where .so) {
-        say $*PERL.compiler.version < v2019.01
-            ?? 'Version detection requires rakudo v2019.01 or newer'
+        say $*PERL.compiler.version <= v2018.12
+            ?? 'Version detection requires a rakudo newer than v2018.12'
             !! ($VERSION // 'unknown');
 
         exit 0;

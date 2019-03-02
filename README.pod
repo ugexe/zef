@@ -107,6 +107,10 @@ B<Options>
     --install-to=<id> # site/home/vendor/perl, or
     -to=<id>          # inst#/home/some/path/custom
 
+    # Install all transitive and direct dependencies
+    # even if they are already installed globally (BETA)
+    --contained
+
     # Load a specific Zef config file
     --config-path=/some/path/config.json
 

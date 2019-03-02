@@ -107,6 +107,7 @@ package Zef::CLI {
         Bool :$upgrade,
         Bool :$deps-only,
         Bool :$serial,
+        Bool :$contained,
         :$exclude,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
         *@wants ($, *@)
@@ -164,7 +165,7 @@ package Zef::CLI {
             if +@requested-identities && +@requested == 0;
 
 
-        my @prereqs    = $client.find-prereq-candidates(|@path-candidates, |@uri-candidates, |@requested)\
+        my @prereqs    = $client.find-prereq-candidates(:skip-installed(not $contained), |@path-candidates, |@uri-candidates, |@requested)\
             if +@path-candidates || +@uri-candidates || +@requested;
         my @candidates = grep *.defined, ?$deps-only
             ?? @prereqs !! (|@path-candidates, |@uri-candidates, |@requested, |@prereqs);
@@ -747,6 +748,7 @@ package Zef::CLI {
                 --deps-only             Install only the dependency chains of the requested distributions
                 --dry                   Run all phases except the actual installations
                 --serial                Install each dependency after passing testing and before building/testing the next dependency
+                --contained (BETA)      Install all transitive and direct dependencies regardless if they are already installed globally
 
                 --/test                 Skip the testing phase
                 --/build                Skip the building phase

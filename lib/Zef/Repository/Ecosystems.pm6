@@ -38,7 +38,7 @@ class Zef::Repository::Ecosystems does Repository {
             KEEP note "===> Updated $!name mirror: $uri";
             KEEP self!gather-dists;
 
-            my $save-as  = $!cache.IO.child($uri.IO.basename);
+            my $save-as  = $!cache.IO.child($uri.IO.basename ~ '.tmp');
             my $saved-as = try $!fetcher.fetch($uri, $save-as, :timeout(180));
             next unless $saved-as.?chars && $saved-as.IO.e;
 
@@ -47,9 +47,12 @@ class Zef::Repository::Ecosystems does Repository {
             $saved-as .= child("{$!name}.json") if $saved-as.d;
             next unless $saved-as.e;
 
+            my $content = $saved-as.slurp();
+            next() R, note("Invalid json: $saved-as.absolute()") unless so try from-json($content);
             lock-file-protect("{$saved-as}.lock", -> {
-                self!spurt-package-list($saved-as.slurp(:bin))
+                self!spurt-package-list($content);
             });
+            try $saved-as.unlink;
         }
 
         self!gather-dists;

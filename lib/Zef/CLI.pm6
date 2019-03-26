@@ -720,9 +720,11 @@ package Zef::CLI {
       for $curi.repo-chain -> $repo {
         try {
           for $repo.installed -> $inst {
-            $inst.meta<files>.keys.first({
-              $CMD-CACHE = $repo.prefix.add("/bin/zef-$cmd").absolute
-                if ($_ // '') eq "bin/zef-$cmd";
+            $inst.meta<files>.first({
+              if (.key // '') eq "bin/zef-$cmd" {;
+                $CMD-CACHE = $repo.prefix.add("/resources/{.value}").absolute;
+              }
+              $CMD-CACHE;
             });
             last if $CMD-CACHE;
           }
@@ -730,12 +732,11 @@ package Zef::CLI {
         last if $CMD-CACHE;
       }
       $CMD-CACHE;
-    }) {
+    }, *@, *%) {
       my $client = get-client(:config($CONFIG));
       try {
-        CATCH { default { .say; } }
+        CATCH { default { 'error'.say; .say; } }
         require MAIN-STUB:file($CMD-CACHE);
-        &MAIN-STUB::MAIN($cmd);
       }
     }
 

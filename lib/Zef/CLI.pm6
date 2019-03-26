@@ -108,10 +108,16 @@ package Zef::CLI {
         Bool :$deps-only,
         Bool :$serial,
         Bool :$contained,
+        Bool :$plugin,
         :$exclude,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
         *@wants ($, *@)
     ) {
+
+        if $plugin {
+          $install-to.pop while $install-to.elems;
+          $install-to.prepend: Zef::Config::guess-path.parent.add('plugins').absolute;
+        }
 
         @wants .= map: *.&str2identity;
         my (:@paths, :@uris, :@identities) := @wants.classify: -> $wanted {

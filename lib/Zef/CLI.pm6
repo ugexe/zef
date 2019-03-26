@@ -734,7 +734,6 @@ package Zef::CLI {
       $CMD-CACHE;
     }, *@, *%) {
       our $*zef = get-client(:config($CONFIG));
-      'here'.say;
       try {
         CATCH { default { 'error'.say; .say; } }
         require MAIN-STUB:file($CMD-CACHE);

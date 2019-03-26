@@ -706,10 +706,30 @@ package Zef::CLI {
         exit 0;
     }
 
-    multi MAIN($x where { Zef::Utils::FileSystem::which("zef-$_").elems }, *@y) {
-      my @candi = Zef::Utils::FileSystem::which("zef-$x").unique;
-      for @candi -> $c {
-          run($c, $x, @y);
+    my $CMD-CACHE;
+    multi MAIN($cmd where {
+      my $curi = CompUnit::Repository::Installation.new(
+        prefix => Zef::Config::guess-path.parent.add('plugins').absolute,
+      );
+      for $curi.repo-chain -> $repo {
+        try {
+          for $repo.installed -> $inst {
+            $inst.meta<files>.keys.first({
+              $CMD-CACHE = $repo.prefix.add("/bin/zef-$cmd").absolute
+                if ($_ // '') eq "bin/zef-$cmd";
+            });
+            last if $CMD-CACHE;
+          }
+        }
+        last if $CMD-CACHE;
+      }
+      $CMD-CACHE;
+    }) {
+      my $client = get-client(:config($CONFIG));
+      try {
+        CATCH { default { .say; } }
+        require MAIN-STUB:file($CMD-CACHE);
+        &MAIN-STUB::MAIN($cmd);
       }
     }
 

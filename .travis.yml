@@ -6,7 +6,7 @@ os:
 
 env:
     - BACKEND=moar
-    - BACKEND=jvm
+#    - BACKEND=jvm
 
 matrix:
     allow_failures:

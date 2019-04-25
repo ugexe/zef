@@ -6,7 +6,7 @@ use Zef::Distribution::DependencySpecification;
 class Zef::Repository::Ecosystems does Repository {
     has $.name;
     has $.mirrors;
-    has $.auto-update;
+    has $.auto-update is rw;
 
     has $.fetcher;
     has $.cache;

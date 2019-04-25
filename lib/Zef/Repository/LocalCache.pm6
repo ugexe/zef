@@ -14,7 +14,7 @@ use Zef::Utils::FileSystem;
 #    made inside Zef::Repository itself)
 class Zef::Repository::LocalCache does Repository {
     has $.mirrors;
-    has $.auto-update;
+    has $.auto-update is rw;
     has $.cache;
     has @!dists;
 

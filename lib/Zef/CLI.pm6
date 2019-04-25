@@ -30,9 +30,10 @@ package Zef::CLI {
         'fetch',
         Bool :force(:$force-fetch),
         Int  :timeout(:$fetch-timeout),
+        :$update,
         *@identities ($, *@)
     ) {
-        my $client = get-client(:config($CONFIG), :$force-fetch, :$fetch-timeout);
+        my $client = get-client(:config($CONFIG), :$force-fetch, :$fetch-timeout, :$update);
         my @candidates = $client.find-candidates(@identities.map(*.&str2identity));
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @fetched    = $client.fetch(@candidates);
@@ -103,11 +104,11 @@ package Zef::CLI {
         Int  :$test-timeout    = $timeout,
         Int  :$install-timeout = $timeout,
         Bool :$dry,
-        Bool :$update,
         Bool :$upgrade,
         Bool :$deps-only,
         Bool :$serial,
         Bool :$contained,
+        :$update,
         :$exclude,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
         *@wants ($, *@)
@@ -127,7 +128,7 @@ package Zef::CLI {
             :$force-resolve,  :$force-fetch,     :$force-extract,
             :$force-build,    :$force-test,      :$force-install,
             :$fetch-timeout,  :$extract-timeout, :$build-timeout,
-            :$test-timeout,   :$install-timeout,
+            :$test-timeout,   :$install-timeout, :$update,
         );
 
         # LOCAL PATHS
@@ -213,8 +214,8 @@ package Zef::CLI {
     }
 
     #| Get a list of possible distribution candidates for the given terms
-    multi MAIN('search', Int :$wrap = False, *@terms ($, *@)) {
-        my $client = get-client(:config($CONFIG));
+    multi MAIN('search', Int :$wrap = False, :$update, *@terms ($, *@)) {
+        my $client = get-client(:config($CONFIG), :$update);
         my @results = $client.search(@terms);
 
         say "===> Found " ~ +@results ~ " results";
@@ -229,8 +230,8 @@ package Zef::CLI {
     }
 
     #| A list of available modules from enabled repositories
-    multi MAIN('list', Int :$max?, Bool :i(:$installed), *@at) {
-        my $client = get-client(:config($CONFIG));
+    multi MAIN('list', Int :$max?, :$update, Bool :i(:$installed), *@at) {
+        my $client = get-client(:config($CONFIG), :$update);
 
         my $found := ?$installed
             ?? $client.list-installed(@at.map(*.&str2cur))
@@ -489,8 +490,8 @@ package Zef::CLI {
     }
 
     #| Detailed distribution information
-    multi MAIN('info', $identity, Int :$wrap = False) {
-        my $client = get-client(:config($CONFIG));
+    multi MAIN('info', $identity, :$update, Int :$wrap = False) {
+        my $client = get-client(:config($CONFIG), :$update);
         my $latest-installed-candi = $client.resolve($identity).head;
         my @remote-candis = $client.search($identity, :strict, :max-results(1));
         abort "!!!> Found no candidates matching identity: {$identity}"
@@ -867,6 +868,21 @@ package Zef::CLI {
         $reporter.tap: -> $event {
             $client.reporter.report($event, :$logger);
         };
+
+        if %_<update>.defined {
+            my @plugins = $client.recommendation-manager.plugins;
+
+            if %_<update> === Bool::False {
+                @plugins.map({ try .auto-update = False });
+            }
+            elsif %_<update> === Bool::True {
+                @plugins.map(*.?update);
+            }
+            else {
+                @plugins.grep({.short-name ~~ any(%_<update>.grep(*.not))}).map({ try .auto-update = False });
+                @plugins.grep({.short-name ~~ any(%_<update>.grep(*.so))}).map(*.?update);
+            }
+        }
 
         $client;
     }

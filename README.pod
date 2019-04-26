@@ -155,6 +155,19 @@ B<Options>
     --/build-depends
     --/test-depends
 
+    # Force a refresh for all module index indexes
+    --update
+
+    # Force a refresh for a specific ecosystem module index
+    --update=[ecosystem]
+
+    # Skip refreshing all module index indexes
+    --/update
+
+    # Skip refreshing for a specific ecosystem module index
+    --/update=[ecosystem]
+
+
 =head4 B<uninstall> [*@identities]
 
 Uninstall the specified distributions

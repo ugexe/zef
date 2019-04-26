@@ -742,6 +742,12 @@ package Zef::CLI {
                 --config-path=[path]    Load a specific Zef config file
                 --[phase]-timeout=[int] Set a timeout (in seconds) for the corresponding phase ( phase: fetch, extract, build, test, install )
 
+                --update                Force a refresh for all module indexes
+                --update=[ecosystem]    Force a refresh for a specific ecosystem module index
+
+                --/update               Skip refreshing all module indexes
+                --/update=[ecosystem]   Skip refreshing for a specific ecosystem module index
+
             VERBOSITY LEVEL (from least to most verbose)
                 --error, --warn, --info (default), --verbose, --debug
 

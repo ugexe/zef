@@ -53,6 +53,9 @@ class Zef::Distribution::Local is Zef::Distribution {
         my $lib-path = $res-path.child('libraries');
 
         % = self.hash<resources>.map: -> $resource {
+            unless $resource ~~ Str {
+                die "Every item in 'resources' Hash of META6.json must be a string, got $resource.^name() instead ('$resource.Str()')"
+            }
             my $resource-path = $resource ~~ m/^libraries\/(.*)/
                 ?? $lib-path.child($*VM.platform-library-name(IO::Path.new($0, :CWD($!path))))
                 !! $res-path.child($resource);

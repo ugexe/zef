@@ -1,6 +1,8 @@
 class Zef { }
 
-my @zrun-invoke = BEGIN $*DISTRO.is-win ?? <cmd.exe /x/d/c>.Slip !! '';
+my @zrun-invoke = BEGIN $*DISTRO.is-win
+    ?? ((%*ENV.first({.key.lc eq 'comspec'}).?value // 'cmd.exe').Str,  '/x/d/c')
+    !! '';
 sub zrun(*@_, *%_) is export { run (|@zrun-invoke, |@_).grep(*.?chars), |%_ }
 sub zrun-async(*@_, *%_) is export { Proc::Async.new( (|@zrun-invoke, |@_).grep(*.?chars), |%_ ) }
 

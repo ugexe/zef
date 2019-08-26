@@ -27,6 +27,7 @@
         "Zef::Repository::MetaCPAN"   : "lib/Zef/Repository/MetaCPAN.pm6",
         "Zef::Repository::LocalCache" : "lib/Zef/Repository/LocalCache.pm6",
         "Zef::Repository::Ecosystems" : "lib/Zef/Repository/Ecosystems.pm6",
+        "Zef::Repository::P5"         : "lib/Zef/Repository/P5.pm6",
 
         "Zef::Distribution"                          : "lib/Zef/Distribution.pm6",
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",
@@ -38,6 +39,7 @@
         "Zef::Service::P6CReporter" : "lib/Zef/Service/P6CReporter.pm6",
 
         "Zef::Service::Shell::DistributionBuilder" : "lib/Zef/Service/Shell/DistributionBuilder.pm6",
+        "Zef::Service::Shell::InstallPM5"   : "lib/Zef/Service/Shell/InstallPM5.pm6",
         "Zef::Service::Shell::LegacyBuild"  : "lib/Zef/Service/Shell/LegacyBuild.pm6",
         "Zef::Service::Shell::Test"         : "lib/Zef/Service/Shell/Test.pm6",
         "Zef::Service::Shell::prove"        : "lib/Zef/Service/Shell/prove.pm6",

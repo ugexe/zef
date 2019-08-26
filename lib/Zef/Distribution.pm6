@@ -22,6 +22,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     has @.resources;
     has %.support;
     has $.builder;
+    has $.from;
 
     has $.meta; # Holds a copy of the original meta data so we don't lose non-spec meta fields like 'build'
 
@@ -30,7 +31,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
 
     method new(*%_) { self.bless(|%_, :meta(%_)) }
 
-    method TWEAK(--> Nil) {
+    method TWEAK($!from = 'Perl6' --> Nil) {
         @!resources = @!resources.flatmap(*.flat);
     }
 
@@ -54,6 +55,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
             :%!support,
             :$!source-url,
             :$.builder,
+            :$.from,
         );
 
         # Add non-spec keys back into the has output ( will do this properly when refactoring Distribution )
@@ -116,7 +118,9 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         { so self.spec-matcher($spec, :$strict) || self.provides-spec-matcher($spec, :$strict)  }
 
     method Str() {
-        return "{$.name}:ver<{$.ver  // ''}>:auth<{$.auth // ''}>:api<{$.api // ''}>";
+        my $str = "{$.name}:ver<{$.ver  // ''}>:auth<{$.auth // ''}>:api<{$.api // ''}>";
+        $str ~= ":from<{$.from}>" if $.from ne 'Perl6';
+        return $str;;
     }
     method id() {
         use nqp;

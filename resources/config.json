@@ -13,6 +13,11 @@
             "short-name" : "installpm6",
             "enabled" : 1,
             "module" : "Zef::Service::InstallPM6"
+        },
+        {
+            "short-name" : "cpanm",
+            "enabled" : 1,
+            "module" : "Zef::Service::Shell::InstallPM5"
         }
     ],
     "Report" : [
@@ -71,6 +76,11 @@
             "options" : {
                 "mirrors" : ["http://hack.p6c.org:5000/v0/release/"]
             }
+        },
+        {
+            "short-name" : "cpanm",
+            "enabled" : 1,
+            "module" : "Zef::Repository::P5"
         }
     ],
     "Fetch" : [

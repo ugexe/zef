@@ -19,6 +19,7 @@ subtest 'Core' => {
     use-ok("Zef::Repository::MetaCPAN");
     use-ok("Zef::Repository::LocalCache");
     use-ok("Zef::Repository::Ecosystems");
+    use-ok("Zef::Repository::P5");
 
     use-ok("Zef::Distribution");
     use-ok("Zef::Distribution::DependencySpecification");
@@ -47,4 +48,5 @@ subtest 'Plugins' => {
     use-ok("Zef::Service::Shell::PowerShell");
     use-ok("Zef::Service::Shell::PowerShell::download");
     use-ok("Zef::Service::Shell::PowerShell::unzip");
+    use-ok("Zef::Service::Shell::InstallPM5");
 }

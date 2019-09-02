@@ -168,6 +168,12 @@ B<Options>
     --/update=[ecosystem]
 
 
+B<ENV Options>
+
+    # Set the number of simultaneous downloads. Defaults to 5
+    ZEF_FETCH_DEGREE=5
+
+
 =head4 B<uninstall> [*@identities]
 
 Uninstall the specified distributions

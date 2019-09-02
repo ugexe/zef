@@ -748,6 +748,10 @@ package Zef::CLI {
                 --/update               Skip refreshing all module indexes
                 --/update=[ecosystem]   Skip refreshing for a specific ecosystem module index
 
+            ENV OPTIONS
+
+                ZEF_FETCH_DEGREE        Set the number of simultaneous downloads. Defaults to 5
+
             VERBOSITY LEVEL (from least to most verbose)
                 --error, --warn, --info (default), --verbose, --debug
 

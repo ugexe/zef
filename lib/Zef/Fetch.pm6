@@ -22,7 +22,7 @@ class Zef::Fetch does Pluggable {
 
         my $got := $fetchers.map: -> $fetcher {
             if ?$logger {
-                $logger.emit({ level => DEBUG, stage => FETCH, phase => START, message => "Fetching with plugin: {$fetcher.^name}" });
+                $logger.emit({ level => DEBUG, stage => FETCH, phase => START, message => "Fetching $uri with plugin: {$fetcher.^name}" });
                 $fetcher.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => FETCH, phase => LIVE, message => $out }) }
                 $fetcher.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => FETCH, phase => LIVE, message => $err }) }
             }

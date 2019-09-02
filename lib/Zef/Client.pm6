@@ -172,7 +172,11 @@ class Zef::Client {
         @local-candis;
     }
     method !fetch(*@candidates ($, *@)) {
-        my @fetched = eager gather for @candidates -> $candi {
+        my $dispatcher := $*PERL.compiler.version < v2018.08
+            ?? @candidates
+            !! @candidates.race(:batch(1), :degree(%*ENV<ZEF_FETCH_DEGREE> || 5));
+
+        my @fetched = $dispatcher.map: -> $candi {
             self.logger.emit({
                 level   => DEBUG,
                 stage   => FETCH,
@@ -182,7 +186,7 @@ class Zef::Client {
             die "Cannot determine a uri to fetch {$candi.as} from. Perhaps it's META6.json is missing an e.g. source-url"
                 unless $candi.uri;
 
-            my $tmp      = $!config<TempDir>.IO.child("{time}.{$*PID}.{(^10000).pick(1)}");
+            my $tmp      = $!config<TempDir>.IO.child("{time}.{$*PID}.{(^10000).rand}");
             my $stage-at = $tmp.child($candi.uri.IO.basename);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
@@ -217,8 +221,11 @@ class Zef::Client {
             }
 
             $candi.uri = $save-to;
-            take $candi;
-        }
+
+            $candi;
+        };
+
+        return @fetched;
     }
     method !extract(*@candidates ($, *@)) {
         my @extracted = eager gather for @candidates -> $candi {

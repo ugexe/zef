@@ -7,8 +7,10 @@ class Zef::Test does Pluggable {
 
     method test-matcher($path) { self.plugins.grep(*.test-matcher($path)) }
 
-    method test($path, :@includes, Supplier :$logger, Int :$timeout) {
+    method test($candi, :@includes, Supplier :$logger, Int :$timeout) {
+        my $path := $candi.dist.path;
         die "Can't test non-existent path: {$path}" unless $path.IO.e;
+
         my $testers := self.test-matcher($path).cache;
 
         unless +$testers {
@@ -21,29 +23,19 @@ class Zef::Test does Pluggable {
 
         my $tester = $testers.head;
 
-        my $stdmerge;
-        my sub save-test-output($str) {
-            state $lock = Lock.new;
-            $lock.protect({ $stdmerge ~= $str });
-        }
         if ?$logger {
-            $logger.emit({ level => DEBUG, stage => TEST, phase => START, message => "Testing with plugin: {$tester.^name}" });
-            $tester.stdout.Supply.grep(*.defined).act: -> $out { save-test-output($out); $logger.emit({ level => VERBOSE, stage => TEST, phase => LIVE, message => $out }) }
-            $tester.stderr.Supply.grep(*.defined).act: -> $err { save-test-output($err); $logger.emit({ level => ERROR,   stage => TEST, phase => LIVE, message => $err }) }
+            $logger.emit({ level => DEBUG, stage => TEST, phase => START, candi => $candi, message => "Testing with plugin: {$tester.^name}" });
+            $tester.stdout.Supply.grep(*.defined).act: -> $out is copy { $logger.emit({ level => VERBOSE, stage => TEST, phase => LIVE, candi => $candi, message => $out }) }
+            $tester.stderr.Supply.grep(*.defined).act: -> $err is copy { $logger.emit({ level => ERROR,   stage => TEST, phase => LIVE, candi => $candi, message => $err }) }
         }
 
         my $todo    = start { try $tester.test($path, :@includes) };
         my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
         await Promise.anyof: $todo, $time-up;
         $logger.emit({ level => DEBUG, stage => TEST, phase => LIVE, message => "Testing $path timed out" })
-            if $time-up.so && $todo.not;
+            if ?$logger && $time-up.so && $todo.not;
 
         my @got = $todo.so ?? $todo.result !! False;
-
-        $tester.stdout.done;
-        $tester.stderr.done;
-
-        @got does role :: { method Str { $stdmerge } };
 
         @got;
     }

@@ -8,28 +8,26 @@ class Zef::Extract does Pluggable {
 
     method extract-matcher($path) { self.plugins.grep(*.extract-matcher($path)) }
 
-    method extract($path, $extract-to, Supplier :$logger, Int :$timeout) {
+    method extract($candi, $extract-to, Supplier :$logger, Int :$timeout) {
+        my $path := $candi.uri;
         die "Can't extract non-existent path: {$path}" unless $path.IO.e;
         die "Can't extract to non-existent path: {$extract-to}" unless $extract-to.IO.e || $extract-to.IO.mkdir;
 
         my $extractors = self!extractors($path).map(-> $extractor {
             if ?$logger {
-                $logger.emit({ level => DEBUG, stage => EXTRACT, phase => START, message => "Extracting with plugin: {$extractor.^name}" });
-                $extractor.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, message => $out }) }
-                $extractor.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, message => $err }) }
+                $logger.emit({ level => DEBUG, stage => EXTRACT, phase => START, candi => $candi, message => "Extracting with plugin: {$extractor.^name}" });
+                $extractor.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, candi => $candi, message => $out }) }
+                $extractor.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, candi => $candi, message => $err }) }
             }
 
             my $out = lock-file-protect("{$extract-to}.lock", -> {
                 my $todo    = start { try $extractor.extract($path, $extract-to) };
                 my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
                 await Promise.anyof: $todo, $time-up;
-                $logger.emit({ level => DEBUG, stage => EXTRACT, phase => LIVE, message => "Testing $path timed out" })
-                    if $time-up.so && $todo.not;
+                $logger.emit({ level => DEBUG, stage => EXTRACT, phase => LIVE, candi => $candi, message => "Testing $path timed out" })
+                    if ?$logger && $time-up.so && $todo.not;
                 $todo.so ?? $todo.result !! Nil
             });
-
-            $extractor.stdout.done;
-            $extractor.stderr.done;
 
             # really just saving $extractor for an error message later on. should do away with it later
             $extractor => $out;
@@ -37,7 +35,7 @@ class Zef::Extract does Pluggable {
 
         # gnu tar on windows doesn't always work as I expect, so try another plugin if extraction fails
         my $extracted-to = $extractors.grep({
-            $logger.emit({ level => WARN, stage => EXTRACT, phase => LIVE, message => "Extracting with plugin {.key.^name} aborted." })
+            $logger.emit({ level => WARN, stage => EXTRACT, phase => LIVE, candi => $candi, message => "Extracting with plugin {.key.^name} aborted." })
                 if ?$logger && !(.value.defined && .value.IO.e);
             .value.defined && .value.IO.e;
         }).map(*.value).head;
@@ -46,7 +44,8 @@ class Zef::Extract does Pluggable {
         return $extracted-to.IO;
     }
 
-    method ls-files($path, :$logger) {
+    method ls-files($candi, :$logger) {
+        my $path       := $candi.uri;
         my $extractors := self!extractors($path);
         my $name-paths := $extractors.map(*.ls-files($path)).first(*.defined).map(*.IO);
         $name-paths.map({ .is-absolute ?? $path.child(.relative($path)).cleanup.relative($path) !! $_ });

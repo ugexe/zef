@@ -874,7 +874,12 @@ package Zef::CLI {
             given $m.<phase> {
                 when BEFORE { say "===> {$m.<message>}" }
                 when AFTER  { say "===> {$m.<message>}" }
-                default     { say $m.<message> }
+                default     {
+                    # Prefix output with a name that references its source since
+                    # lines may be coming from many sources at once.
+                    my $line-prefix = ((.dist??.dist.meta<name>!!Nil) // .as) with $m.<candi>;
+                    say ($line-prefix ?? "[$line-prefix] " !! ''), "{$m.<message>}";
+                }
             }
         }
         $reporter.tap: -> $event {

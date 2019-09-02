@@ -9,7 +9,8 @@ class Zef::Fetch does Pluggable {
 
     method fetch-matcher($uri) { self.plugins.grep(*.fetch-matcher($uri)) }
 
-    method fetch($uri, $save-to, Supplier :$logger, Int :$timeout) {
+    method fetch($candi, $save-to, Supplier :$logger, Int :$timeout) {
+        my $uri      := $candi.uri;
         my $fetchers := self.fetch-matcher($uri).cache;
 
         unless +$fetchers {
@@ -22,22 +23,19 @@ class Zef::Fetch does Pluggable {
 
         my $got := $fetchers.map: -> $fetcher {
             if ?$logger {
-                $logger.emit({ level => DEBUG, stage => FETCH, phase => START, message => "Fetching $uri with plugin: {$fetcher.^name}" });
-                $fetcher.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => FETCH, phase => LIVE, message => $out }) }
-                $fetcher.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => FETCH, phase => LIVE, message => $err }) }
+                $logger.emit({ level => DEBUG, stage => FETCH, phase => START, candi => $candi, message => "Fetching $uri with plugin: {$fetcher.^name}" });
+                $fetcher.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => FETCH, phase => LIVE, candi => $candi, message => $out }) }
+                $fetcher.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => FETCH, phase => LIVE, candi => $candi, message => $err }) }
             }
 
             my $ret = lock-file-protect("{$save-to}.lock", -> {
                 my $todo    = start { try $fetcher.fetch($uri, $save-to) };
                 my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
                 await Promise.anyof: $todo, $time-up;
-                $logger.emit({ level => DEBUG, stage => FETCH, phase => LIVE, message => "Fetching $uri timed out" })
-                    if $time-up.so && $todo.not;
+                $logger.emit({ level => DEBUG, stage => FETCH, phase => LIVE, candi => $candi, message => "Fetching $uri timed out" })
+                    if ?$logger && $time-up.so && $todo.not;
                 $todo.so ?? $todo.result !! Nil;
             });
-
-            $fetcher.stdout.done;
-            $fetcher.stderr.done;
 
             $ret;
         }

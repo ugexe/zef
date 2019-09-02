@@ -141,7 +141,12 @@ class Zef::Client {
                     });
 
                     $!force-resolve
-                        ?? say('Failed to resolve missing dependencies, but continuing with --force-resolve')
+                        ??  $!logger.emit({
+                                level   => ERROR,
+                                stage   => RESOLVE,
+                                phase   => LIVE,
+                                message => 'Failed to resolve missing dependencies, but continuing with --force-resolve',
+                            })
                         !! die('Failed to resolve some missing dependencies');
                 };
 
@@ -174,7 +179,7 @@ class Zef::Client {
     method !fetch(*@candidates ($, *@)) {
         my $dispatcher := $*PERL.compiler.version < v2018.08
             ?? @candidates
-            !! @candidates.race(:batch(1), :degree(%*ENV<ZEF_FETCH_DEGREE> || 5));
+            !! @candidates.hyper(:batch(1), :degree(%*ENV<ZEF_FETCH_DEGREE> || 5));
 
         my @fetched = $dispatcher.map: -> $candi {
             self.logger.emit({
@@ -195,7 +200,7 @@ class Zef::Client {
             # It could be a file or url; $dist.source-url contains where the source was
             # originally located but we may want to use a local copy (while retaining
             # the original source-url for some other purpose like updating)
-            my $save-to    = $!fetcher.fetch($candi.uri, $stage-at, :$!logger, :timeout($!fetch-timeout));
+            my $save-to    = $!fetcher.fetch($candi, $stage-at, :$!logger, :timeout($!fetch-timeout));
             my $relpath    = $stage-at.relative($tmp);
             my $extract-to = $!cache.IO.child($relpath);
 
@@ -208,7 +213,13 @@ class Zef::Client {
                 });
 
                 $!force-fetch
-                    ?? say('Failed to fetch, but continuing with --force-fetch')
+                    ??  $!logger.emit({
+                            level   => ERROR,
+                            stage   => FETCH,
+                            phase   => LIVE,
+                            candi   => $candi,
+                            message => 'Failed to fetch, but continuing with --force-fetch',
+                        })
                     !! die("Aborting due to fetch failure: {$candi.dist.?identity // $candi.uri} (use --force-fetch to override)");
             }
             else {
@@ -243,7 +254,7 @@ class Zef::Client {
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
 
-            my $meta6-prefix = '' R// $!extractor.ls-files($candi.uri).sort.first({ .IO.basename eq 'META6.json' });
+            my $meta6-prefix = '' R// $!extractor.ls-files($candi).sort.first({ .IO.basename eq 'META6.json' });
 
             self.logger.emit({
                 level   => WARN,
@@ -252,7 +263,7 @@ class Zef::Client {
                 message => "Extraction: Failed to find a META6.json file for {$candi.dist.?identity // $candi.as} -- failure is likely",
             }) unless $meta6-prefix;
 
-            my $extracted-to = $!extractor.extract($candi.uri, $extract-to, :$!logger, :timeout($!extract-timeout));
+            my $extracted-to = $!extractor.extract($candi, $extract-to, :$!logger, :timeout($!extract-timeout));
 
             if !$extracted-to {
                 self.logger.emit({
@@ -263,7 +274,13 @@ class Zef::Client {
                 });
 
                 $!force-extract
-                    ?? say('Failed to extract, but continuing with --force-extract')
+                    ??  $!logger.emit({
+                            level   => ERROR,
+                            stage   => EXTRACT,
+                            phase   => LIVE,
+                            candi   => $candi,
+                            message => 'Failed to extract, but continuing with --force-extract',
+                        })
                     !! die("Aborting due to extract failure: {$candi.dist.?identity // $candi.uri} (use --force-extract to override)");
             }
             else {
@@ -306,7 +323,7 @@ class Zef::Client {
                 message => "Building: {$candi.dist.?identity // $candi.as}",
             });
 
-            my $result := $!builder.build($candi.dist, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!build-timeout)).cache;
+            my $result := $!builder.build($candi, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!build-timeout)).cache;
 
             $candi.build-results = $result;
 
@@ -319,7 +336,13 @@ class Zef::Client {
                 });
 
                 $!force-build
-                    ?? say('Failed to build, but continuing with --force-build')
+                    ??  $!logger.emit({
+                            level   => ERROR,
+                            stage   => BUILD,
+                            phase   => LIVE,
+                            candi   => $candi,
+                            message => 'Failed to build, but continuing with --force-build',
+                        })
                     !! die("Aborting due to build failure: {$candi.dist.?identity // $candi.uri} (use --force-build to override)");
             }
             else {
@@ -341,7 +364,7 @@ class Zef::Client {
     method test(:@includes, *@candidates ($, *@)) {
         my $dispatcher := $*PERL.compiler.version < v2018.08
             ?? @candidates
-            !! @candidates.race(:batch(1), :degree(%*ENV<ZEF_TEST_DEGREE> || 1));
+            !! @candidates.hyper(:batch(1), :degree(%*ENV<ZEF_TEST_DEGREE> || 1));
 
         my @tested = $dispatcher.map: -> $candi {
             self.logger.emit({
@@ -351,7 +374,7 @@ class Zef::Client {
                 message => "Testing: {$candi.dist.?identity // $candi.as}",
             });
 
-            my $result := $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!test-timeout)).cache;
+            my $result := $!tester.test($candi, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!test-timeout)).cache;
 
             $candi.test-results = $result;
 
@@ -364,11 +387,14 @@ class Zef::Client {
                 });
 
                 $!force-test
-                    ?? say('Failed to get passing tests, but continuing with --force-test')
+                    ??  $!logger.emit({
+                            level   => ERROR,
+                            stage   => TEST,
+                            phase   => LIVE,
+                            candi   => $candi,
+                            message => 'Failed to get passing tests, but continuing with --force-test',
+                        })
                     !! die("Aborting due to test failure: {$candi.dist.?identity // $candi.uri} (use --force-test to override)");
-
-                die "Aborting due to test failure: {$candi.dist.?identity // $candi.as} "
-                ~   "(use --force-test to override)" unless ?$!force-test;
             }
             else {
                 self.logger.emit({
@@ -443,7 +469,7 @@ class Zef::Client {
                 # but that doesn't play nicely with relative paths. We want to keep the original meta
                 # paths for newer rakudos so we must avoid using :absolute for the source paths by
                 # using the newer CURI.install if available
-                take $candi if $!installer.install($candi.dist.compat, :$cur, :force($!force-install), :timeout($!install-timeout));
+                take $candi if $!installer.install($candi, :$cur, :force($!force-install), :timeout($!install-timeout));
             }
         }
 
@@ -568,12 +594,10 @@ class Zef::Client {
 
 
             # Test Phase:
-            my $test-dispatcher := $*PERL.compiler.version < v2018.08
+            my @tested-candidates = !$test
                 ?? @built-candidates
-                !! @built-candidates.race(:batch(1), :degree(%*ENV<ZEF_TEST_DEGREE> || 1));
-            my @tested-candidates = !$test ?? @built-candidates !! $test-dispatcher.grep: -> $candi {
-                self.test($candi).map(*.test-results.grep(!*.so).elems).sum == 0 || $!force-test;
-            }
+                !! self.test(@built-candidates).grep({ $!force-test || .test-results.grep(!*.so).elems == 0 });
+
             # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
             die "All candidates failed building and/or testing. No reason to proceed" unless +@tested-candidates;
 

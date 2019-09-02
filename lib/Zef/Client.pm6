@@ -36,6 +36,9 @@ class Zef::Client {
     has Bool $.force-test    is rw = False;
     has Bool $.force-install is rw = False;
 
+    has Int $.fetch-degree   is rw = 1;
+    has Int $.test-degree    is rw = 1;
+
     has Int $.fetch-timeout   is rw = 600;
     has Int $.extract-timeout is rw = 3600;
     has Int $.build-timeout   is rw = 3600;
@@ -179,7 +182,7 @@ class Zef::Client {
     method !fetch(*@candidates ($, *@)) {
         my $dispatcher := $*PERL.compiler.version < v2018.08
             ?? @candidates
-            !! @candidates.hyper(:batch(1), :degree(%*ENV<ZEF_FETCH_DEGREE> || 5));
+            !! @candidates.hyper(:batch(1), :degree($!fetch-degree || 5));
 
         my @fetched = $dispatcher.map: -> $candi {
             self.logger.emit({
@@ -364,7 +367,7 @@ class Zef::Client {
     method test(:@includes, *@candidates ($, *@)) {
         my $dispatcher := $*PERL.compiler.version < v2018.08
             ?? @candidates
-            !! @candidates.hyper(:batch(1), :degree(%*ENV<ZEF_TEST_DEGREE> || 1));
+            !! @candidates.hyper(:batch(1), :degree($!test-degree || 1));
 
         my @tested = $dispatcher.map: -> $candi {
             self.logger.emit({

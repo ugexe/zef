@@ -30,10 +30,11 @@ package Zef::CLI {
         'fetch',
         Bool :force(:$force-fetch),
         Int  :timeout(:$fetch-timeout),
+        Int  :degree(:$fetch-degree)   = %*ENV<ZEF_FETCH_DEGREE> || 5,
         :$update,
         *@identities ($, *@)
     ) {
-        my $client = get-client(:config($CONFIG), :$force-fetch, :$fetch-timeout, :$update);
+        my $client = get-client(:config($CONFIG), :$force-fetch, :$fetch-timeout, :$fetch-degree, :$update);
         my @candidates = $client.find-candidates(@identities.map(*.&str2identity));
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @fetched    = $client.fetch(@candidates);
@@ -49,6 +50,7 @@ package Zef::CLI {
         'test',
         Bool :force(:$force-test),
         Int  :timeout(:$test-timeout),
+        # Int  :degree(:$test-degree) = %*ENV<ZEF_TEST_DEGREE> || 1, # degree affects simutanious distributions being tests, but this tests a single distribution
         *@paths ($, *@)
     ) {
         my $client     = get-client(:config($CONFIG), :$force-test, :$test-timeout);
@@ -103,6 +105,9 @@ package Zef::CLI {
         Int  :$build-timeout   = $timeout,
         Int  :$test-timeout    = $timeout,
         Int  :$install-timeout = $timeout,
+        Int  :$degree,
+        Int  :$fetch-degree   = %*ENV<ZEF_FETCH_DEGREE> || $degree,
+        Int  :$test-degree    = %*ENV<ZEF_TEST_DEGREE>  || $degree,
         Bool :$dry,
         Bool :$upgrade,
         Bool :$deps-only,
@@ -129,6 +134,7 @@ package Zef::CLI {
             :$force-build,    :$force-test,      :$force-install,
             :$fetch-timeout,  :$extract-timeout, :$build-timeout,
             :$test-timeout,   :$install-timeout, :$update,
+            :$fetch-degree,   :$test-degree,
         );
 
         # LOCAL PATHS
@@ -271,6 +277,9 @@ package Zef::CLI {
         Int  :$extract-timeout = $timeout,
         Int  :$build-timeout   = $timeout,
         Int  :$test-timeout    = $timeout,
+        Int  :$degree,
+        Int  :$fetch-degree   = %*ENV<ZEF_FETCH_DEGREE> || $degree,
+        Int  :$test-degree    = %*ENV<ZEF_TEST_DEGREE>  || $degree,
         Bool :$dry,
         Bool :$update,
         Bool :$serial,
@@ -288,7 +297,7 @@ package Zef::CLI {
             :$force-resolve,  :$force-fetch,   :$force-extract,
             :$force-build,    :$force-test,    :$force-install,
             :$fetch-timeout,  :$extract-timeout, :$build-timeout,
-            :$test-timeout,
+            :$test-timeout,   :$fetch-degree,    :$test-degree,
         );
 
         my @missing = @identities.grep: { not $client.is-installed($_) };
@@ -329,6 +338,8 @@ package Zef::CLI {
             :$extract-timeout,
             :$build-timeout,
             :$test-timeout,
+            :$fetch-degree,
+            :$test-degree,
             :$dry,
             :$serial,
         );
@@ -600,6 +611,9 @@ package Zef::CLI {
         Int  :$extract-timeout = $timeout,
         Int  :$build-timeout   = $timeout,
         Int  :$test-timeout    = $timeout,
+        Int  :$degree,
+        Int  :$fetch-degree   = %*ENV<ZEF_FETCH_DEGREE> || $degree,
+        Int  :$test-degree    = %*ENV<ZEF_TEST_DEGREE>  || $degree,
         Bool :$update,
         Bool :$upgrade,
         Bool :$dry,
@@ -613,6 +627,7 @@ package Zef::CLI {
             :$force-resolve,  :$force-fetch,   :$force-extract,
             :$force-build,    :$force-test,    :$force-install,
             :$fetch-timeout,  :$build-timeout, :$test-timeout,
+            :$fetch-degree,   :$test-degree,
         );
 
         my @identities = $client.list-available.map(*.dist.identity).unique;
@@ -640,6 +655,8 @@ package Zef::CLI {
             :$extract-timeout,
             :$build-timeout,
             :$test-timeout,
+            :$fetch-degree,
+            :$test-degree,
             :$dry,
             :$serial,
         );
@@ -742,6 +759,7 @@ package Zef::CLI {
                 --install-to=[name]     Short name or spec of CompUnit::Repository to install to
                 --config-path=[path]    Load a specific Zef config file
                 --[phase]-timeout=[int] Set a timeout (in seconds) for the corresponding phase ( phase: fetch, extract, build, test, install )
+                --[phase]-degree=[int]  Number of simultaneous distributions/jobs to process for the corresponding phase ( phase : fetch, test )
 
                 --update                Force a refresh for all module indexes
                 --update=[ecosystem]    Force a refresh for a specific ecosystem module index

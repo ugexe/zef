@@ -135,6 +135,10 @@ B<Options>
     --test-timeout=3600
     --install-timeout=3600
 
+    # Number of simultaneous distributions/jobs to process for the corresponding phases
+    --fetch-degree=5
+    --test-degree=1
+
     # or set the default to all unset --*-timeout flags to 0
     --timeout=0
 

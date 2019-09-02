@@ -715,6 +715,7 @@ package Zef::CLI {
 
                 zef [flags|options] command [args]
 
+                zef --version
 
             COMMANDS
 

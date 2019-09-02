@@ -173,6 +173,9 @@ B<ENV Options>
     # Set the number of simultaneous downloads. Defaults to 5
     ZEF_FETCH_DEGREE=5
 
+    # Set the number of simultaneous distributions to test. Defaults to 1
+    ZEF_TEST_DEGREE=1
+
 
 =head4 B<uninstall> [*@identities]
 

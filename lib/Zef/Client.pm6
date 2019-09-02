@@ -308,7 +308,7 @@ class Zef::Client {
 
             my $result := $!builder.build($candi.dist, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!build-timeout)).cache;
 
-            $candi does role :: { has $.build-results is rw = $result; };
+            $candi.build-results = $result;
 
             if $result.grep(*.not).elems {
                 self.logger.emit({
@@ -339,7 +339,11 @@ class Zef::Client {
 
     # xxx: needs some love
     method test(:@includes, *@candidates ($, *@)) {
-        my @tested = eager gather for @candidates -> $candi {
+        my $dispatcher := $*PERL.compiler.version < v2018.08
+            ?? @candidates
+            !! @candidates.race(:batch(1), :degree(%*ENV<ZEF_TEST_DEGREE> || 1));
+
+        my @tested = $dispatcher.map: -> $candi {
             self.logger.emit({
                 level   => INFO,
                 stage   => TEST,
@@ -349,7 +353,7 @@ class Zef::Client {
 
             my $result := $!tester.test($candi.dist.path, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!test-timeout)).cache;
 
-            $candi does role :: { has $.test-results is rw = $result; };
+            $candi.test-results = $result;
 
             if $result.grep(*.not).elems {
                 self.logger.emit({
@@ -375,10 +379,10 @@ class Zef::Client {
                 });
             }
 
-            take $candi;
+            $candi;
         }
 
-        @tested
+        return @tested
     }
 
     # xxx: needs some love
@@ -564,7 +568,10 @@ class Zef::Client {
 
 
             # Test Phase:
-            my @tested-candidates = !$test ?? @built-candidates !! @built-candidates.grep: -> $candi {
+            my $test-dispatcher := $*PERL.compiler.version < v2018.08
+                ?? @built-candidates
+                !! @built-candidates.race(:batch(1), :degree(%*ENV<ZEF_TEST_DEGREE> || 1));
+            my @tested-candidates = !$test ?? @built-candidates !! $test-dispatcher.grep: -> $candi {
                 self.test($candi).map(*.test-results.grep(!*.so).elems).sum == 0 || $!force-test;
             }
             # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build

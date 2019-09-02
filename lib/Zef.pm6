@@ -73,6 +73,8 @@ role Candidate {
     has $.from;      # Recommended from (::Ecosystems, ::MetaCPAN, ::LocalCache)
     has $.uri is rw; # url, file path, etc
     has Bool $.is-dependency is rw;
+    has $.build-results is rw;
+    has $.test-results is rw;
 }
 
 role Repository {

@@ -751,6 +751,7 @@ package Zef::CLI {
             ENV OPTIONS
 
                 ZEF_FETCH_DEGREE        Set the number of simultaneous downloads. Defaults to 5
+                ZEF_TEST_DEGREE         Set the number of simultaneous distributions to test. Defaults to 1
 
             VERBOSITY LEVEL (from least to most verbose)
                 --error, --warn, --info (default), --verbose, --debug

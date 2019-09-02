@@ -121,7 +121,7 @@ role Pluggable {
     }
 
     method !list-plugins {
-        $!plugins := $!plugins ?? $!plugins !! cache gather for @!backends -> $plugin {
+        gather for @!backends -> $plugin {
             my $module = $plugin<module>;
             DEBUG($plugin, "Checking: {$module}");
 

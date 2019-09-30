@@ -42,7 +42,7 @@ To install it via rakudobrew, please use the following command:
     # list reverse dependencies of an identity
     zef rdepends HTTP::UserAgent
 
-    # test project in current directory    
+    # test project in current directory
     zef test .
 
     # fetch a specific module only
@@ -54,7 +54,8 @@ To install it via rakudobrew, please use the following command:
     # smoke test modules from all content storages
     zef smoke
 
-    # run Build.pm if one exists in given path
+    # run Build.pm6 if one exists in given path
+    # (the `.pm` extension is also recognized)
     zef build .
 
     # Update ContentStorage package lists
@@ -96,7 +97,7 @@ Note: In the name portion of the B<URN> style a double I<--> indicates a I<::>. 
 as part of their name. I<--> is probably valid too, but this makes my life a lot easier for now!
 
 B<Options>
-    
+
     # Install to a custom locations
     --install-to=<id> # site/home/vendor/perl, or
     -to=<id>          # inst#/home/some/path/custom
@@ -250,10 +251,10 @@ Run tests on each distribution located at [C<@paths>]
 
 =head4 B<build> [*@paths]
 
-Run the Build.pm file located in the given [C<@paths>]
+Run the Build.pm6 file located in the given [C<@paths>]
 
 If you currently want to create a build hook, put the following dependency-free boilerplate
-in a file named `Build.pm` at the root of your distribution:
+in a file named `Build.pm6` at the root of your distribution:
 
     class Builder {
         method build($dist-path) {
@@ -267,6 +268,15 @@ in a file named `Build.pm` at the root of your distribution:
             callsame;
         }
     }
+
+NOTE: You may use installed modules inside the build hook, but those modules
+must be listed in the `META6.json` file in either the "build-depends" or "depends"
+section, as appropiate. You also may use the module being built by adding
+something similar to the following in the build hook file:
+
+    use lib <./lib>; # ensures the local version is being used
+    use MyNewModule :ALL;
+
 
 Set the env variable B<ZEF_BUILDPM_DEBUG=1> for additional debugging information
 

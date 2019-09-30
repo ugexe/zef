@@ -55,7 +55,6 @@ To install it via rakudobrew, please use the following command:
     zef smoke
 
     # run Build.pm6 if one exists in given path
-    # (the `.pm` extension is also recognized)
     zef build .
 
     # Update ContentStorage package lists
@@ -269,14 +268,9 @@ in a file named `Build.pm6` at the root of your distribution:
         }
     }
 
-NOTE: You may use installed modules inside the build hook, but those modules
+NOTE: You may use installed modules inside the build hook, but of course those modules
 must be listed in the `META6.json` file in either the "build-depends" or "depends"
-section, as appropiate. You also may use the module being built by adding
-something similar to the following in the build hook file:
-
-    use lib <./lib>; # ensures the local version is being used
-    use MyNewModule :ALL;
-
+section, as appropiate.
 
 Set the env variable B<ZEF_BUILDPM_DEBUG=1> for additional debugging information
 

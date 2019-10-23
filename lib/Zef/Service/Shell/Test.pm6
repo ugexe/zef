@@ -11,7 +11,7 @@ class Zef::Service::Shell::Test does Tester does Messenger {
 
         my $test-path = $path.child('t');
         return True unless $test-path.e;
-        my @test-files = grep *.extension eq any('t', 't6'),
+        my @test-files = grep *.extension eq any('rakutest', 't', 't6'),
             list-paths($test-path.absolute, :f, :!d, :r).sort;
         return True unless +@test-files;
 

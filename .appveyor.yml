@@ -12,7 +12,6 @@ install:
     - nmake install
     - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\bin;%PATH%
     - SET PATH=%APPVEYOR_BUILD_FOLDER%\..\rakudo\install\share\perl6\site\bin;%PATH%
-    - SET ZEF_PLUGIN_DEBUG=1
     - cd %APPVEYOR_BUILD_FOLDER%
 
 build: off

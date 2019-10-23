@@ -23,7 +23,6 @@ before_install:
     - perl Configure.pl $OPTS
     - make install
     - export PATH=$HOME/rakudo/install/bin:$PATH
-    - export ZEF_PLUGIN_DEBUG=1
     - export ZEF_BUILDPM_DEBUG=1
     - export PATH=$HOME/rakudo/install/share/perl6/site/bin:$PATH
     - cd $TRAVIS_BUILD_DIR

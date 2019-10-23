@@ -416,7 +416,7 @@ package Zef::CLI {
     multi MAIN('locate', $identity, Bool :$sha1) {
         my $client = get-client(:config($CONFIG));
         if !$sha1 {
-            if $identity.ends-with('.pm' | '.pm6') {
+            if $identity.ends-with('.pm' | '.pm6' | '.rakumod') {
                 my @candis = $client.list-installed.grep({
                     .dist.compat.meta<provides>.values.grep({parse-value($_) eq $identity}).so;
                 });

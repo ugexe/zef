@@ -1,7 +1,7 @@
 use Zef;
 
 class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
-    method !guess-build-file(IO() $prefix) { <Build.pm6 Build.pm>.map({ $prefix.child($_) }).first({ $_.e }) }
+    method !guess-build-file(IO() $prefix) { <Build.rakumod Build.pm6 Build.pm>.map({ $prefix.child($_) }).first({ $_.e }) }
 
     method build-matcher($dist) { so self!guess-build-file($dist.path) }
 

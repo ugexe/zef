@@ -4,7 +4,7 @@
 
 =head2 Zef
 
-Perl6 Module Management
+Raku / Perl6 Module Management
 
 =for HTML <a href="https://circleci.com/gh/ugexe/zef"><img src="https://circleci.com/gh/ugexe/zef.svg?style=shield"></a>
           <a href="https://travis-ci.org/ugexe/zef"><img src="https://travis-ci.org/ugexe/zef.svg?branch=master"></a>

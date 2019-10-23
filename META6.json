@@ -5,7 +5,7 @@
     "api"           : "0",
     "version"       : "0.7.4",
     "auth"          : "github:ugexe",
-    "description"   : "A Perl 6 module manager",
+    "description"   : "A Raku / Perl 6 module manager",
     "license"       : "Artistic-2.0",
     "build-depends" : [ ],
     "test-depends"  : [ "Test" ],

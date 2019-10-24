@@ -16,7 +16,6 @@ subtest 'Core' => {
     use-ok("Zef::Client");
 
     use-ok("Zef::Repository");
-    use-ok("Zef::Repository::MetaCPAN");
     use-ok("Zef::Repository::LocalCache");
     use-ok("Zef::Repository::Ecosystems");
 

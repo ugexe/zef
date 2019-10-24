@@ -62,14 +62,6 @@
                     "http://ecosystem-api.p6c.org/projects1.json"
                 ]
             }
-        },
-        {
-            "short-name" : "metacpan",
-            "enabled" : 0,
-            "module" : "Zef::Repository::MetaCPAN",
-            "options" : {
-                "mirrors" : ["http://hack.p6c.org:5000/v0/release/"]
-            }
         }
     ],
     "Fetch" : [

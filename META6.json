@@ -24,7 +24,6 @@
         "Zef::Report"   : "lib/Zef/Report.pm6",
 
         "Zef::Repository"             : "lib/Zef/Repository.pm6",
-        "Zef::Repository::MetaCPAN"   : "lib/Zef/Repository/MetaCPAN.pm6",
         "Zef::Repository::LocalCache" : "lib/Zef/Repository/LocalCache.pm6",
         "Zef::Repository::Ecosystems" : "lib/Zef/Repository/Ecosystems.pm6",
 

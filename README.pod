@@ -216,8 +216,6 @@ How these are handled depends on the C<Repository> engine used, which by default
     2 |Zef::Repository::Ecosystems<p6c>  |URI:ver<0.1.1>    |A URI impleme...
     3 |Zef::Repository::Ecosystems<cpan> |URI:ver<0.1.1>    |A URI impleme...
     4 |Zef::Repository::Ecosystems<cpan> |URI:ver<0.000.001>|A URI impleme...
-    5 |Zef::Repository::MetaCPAN         |URI:ver<0.1.1>    |A URI impleme...
-    6 |Zef::Repository::MetaCPAN         |URI:ver<0.000.001>|A URI impleme...
     -------------------------------------------------------------------------
 
 =head4 B<info> [$identity]
@@ -525,10 +523,6 @@ CPAN is now used as a default (alongside the familiar p6c "ecosystem").
 
     # Explicitly enable cpan (now defaults to the same as `zef search zef`)
     $ zef --cpan search Inline::Perl5
-
-You can also use a beta version of MetaCPAN with I<--metacpan> which uses Repository::MetaCPAN
-
-    $ zef --metacpan search Inline::Perl5
 
 =head3 Proxy support?
 

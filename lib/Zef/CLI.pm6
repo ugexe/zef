@@ -900,7 +900,7 @@ package Zef::CLI {
                     # Prefix output with a name that references its source since
                     # lines may be coming from many sources at once.
                     my $line-prefix = ((.dist??.dist.meta<name>!!Nil) // .as) with $m.<candi>;
-                    say ($line-prefix ?? "[$line-prefix] " !! ''), "{$m.<message>}";
+                    say($line-prefix ?? "[$line-prefix] $_" !! $_) for $m.<message>.lines;
                 }
             }
         }

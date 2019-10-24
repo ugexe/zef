@@ -30,7 +30,7 @@ class Zef::Service::Shell::prove does Tester does Messenger {
 
         my %ENV = %*ENV;
         my @cur-p6lib  = %ENV<PERL6LIB>.?chars ?? %ENV<PERL6LIB>.split($*DISTRO.cur-sep) !! ();
-        my @new-p6lib  = $path.absolute, $path.child('lib').absolute, |@includes;
+        my @new-p6lib  = $path.absolute, |@includes;
         %ENV<PERL6LIB> = (|@new-p6lib, |@cur-p6lib).join($*DISTRO.cur-sep);
 
         my $passed;

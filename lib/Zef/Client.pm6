@@ -743,9 +743,9 @@ class Zef::Client {
     multi method link-candidates(Bool :$recursive! where *.so, *@candidates) {
         # :recursive
         # Given Foo::XXX that depends on Bar::YYY that depends on Baz::ZZZ
-        #   - Foo::XXX -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
-        #   - Bar::YYY -> -I/Bar/YYY/lib -I/Baz/ZZZ/lib
-        #   - Baz::ZZZ -> -I/Baz/ZZZ/lib
+        #   - Foo::XXX -> -I/Foo/XXX -I/Bar/YYY -I/Baz/ZZZ
+        #   - Bar::YYY -> -I/Bar/YYY -I/Baz/ZZZ
+        #   - Baz::ZZZ -> -I/Baz/ZZZ
 
         # XXX: Need to change this so it only add indirect dependencies
         # instead of just recursing the array in order. Otherwise there
@@ -765,18 +765,18 @@ class Zef::Client {
     multi method link-candidates(Bool :$inclusive! where *.so, *@candidates) {
         # :inclusive
         # Given Foo::XXX that depends on Bar::YYY that depends on Baz::ZZZ
-        #   - Foo::XXX -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
-        #   - Bar::YYY -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
-        #   - Baz::ZZZ -> -I/Foo/XXX/lib -I/Bar/YYY/lib -I/Baz/ZZZ/lib
+        #   - Foo::XXX -> -I/Foo/XXX -I/Bar/YYY -I/Baz/ZZZ
+        #   - Bar::YYY -> -I/Foo/XXX -I/Bar/YYY -I/Baz/ZZZ
+        #   - Baz::ZZZ -> -I/Foo/XXX -I/Bar/YYY -I/Baz/ZZZ
         my @linked = self.link-candidates(@candidates);
         @ = @linked.map(*.dist.metainfo<includes>).flatmap(*.flat).unique;
     }
     multi method link-candidates(*@candidates) {
         # Default
         # Given Foo::XXX that depends on Bar::YYY that depends on Baz::ZZZ
-        #   - Foo::XXX -> -I/Foo/XXX/lib -I/Bar/YYY/lib
-        #   - Bar::YYY -> -I/Bar/YYY/lib -I/Baz/ZZZ/lib
-        #   - Baz::ZZZ -> -I/Baz/ZZZ/lib
+        #   - Foo::XXX -> -I/Foo/XXX -I/Bar/YYY
+        #   - Bar::YYY -> -I/Bar/YYY -I/Baz/ZZZ
+        #   - Baz::ZZZ -> -I/Baz/ZZZ
         @ = @candidates.map: -> $candi {
             my $dist := $candi.dist;
 
@@ -787,7 +787,7 @@ class Zef::Client {
                 for @candidates -> $fcandi {
                     my $fdist := $fcandi.dist;
                     if $fdist.contains-spec($spec) {
-                        take $fdist.IO.child('lib').absolute;
+                        take $fdist.IO.absolute;
                         take $_ for |$fdist.metainfo<includes>.grep(*.so);
                         next DEPSPEC;
                     }

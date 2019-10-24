@@ -16,7 +16,7 @@ class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
         # make sure to use -Ilib instead of -I. or else Linenoise's Build.pm will trigger a strange precomp error
         my $build-file = self!guess-build-file($dist.path).absolute;
         my $cmd        = "require '$build-file'; ::('Build').new.build('$dist.path.IO.absolute()') ?? exit(0) !! exit(1);";
-        my @exec       = |($*EXECUTABLE.absolute, '-Ilib', |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
+        my @exec       = |($*EXECUTABLE.absolute, '-I.', |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
 
         $.stdout.emit("Command: {@exec.join(' ')}");
 

@@ -90,7 +90,6 @@ class Zef::Client {
         my $candidates := $!recommendation-manager.candidates(@identities, :$upgrade)\
             .grep(-> $candi { not @!exclude.first({$candi.dist.contains-spec($_)}) })\
             .grep(-> $candi { not @!ignore.first({$candi.dist.contains-spec($_)}) })\
-            .sort(*.dist.ver).reverse\
             .unique(:as(*.dist.identity));
     }
 
@@ -701,7 +700,7 @@ class Zef::Client {
 
     method resolve($spec, :@at) {
         my $candis := self.list-installed(@at).grep(*.dist.contains-spec($spec));
-        $candis.sort(*.dist.ver).reverse;
+        $candis.sort(*.dist.ver).sort(*.dist.api).reverse;
     }
 
     method is-installed($spec, |c) {

@@ -306,7 +306,7 @@ package Zef::CLI {
         abort "Can't upgrade identities that aren't installed: {@missing.join(', ')}" if +@missing;
 
         my @installed = $client.list-installed($install-to.map(*.&str2cur))\
-            .sort(*.dist.ver).reverse\
+            .sort(*.dist.ver).sort(*.dist.api).reverse\
             .unique(:as({"{.dist.name}:auth<{.dist.auth-matcher}>"}));
         my @requested = +@identities
             ?? $client.find-candidates(@identities.map(*.&str2identity))
@@ -510,7 +510,7 @@ package Zef::CLI {
         abort "!!!> Found no candidates matching identity: {$identity}"
             unless $latest-installed-candi || +@remote-candis;
 
-        my $candi := ($latest-installed-candi, |@remote-candis).grep(*.defined).sort(*.dist.ver).reverse.head;
+        my $candi := ($latest-installed-candi, |@remote-candis).grep(*.defined).sort(*.dist.ver).sort(*.dist.api).tail;
         my $dist  := $candi.dist;
 
         say "- Info for: $identity";

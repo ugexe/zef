@@ -22,22 +22,27 @@ class Zef::Repository does Pluggable {
 
         my @unsorted-grouped-candis = @unsorted-candis.categorize({.dist.name}).values;
 
-        # Take the distribution with the highest version out of all matching distributions from all repositories
-        my @sorted-candis = @unsorted-grouped-candis.map: -> $candis {
-            my @presorted = $candis.sort(*.dist.ver);
+        # Take the distribution with the highest version out of all matching distributions from each repository
+        my @partially-sorted-candis = @unsorted-grouped-candis.map: -> $candis {
+            my @presorted = $candis.sort(*.dist.api).sort(*.dist.ver);
+            my $api       = @presorted.tail.dist.api;
             my $version   = @presorted.tail.dist.ver;
 
             # Prefer candidates from Zef::Repository::Local to avoid redownloading cached items
-            my @sorted = @presorted.grep({ .dist.ver eq $version }).sort({ $^a.from eq 'Zef::Repository::LocalCache' });
+            my @sorted = @presorted.grep({ .dist.api eq $api }).grep({ .dist.ver eq $version }).sort({ $^a.from eq 'Zef::Repository::LocalCache' });
             @sorted.tail;
         }
+
+        # Sort the highest distribution versions from each repository. This must be done
+        # before the call to `.unique` later so that unique doesn't remove the higher
+        # versioned distribution based on randomness of @unsorted-candis.categorize({.dist.name}).values
+        my @sorted-candis = @partially-sorted-candis.sort(*.dist.ver).sort(*.dist.api).reverse;
 
         # $candi.as tells us what string was used to request its distribution ($candi.dist)
         # So this is similar to the .categorize(*.dist.name) filter above, except it
         # covers when two different repositories have a matching candidate with different
         # distribution names (likely matching *module* names in provides)
         my @distinct-requested-as = @sorted-candis.unique(:as(*.as));
-
         return @distinct-requested-as;
     }
 

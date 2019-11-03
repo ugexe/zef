@@ -102,7 +102,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
             # this problem with `NativeCall::Errno` where one of the provides was: `X:NativeCall::Errorno`
             # The single colon cannot just be fixed to DWIM because that could just as easily denote
             # an identity part (identity parts are separated by a *single* colon; double colon is left alone)
-            my $spec = Zef::Distribution::DependencySpecification.new(.key);
+            my $spec = Zef::Distribution::DependencySpecification.new(self!long-name(.key));
             next unless defined($spec.name);
             $spec;
         }).grep(*.defined).Slip;
@@ -116,9 +116,14 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     multi method contains-spec(Zef::Distribution::DependencySpecification $spec, Bool :$strict = True)
         { so self.spec-matcher($spec, :$strict) || self.provides-spec-matcher($spec, :$strict)  }
 
-    method Str() {
-        return "{$.name}:ver<{$.ver  // ''}>:auth<{$.auth // ''}>:api<{$.api // ''}>";
+    method Str {
+        return self!long-name($!name);
     }
+
+    method !long-name($name!) {
+        return "{$name}:ver<{$.ver  // ''}>:auth<{$.auth // ''}>:api<{$.api // ''}>";
+    }
+
     method id() {
         use nqp;
         return nqp::sha1(self.Str);

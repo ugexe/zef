@@ -47,7 +47,7 @@ class Zef::Identity {
         elsif REQUIRE.parse($id, :actions(REQUIRE::Actions)).ast -> $ident {
             self.bless(
                 name    => ~($ident<name>    // ''),
-                version => ~($ident<ver>     // ''),
+                version => ~($ident<ver version>.first(*.defined) // ''),
                 auth    => ~($ident<auth>    // ''),
                 api     => ~($ident<api>     // ''),
                 from    => ~($ident<from>    || 'Perl6'),

@@ -20,7 +20,7 @@ class Zef::Repository does Pluggable {
             $storage.search(@search-for, :strict).Slip
         }
 
-        my @unsorted-grouped-candis = @unsorted-candis.categorize({.dist.name}).values;
+        my @unsorted-grouped-candis = @unsorted-candis.categorize({.dist.meta<name>}).values;
 
         # Take the distribution with the highest version out of all matching distributions from each repository
         my @partially-sorted-candis = @unsorted-grouped-candis.map: -> $candis {

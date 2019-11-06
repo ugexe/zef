@@ -471,7 +471,6 @@ package Zef::CLI {
             my @candis = $client.list-installed.grep(-> $candi {
                 # This is relying on implementation details for compatability purposes. It will
                 # use something more appropriate sometime in 2019.
-                use nqp;
                 my %meta = $candi.dist.compat.meta;
                 %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
                 my @source_files   = %meta<provides>.map({ nqp::sha1($_.key ~ CompUnit::Repository::Distribution.new($candi.dist.compat).id) });

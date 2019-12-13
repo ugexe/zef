@@ -3,9 +3,10 @@ use Zef::Identity;
 class Zef::Distribution::DependencySpecification {
     has $!ident;
     has $.spec;
-    # todo: handle wildcard/+ (like "1.2.3+", "1.2.*", "*:ugexe", "github:*")
 
-    submethod new($spec) { self.bless(:$spec) }
+    submethod TWEAK(:$!spec, :$!ident) { }
+    multi submethod new(Zef::Identity $ident) { self.bless(:$ident) }
+    multi submethod new($spec) { self.bless(:$spec) }
 
     method identity {
         my $hash = %(:name($.name), :ver($.version-matcher), :auth($.auth-matcher), :api($.api-matcher), :from($.from-matcher));

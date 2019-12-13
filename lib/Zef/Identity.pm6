@@ -15,7 +15,7 @@ class Zef::Identity {
 
         regex name  { <-restricted +name-sep>+ }
         token key   { <-restricted>+ }
-        token value { '<' ~ '>'  [<( [[ <!before \>|\\> . ]+]* % ['\\' . ] )>] }
+        regex value { '<' ~ '>' [<( [[ <!before \>|\<|\\> . ]+?]* %% ['\\' . ]+ )>] }
 
         token restricted { [':' | '<' | '>' | '(' | ')'] }
         token name-sep   { < :: > }
@@ -48,7 +48,7 @@ class Zef::Identity {
             self.bless(
                 name    => ~($ident<name>    // ''),
                 version => ~($ident<ver version>.first(*.defined) // ''),
-                auth    => ~($ident<auth>    // ''),
+                auth    => ~($ident<auth>    // '').trans(['\<', '\>'] => ['<', '>']),
                 api     => ~($ident<api>     // ''),
                 from    => ~($ident<from>    || 'Perl6'),
             );

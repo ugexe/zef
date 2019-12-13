@@ -5,81 +5,81 @@ plan 6;
 use Zef::Identity;
 
 
-subtest {
+subtest 'Require spec - exact' => {
     my @variations = (
-        "Net::HTTP:ver<1.0>:auth<github:ugexe>",
-        "Net::HTTP:auth<github:ugexe>:ver<v1.0>:api<>",
+        'Net::HTTP:ver<1.0>:auth<Foo Bar \<f.bar@email.com\>>',
+        'Net::HTTP:auth<Foo Bar \<f.bar@email.com\>>:ver<1.0>:api<>',
     );
 
     for @variations -> $identity {
-        my $ident = Zef::Identity.new("Net::HTTP:ver<1.0>:auth<github:ugexe>");
+        my $ident = Zef::Identity.new($identity);
 
-        is $ident.auth,    'github:ugexe';
+        is $ident.auth,    'Foo Bar <f.bar@email.com>';
         is $ident.name,    'Net::HTTP';
         is $ident.version, '1.0';
     }
-}, 'Require spec - exact';
+}
 
 
-subtest {
+subtest 'Require spec - range *' => {
     my @variations = (
         "Net::HTTP:ver<*>:auth<github:ugexe>",
     );
 
     for @variations -> $identity {
-        my $ident = Zef::Identity.new("Net::HTTP:ver<*>:auth<github:ugexe>");
+        my $ident = Zef::Identity.new($identity);
 
         is $ident.auth,    'github:ugexe';
         is $ident.name,    'Net::HTTP';
         is $ident.version, '*';
     }
-}, 'Require spec - range *';
+}
 
 
-subtest {
+subtest 'Require spec - range +' => {
     my @variations = (
         "Net::HTTP:ver<1.0+>:auth<github:ugexe>",
         "Net::HTTP:auth<github:ugexe>:ver<1.0+>:api<>",
     );
 
     for @variations -> $identity {
-        my $ident = Zef::Identity.new("Net::HTTP:ver<1.0+>:auth<github:ugexe>");
+        my $ident = Zef::Identity.new($identity);
 
         is $ident.auth,    'github:ugexe';
         is $ident.name,    'Net::HTTP';
         is $ident.version, '1.0+';
     }
-}, 'Require spec - range +';
+}
 
 
-subtest {
+subtest 'str2identity' => {
     ok ?str2identity("***not valid***");
 
-    subtest {
+    subtest 'exact' => {
         my $expected  = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
         my $require   = "Net::HTTP:ver<1.0+>:auth<github:ugexe>:api<>";
         my $i-require = str2identity($require);
 
         is $i-require, $expected;
-    }, 'exact';
+    }
 
-    subtest {
+    subtest 'not exact' => {
         my $require = "Net::HTTP";
         my $i-require = str2identity($require);
 
         is $i-require, 'Net::HTTP';
-    }, 'not exact';
+    }
 
-    subtest {
+    subtest 'root namespace' => {
         my $require = "HTTP";
         my $i-require = str2identity($require);
 
         is $i-require, 'HTTP';
-    }, 'root namespace';
-}, 'str2identity';
+    }
+}
 
 
-subtest {
+subtest 'identity2hash' => {
     my $require = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
     my %hash    = %( :name<Net::HTTP>, :ver<1.0+>, :auth<github:ugexe> );
     ok ?identity2hash("***not valid***");
@@ -89,10 +89,10 @@ subtest {
     is %i-require<name>, 'Net::HTTP';
     is %i-require<ver>,  '1.0+';
     is %i-require<auth>, 'github:ugexe';
-}, 'identity2hash';
+}
 
 
-subtest {
+subtest 'hash2identity' => {
     my $require = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
     my %hash    = %( :name<Net::HTTP>, :ver<1.0+>, :auth<github:ugexe> );
     ok ?hash2identity("***not valid***");
@@ -100,4 +100,4 @@ subtest {
     my $i-require = hash2identity(%hash);
 
     is $i-require, "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
-}, 'hash2identity';
+}

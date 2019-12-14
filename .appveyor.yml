@@ -1,9 +1,9 @@
-os: Visual Studio 2015
+os: Visual Studio 2017
 
 platform: x64
 
 install:
-    - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
+    - '"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"'
     - appveyor-retry choco install strawberryperl --allow-empty-checksums
     - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
     - appveyor-retry git clone https://github.com/rakudo/rakudo.git %APPVEYOR_BUILD_FOLDER%\..\rakudo

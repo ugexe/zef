@@ -1,5 +1,6 @@
-use Zef;
-use Zef::Utils::URI;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Utils::URI:ver($ZVER);
 
 class Zef::Service::Shell::git does Probeable does Messenger {
     has $.scheme;

@@ -1,7 +1,8 @@
-use Zef;
-use Zef::Distribution::Local;
-use Zef::Distribution::DependencySpecification;
-use Zef::Utils::FileSystem;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Distribution::Local:ver($ZVER);
+use Zef::Distribution::DependencySpecification:ver($ZVER);
+use Zef::Utils::FileSystem:ver($ZVER);
 
 # Intended to:
 # 1) Keep track of contents of a directory using a manifest.

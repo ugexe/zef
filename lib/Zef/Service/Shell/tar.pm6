@@ -1,4 +1,5 @@
-use Zef;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
 
 # XXX: when passing command line arguments to tar in this module be sure to use
 # relative paths. ex: set :cwd to $tar-file.parent, and use $tar-file.basename as the target

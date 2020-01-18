@@ -1,6 +1,7 @@
-use Zef;
-use Zef::Distribution::DependencySpecification;
-use Zef::Utils::SystemQuery;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Distribution::DependencySpecification:ver($ZVER);
+use Zef::Utils::SystemQuery:ver($ZVER);
 
 class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecification {
     has $.meta-version;

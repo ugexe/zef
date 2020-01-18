@@ -1,5 +1,5 @@
-use v6;
-use Zef;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
 
 class Zef::Service::P6CReporter does Messenger does Reporter {
 

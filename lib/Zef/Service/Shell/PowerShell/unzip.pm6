@@ -1,5 +1,6 @@
-use Zef;
-use Zef::Service::Shell::PowerShell;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Service::Shell::PowerShell:ver($ZVER);
 
 class Zef::Service::Shell::PowerShell::unzip is Zef::Service::Shell::PowerShell does Extractor does Messenger {
     method extract-matcher($path) { so $path.IO.extension.lc eq 'zip' }

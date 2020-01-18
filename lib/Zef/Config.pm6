@@ -1,4 +1,6 @@
-use Zef;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+
 unit module Zef::Config;
 
 our sub parse-file($path) {

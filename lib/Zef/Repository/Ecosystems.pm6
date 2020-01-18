@@ -1,7 +1,8 @@
-use Zef;
-use Zef::Utils::FileSystem;
-use Zef::Distribution;
-use Zef::Distribution::DependencySpecification;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Utils::FileSystem:ver($ZVER);;
+use Zef::Distribution:ver($ZVER);;
+use Zef::Distribution::DependencySpecification:ver($ZVER);;
 
 class Zef::Repository::Ecosystems does Repository {
     has $.name;

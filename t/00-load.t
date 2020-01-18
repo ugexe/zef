@@ -29,6 +29,8 @@ subtest 'Core' => {
 }
 
 subtest 'Plugins' => {
+    use-ok("Zef::Pluggable");
+
     use-ok("Zef::Service::FetchPath");
     use-ok("Zef::Service::TAP");
     use-ok("Zef::Service::InstallPM6");

@@ -31,6 +31,8 @@
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",
         "Zef::Distribution::Local"                   : "lib/Zef/Distribution/Local.pm6",
 
+        "Zef::Pluggable" : "lib/Zef/Pluggable.pm6",
+
         "Zef::Service::InstallPM6"  : "lib/Zef/Service/InstallPM6.pm6",
         "Zef::Service::FetchPath"   : "lib/Zef/Service/FetchPath.pm6",
         "Zef::Service::TAP"         : "lib/Zef/Service/TAP.pm6",

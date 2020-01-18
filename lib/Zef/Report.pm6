@@ -1,5 +1,6 @@
 BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
 use Zef:ver($ZVER);
+use Zef::Pluggable:ver($ZVER);
 
 class Zef::Report does Pluggable does Reporter {
     submethod TWEAK(|) {

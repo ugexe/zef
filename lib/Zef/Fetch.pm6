@@ -1,5 +1,6 @@
 BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
 use Zef:ver($ZVER);
+use Zef::Pluggable:ver($ZVER);
 use Zef::Utils::FileSystem:ver($ZVER);
 use Zef::Utils::URI:ver($ZVER);
 

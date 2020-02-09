@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 5;
+plan 6;
 
 use Zef::Distribution;
 
@@ -57,5 +57,24 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
     }
     META6
     ok $dist.depends-specs[0].name ~~ any("Foo::Win32", "Foo::Linux", "Foo::Unknown")
+        or note $dist.depends-specs;
+}
+
+with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
+    {
+        "perl":"6",
+        "name":"Test::Complex::Depends",
+        "version":"0",
+        "auth":"github:stranger",
+        "description":"Test hash-based depends and native depends parsing",
+        "license":"none",
+        "depends": [
+            "Foo",
+            {"any": ["Bar", "Baz"]}
+        ],
+        "provides": { }
+    }
+    META6
+    is $dist.depends-specs()[1].specs[1].name, "Baz"
         or note $dist.depends-specs;
 }

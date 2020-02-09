@@ -1,12 +1,26 @@
 use Zef::Identity;
 
+class Zef::Distribution::DependencySpecification::Any {
+    has $.specs;
+    method name { "any" }
+}
+
 class Zef::Distribution::DependencySpecification {
     has $!ident;
     has $.spec;
 
     submethod TWEAK(:$!spec, :$!ident) { }
     multi submethod new(Zef::Identity $ident) { self.bless(:$ident) }
-    multi submethod new($spec) { self.bless(:$spec) }
+    multi submethod new(Str $spec) { self.bless(:$spec) }
+    multi submethod new(Hash $spec) { self.bless(:$spec) }
+    multi submethod new(Hash $spec where {$_.keys == 1 and $_.keys[0] eq 'any'}) {
+        Zef::Distribution::DependencySpecification::Any.new: :specs(
+            $spec.values[0].map: {self.new($_)}
+        )
+    }
+    multi submethod new($spec) {
+        die "Invalid dependency specification: $spec.gist()";
+    }
 
     method identity {
         my $hash = %(:name($.name), :ver($.version-matcher), :auth($.auth-matcher), :api($.api-matcher), :from($.from-matcher));

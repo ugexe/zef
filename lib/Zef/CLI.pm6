@@ -847,15 +847,14 @@ package Zef::CLI {
                 }
             }
         }
-        my $chosen-config-file = $config-path-from-args // Zef::Config::guess-path();
+        my $chosen-config-file = $config-path-from-args // %*ENV<ZEF_CONFIG_PATH> // Zef::Config::guess-path();
 
         # Keep track of the original path so we can show it on the --help usage :-/
         my $config = do {
             # The .Str.IO thing is due to a weird rakudo bug I can't figure out .
             # A bare .IO will complain that its being called on a type Any (not true)
-            my $path = $config-path-from-args // Zef::Config::guess-path;
-            my $IO   = $path.Str.IO;
-            my %hash = Zef::Config::parse-file($path).hash;
+            my $IO   = $chosen-config-file.Str.IO;
+            my %hash = Zef::Config::parse-file($chosen-config-file).hash;
             class :: {
                 has $.IO;
                 has %.hash handles <AT-KEY EXISTS-KEY DELETE-KEY push append iterator list kv keys values>;

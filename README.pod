@@ -185,6 +185,9 @@ B<ENV Options>
     ZEF_TEST_TIMEOUT=3600
     ZEF_INSTALL_TIMEOUT=3600
 
+    # Path to config file (see: --config-path option)
+    ZEF_CONFIG_PATH=$PWD/resources/config.json
+
 =head4 B<uninstall> [*@identities]
 
 Uninstall the specified distributions

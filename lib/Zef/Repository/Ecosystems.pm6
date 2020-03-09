@@ -37,9 +37,10 @@ class Zef::Repository::Ecosystems does Repository {
             UNDO note "!!!> Failed to update $!name mirror: $uri";
             KEEP note "===> Updated $!name mirror: $uri";
             KEEP self!gather-dists;
+            CATCH { .note; }
 
             my $save-as  = $!cache.IO.child($uri.IO.basename);
-            my $saved-as = try $!fetcher.fetch(Candidate.new(:$uri), $save-as, :timeout(180));
+            my $saved-as = $!fetcher.fetch(Candidate.new(:$uri), $save-as, :timeout(180));
             next unless $saved-as.?chars && $saved-as.IO.e;
 
             # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org

@@ -17,9 +17,8 @@ class Zef::Fetch does Pluggable {
             my @report_enabled  = self.plugins.map(*.short-name);
             my @report_disabled = self.backends.map(*.<short-name>).grep({ $_ ~~ none(@report_enabled) });
 
-            note "Enabled fetching backends [{@report_enabled}] don't understand $uri\n"
+            die "Enabled fetching backends [{@report_enabled}] don't understand $uri\n"
             ~   "You may need to configure one of the following backends, or install its underlying software - [{@report_disabled}]";
-            die;
         }
 
         my $got := $fetchers.map: -> $fetcher {

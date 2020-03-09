@@ -40,8 +40,8 @@ class Zef::Repository::Ecosystems does Repository {
 
             my $save-as  = $!cache.IO.child($uri.IO.basename);
             my $saved-as = try {
-                $!fetcher.fetch(Candidate.new(:$uri), $save-as, :timeout(180));
                 CATCH { default { .note; } }
+                $!fetcher.fetch(Candidate.new(:$uri), $save-as, :timeout(180));
             }
             next unless $saved-as.?chars && $saved-as.IO.e;
 

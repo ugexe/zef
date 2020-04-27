@@ -43,3 +43,4 @@ class Zef::Fetch does Pluggable {
         return $got.first(*.so);
     }
 }
+

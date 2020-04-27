@@ -9,7 +9,9 @@ class Zef::Service::Shell::prove does Tester does Messenger {
             # `prove --help` has exitcode == 1 unlike most other processes
             # so it requires a more convoluted probe check
             try {
-                my $proc = zrun('prove', '--help', :out, :!err);
+                my $proc = $*DISTRO.is-win
+                    ?? zrun('prove.bat', '--help', :out, :!err)
+                    !! zrun('prove', '--help', :out, :!err);
                 my @out  = $proc.out.lines;
                 $proc.out.close;
                 CATCH {
@@ -35,7 +37,14 @@ class Zef::Service::Shell::prove does Tester does Messenger {
 
         my $passed;
         react {
-            my $proc = zrun-async('prove', '--ext', '.rakutest', '--ext', '.t', '--ext', '.t6', '-r', '-e', $*EXECUTABLE.absolute, $test-path.relative($path));
+            my $proc = $*DISTRO.is-win
+                ?? Proc::Async.new(:win-verbatim-args, 'prove.bat', '--ext',
+                    '.rakutest', '--ext', '.t', '--ext', '.t6', '-r', '-e',
+                    '"' ~ $*EXECUTABLE.absolute ~ '"',
+                    '"' ~ $test-path.relative($path) ~ '"')
+                !! Proc::Async.new('prove', '--ext', '.rakutest', '--ext',
+                    '.t', '--ext', '.t6', '-r', '-e', $*EXECUTABLE.absolute,
+                    $test-path.relative($path));
             whenever $proc.stdout.lines { $.stdout.emit($_) }
             whenever $proc.stderr.lines { $.stderr.emit($_) }
             whenever $proc.start(:%ENV, :cwd($path)) { $passed = $_.so }

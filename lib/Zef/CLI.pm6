@@ -114,7 +114,7 @@ package Zef::CLI {
         Bool :$serial,
         Bool :$contained,
         :$update,
-        :$exclude,
+        :@exclude,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
         *@wants ($, *@)
     ) {
@@ -128,7 +128,7 @@ package Zef::CLI {
         }
 
         my $client = get-client(
-            :config($CONFIG), :$update,          :exclude($exclude.map({ Zef::Distribution::DependencySpecification.new($_) })),
+            :config($CONFIG), :$update,          :exclude(@exclude.map({ Zef::Distribution::DependencySpecification.new($_) })),
             :$depends,        :$test-depends,    :$build-depends,
             :$force-resolve,  :$force-fetch,     :$force-extract,
             :$force-build,    :$force-test,      :$force-install,
@@ -284,7 +284,7 @@ package Zef::CLI {
         Bool :$dry,
         Bool :$update,
         Bool :$serial,
-        :$exclude,
+        :@exclude,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
         *@identities
     ) {
@@ -293,7 +293,7 @@ package Zef::CLI {
         # leave the previous version installed.
 
         my $client = get-client(
-            :config($CONFIG), :exclude($exclude.map({ Zef::Distribution::DependencySpecification.new($_) })),
+            :config($CONFIG), :exclude(@exclude.map({ Zef::Distribution::DependencySpecification.new($_) })),
             :$depends,        :$test-depends,    :$build-depends,
             :$force-resolve,  :$force-fetch,     :$force-extract,
             :$force-build,    :$force-test,      :$force-install,
@@ -329,7 +329,7 @@ package Zef::CLI {
             :$fetch,
             :$build,
             :$update,
-            :$exclude,
+            :@exclude,
             :$install-to,
             :$force-resolve,
             :$force-fetch,
@@ -620,11 +620,11 @@ package Zef::CLI {
         Bool :$upgrade,
         Bool :$dry,
         Bool :$serial,
-        :$exclude,
+        :@exclude,
         :to(:$install-to) = $CONFIG<DefaultCUR>,
     ) {
         my $client = get-client(
-            :config($CONFIG), :exclude($exclude.map({ Zef::Distribution::DependencySpecification.new($_) })),
+            :config($CONFIG), :exclude(@exclude.map({ Zef::Distribution::DependencySpecification.new($_) })),
             :$depends,        :$test-depends,    :$build-depends,
             :$force-resolve,  :$force-fetch,     :$force-extract,
             :$force-build,    :$force-test,      :$force-install,
@@ -647,7 +647,7 @@ package Zef::CLI {
             :$build,
             :$update,
             :$upgrade,
-            :$exclude,
+            :@exclude,
             :$install-to,
             :$force-resolve,
             :$force-fetch,

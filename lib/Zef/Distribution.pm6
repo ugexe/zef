@@ -116,6 +116,8 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         { samewith( Zef::Distribution::DependencySpecification.new($spec, |c) ) }
     multi method contains-spec(Zef::Distribution::DependencySpecification $spec, Bool :$strict = True)
         { so self.spec-matcher($spec, :$strict) || self.provides-spec-matcher($spec, :$strict)  }
+    multi method contains-spec(Zef::Distribution::DependencySpecification::Any $spec, Bool :$strict = True)
+        { self.contains-spec(any($spec.specs), :$strict) }
 
     method Str {
         return self!long-name($!name);

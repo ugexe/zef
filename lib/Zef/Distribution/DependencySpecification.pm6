@@ -1,8 +1,9 @@
 use Zef::Identity;
 
 class Zef::Distribution::DependencySpecification::Any {
-    has $.specs;
-    method name { "any" }
+    has @.specs;
+    method name { "any({@.specs.map(*.name).join(', ')})" }
+    method identity { "any({@.specs.map(*.identity).join(',')})" }
 }
 
 class Zef::Distribution::DependencySpecification {
@@ -48,7 +49,10 @@ class Zef::Distribution::DependencySpecification {
 
     method !spec { $.spec || self.Str }
 
-    method spec-matcher($spec, Bool :$strict = True) {
+    multi method spec-matcher(Zef::Distribution::DependencySpecification::Any $spec, Bool :$strict = True) {
+        self.spec-matcher(any($spec.specs), :$strict)
+    }
+    multi method spec-matcher($spec, Bool :$strict = True) {
         return False unless $spec.name.?chars && self.name.?chars;
         if $strict {
             return False unless $spec.name eq self.name;

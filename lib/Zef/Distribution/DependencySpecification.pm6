@@ -39,6 +39,8 @@ class Zef::Distribution::DependencySpecification {
 
     method name            { self.spec-parts<name> }
 
+    method ver             { self.spec-parts<ver> }
+
     method version-matcher { self.spec-parts<ver>  // '*' }
 
     method auth-matcher    { self.spec-parts<auth> // ''  }

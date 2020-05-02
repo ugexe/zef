@@ -730,18 +730,18 @@ class Zef::Client {
     multi method is-installed($spec, |c) {
         do given $spec.?from-matcher {
             when 'bin'    { so Zef::Utils::FileSystem::which($spec.name) }
-            when 'native' { so self!native-library-is-installed($spec.name) }
+            when 'native' { so self!native-library-is-installed($spec) }
             default       { so self.resolve($spec, |c).so }
         }
     }
 
-    method !native-library-is-installed(Str() $lib --> Bool) {
-        use NativeCall;
-        my $throwaway-sub = sub { };
-        $throwaway-sub does NativeCall::Native[$throwaway-sub, sub { $*VM.platform-library-name($lib.IO).basename }];
+    method !native-library-is-installed($spec --> Bool) {
+        use MONKEY-SEE-NO-EVAL;
+        my $lib = "'$spec.name()'";
+        $lib = "$lib, v$spec.ver()" if $spec.ver;
         try {
+            EVAL qq[use NativeCall; sub native_library_is_installed is native($lib) \{ !!! \}; native_library_is_installed(); ];
             CATCH { default { return False if .payload.starts-with("Cannot locate native library") } }
-            $throwaway-sub();
         }
         return True;
     }

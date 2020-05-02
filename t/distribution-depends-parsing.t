@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 16;
+plan 17;
 
 use Zef;
 use Zef::Client;
@@ -149,6 +149,10 @@ for (
         is $prereq-candidates.map(*.dist.name).sort, <Available AvailableToo>;
     },
     ["Available", {:any["Unavailable", "Unavailable2"]}] => -> $exception {
+        try sink $exception;
+        isa-ok $!, X::Zef::UnsatisfiableDependency;
+    },
+    ["Available", {:any[{:name<Unavailable>, :from<native>}, {:name<Unavailable2>, :from<native>}]}] => -> $exception {
         try sink $exception;
         isa-ok $!, X::Zef::UnsatisfiableDependency;
     },

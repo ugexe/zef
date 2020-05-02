@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 17;
+plan 19;
 
 use Zef;
 use Zef::Client;
@@ -133,6 +133,10 @@ my $recommendation-manager = (
 
 for (
     ["Available", {:any["Unavailable", "Installed"]}] => -> $prereq-candidates {
+        is $prereq-candidates.elems, 1;
+        is $prereq-candidates[0].dist.name, "Available";
+    },
+    [{:any["Unavailable", "Available"]},] => -> $prereq-candidates {
         is $prereq-candidates.elems, 1;
         is $prereq-candidates[0].dist.name, "Available";
     },

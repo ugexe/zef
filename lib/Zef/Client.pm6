@@ -140,7 +140,7 @@ class Zef::Client {
                     message => "Searching for missing dependencies: {@identities.join(', ')}",
                 });
 
-                @prereq-candidates.append: self!find-candidates(:$upgrade, @identities);
+                @prereq-candidates.append: self!find-candidates(:$upgrade, @identities) if @identities;
                 my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
 
                 # The failing part of this should ideally be handled in Zef::CLI I think

@@ -723,7 +723,11 @@ class Zef::Client {
         $candis.sort(*.dist.ver).sort(*.dist.api).reverse;
     }
 
-    method is-installed($spec, |c) {
+    multi method is-installed(Zef::Distribution::DependencySpecification::Any $spec, |c) {
+        self.is-installed(any($spec.specs, |c))
+    }
+
+    multi method is-installed($spec, |c) {
         do given $spec.?from-matcher {
             when 'bin'    { so Zef::Utils::FileSystem::which($spec.name) }
             when 'native' { so self!native-library-is-installed($spec.name) }

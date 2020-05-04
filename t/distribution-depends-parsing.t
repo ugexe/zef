@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 19;
+plan 25;
 
 use Zef;
 use Zef::Client;
@@ -123,6 +123,8 @@ my $recommendation-manager = (
                                 if $as eq 'HasUnsatisfiableDep';
                             take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends['HasUnsatisfiableDep'])), :$as, :from<Test>)
                                 if $as eq 'HasTransitivelyUnsatisfiableDep';
+                            take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends[{:any["AvailableToo", "Available"]},])), :$as, :from<Test>)
+                                if $as eq 'DependsOnAvailableTooOrAvailable';
                         }
                     }
                 },
@@ -143,6 +145,18 @@ for (
     ["Available", {:any["Unavailable", "AvailableToo"]}] => -> $prereq-candidates {
         is $prereq-candidates.elems, 2;
         is $prereq-candidates.map(*.dist.name).sort, <Available AvailableToo>;
+    },
+    [{:any["AvailableToo", "Available"]}, "Available"] => -> $prereq-candidates {
+        is $prereq-candidates.elems, 1;
+        is $prereq-candidates.map(*.dist.name).sort, <Available>;
+    },
+    ["DependsOnAvailableTooOrAvailable", "Available"] => -> $prereq-candidates {
+        is $prereq-candidates.elems, 2;
+        is $prereq-candidates.map(*.dist.name).sort, <Available DependsOnAvailableTooOrAvailable>;
+    },
+    ["DependsOnAvailableTooOrAvailable"] => -> $prereq-candidates {
+        is $prereq-candidates.elems, 2;
+        is $prereq-candidates.map(*.dist.name).sort, <AvailableToo DependsOnAvailableTooOrAvailable>;
     },
     ["Available", {:any["HasUnsatisfiableDep", "AvailableToo"]}] => -> $prereq-candidates {
         is $prereq-candidates.elems, 2;

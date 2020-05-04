@@ -93,7 +93,7 @@ class Zef::Client {
             .unique(:as(*.dist.identity));
     }
 
-    method find-prereq-candidates(Bool :$skip-installed = True, Bool :$upgrade, *@candis ($, *@)) {
+    method find-prereq-candidates(Bool :$skip-installed = True, Bool :$upgrade, :@certain, *@candis ($, *@)) {
         my @skip = @candis.map(*.dist);
 
         my $prereqs := gather {
@@ -113,34 +113,46 @@ class Zef::Client {
                     .grep(-> $spec { not @!ignore.first({ $_.spec-matcher($spec) }) })\
                     .grep({ $skip-installed ?? self.is-installed($_).not !! True });
 
-                my @prereq-candidates;
-                my @identities = gather for @needed -> $needed {
-                    my @candidates;
-                    if $needed.isa(Zef::Distribution::DependencySpecification::Any)
-                        and $needed.specs.first({
-                            @candidates = self!find-candidates(:$upgrade, $_.identity);
-                            @candidates.append: self.find-prereq-candidates(:$upgrade, @candidates) if @candidates;
-                            CATCH {
-                                when X::Zef::UnsatisfiableDependency { @candidates = (); }
-                            }
-                            @candidates
-                        })
-                    -> $dep {
-                        @prereq-candidates.append(@candidates);
-                    }
-                    else {
-                        take $needed.identity;
-                    }
-                }
+                my %needed = @needed.classify: {
+                    $_.isa(Zef::Distribution::DependencySpecification::Any)
+                        ?? "alternative"
+                        !! "certain"
+                };
 
+                my @identities = %needed<certain>.map(*.identity) if %needed<certain>;
                 self.logger.emit({
                     level   => INFO,
                     stage   => RESOLVE,
                     phase   => BEFORE,
                     message => "Searching for missing dependencies: {@identities.join(', ')}",
                 });
+                my @prereq-candidates = self!find-candidates(:$upgrade, @identities) if @identities;
 
+                @identities = gather for %needed<alternative>.list -> $needed {
+                    next if any(|@certain, |@prereq-candidates).dist.contains-spec($needed);
+
+                    my @candidates;
+                    if $needed.specs.first({
+                            @candidates = self!find-candidates(:$upgrade, $_.identity);
+                            @candidates.append: self.find-prereq-candidates(
+                                :$upgrade,
+                                :certain(|@certain, @prereq-candidates),
+                                @candidates,
+                            ) if @candidates;
+                            CATCH {
+                                when X::Zef::UnsatisfiableDependency { @candidates = (); }
+                            }
+                            @candidates
+                        })
+                    -> $spec {
+                        @prereq-candidates.append(@candidates);
+                    }
+                    else {
+                        take $needed.identity;
+                    }
+                } if %needed<alternative>;
                 @prereq-candidates.append: self!find-candidates(:$upgrade, @identities) if @identities;
+
                 my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
 
                 # The failing part of this should ideally be handled in Zef::CLI I think

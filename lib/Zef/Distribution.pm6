@@ -120,13 +120,23 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         return self!long-name($!name);
     }
 
+    # Only provide pieces if specified
     method !long-name($name!) {
-        return sprintf '%s:ver<%s>:auth<%s>:api<%s>',
-            $name,
-            (self.ver  // ''),
-            (self.auth // '').trans(['<', '>'] => ['\<', '\>']),
-            (self.api  // ''),
-        ;
+        my @version = $name;
+
+        with self.ver {
+            @version.push: 'ver<%s>'.sprintf(self.ver);
+        }
+
+        with self.auth {
+            @version.push: 'auth<%s>'.sprintf(self.auth.trans(['<', '>'] => ['\<', '\>']));
+        }
+
+        with self.api {
+            @version.push: 'api<%s>'.sprintf(self.api);
+        }
+
+        return @version.join(':');
     }
 
     method id() {

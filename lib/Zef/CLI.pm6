@@ -256,6 +256,49 @@ package Zef::CLI {
         exit 0;
     }
 
+    #| List outdated or upgradable installed distributions
+    multi MAIN(
+        'outdated',
+        :to(:$install-to) = $CONFIG<DefaultCUR>,
+
+    ) {
+        my $client = get-client(:config($CONFIG));
+
+        my @installed = $client.list-installed($install-to.map(*.&str2cur))
+                .sort(*.dist.ver).sort(*.dist.api).reverse
+                .unique(:as({ "{ .dist.name }:auth<{ .dist.auth-matcher }>" }));
+
+        my @requested = $client.find-candidates(@installed.map(*.dist.clone(ver => "*")).map(*.identity).unique);
+
+        class Upgradable {
+            has $.current;
+            has $.candidate;
+        }
+
+        my @upgradable = @requested.map: -> $candidate {
+            my $current = @installed.grep({ .dist.name eq $candidate.dist.name })
+                    .sort({ .dist.auth-matcher ne $candidate.dist.auth-matcher }).head;
+            # this is to handle auths that changed. need to find a better way...
+            if ($current.dist.ver <=> $candidate.dist.ver) === Order::Less {
+                Upgradable.new(:$current, :$candidate);
+            }
+        }
+
+        say '';
+        if @upgradable.elems > 0 {
+            my $print-format = "  %-35s %-35s";
+
+            $print-format.sprintf('Current', 'Available').say;
+            $print-format.sprintf('-------', '---------').say;
+
+            for @upgradable {
+                $print-format.sprintf(.current.dist.Str, .candidate.dist.Str).say;
+            }
+        } else {
+            say "!!!> Nothing to upgrade";
+        }
+    }
+
     #| Upgrade installed distributions (BETA)
     multi MAIN(
         'upgrade',
@@ -746,6 +789,7 @@ package Zef::CLI {
                 build                   Run the Build.pm in a given module's path
                 look                    Fetch followed by shelling into the module's path
                 update                  Update package indexes for repositories
+                outdated                Show modules requiring an upgrade
                 upgrade (BETA)          Upgrade specific distributions (or all if no arguments)
                 search                  Show a list of possible distribution candidates for the given terms
                 info                    Show detailed distribution information

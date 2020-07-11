@@ -62,6 +62,9 @@ To install via rakubrew, please use the following command:
     # update Repository package lists
     zef update
 
+    # List packages with upgrades available
+    zef outdated
+
     # upgrade all distributions (BETA)
     zef upgrade
 
@@ -201,6 +204,11 @@ Update the package indexes for all C<Repository> backends
 Note: Some C<Repository> backends, like the default Ecosystems, have an C<auto-update> option
 in C<resources/config.json> that can be enabled. This should be the number of hours until it should
 auto update based on the file system last modified time of the ecosystem json file location.
+
+=head4 B<outdated>
+
+When an upgrade is available, this lists the current package name and the upgrade. C<zef upgrade> should be used to
+install the upgrade.
 
 =head4 B<upgrade> [*@identities] I<BETA>
 

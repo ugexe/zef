@@ -136,7 +136,7 @@ class Zef::Client {
                             @candidates = self!find-candidates(:$upgrade, $_.identity);
                             @candidates.append: self.find-prereq-candidates(
                                 :$upgrade,
-                                :certain(|@certain, @prereq-candidates),
+                                :certain(|@certain, |@prereq-candidates),
                                 @candidates,
                             ) if @candidates;
                             CATCH {

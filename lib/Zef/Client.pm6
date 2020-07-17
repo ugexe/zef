@@ -125,7 +125,7 @@ class Zef::Client {
                     stage   => RESOLVE,
                     phase   => BEFORE,
                     message => "Searching for missing dependencies: {@identities.join(', ')}",
-                });
+                }) if @identities;
                 my @prereq-candidates = self!find-candidates(:$upgrade, @identities) if @identities;
 
                 @identities = gather for %needed<alternative>.list -> $needed {

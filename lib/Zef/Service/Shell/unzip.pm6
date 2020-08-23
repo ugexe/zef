@@ -1,4 +1,5 @@
-use Zef;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
 
 class Zef::Service::Shell::unzip does Extractor does Messenger {
     method extract-matcher($path) { so $path.IO.extension.lc eq 'zip' }

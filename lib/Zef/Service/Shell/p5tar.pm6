@@ -1,4 +1,5 @@
-use Zef;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
 
 # covers untar for some windows users until a better solution is found
 class Zef::Service::Shell::p5tar does Extractor does Messenger {

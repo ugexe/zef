@@ -1,5 +1,7 @@
-use Zef;
-use Zef::Utils::FileSystem;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Pluggable:ver($ZVER);
+use Zef::Utils::FileSystem:ver($ZVER);
 
 class Zef::Extract does Pluggable {
     submethod TWEAK(|) {

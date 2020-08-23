@@ -1,10 +1,11 @@
-use Zef;
-use Zef::Client;
-use Zef::Config;
-use Zef::Utils::FileSystem;
-use Zef::Identity;
-use Zef::Distribution;
-use Zef::Utils::SystemInfo;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Client:ver($ZVER);
+use Zef::Config:ver($ZVER);
+use Zef::Utils::FileSystem:ver($ZVER);
+use Zef::Identity:ver($ZVER);
+use Zef::Distribution:ver($ZVER);
+use Zef::Utils::SystemInfo:ver($ZVER);
 use nqp;
 
 # Content was cut+pasted from bin/zef, leaving bin/zef's contents as just: `use Zef::CLI;`

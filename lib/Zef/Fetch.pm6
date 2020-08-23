@@ -1,6 +1,8 @@
-use Zef;
-use Zef::Utils::FileSystem;
-use Zef::Utils::URI;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Pluggable:ver($ZVER);
+use Zef::Utils::FileSystem:ver($ZVER);
+use Zef::Utils::URI:ver($ZVER);
 
 class Zef::Fetch does Pluggable {
     submethod TWEAK(|) {

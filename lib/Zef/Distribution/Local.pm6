@@ -1,5 +1,6 @@
-use Zef;
-use Zef::Distribution;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Distribution:ver($ZVER);
 
 class Zef::Distribution::Local is Zef::Distribution {
     has $.path;

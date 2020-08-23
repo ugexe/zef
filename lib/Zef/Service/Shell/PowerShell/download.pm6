@@ -1,5 +1,6 @@
-use Zef;
-use Zef::Service::Shell::PowerShell;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
+use Zef::Service::Shell::PowerShell:ver($ZVER);
 
 class Zef::Service::Shell::PowerShell::download is Zef::Service::Shell::PowerShell does Fetcher does Messenger {
     method fetch-matcher($url) { $ = $url.lc.starts-with('http://' | 'https://') }

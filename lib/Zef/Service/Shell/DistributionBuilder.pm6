@@ -1,4 +1,5 @@
-use Zef;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
 
 class Zef::Service::Shell::DistributionBuilder does Builder does Messenger {
     method build-matcher($dist) { so $dist.builder }

@@ -1,4 +1,5 @@
-use Zef;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef:ver($ZVER);
 
 class Zef::Service::Shell::wget does Fetcher does Probeable does Messenger {
     method fetch-matcher($url) { $ = $url.lc.starts-with('http://' | 'https://') }

@@ -1,4 +1,5 @@
-use Zef::Identity;
+BEGIN my $ZVER = $?DISTRIBUTION.meta<version>;
+use Zef::Identity:ver($ZVER);
 
 class Zef::Distribution::DependencySpecification {
     has $!ident;

@@ -15,5 +15,5 @@
 
 ## Your Environment
 <!--- Show the output from the following commands to tell us more about your environment -->
-* perl6 -v
+* raku -v
 * zef list --installed

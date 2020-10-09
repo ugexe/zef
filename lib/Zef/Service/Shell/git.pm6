@@ -143,7 +143,8 @@ class Zef::Service::Shell::git does Probeable does Messenger {
 
     method !repo-url($url) {
         my $uri = uri($!scheme ?? $url.subst(/^\w+ '://'/, "{$!scheme}://") !! $url) || return False; #'
-        ($uri.scheme // '') ~ '://' ~ ($uri.host // '') ~ ($uri.path // '').subst(/\@.*[\/|\@|\?|\#]?$/, '');
+        my $reconstructed-uri = ($uri.scheme // '') ~ '://' ~ ($uri.user-info ?? "{$uri.user-info}@" !! '') ~ ($uri.host // '') ~ ($uri.path // '').subst(/\@.*[\/|\@|\?|\#]?$/, '');
+        return $reconstructed-uri;
     }
 
     method !checkout-name($url) {

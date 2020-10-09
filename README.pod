@@ -210,7 +210,7 @@ Upgrade specified identities. If no identities are provided, zef attempts to upg
 
 How these are handled depends on the C<Repository> engine used, which by default is C<Zef::Repository::EcosystemsE<gt>p6cE<lt>>
 
-    $ zef -v --cpan --metacpan search URI
+    $ zef -v --cpan search URI
     ===> Found 4 results
     -------------------------------------------------------------------------
     ID|From                              |Package             |Description
@@ -275,7 +275,7 @@ List known available distributions
 
 Note that not every Repository may provide such a list, and such lists may only
 be a subset. For example: We may not be able to get a list of every distribution
-on metacpan, but we *can* get the $x most recent additions (we use 100 for now).
+on cpan, but we *can* get the $x most recent additions (we use 100 for now).
 
 [C<@from>] allows you to show results from specific repositories only:
 

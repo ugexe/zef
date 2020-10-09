@@ -93,7 +93,7 @@ class Zef::Client {
             .unique(:as(*.dist.identity));
     }
 
-    method find-prereq-candidates(Bool :$skip-installed = True, Bool :$upgrade, *@candis ($, *@)) {
+    method find-prereq-candidates(Bool :$skip-installed = True, Bool :$upgrade, :@certain, *@candis ($, *@)) {
         my @skip = @candis.map(*.dist);
 
         my $prereqs := gather {
@@ -106,21 +106,53 @@ class Zef::Client {
                     phase   => BEFORE,
                     message => "Dependencies: {@specs-batch.map(*.name).unique.join(', ')}",
                 });
+
                 next unless my @needed = @specs-batch\               # The current set of specs
                     .grep({ not @skip.first(*.contains-spec($_)) })\ # Dists in @skip are not needed
                     .grep(-> $spec { not @!exclude.first({ $_.spec-matcher($spec) }) })\
                     .grep(-> $spec { not @!ignore.first({ $_.spec-matcher($spec) }) })\
                     .grep({ $skip-installed ?? self.is-installed($_).not !! True });
-                my @identities = @needed.map(*.identity);
 
+                my %needed = @needed.classify: {
+                    $_.isa(Zef::Distribution::DependencySpecification::Any)
+                        ?? "alternative"
+                        !! "certain"
+                };
+
+                my @identities = %needed<certain>.map(*.identity) if %needed<certain>;
                 self.logger.emit({
                     level   => INFO,
                     stage   => RESOLVE,
                     phase   => BEFORE,
-                    message => "Searching for missing dependencies: {@identities.join(', ')}",
+                    message => "Searching for missing dependencies: {@needed.map(*.identity).join(', ')}",
                 });
+                my @prereq-candidates = self!find-candidates(:$upgrade, @identities) if @identities;
 
-                my @prereq-candidates = self!find-candidates(:$upgrade, @identities);
+                @identities = gather for %needed<alternative>.list -> $needed {
+                    next if any(|@certain, |@prereq-candidates).dist.contains-spec($needed);
+
+                    my @candidates;
+                    if $needed.specs.first({
+                            @candidates = self!find-candidates(:$upgrade, $_.identity);
+                            @candidates.append: self.find-prereq-candidates(
+                                :$upgrade,
+                                :certain(|@certain, |@prereq-candidates),
+                                @candidates,
+                            ) if @candidates;
+                            CATCH {
+                                when X::Zef::UnsatisfiableDependency { @candidates = (); }
+                            }
+                            @candidates
+                        })
+                    -> $spec {
+                        @prereq-candidates.append(@candidates);
+                    }
+                    else {
+                        take $needed.identity;
+                    }
+                } if %needed<alternative>;
+                @prereq-candidates.append: self!find-candidates(:$upgrade, @identities) if @identities;
+
                 my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
 
                 # The failing part of this should ideally be handled in Zef::CLI I think
@@ -149,7 +181,7 @@ class Zef::Client {
                                 phase   => LIVE,
                                 message => 'Failed to resolve missing dependencies, but continuing with --force-resolve',
                             })
-                        !! die('Failed to resolve some missing dependencies');
+                        !! die X::Zef::UnsatisfiableDependency.new;
                 };
 
                 @skip.append: @prereq-candidates.map(*.dist);
@@ -703,7 +735,11 @@ class Zef::Client {
         $candis.sort(*.dist.ver).sort(*.dist.api).reverse;
     }
 
-    method is-installed($spec, |c) {
+    multi method is-installed(Zef::Distribution::DependencySpecification::Any $spec, |c) {
+        self.is-installed(any($spec.specs, |c))
+    }
+
+    multi method is-installed($spec, |c) {
         do given $spec.?from-matcher {
             when 'bin'    { so Zef::Utils::FileSystem::which($spec.name) }
             when 'native' { so self!native-library-is-installed($spec) }

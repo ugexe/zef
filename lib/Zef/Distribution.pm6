@@ -69,11 +69,12 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     # make matching dependency names against a dist easier
     # when sorting the install order from the meta hash
     method depends-specs       {
-        my $deps := $.depends ~~ Hash
-            ?? $.depends<runtime build>.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.Slip)
-            !! $.depends;
+        my $depends = system-collapse($.depends);
+        my $deps := $depends ~~ Hash
+            ?? $depends<runtime build>.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.Slip)
+            !! $depends;
 
-        $deps.grep(*.defined).map({ Zef::Distribution::DependencySpecification.new(system-collapse($_)) }).grep(*.name);
+        $deps.grep(*.defined).map({ Zef::Distribution::DependencySpecification.new($_) }).grep(*.name);
     }
     method build-depends-specs {
         gather {
@@ -115,6 +116,8 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         { samewith( Zef::Distribution::DependencySpecification.new($spec, |c) ) }
     multi method contains-spec(Zef::Distribution::DependencySpecification $spec, Bool :$strict = True)
         { so self.spec-matcher($spec, :$strict) || self.provides-spec-matcher($spec, :$strict)  }
+    multi method contains-spec(Zef::Distribution::DependencySpecification::Any $spec, Bool :$strict = True)
+        { self.contains-spec(any($spec.specs), :$strict) }
 
     method Str {
         return self!long-name($!name);

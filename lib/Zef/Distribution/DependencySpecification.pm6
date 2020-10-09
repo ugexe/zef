@@ -1,12 +1,27 @@
 use Zef::Identity;
 
+class Zef::Distribution::DependencySpecification::Any {
+    has @.specs;
+    method name { "any({@.specs.map(*.name).join(', ')})" }
+    method identity { "any({@.specs.map(*.identity).join(',')})" }
+}
+
 class Zef::Distribution::DependencySpecification {
     has $!ident;
     has $.spec;
 
     submethod TWEAK(:$!spec, :$!ident) { }
     multi submethod new(Zef::Identity $ident) { self.bless(:$ident) }
-    multi submethod new($spec) { self.bless(:$spec) }
+    multi submethod new(Str $spec) { self.bless(:$spec) }
+    multi submethod new(Hash $spec) { self.bless(:$spec) }
+    multi submethod new(Hash $spec where {$_.keys == 1 and $_.keys[0] eq 'any'}) {
+        Zef::Distribution::DependencySpecification::Any.new: :specs(
+            $spec.values[0].map: {self.new($_)}
+        )
+    }
+    multi submethod new($spec) {
+        die "Invalid dependency specification: $spec.gist()";
+    }
 
     method identity {
         my $hash = %(:name($.name), :ver($.version-matcher), :auth($.auth-matcher), :api($.api-matcher), :from($.from-matcher));
@@ -36,7 +51,10 @@ class Zef::Distribution::DependencySpecification {
 
     method !spec { $.spec || self.Str }
 
-    method spec-matcher($spec, Bool :$strict = True) {
+    multi method spec-matcher(Zef::Distribution::DependencySpecification::Any $spec, Bool :$strict = True) {
+        self.spec-matcher(any($spec.specs), :$strict)
+    }
+    multi method spec-matcher($spec, Bool :$strict = True) {
         return False unless $spec.name.?chars && self.name.?chars;
         if $strict {
             return False unless $spec.name eq self.name;

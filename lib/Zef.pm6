@@ -154,3 +154,9 @@ role Pluggable {
         }
     }
 }
+
+class X::Zef::UnsatisfiableDependency is Exception {
+    method message() {
+        'Failed to resolve some missing dependencies'
+    }
+}

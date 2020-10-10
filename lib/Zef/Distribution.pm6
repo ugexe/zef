@@ -74,7 +74,8 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         return system-collapse($.depends){$type}.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.Slip).Slip;
     }
     method !depends2specs(*@depends) {
-        @depends.map(*.Slip).grep(*.defined).map({ Zef::Distribution::DependencySpecification.new($_) }).grep(*.name);
+        my $depends       := @depends.map({$_ ~~ List ?? $_.Slip !! $_ }).grep(*.defined);
+        my $depends-specs := $depends.map({ Zef::Distribution::DependencySpecification.new($_) }).grep(*.name);
     }
 
     method depends-specs {

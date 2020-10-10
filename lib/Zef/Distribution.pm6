@@ -74,13 +74,13 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         return system-collapse($.depends){$type}.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.Slip).Slip;
     }
     method !depends2specs(*@depends) {
-        @depends.grep(*.Slip).grep(*.defined).map({ Zef::Distribution::DependencySpecification.new($_) }).grep(*.name);
+        @depends.map(*.Slip).grep(*.defined).map({ Zef::Distribution::DependencySpecification.new($_) }).grep(*.name);
     }
 
     method depends-specs {
         my $depends := system-collapse($.depends);
         my $deps    := $.depends ~~ Hash ?? self!new-depends('runtime') !! $depends;
-        return self!depends2specs($.depends ~~ Hash ?? $deps !! |$deps);
+        return self!depends2specs($deps);
     }
     method build-depends-specs {
         my $orig-build-depends := system-collapse($.build-depends);

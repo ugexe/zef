@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 34;
+plan 36;
 
 use Zef;
 use Zef::Client;
@@ -53,9 +53,9 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
                 "requires" : [
                     {
                         "by-distro.name": {
-                            "win32": "Foo::Win32",
-                            "linux": "Foo::Linux",
-                            "" : "Foo::Unknown"
+                            "win32": ["Foo::Win32_1", "Foo::Win32_2"],
+                            "linux": ["Foo::Linux_1", "Foo::Linux_2"],
+                            "" : ["Foo::Unknown", "Foo::Unknown_2"]
                         }
                     }
                 ]
@@ -64,7 +64,9 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
         "provides": { }
     }
     META6
-    ok any($dist.depends-specs.map(*.name)) ~~ any("Foo::Win32", "Foo::Linux", "Foo::Unknown");
+    is $dist.depends-specs.elems, 2;
+    ok any($dist.depends-specs.map(*.name)) ~~ any("Foo::Win32_1", "Foo::Linux_2", "Foo::Unknown_2");
+    ok any($dist.depends-specs.map(*.name)) ~~ any("Foo::Win32_1", "Foo::Linux_2", "Foo::Unknown_2");
     ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'Perl6';
 }
 

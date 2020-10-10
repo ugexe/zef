@@ -66,31 +66,31 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         return %normalized;
     }
 
-    # make matching dependency names against a dist easier
-    # when sorting the install order from the meta hash
-    method depends-specs       {
-        my $depends = system-collapse($.depends);
-        my $deps := $depends ~~ Hash
-            ?? $depends<runtime build>.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.Slip)
-            !! $depends;
+    # 'new-depends' refers to the hash form of `depends`
+    has $!new-depends-cache;
+    method !new-depends($type) {
+        return Empty unless $.depends ~~ Hash;
+        $!new-depends-cache := system-collapse($.depends) unless $!new-depends-cache.defined;
+        return system-collapse($.depends){$type}.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.Slip).Slip;
+    }
+    method !depends2specs(*@depends) {
+        @depends.grep(*.Slip).grep(*.defined).map({ Zef::Distribution::DependencySpecification.new($_) }).grep(*.name);
+    }
 
-        $deps.grep(*.defined).map({ Zef::Distribution::DependencySpecification.new($_) }).grep(*.name);
+    method depends-specs {
+        my $depends := system-collapse($.depends);
+        my $deps    := $.depends ~~ Hash ?? self!new-depends('runtime') !! $depends;
+        return self!depends2specs($.depends ~~ Hash ?? $deps !! |$deps);
     }
     method build-depends-specs {
-        gather {
-            for $.build-depends.grep(*.defined) {
-                with Zef::Distribution::DependencySpecification.new(system-collapse($_)) {
-                    take $_ if $_.name;
-                }
-            }
-        }
+        my $orig-build-depends := system-collapse($.build-depends);
+        my $new-build-depends  := self!new-depends('build');
+        return self!depends2specs(|$orig-build-depends, $new-build-depends);
     }
-    method test-depends-specs  {
-        gather for $.test-depends.grep(*.defined) {
-            with Zef::Distribution::DependencySpecification.new(system-collapse($_)) {
-                take $_ if $_.name;
-            }
-        }
+    method test-depends-specs {
+        my $orig-test-depends := system-collapse($.test-depends);
+        my $new-test-depends  := self!new-depends('test');
+        return self!depends2specs(|$orig-test-depends, $new-test-depends);
     }
 
     # make locating a module that is part of a distribution (ex. URI::Escape of URI) easier.

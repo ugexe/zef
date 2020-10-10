@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 25;
+plan 34;
 
 use Zef;
 use Zef::Client;
@@ -35,10 +35,10 @@ my $json = q:to/META6/;
     META6
 
 my $dist = Zef::Distribution.new(|Rakudo::Internals::JSON.from-json($json));
-is $dist.depends-specs[0].name, 'Zef::Client';
-is $dist.depends-specs[0].from-matcher, 'Perl6';
-ok $dist.depends-specs[1].name ~~ any('mac', 'win', 'linux', 'unknown');
-is $dist.depends-specs[1].from-matcher, 'native';
+ok any($dist.depends-specs.map(*.name)) ~~ 'Zef::Client';
+ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'Perl6';
+ok any($dist.depends-specs.map(*.name)) ~~ any('mac', 'win', 'linux', 'unknown');
+ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'native';
 
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
     {
@@ -49,17 +49,66 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
         "description":"Test hash-based depends and native depends parsing",
         "license":"none",
         "depends": {
-            "by-distro.name": {
-                "win32": [ "Foo::Win32" ],
-                "linux": [ "Foo::Linux" ],
-                "" : [ "Foo::Unknown" ]
+            "runtime" : {
+                "requires" : [
+                    {
+                        "by-distro.name": {
+                            "win32": "Foo::Win32",
+                            "linux": "Foo::Linux",
+                            "" : "Foo::Unknown"
+                        }
+                    }
+                ]
             }
         },
         "provides": { }
     }
     META6
-    ok $dist.depends-specs[0].name ~~ any("Foo::Win32", "Foo::Linux", "Foo::Unknown")
-        or note $dist.depends-specs;
+    ok any($dist.depends-specs.map(*.name)) ~~ any("Foo::Win32", "Foo::Linux", "Foo::Unknown");
+    ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'Perl6';
+}
+
+# mixed depends types
+with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
+    {
+        "perl":"6",
+        "name":"Test::Complex::Depends",
+        "version":"0",
+        "auth":"github:stranger",
+        "description":"Test hash-based depends and native depends parsing",
+        "license":"none",
+        "build-depends" : [ "Foo::Build" ],
+        "test-depends" : [ "Foo::Test" ],
+        "depends": {
+            "runtime" : {
+                "requires" : [
+                    {
+                        "by-distro.name": {
+                            "win32": "Win32::Runtime",
+                            "linux": "Linux::Runtime",
+                            "" : "Unknown::Runtime"
+                        }
+                    }
+                ]
+            },
+            "build" : {
+                "requires" : [ "Foo::BuildX" ]
+            },
+            "test" : {
+                "requires" : [ "Foo::TestX" ]
+            }
+        },
+        "provides": { }
+    }
+    META6
+    is $dist.depends-specs.elems, 1;
+    is $dist.build-depends-specs.elems, 2;
+    is $dist.test-depends-specs.elems, 2;
+    ok any($dist.depends-specs.map(*.name)) ~~ any("Win32::Runtime", "Linux::Runtime", "Unknown::Runtime");
+    ok any($dist.build-depends-specs.map(*.name)) ~~ 'Foo::Build';
+    ok any($dist.build-depends-specs.map(*.name)) ~~ 'Foo::BuildX';
+    ok any($dist.test-depends-specs.map(*.name)) ~~ 'Foo::Test';
+    ok any($dist.test-depends-specs.map(*.name)) ~~ 'Foo::TestX';
 }
 
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {

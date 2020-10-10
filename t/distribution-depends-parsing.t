@@ -55,7 +55,7 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
                         "by-distro.name": {
                             "win32": ["Foo::Win32_1", "Foo::Win32_2"],
                             "linux": ["Foo::Linux_1", "Foo::Linux_2"],
-                            "" : ["Foo::Unknown", "Foo::Unknown_2"]
+                            "" : ["Foo::Unknown_1", "Foo::Unknown_2"]
                         }
                     }
                 ]

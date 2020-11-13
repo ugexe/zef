@@ -57,7 +57,7 @@ class Zef::Client {
         :$!installer              = Zef::Install.new(:backends(|$!config<Install>)),
         :$!tester                 = Zef::Test.new(:backends(|$!config<Test>)),
         :$!reporter               = Zef::Report.new(:backends(|$!config<Report>)),
-        :$!recommendation-manager = Zef::Repository.new(:backends($!config<Repository>.map({ $_<options><cache> = $!cache; $_<options><fetcher> = $!fetcher; $_ }).Slip)),
+        :$!recommendation-manager = Zef::Repository.new(:backends($!config<Repository>.map({ $_<options><cache> //= $!cache; $_<options><fetcher> = $!fetcher; $_ }).Slip)),
     ) {
         mkdir $!cache unless $!cache.IO.e;
 

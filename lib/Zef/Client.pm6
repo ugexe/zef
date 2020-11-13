@@ -61,8 +61,14 @@ class Zef::Client {
     ) {
         mkdir $!cache unless $!cache.IO.e;
 
-        @!ignore = <Test NativeCall Telemetry CompUnit::Repository::Staging snapper experimental newline>\
-            .map({ Zef::Distribution::DependencySpecification.new($_) });
+        # Ignore CORE modules to speed up searches and to avoid dual-life issues until CORE is more strictly versioned
+        @!ignore = CompUnit::RepositoryRegistry
+                    .repository-for-name('core')
+                    .candidates('CORE')
+                    .map(*.meta<provides>.keys.Slip)
+                    .unique
+                    .map({ Zef::Distribution::DependencySpecification.new($_) })
+        ;
     }
 
     method find-candidates(Bool :$upgrade, *@identities ($, *@)) {

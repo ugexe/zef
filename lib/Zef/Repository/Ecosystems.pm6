@@ -12,6 +12,7 @@ class Zef::Repository::Ecosystems does Repository {
     has $.cache;
     has $.update-counter;
     has @!dists;
+    has %!short-name-lookup;
 
     method id(--> Str) { $?CLASS.^name.split('+', 2)[0] ~ "<{$!name}>" }
 
@@ -67,18 +68,28 @@ class Zef::Repository::Ecosystems does Repository {
         my @searchable-identities = %specs.classify({ .value.from-matcher })<Perl6>.grep(*.defined).hash.keys;
         return ().Seq unless @searchable-identities;
 
-        my @matches = self!gather-dists.map: -> $dist {
-            @searchable-identities.grep({ $dist.contains-spec(%specs{$_}, :$strict) }).map({
+        # populate %!short-name-lookup
+        $ = self!gather-dists;
+
+        my $grouped-results := @searchable-identities.map: -> $searchable-identity {
+            my $wanted-spec         := %specs{$searchable-identity};
+            my $wanted-short-name   := $wanted-spec.name;
+            my $dists-to-search     := $strict ?? %!short-name-lookup{$wanted-short-name}.grep(*.so) !! %!short-name-lookup{%!short-name-lookup.keys.grep(*.contains($wanted-short-name))}.map(*.Slip).grep(*.so);
+            my $matching-candidates := $dists-to-search.grep(*.contains-spec($wanted-spec, :$strict)).map({
                 Candidate.new(
-                    dist => $dist,
-                    uri  => ($dist.source-url || $dist.hash<support><source>),
-                    as   => $_,
+                    dist => $_,
+                    uri  => ($_.source-url || $_.hash<support><source>),
+                    as   => $searchable-identity,
                     from => self.id,
                 );
-            }).Slip
+            });
+            $matching-candidates;
         }
 
-        return @matches;
+        # ((A_Match_1, A_Match_2), (B_Match_1)) -> ( A_Match_1, A_Match_2, B_Match_1)
+        my $results := $grouped-results.map(*.Slip);
+
+        return @$results;
     }
 
     method !package-list-path(--> IO::Path) { self.IO.child($!name ~ '.json') }
@@ -112,7 +123,29 @@ class Zef::Repository::Ecosystems does Repository {
         return @!dists if +@!dists;
 
         @!dists = eager gather for self!slurp-package-list -> $meta {
-            take($_) with try Zef::Distribution.new(|%($meta));
+            with try Zef::Distribution.new(|%($meta)) -> $dist {
+                # Keep track of out namespaces we are going to index later
+                my @short-names-to-index;
+
+                # Take the dist identity
+                push @short-names-to-index, $dist.name;
+
+                # Take the identity of each module in provides
+                # * The fast path doesn't work with provides entries that are long names (i.e. Foo:ver<1>)
+                # * The slow path results in parsing the module names in every distributions provides even though
+                #   long names don't work in rakudo (yet)
+                # * ...So maintain future correctness while getting the fast path in 99% of cases by doing a
+                #   cheap check for '<' and parsing only if needed
+                append @short-names-to-index, $dist.meta<provides>.keys.first(*.contains('<'))
+                    ?? $dist.provides-specs.map(*.name) # slow path
+                    !! $dist.meta<provides>.keys;       # fast path
+
+                # Index the short name to the distribution. Make sure entries are
+                # unique since dist name and one module name will usually match.
+                push %!short-name-lookup{$_}, $dist for @short-names-to-index.unique;
+
+                take($dist);
+            }
         }
     }
 }

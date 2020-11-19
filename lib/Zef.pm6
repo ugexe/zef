@@ -99,6 +99,11 @@ role Repository {
     # make a remote query not so much (maybe it could list the most recent X
     # modules... or maybe it just doesn't implement it at all)
     # method available { }
+
+    # Optional method that tells a repository to 'sync' its database.
+    # Useful for repositories that store the database / file locally.
+    # Not useful for query based resolution e.g. metacpan
+    # method update { }
 }
 
 # Used by the phase's loader (i.e Zef::Fetch) to test that the plugin can

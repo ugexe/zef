@@ -2,7 +2,7 @@ use Zef;
 use Zef::Utils::FileSystem;
 use Zef::Utils::URI;
 
-class Zef::Fetch does Pluggable {
+class Zef::Fetch does Fetcher does Pluggable {
     submethod TWEAK(|) {
         @ = self.plugins; # preload plugins
     }

@@ -223,7 +223,7 @@ package Zef::CLI {
     #| Get a list of possible distribution candidates for the given terms
     multi MAIN('search', Int :$wrap = False, :$update, *@terms ($, *@)) {
         my $client = get-client(:config($CONFIG), :$update);
-        my @results = $client.search(@terms);
+        my @results = $client.search(@terms).unique(:as({ .from ~ ' ' ~ .dist.identity }));
 
         say "===> Found " ~ +@results ~ " results";
 

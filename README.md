@@ -1,30 +1,22 @@
-=pod
-
-=encoding utf8
-
-=head2 Zef
+## Zef
 
 Raku / Perl6 Module Management
 
-=for HTML <a href="https://circleci.com/gh/ugexe/zef"><img src="https://circleci.com/gh/ugexe/zef.svg?style=shield"></a>
-          <a href="https://travis-ci.org/ugexe/zef"><img src="https://travis-ci.org/ugexe/zef.svg?branch=master"></a>
-          <a href="https://ci.appveyor.com/project/ugexe/zef/branch/master"><img src="https://ci.appveyor.com/api/projects/status/github/ugexe/zef?branch=master&passingText=Windows%20-%20OK&failingText=Windows%20-%20FAIL&pendingText=Windows%20-%20pending&svg=true"></a>
+# Installation
 
-=head1 Installation
-
-=head4 Manual
+#### Manual
 
     $ git clone https://github.com/ugexe/zef.git
     $ cd zef
     $ perl6 -I. bin/zef install .
 
-=head4 Rakubrew
+#### Rakubrew
 
 To install via rakubrew, please use the following command:
 
     $ rakubrew build-zef
 
-=head1 USAGE
+# USAGE
 
     zef --help
     zef --version
@@ -74,16 +66,16 @@ To install via rakubrew, please use the following command:
     # launch browser to named support urls from meta data
     zef browse zef bugtracker
 
-=head2 More CLI
+## More CLI
 
-=head4 B<install> [*@identities]
+#### **install** \[\*@identities\]
 
 Note: The install process does not install anything until all phases have completed. So, if the user requested to
-C<install A>, and A required module B: both would be downloaded, potentially built, tested, and installed -- but only
+`install A`, and A required module B: both would be downloaded, potentially built, tested, and installed -- but only
 if both passed all their tests. For example: if module A failed its tests, then module B would not be installed
 (even if it passed its own tests) unless forced.
 
-[C<@identities>] can take the form of a file path (starting with B<.> or B</>), URLs, paths, or identities:
+\[`@identities`\] can take the form of a file path (starting with **.** or **/**), URLs, paths, or identities:
 
     # IDENTITY
     zef install CSV::Parser
@@ -101,7 +93,7 @@ if both passed all their tests. For example: if module A failed its tests, then 
 A request may contain any number and combination of these. Paths and URLs will be resolved first so they are available
 to fulfill any dependencies of other requested identities.
 
-B<Options>
+**Options**
 
     # Install to a custom locations
     --install-to=<id> # site/home/vendor/perl, or
@@ -171,8 +163,7 @@ B<Options>
     # Skip refreshing for a specific ecosystem module index
     --/update=[ecosystem]
 
-
-B<ENV Options>
+**ENV Options**
 
     # Number of simultaneous distributions/jobs to process for the corresponding phases (see: --[phase]-degree options)
     ZEF_FETCH_DEGREE=5
@@ -188,27 +179,27 @@ B<ENV Options>
     # Path to config file (see: --config-path option)
     ZEF_CONFIG_PATH=$PWD/resources/config.json
 
-=head4 B<uninstall> [*@identities]
+#### **uninstall** \[\*@identities\]
 
 Uninstall the specified distributions
 
 Note: Requires a bleeding edge rakudo (not available in 6.c)
 
-=head4 B<update>
+#### **update**
 
-Update the package indexes for all C<Repository> backends
+Update the package indexes for all `Repository` backends
 
-Note: Some C<Repository> backends, like the default Ecosystems, have an C<auto-update> option
-in C<resources/config.json> that can be enabled. This should be the number of hours until it should
+Note: Some `Repository` backends, like the default Ecosystems, have an `auto-update` option
+in `resources/config.json` that can be enabled. This should be the number of hours until it should
 auto update based on the file system last modified time of the ecosystem json file location.
 
-=head4 B<upgrade> [*@identities] I<BETA>
+#### **upgrade** \[\*@identities\] _BETA_
 
 Upgrade specified identities. If no identities are provided, zef attempts to upgrade all installed distributions.
 
-=head4 B<search> [$identity]
+#### **search** \[$identity\]
 
-How these are handled depends on the C<Repository> engine used, which by default is C<Zef::Repository::EcosystemsE<gt>p6cE<lt>>
+How these are handled depends on the `Repository` engine used, which by default is `Zef::Repository::Ecosystems>p6c<`
 
     $ zef -v --cpan search URI
     ===> Found 4 results
@@ -221,7 +212,7 @@ How these are handled depends on the C<Repository> engine used, which by default
     4 |Zef::Repository::Ecosystems<cpan> |URI:ver<0.000.001>|A URI impleme...
     -------------------------------------------------------------------------
 
-=head4 B<info> [$identity]
+#### **info** \[$identity\]
 
 View meta information of a distribution
 
@@ -257,12 +248,12 @@ View meta information of a distribution
     7 |IO::Capture::Simple|✓
     ---------------------------------
 
-B<Options>
+**Options**
 
     # Extra details (eg, list dependencies and which ones are installed)
     -v
 
-=head4 B<list> [*@from]
+#### **list** \[\*@from\]
 
 List known available distributions
 
@@ -275,9 +266,9 @@ List known available distributions
 
 Note that not every Repository may provide such a list, and such lists may only
 be a subset. For example: We may not be able to get a list of every distribution
-on cpan, but we *can* get the $x most recent additions (we use 100 for now).
+on cpan, but we \*can\* get the $x most recent additions (we use 100 for now).
 
-[C<@from>] allows you to show results from specific repositories only:
+\[`@from`\] allows you to show results from specific repositories only:
 
     zef --installed list perl   # Only list modules installed by rakudo itself
 
@@ -287,7 +278,7 @@ on cpan, but we *can* get the $x most recent additions (we use 100 for now).
 
 Otherwise results from all enabled repositories will be returned.
 
-B<Options>
+**Options**
 
     # Only list installed distributions
     --installed
@@ -295,37 +286,37 @@ B<Options>
     # Additionally list the modules of discovered distributions
     -v
 
-=head4 B<depends> [$identity]
+#### **depends** \[$identity\]
 
-List direct and transitive dependencies to the first successful build graph for C<$identity>
+List direct and transitive dependencies to the first successful build graph for `$identity`
 
     $ zef depends Cro::SSL
     Cro::Core:ver<0.7>
     IO::Socket::Async::SSL:ver<0.3>
     OpenSSL:ver<0.1.14>:auth<github:sergot>
 
-=head4 B<rdepends> [$identity]
+#### **rdepends** \[$identity\]
 
-List available distributions that directly depend on C<$identity>
+List available distributions that directly depend on `$identity`
 
     $ zef rdepends Net::HTTP
     Minecraft-Tools:ver<0.1.0>
     LendingClub:ver<0.1.0>
 
-=head4 B<fetch> [*@identities]
+#### **fetch** \[\*@identities\]
 
 Fetches candidates for given identities
 
-=head4 B<test> [*@paths]
+#### **test** \[\*@paths\]
 
-Run tests on each distribution located at [C<@paths>]
+Run tests on each distribution located at \[`@paths`\]
 
-=head4 B<build> [*@paths]
+#### **build** \[\*@paths\]
 
-Run the Build.pm file located in the given [C<@paths>]
+Run the Build.pm file located in the given \[`@paths`\]
 
 If you want to create a build hook, put the following dependency-free boilerplate
-in a file named C<Build.pm> at the root of your distribution:
+in a file named `Build.pm` at the root of your distribution:
 
     class Build {
         method build($dist-path) {
@@ -334,22 +325,22 @@ in a file named C<Build.pm> at the root of your distribution:
         }
     }
 
-Set the env variable B<ZEF_BUILDPM_DEBUG=1> or use the I<--debug> flag for additional debugging information.
+Set the env variable **ZEF\_BUILDPM\_DEBUG=1** or use the _--debug_ flag for additional debugging information.
 
-I<Note: In the future, a more appropriate hooking solution will replace this.>
+_Note: In the future, a more appropriate hooking solution will replace this._
 
-=head4 B<look> [$identity]
+#### **look** \[$identity\]
 
 Fetches the requested distribution and any dependencies (if requested), changes the directory to that of the fetched
 distribution, and then stops program execution. This allows you modify or look at the source code before manually
-continuing the install via C<zef install .>
+continuing the install via `zef install .`
 
-Note that the path to any dependencies that needed to be fetched will be set in env at B<PERL6LIB>, so you should
+Note that the path to any dependencies that needed to be fetched will be set in env at **PERL6LIB**, so you should
 be able to run any build scripts, tests, or complete a manual install without having to specify their locations.
 
-=head4 B<browse> $identity [bugtracker | homepage | source]
+#### **browse** $identity \[bugtracker | homepage | source\]
 
-B<Options>
+**Options**
 
     # disables launching a browser window (just shows url)
     --/open
@@ -364,9 +355,9 @@ Output the url and launch a browser to open it.
     $ zef browse Net::HTTP bugtracker --/open
     https://github.com/ugexe/Perl6-Net--HTTP/issues
 
-=head4 B<locate> [$identity, $name-path, $sha1-id]
+#### **locate** \[$identity, $name-path, $sha1-id\]
 
-B<Options>
+**Options**
 
     # The argument is a sha1-id (otherwise assumed to be an identity or name-path)
     --sha1
@@ -385,27 +376,27 @@ Lookup a locally installed module by $identity, $name-path, or $sha1-id
     ===> From Distribution: zef:ver<*>:auth<github:ugexe>:api<>
     Zef::CLI => ~/rakudo/install/share/perl6/site/sources/A9948E7371E0EB9AFDF1EEEB07B52A1B75537C31
 
-=head4 B<nuke> [RootDir | TempDir | StoreDir]
+#### **nuke** \[RootDir | TempDir | StoreDir\]
 
 Deletes all paths in the specific configuration directory
 
-=head4 B<nuke> [site | home]
+#### **nuke** \[site | home\]
 
 Deletes all paths that are rooted in the prefix of the matching CompUnit::Repository name
 
     # uninstall all modules
     $ zef nuke site home
 
-=head2 Output Verbosity
+## Output Verbosity
 
 You can control the logging level using the following flags:
 
     # More/less detailed output
     --error, --warn, --info (default), --verbose (-v), --debug
 
-=head1 Global Configuration
+# Global Configuration
 
-=head3 Finding the configuration file
+### Finding the configuration file
 
 You can always see the configuration file that will be used by running:
 
@@ -415,78 +406,61 @@ In most cases the default configuration combined with command line options shoul
 
 If you are most users (e.g. not: power users, packagers, zef plugin developers) you hopefully don't care about this section! 
 
-=head3 How the configuration file is chosen
+### How the configuration file is chosen
 
 The configuration file will be chosen at runtime from one of two (technically four) locations, and one can affect the others (this is not really a design decision and suggestions and PRs are welcome).
 
-First, and the most precise way, is to specify the config file by passing C<--config-path="..."> to any zef command.
+First, and the most precise way, is to specify the config file by passing `--config-path="..."` to any zef command.
 
-Second, third, and fourth we look at the path pointed to by C<%?RESOURCESE<lt>config.jsonE<gt>>. This will point to C<$zef-dir/resources/config.json>, where C<$zef-dir> will be either:
+Second, third, and fourth we look at the path pointed to by `%?RESOURCES<config.json>`. This will point to `$zef-dir/resources/config.json`, where `$zef-dir` will be either:
 
-=over 4
+- The prefix of a common configuration directory, such as `$XDG_CONFIG_HOME`  or `$HOME/.config`.
+- The prefix of a rakudo installation location - This is the case if the modules loaded for bin/zef come from an installation CompUnit::Repository.
+- The current working directory `$*CWD` - This is the case when modules loaded for bin/zef come from a non-installation CompUnit::Repository (such as `-I $dist-path`).
 
-=item * The prefix of a common configuration directory, such as C<$XDG_CONFIG_HOME>  or C<$HOME/.config>.
+    To understand how this is chosen, consider:
 
-=item * The prefix of a rakudo installation location - This is the case if the modules loaded for bin/zef come from an installation CompUnit::Repository.
+        # Modules not loaded from an ::Installation,
+        # so %?RESOURCES is $*CWD/resources
+        $ perl6 -I. bin/zef --help
+        ...
+        CONFIGURATION /home/user/perl6/zef/resources/config.json
+        ...
 
-=item * The current working directory C<$*CWD> - This is the case when modules loaded for bin/zef come from a non-installation CompUnit::Repository (such as C<-I $dist-path>).
+        # Installed zef script loads modules from an ::Installation,
+        # so %?RESOURCES is $perl6-share-dir/site/resources
+        $ zef --help
+        ...
+        CONFIGURATION /home/user/perl6/install/share/perl6/site/resources/EE5DBAABF07682ECBE72BEE98E6B95E5D08675DE.json
+        ...
 
-To understand how this is chosen, consider:
-
-    # Modules not loaded from an ::Installation,
-    # so %?RESOURCES is $*CWD/resources
-    $ perl6 -I. bin/zef --help
-    ...
-    CONFIGURATION /home/user/perl6/zef/resources/config.json
-    ...
-
-    # Installed zef script loads modules from an ::Installation,
-    # so %?RESOURCES is $perl6-share-dir/site/resources
-    $ zef --help
-    ...
-    CONFIGURATION /home/user/perl6/install/share/perl6/site/resources/EE5DBAABF07682ECBE72BEE98E6B95E5D08675DE.json
-    ...
-
-=back
-
-This config is loaded, but it is not yet the chosen config! We check that temporary config's C<%configE<lt>RootDirE<gt>> for valid json in a file named C<config.json> (i.e. C<%configE<lt>RootDirE<gt>/config.json>). This can be confusing (so it may go away or be refined - PRs welcome) but for most cases it just means C<$*HOME/.zef/config.json> will override an installed zef configuration file.
+This config is loaded, but it is not yet the chosen config! We check that temporary config's `%config<RootDir>` for valid json in a file named `config.json` (i.e. `%config<RootDir>/config.json`). This can be confusing (so it may go away or be refined - PRs welcome) but for most cases it just means `$*HOME/.zef/config.json` will override an installed zef configuration file.
 
 To summarize:
 
-=over 4
+- You can edit the `resources/config.json` file before you install zef.
 
-=item * You can edit the C<resources/config.json> file before you install zef.
+    When you `perl6 -I. bin/zef install .` that configuration file be be used to install zef and will also be installed with zef such that it will be the default.
 
-When you C<perl6 -I. bin/zef install .> that configuration file be be used to install zef and will also be installed with zef such that it will be the default.
+- You can create a `%config<RootDir>/config.json` file.
 
-=item * You can create a C<%configE<lt>RootDirE<gt>/config.json> file.
+    Where `%config<RootDir>`
+    comes from the previously mentioned `%?RESOURCES<config.json>`'s `RootDir` field (`$*HOME/.zef` in most cases), to allow overriding zef config behavior on a per user basis (allows setting different `--install-to` targets for, say, a root user and a regular user). Since this new config file could have a different `RootDir` than the default config (used to find the new one in the first place) this behavior may be changed in the future to be less confusing.
 
-Where C<%configE<lt>RootDirE<gt>>
-comes from the previously mentioned C<%?RESOURCESE<lt>config.jsonE<gt>>'s C<RootDir> field (C<$*HOME/.zef> in most cases), to allow overriding zef config behavior on a per user basis (allows setting different C<--install-to> targets for, say, a root user and a regular user). Since this new config file could have a different C<RootDir> than the default config (used to find the new one in the first place) this behavior may be changed in the future to be less confusing.
+- You can override both of the previous entries by passing `zef --config-path="$path" <any command>`
 
-=item * You can override both of the previous entries by passing C<zef --config-path="$path" E<lt>any commandE<gt>>
+### Configuration fields
 
-=back
+#### Basic Settings
 
-=head3 Configuration fields
+- **RootDir** - Where zef will look for a custom config.json file
+- **TempDir** - A staging area for items that have been fetched and need to be extracted/moved
+- **StoreDir** - Where zef caches distributions, package lists, etc after they've been fetched and extracted
+- **DefaultCUR** - This sets the default value for `--install-to="..."`. The default value of `auto` means it will first try installing to rakudo's installation prefix, and if its not writable by the current user it will install to `$*HOME/.perl6`. These directories are not chosen by zef - they are actually represented by the magic strings `site` and `home` (which, like `auto`, are valid values despite not being paths along with `vendor` and `perl`)
 
-=head4 Basic Settings
+#### Phases / Plugins Settings
 
-=over 4
-
-=item * B<RootDir> - Where zef will look for a custom config.json file
-
-=item * B<TempDir> - A staging area for items that have been fetched and need to be extracted/moved
-
-=item * B<StoreDir> - Where zef caches distributions, package lists, etc after they've been fetched and extracted
-
-=item * B<DefaultCUR> - This sets the default value for C<--install-to="...">. The default value of C<auto> means it will first try installing to rakudo's installation prefix, and if its not writable by the current user it will install to C<$*HOME/.perl6>. These directories are not chosen by zef - they are actually represented by the magic strings C<site> and C<home> (which, like C<auto>, are valid values despite not being paths along with C<vendor> and C<perl>)
-
-=back
-
-=head4 Phases / Plugins Settings
-
-These consist of an array of hashes that describe how to instantiate some class that fulfills the appropriate interface from I<Zef.pm> (C<Repository> C<Fetcher> C<Extractor> C<Builder> C<Tester>)
+These consist of an array of hashes that describe how to instantiate some class that fulfills the appropriate interface from _Zef.pm_ (`Repository` `Fetcher` `Extractor` `Builder` `Tester`)
 
 The descriptions follow this format:
 
@@ -501,41 +475,34 @@ and are instantiated via
 
     ::($hash<module>).new(|($hash<options>)
 
-=over 4
+- **short-name** - This adds an enable and disable flag by the same name to the CLI (e.g. `--p6c` and `--/p6c`) and is used when referencing which object took some action.
+- **enabled** - Set to 0 to skip over the object during consideration (it will never be loaded). If omitted or if the value is non 0 then it will be enabled for use.
+- **module** - The name of the class to instantiate. While it doesn't technically have to be a module it _does_ need to be a known namespace to `require`.
+- **options** - These are passed to the objects `new` method and may not be consistent between modules as they are free to implement their own requirements.
 
-=item * B<short-name> - This adds an enable and disable flag by the same name to the CLI (e.g. C<--p6c> and C<--/p6c>) and is used when referencing which object took some action.
-
-=item * B<enabled> - Set to 0 to skip over the object during consideration (it will never be loaded). If omitted or if the value is non 0 then it will be enabled for use.
-
-=item * B<module> - The name of the class to instantiate. While it doesn't technically have to be a module it I<does> need to be a known namespace to C<require>.
-
-=item * B<options> - These are passed to the objects C<new> method and may not be consistent between modules as they are free to implement their own requirements.
-
-=back
-
-See the configuration file in L<resources/config.json|https://github.com/ugexe/zef/blob/master/resources/config.json> for a
+See the configuration file in [resources/config.json](https://github.com/ugexe/zef/blob/master/resources/config.json) for a
 little more information on how plugins are invoked.
 
-You can see debug output related to chosing and loading plugins by setting the env variable B<ZEF_PLUGIN_DEBUG=1>
+You can see debug output related to chosing and loading plugins by setting the env variable **ZEF\_PLUGIN\_DEBUG=1**
 
-=head1 FAQ
+# FAQ
 
-=head3 CPAN?
+### CPAN?
 
 CPAN is now used as a default (alongside the familiar p6c "ecosystem").
 
     # Explicitly enable cpan (now defaults to the same as `zef search zef`)
     $ zef --cpan search Inline::Perl5
 
-=head3 Proxy support?
+### Proxy support?
 
 All the default fetching plugins have proxy support, but you'll need to refer to the backend program's
-(wget, curl, git, etc) docs. You may need to set an I<ENV> variable, or you may need to add a command line
-option for that specific plugin in I<resources/config.json>
+(wget, curl, git, etc) docs. You may need to set an _ENV_ variable, or you may need to add a command line
+option for that specific plugin in _resources/config.json_
 
-=head3 Custom installation locations?
+### Custom installation locations?
 
-Pass a path to the I<-to> / I<--install-to> option and prefix the path with C<inst#> (unless you know what you're doing)
+Pass a path to the _-to_ / _--install-to_ option and prefix the path with `inst#` (unless you know what you're doing)
 
     $ zef -to="inst#/home/perl6/custom" install Text::Table::Simple
     ===> Searching for: Text::Table::Simple
@@ -553,8 +520,6 @@ To make the custom location discoverable:
     $ perl6 -Iinst#/home/perl6/custom -e "use Text::Table::Simple; say 'ok'"
     ok
 
-=head3 Test reporting?
+### Test reporting?
 
-This feature can be enabled by passing `--p6ctesters` (and having C<Net::HTTP> installed) or `--cpantesters` (and having C<Zef::CPANReporter> installed)
-
-=cut
+This feature can be enabled by passing \`--p6ctesters\` (and having `Net::HTTP` installed) or \`--cpantesters\` (and having `Zef::CPANReporter` installed)

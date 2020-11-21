@@ -13,51 +13,160 @@ use Zef::Install;
 use Zef::Report;
 
 class Zef::Client {
-    has $.cache;
-    has $.indexer;
-    has $.fetcher;
-    has $.recommendation-manager;
-    has $.extractor;
-    has $.tester;
-    has $.builder;
-    has $.installer;
-    has $.reporter;
-    has $.config;
 
-    has $.logger = Supplier.new;
+    =begin pod
 
-    has @.exclude; # user supplied
-    has @!ignore;  # internal use
+    =title Zef::Client - Task coordinator for raku distribution installation workflows
 
+    =head1 Synopsis
+
+    =begin code :lang<raku>
+
+        use Zef::Client;
+        use Zef::Config;
+
+        # Get default config (see resources/config.json for more details on config options)
+        my $config-file = Zef::Config::guess-path();
+        my $config      = Zef::Config::parse-file($config-file);
+
+        # Create a client
+        my $client = Zef::Client.new(:$config);
+
+        # Add some basic logging so there is output to see
+        my $logger = $client.logger.Supply;
+        $logger.tap: -> $m { say $m.<message> }
+
+        # Use the client to resolve the requested candidates
+        my @requested-candidates    = $client.find-candidates('Distribution::Common::Remote');
+        my @dependencies-candidates = $client.find-prereq-candidates(|@requested-candidates);
+        my @candidates              = |@requested-candidates, |@dependencies-candidates;
+        say "Found " ~ @candidates.elems ~ " candidates...";
+
+        # Use the client to fetch/build/test/install candidates to the default raku repository
+        my CompUnit::Repository @install-to = CompUnit::RepositoryRegistry.repository-for-name('site');
+        $client.make-install(|@candidates, :to(@install-to));
+        say "Installed candidates!";
+
+    =end code
+
+    =head1 Description
+
+    A class that coordinates the various stages of a raku distribution installation workflow based on
+    various configuration parameters.
+
+    Additionally it provides slightly higher level facilities for fetching, extracting, etc, than the
+    e.g. C<Zef::Fetch>, C<Zef::Extract>, etc modules it uses underneath. For example C<Zef::Client.fetch> 
+    may run an extraction step unlike C<Zef::Fetch.fetch>, since the former is in the context of a distribution
+    (i.e. we want the distribution at the specific commit/tag, not the HEAD immediately after fetching)
+
+    =end pod
+
+    #| Where zef will cache index databases (p6c.json, etc) and distributions
+    has IO::Path $.cache;
+
+    #| Repository abstraction used to query for distributions
+    has Zef::Repository $.recommendation-manager; # todo: rename this?
+
+    #| Fetcher abstraction used to fetch distributions, ecosystem databases, etc
+    has Zef::Fetch $.fetcher;
+
+    #| Extractor abstraction used to e.g. extract or checkout data sources
+    has Zef::Extract $.extractor;
+
+    #| Builder abstraction used to handle running the build phase of a distribution
+    has Zef::Build $.builder;
+
+    #| Tester abstraction used to handle running the test phase of a distribution
+    has Zef::Test $.tester;
+
+    #| Installer abstraction used to handle the install phase of a distribution
+    #| (we theoretically could install Perl modules with an adapter for instance)
+    has Zef::Install $.installer;
+
+    #| Reporter abstraction to to handle the report phase of a distribution
+    has Zef::Report $.reporter;
+
+    #| The config data (see resources/config.json)
+    has %.config;
+
+    #| Supplier where logging events originate
+    #| For example to get 'test' related event you might use:
+    #|    $client.logger.Supply.grep({ .<phase> eq "TEST" })
+    has Supplier $.logger = Supplier.new;
+
+    #| Internal use store for keeping track of module names to skip
+    has @!ignore;
+
+    #
+    # NOTE: All attributes below this point have CLI equivalents 
+    #
+
+    #| User supplied module names that will be skipped
+    #| For example to skip a native perl dependency like perl:from<bin>:
+    #|    :exclude("perl");
+    #| or from the command line:
+    #|    --exclude=perl
+    has @.exclude;
+
+    #| Continue resolving dependencies even if there is an error in doing so
     has Bool $.force-resolve is rw = False;
-    has Bool $.force-fetch   is rw = False;
+
+    #| Continue fetching dependencies even if there is an error in doing so
+    #| (I don't think there isn't a good reason to ever set this to True)
+    has Bool $.force-fetch is rw = False;
+
+    #| Continue extracting dependencies even if there is an error in doing so
+    #| (I don't think there isn't a good reason to ever set this to True)
     has Bool $.force-extract is rw = False;
-    has Bool $.force-build   is rw = False;
-    has Bool $.force-test    is rw = False;
+
+    #| Continue building dependencies even if there is an error in doing so
+    has Bool $.force-build is rw = False;
+
+    #| Continue testing dependencies even if there is an error in doing so
+    has Bool $.force-test is rw = False;
+
+    #| Continue installing dependencies even if there is an error in doing so
     has Bool $.force-install is rw = False;
 
+    #| The max number of items to fetch concurrently
     has Int $.fetch-degree   is rw = 1;
+
+    #| The max number of distributions to test concurrently
     has Int $.test-degree    is rw = 1;
 
+    #| The number of seconds to wait before aborting a fetching task
     has Int $.fetch-timeout   is rw = 600;
+
+    #| The number of seconds to wait before aborting a extracting task
     has Int $.extract-timeout is rw = 3600;
+
+    #| The number of seconds to wait before aborting a building task
     has Int $.build-timeout   is rw = 3600;
+
+    #| The number of seconds to wait before aborting a testing task
     has Int $.test-timeout    is rw = 3600;
+
+    #| The number of seconds to wait before aborting a installing task
     has Int $.install-timeout is rw = 3600;
 
-    has Bool $.depends       is rw = True;
+    #| If run time dependencies should be considered when processing distributions
+    has Bool $.depends is rw = True;
+
+    #| If build time dependencies should be considered when building distributions
     has Bool $.build-depends is rw = True;
-    has Bool $.test-depends  is rw = True;
+
+    #| If test time dependencies should be considered when building distributions
+    has Bool $.test-depends is rw = True;
 
     submethod TWEAK(
-        :$!cache                  = $!config<StoreDir>,
-        :$!fetcher                = Zef::Fetch.new(:backends(|$!config<Fetch>)),
-        :$!extractor              = Zef::Extract.new(:backends(|$!config<Extract>)),
-        :$!builder                = Zef::Build.new(:backends(|$!config<Build>)),
-        :$!installer              = Zef::Install.new(:backends(|$!config<Install>)),
-        :$!tester                 = Zef::Test.new(:backends(|$!config<Test>)),
-        :$!reporter               = Zef::Report.new(:backends(|$!config<Report>)),
-        :$!recommendation-manager = Zef::Repository.new(:backends($!config<Repository>.map({ $_<options><cache> //= $!cache; $_<options><fetcher> = $!fetcher; $_ }).Slip)),
+        :$!cache                  = %!config<StoreDir>.IO,
+        :$!fetcher                = Zef::Fetch.new(:backends(|%!config<Fetch>)),
+        :$!extractor              = Zef::Extract.new(:backends(|%!config<Extract>)),
+        :$!builder                = Zef::Build.new(:backends(|%!config<Build>)),
+        :$!installer              = Zef::Install.new(:backends(|%!config<Install>)),
+        :$!tester                 = Zef::Test.new(:backends(|%!config<Test>)),
+        :$!reporter               = Zef::Report.new(:backends(|%!config<Report>)),
+        :$!recommendation-manager = Zef::Repository.new(:backends(%!config<Repository>.map({ $_<options><cache> //= $!cache; $_<options><fetcher> = $!fetcher; $_ }).Slip)),
     ) {
         mkdir $!cache unless $!cache.IO.e;
 
@@ -71,6 +180,7 @@ class Zef::Client {
         ;
     }
 
+    #| Return a matching candidate/distributino for each supplied identity
     method find-candidates(Bool :$upgrade, *@identities ($, *@)) {
         self.logger.emit({
             level   => INFO,
@@ -92,6 +202,11 @@ class Zef::Client {
 
         return @candidates;
     }
+
+    #| Similar to self.find-candidates, but this can be called recursively. Notably
+    #| it allows the message for the call to .find-candidates(...) to differentiate
+    #| between later calls to .find-prereq-candidates(...) (which calls !find-candidates
+    #| so it doesn't send the aforementioned logging message for a top level request).
     method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
         my $candidates := $!recommendation-manager.candidates(@identities, :$upgrade)\
             .grep(-> $candi { not @!exclude.first({$candi.dist.contains-spec($_)}) })\
@@ -99,6 +214,7 @@ class Zef::Client {
             .unique(:as(*.dist.identity));
     }
 
+    #| Return matching candidates that fulfill the dependencies (including transitive) for each supplied candidate/distribution
     method find-prereq-candidates(Bool :$skip-installed = True, Bool :$upgrade, :@certain, *@candis ($, *@)) {
         my @skip = @candis.map(*.dist);
 
@@ -231,7 +347,7 @@ class Zef::Client {
             die "Cannot determine a uri to fetch {$candi.as} from. Perhaps it's META6.json is missing an e.g. source-url"
                 unless $candi.uri;
 
-            my $tmp      = $!config<TempDir>.IO.child("{time}.{$*PID}.{(^10000).rand}");
+            my $tmp      = %!config<TempDir>.IO.child("{time}.{$*PID}.{(^10000).rand}");
             my $stage-at = $tmp.child($candi.uri.IO.basename);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
@@ -463,11 +579,12 @@ class Zef::Client {
         return @tested
     }
 
-    # xxx: needs some love
+    #| Search for identities from the various repository backends and returns the matching distributions
     method search(*@identities ($, *@), *%fields, Bool :$strict = False) {
         $!recommendation-manager.search(@identities, :$strict, |%fields);
     }
 
+    #| Uninstall a distribution from a given repository
     method uninstall(CompUnit::Repository :@from!, *@identities) {
         my @specs = @identities.map: { Zef::Distribution::DependencySpecification.new($_) }
         eager gather for self.list-installed(@from) -> $candi {
@@ -480,6 +597,7 @@ class Zef::Client {
         }
     }
 
+    #| Install a distribution to a given repository
     method install(:@curs, *@candidates ($, *@)) {
         my @installed = eager gather for @candidates -> $candi {
             self.logger.emit({
@@ -528,8 +646,7 @@ class Zef::Client {
         return @installed;
     }
 
-    # Unlike test/build/install/etc methods, this organizes multiples phases for multiples candidates.
-    # Eventually this will move back to a role/task based method of managing such phase dependencies.
+    #| This organizes and executes multiples phases for multiples candidates (test/build/install/etc)
     method make-install(
         CompUnit::Repository :@to!, # target CompUnit::Repository
         Bool :$fetch = True,        # try fetching whats missing
@@ -607,7 +724,7 @@ class Zef::Client {
                 message => "Filtering [FAIL] for {$candi.dist.?identity // $candi.as}: {$*error}",
             });
 
-            $*error = do given $!config<License> {
+            $*error = do given %!config<License> {
                 when .<blacklist>.?chars && any(|.<blacklist>) ~~ any('*', $candi.dist.meta<license> // '') {
                     "License blacklist configuration exists and matches {$candi.dist.meta<license> // 'n/a'} for {$candi.dist.name}";
                 }
@@ -681,6 +798,7 @@ class Zef::Client {
         my @installed = ?$serial ?? @linked-candidates.map({ |$installer($_) }) !! $installer(@linked-candidates);
     }
 
+    #| Return distributions that depend on the given identity
     method list-rev-depends($identity, Bool :$indirect) {
         my $spec  = Zef::Distribution::DependencySpecification.new($identity);
         my $dist  = self.list-available.first(*.dist.contains-spec($spec)).?dist || return [];
@@ -693,12 +811,12 @@ class Zef::Client {
         $rev-deps.unique(:as(*.dist.identity));
     }
 
+    #| Return all distributions from all repositories
     method list-available(*@recommendation-manager-names) {
         my $available := $!recommendation-manager.available(@recommendation-manager-names);
     }
 
-    # XXX: an idea is to make CURI install locations a Repository as well. then this method
-    # would be grouped into the above `list-available` method
+    #| Return all distributions in known CompUnit::Repository::Installation repositories
     method list-installed(*@curis) {
         my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
         my @repo-dirs  = @curs.map({.?prefix // .path-spec.?path}).map(*.IO); #.path-spec.?path is for CUR::Unknown
@@ -723,6 +841,7 @@ class Zef::Client {
         }
     }
 
+    #| Return distributions that are direct dependencies of the supplied distributions
     method list-dependencies(*@candis, :$from) {
         my $deps := gather for @candis -> $candi {
             take $_ for grep *.defined,
@@ -736,15 +855,18 @@ class Zef::Client {
         $deps.unique(:as(*.identity));
     }
 
+    #| Returns the best matching distributions from installed sources, in preferred order, similar to $*REPO.resolve
     method resolve($spec, :@at) {
         my $candis := self.list-installed(@at).grep(*.dist.contains-spec($spec));
         $candis.sort(*.dist.ver).sort(*.dist.api).reverse;
     }
 
+    #| Return true of one-or-more of the requested dependencies are already installed
     multi method is-installed(Zef::Distribution::DependencySpecification::Any $spec, |c) {
         self.is-installed(any($spec.specs, |c))
     }
 
+    #| Return true if the requested dependency is already installed
     multi method is-installed($spec, |c) {
         do given $spec.?from-matcher {
             when 'bin'    { so Zef::Utils::FileSystem::which($spec.name) }
@@ -753,6 +875,7 @@ class Zef::Client {
         }
     }
 
+    #| Return true of a native library can be seen by NativeCall
     method !native-library-is-installed($spec --> Bool) {
         use MONKEY-SEE-NO-EVAL;
         my $lib = "'$spec.name()'";
@@ -764,6 +887,7 @@ class Zef::Client {
         return True;
     }
 
+    #| Toplogical sort used to determine which dependency can be processed next in a given phase
     method sort-candidates(@candis, *%_) {
         my @tree;
         my $visit = sub ($candi, $from? = '') {
@@ -790,8 +914,7 @@ class Zef::Client {
         return @tree;
     }
 
-    # Adds appropriate include (-I / PERL6LIB) paths for dependencies
-    # This should probably be handled by the Candidate class... one day...
+    #| Adds appropriate include (-I / PERL6LIB) paths for dependencies
     proto method link-candidates(|) {*}
     multi method link-candidates(Bool :$recursive! where *.so, *@candidates) {
         # :recursive

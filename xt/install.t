@@ -49,7 +49,7 @@ sub test-install($path = $?FILE.IO.parent.parent) {
 #########################################################################################
 
 
-subtest {
+subtest 'install' => {
     my @installed = test-install();
 
     is +@installed, 1, 'Installed a single module';
@@ -61,20 +61,20 @@ subtest {
     my $filename  = $sources-dir.dir.first(*.f).basename;
     my $dist-info = $dist-dir.dir.first(*.f).slurp;
     ok $dist-info.contains($filename), 'Verify install succeeded';
-}, 'install';
+}
 
 
-subtest {
-    subtest {
+subtest 'reinstall' => {
+    subtest 'Without force' => {
         test-install(); # XXX: Need to find a way to test when this fails
         is +@installed, 1, 'Installed nothing new';
         is +$dist-dir.dir.grep(*.f), 1, 'Only a single distribution file should still exist';
         my $filename  = $sources-dir.dir.first(*.f).basename;
         my $dist-info = $dist-dir.dir.first(*.f).slurp;
         ok $dist-info.contains($filename), 'Verify previous install appears valid';
-    }, 'Without force';
+    }
 
-    subtest {
+    subtest 'With force-install' => {
         temp $client.force-install = True;
         my @installed = test-install();
 
@@ -83,11 +83,11 @@ subtest {
         my $filename  = ~$sources-dir.dir.first(*.f).basename;
         my $dist-info = ~$dist-dir.dir.first(*.f).slurp;
         ok $dist-info.contains($filename), 'Verify reinstall appears valid';
-    }, 'With force-install';
-}, 'reinstall';
+    }
+}
 
 
-subtest {
+subtest 'uninstall' => {
     +@cur.grep(*.can('uninstall')) == 0
         ?? skip("Need a newer rakudo for uninstall")
         !! do {
@@ -96,4 +96,4 @@ subtest {
             is +$sources-dir.dir, 0, 'No source files should remain';
             is +$dist-dir.dir,    0, 'No distribution files should remain';
         }
-}, 'uninstall';
+}

@@ -22,8 +22,7 @@ class Zef::Repository::Ecosystems does Repository {
     has $.auto-update is rw;
 
     # Where we will save/stage the db file we fetch
-    # TODO: coerce to IO::Path
-    has Str $.cache;
+    has IO::Path $.cache;
 
     # Used to get data from a URI. Generally uses Zef::Fetcher, which itself uses multiple backends to allow
     # fetching local paths, https, and git by default

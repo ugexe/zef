@@ -26,8 +26,7 @@ class Zef::Repository::LocalCache does Repository {
     has $.auto-update is rw;
 
     # Where we will save/stage the db file we fetch
-    # TODO: coerce to IO::Path
-    has Str $.cache;
+    has IO::Path $.cache;
 
     # A array of distributions found in the ecosystem db. Lazily populated as soon as the db is referenced
     has Zef::Distribution @!distributions;

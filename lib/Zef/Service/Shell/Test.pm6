@@ -1,12 +1,17 @@
 use Zef;
 use Zef::Utils::FileSystem;
 
+# A simple 'Tester' that uses the raku executable to directly run test files
+
 class Zef::Service::Shell::Test does Tester does Messenger {
-    method test-matcher($path) { True }
+    # Return true if this Tester understands the given uri/path
+    method test-matcher($path --> Bool:D) { return True }
 
-    method probe { True }
+    # Returns true always since it just uses $*EXECUTABLE
+    method probe(--> Bool:D) { True }
 
-    method test(IO() $path, :@includes) {
+    # Test the given paths t/ directory using any provided @includes
+    method test(IO() $path, :@includes --> Bool:D) {
         die "path does not exist: {$path}" unless $path.IO.e;
 
         my $test-path = $path.child('t');
@@ -35,6 +40,6 @@ class Zef::Service::Shell::Test does Tester does Messenger {
             $passed;
         }
 
-        return @results.all.so
+        return so @results.all;
     }
 }

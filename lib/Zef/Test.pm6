@@ -1,17 +1,33 @@
 use Zef;
 
+# An 'Tester' that uses 1 or more other 'Tester' instances as backends. It abstracts the logic
+# to do 'test this path with the first backend that supports the given path'.
+
 class Zef::Test does Pluggable {
     submethod TWEAK(|) {
         @ = self.plugins; # preload plugins
     }
 
-    method test-matcher($path) { self.plugins.grep(*.test-matcher($path)) }
+    # Returns true if any of the backends 'test-matcher' understand the given uri/path
+    method test-matcher($path --> Bool:D) { return so self!test-matcher($path) }
 
-    method test($candi, :@includes, Supplier :$logger, Int :$timeout) {
+    # Returns the backends that understand the given uri based on their test-matcher result
+    method !test-matcher($path --> Array[Tester]) {
+        my @matching-backends = self.plugins.grep(*.test-matcher($path));
+
+        my Tester @results = @matching-backends;
+        return @results;
+    }
+
+    # Test the given path using any provided @includes
+    # Will return results from the first Tester backend that supports the given path (via $candi.dist.path)
+    # Note this differs from other 'Test' adapters .test() which takes a $uri or $path as the first
+    # parameter, not a $candi.
+    method test(Candidate $candi, Str :@includes, Supplier :$logger, Int :$timeout --> Array[Bool]) {
         my $path := $candi.dist.path;
         die "Can't test non-existent path: {$path}" unless $path.IO.e;
 
-        my $testers := self.test-matcher($path).cache;
+        my $testers := self!test-matcher($path).cache;
 
         unless +$testers {
             my @report_enabled  = self.plugins.map(*.short-name);
@@ -35,8 +51,7 @@ class Zef::Test does Pluggable {
         $logger.emit({ level => DEBUG, stage => TEST, phase => LIVE, message => "Testing $path timed out" })
             if ?$logger && $time-up.so && $todo.not;
 
-        my @got = $todo.so ?? $todo.result !! False;
-
-        @got;
+        my Bool @results = $todo.so ?? $todo.result !! False;
+        return @results;
     }
 }

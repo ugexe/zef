@@ -52,7 +52,7 @@ subtest 'Zef::Install.install' => {
         my class Mock::Installer::One does Installer {
             method install-matcher(|--> True) { }
 
-            method install($candi --> Nil) { }
+            method install($candi --> False) { }
         }
 
         my class Mock::Installer::Two does Installer {

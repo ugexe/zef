@@ -1,14 +1,23 @@
 use Zef;
 
-# covers untar for some windows users until a better solution is found
-class Zef::Service::Shell::p5tar does Extractor does Messenger {
-    method extract-matcher($path) { so $path.lc.ends-with('.tar.gz' | '.tgz') }
+# An 'Extractor' that uses the perl command to launch an included perl script for extracting tar files
+# (scripts/perl5tar.pl, a thin wrapper around Perls Archive::Tar module).
+#
+# Mostly for covering some edge case windows users
 
-    method probe {
-        state $probe = try { zrun('perl', %?RESOURCES<scripts/perl5tar.pl>.IO.absolute, '--help', :!out, :!err) };
+class Zef::Service::Shell::p5tar does Extractor does Messenger {
+    # Return true if this Extractor understands the given uri/path
+    method extract-matcher($path --> Bool:D) {
+        return so <.tar.gz .tgz>.first({ $path.lc.ends-with($_) });
     }
 
-    method extract(IO() $archive-file, IO() $extract-to) {
+    # Returns true if the included Perl script can be executed
+    method probe(--> Bool:D) {
+        state $probe = try { zrun('perl', %?RESOURCES<scripts/perl5tar.pl>.IO.absolute, '--help', :!out, :!err).so };
+    }
+
+    # Extract the given $archive-file
+    method extract(IO() $archive-file, IO() $extract-to --> IO::Path) {
         die "archive file does not exist: {$archive-file.absolute}"
             unless $archive-file.e && $archive-file.f;
         die "target extraction directory {$extract-to.absolute} does not exist and could not be created"
@@ -25,10 +34,11 @@ class Zef::Service::Shell::p5tar does Extractor does Messenger {
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
-        $passed ?? $extract-to !! False;
+        return $passed ?? $extract-to !! Nil;
     }
 
-    method ls-files(IO() $archive-file) {
+    # Returns an array of strings, where each string is a relative path representing a file that can be extracted from the given $archive-file
+    method ls-files(IO() $archive-file --> Array[Str]) {
         die "archive file does not exist: {$archive-file.absolute}"
             unless $archive-file.e && $archive-file.f;
 
@@ -45,6 +55,8 @@ class Zef::Service::Shell::p5tar does Extractor does Messenger {
         }
 
         my @extracted-paths = $output.decode.lines;
-        $passed ?? @extracted-paths.grep(*.defined) !! ();
+
+        my Str @results = $passed ?? @extracted-paths.grep(*.defined) !! ();
+        return @results;
     }
 }

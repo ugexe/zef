@@ -1,15 +1,30 @@
 use Zef;
+use Zef::Distribution;
+
+# A 'Installer' that uses 1 or more other 'Installer' instances as backends. It abstracts the logic
+# to do 'install this distribution with the first backend that supports the given distribution'.
 
 class Zef::Install does Pluggable {
     submethod TWEAK(|) {
         @ = self.plugins; # preload plugins
     }
 
-    method install-matcher($dist) { self.plugins.grep(*.install-matcher($dist)) }
+    # Returns true if any of the backends 'build-matcher' understand the given uri/path
+    method install-matcher(Zef::Distribution $dist --> Bool:D) { return so self!install-matcher($dist) }
 
-    method install($candi, :$cur, :$force, Supplier :$logger, Int :$timeout) {
+    # Returns the backends that understand the given uri based on their build-matcher result
+    method !install-matcher(Zef::Distribution $dist --> Array[Installer]) {
+        my @matching-backends = self.plugins.grep(*.install-matcher($dist));
+
+        my Installer @results = @matching-backends;
+        return @results;
+    }
+
+    # Install the distribution in $candi.dist to the $cur CompUnit::Repository.
+    # Use --force to install over an existing distribution using the same name/auth/ver/api
+    method install(Candidate $candi, CompUnit::Repository :$cur, Bool :$force, Supplier :$logger, Int :$timeout --> Bool:D) {
         my $dist      = $candi.dist;
-        my $installer = self.install-matcher($dist).first(*.so);
+        my $installer = self!install-matcher($dist).first(*.so);
         die "No installing backend available" unless ?$installer;
 
         if ?$logger {

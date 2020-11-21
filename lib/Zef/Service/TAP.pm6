@@ -2,19 +2,25 @@ use Zef;
 use Zef::Utils::FileSystem;
 
 class Zef::Service::TAP does Tester does Messenger {
-    method test-matcher($path) { True }
+    # Return true if this Tester understands the given uri/path
+    method test-matcher($path --> Bool:D) { return True }
 
-    method probe { state $probe = (try require TAP::Harness) !~~ Nil ?? True !! False }
+    # Return true if the `TAP::Harness` raku module is available
+    method probe(--> Bool:D) { state $probe = (try require TAP::Harness) !~~ Nil ?? True !! False }
 
-    method test($path, :@includes) {
-        die "path does not exist: {$path}" unless $path.IO.e;
+    # Test the given paths t/ directory using any provided @includes
+    method test(IO() $path, Str :@includes --> Bool:D) {
+        die "path does not exist: {$path}" unless $path.e;
 
-        my $test-path = $path.IO.child('t');
+        my $test-path = $path.child('t');
         return True unless $test-path.e;
         my @test-files = grep *.extension eq any('rakutest', 't', 't6'),
             list-paths($test-path.absolute, :f, :!d, :r).sort;
         return True unless +@test-files;
 
+        # Much of the code below is to capture what TAP::Harness prints to stdout / stderr so that
+        # we can instead emit that output as events (or just not output anything at all depending
+        # on the verbosity level). There might be a better way to do all of this now; this code is old.
         my $stdout = $*OUT;
         my $stderr = $*ERR;
         my $out-supply = $.stdout;
@@ -46,7 +52,7 @@ class Zef::Service::TAP does Tester does Messenger {
             chdir($path);
             $*OUT = OUT_CAPTURE.new;
             $*ERR = ERR_CAPTURE.new;
-            my @incdirs  = $path.IO.absolute, |@includes;
+            my @incdirs  = $path.absolute, |@includes;
             my @handlers = ::("TAP::Harness::SourceHandler::Perl6").new(:@incdirs);
             my $parser   = ::("TAP::Harness").new(:@handlers);
             my $promise  = $parser.run(@test-files>>.relative($path));
@@ -60,6 +66,7 @@ class Zef::Service::TAP does Tester does Messenger {
         $*OUT = $stdout;
         $*ERR = $stderr;
 
-        $result.failed == 0 && not $result.errors ?? True !! False;
+        my $passed = $result.failed == 0 && not $result.errors ?? True !! False;
+        return $passed;
     }
 }

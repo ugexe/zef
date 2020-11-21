@@ -5,6 +5,7 @@ use Zef::Utils::FileSystem;
 use Zef::Identity;
 use Zef::Distribution;
 use Zef::Utils::SystemInfo;
+use Zef::Utils::URI;
 use nqp;
 
 # Content was cut+pasted from bin/zef, leaving bin/zef's contents as just: `use Zef::CLI;`

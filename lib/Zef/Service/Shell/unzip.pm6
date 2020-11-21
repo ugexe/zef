@@ -1,13 +1,18 @@
 use Zef;
 
 class Zef::Service::Shell::unzip does Extractor does Messenger {
-    method extract-matcher($path) { so $path.IO.extension.lc eq 'zip' }
+    # Return true if this Fetcher understands the given uri/path
+    method extract-matcher($path --> Bool:D) {
+        return so $path.IO.extension.lc eq 'zip';
+    }
 
-    method probe {
+    # Return true if the `unzip` command is available to use
+    method probe(--> Bool:D) {
         state $probe = try { zrun('unzip', '--help', :!out, :!err).so };
     }
 
-    method extract(IO() $archive-file, IO() $extract-to) {
+    # Extract the given $archive-file
+    method extract(IO() $archive-file, IO() $extract-to --> IO::Path) {
         die "archive file does not exist: {$archive-file.absolute}"
             unless $archive-file.e && $archive-file.f;
         die "target extraction directory {$extract-to.absolute} does not exist and could not be created"
@@ -23,9 +28,10 @@ class Zef::Service::Shell::unzip does Extractor does Messenger {
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
-        $passed ?? $extract-to !! False;
+        return $passed ?? $extract-to !! Nil;
     }
 
+    # Returns an array of strings, where each string is a relative path representing a file that can be extracted from the given $archive-file
     method ls-files(IO() $archive-file) {
         die "archive file does not exist: {$archive-file.absolute}"
             unless $archive-file.e && $archive-file.f;
@@ -42,6 +48,8 @@ class Zef::Service::Shell::unzip does Extractor does Messenger {
         }
 
         my @extracted-paths = $output.decode.lines;
-        $passed ?? @extracted-paths.grep(*.defined) !! ();
+
+        my Str @results = $passed ?? @extracted-paths.grep(*.defined) !! ();
+        return @results;
     }
 }

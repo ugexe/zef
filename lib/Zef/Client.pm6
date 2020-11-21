@@ -811,7 +811,8 @@ class Zef::Client {
             my @recursive-includes = try @linked[(state $i += 1)..*]\
                 .map(*.dist.metainfo<includes>).flatmap(*.flat);
             my @unique-includes    = unique(@direct-includes, @recursive-includes);
-            $candi.dist.metainfo<includes> = @unique-includes.grep(*.so);
+            my Str @results        = @unique-includes.grep(*.so);
+            $candi.dist.metainfo<includes> = @results;
             $candi;
         }
     }
@@ -846,7 +847,9 @@ class Zef::Client {
                     }
                 }
             }
-            $dist.metainfo<includes> = $includes.unique.cache;
+
+            my Str @results = $includes.unique;
+            $candi.dist.metainfo<includes> = @results;
 
             $candi;
         }

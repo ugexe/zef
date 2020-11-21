@@ -1,13 +1,20 @@
 use Zef;
 
-class Zef::Service::Shell::curl does Fetcher does Probeable does Messenger {
-    method fetch-matcher($url) { $ = $url.lc.starts-with('http://' | 'https://') }
+# A simple 'Fetcher' that uses the `curl` command to fetch uris
 
-    method probe {
+class Zef::Service::Shell::curl does Fetcher does Probeable does Messenger {
+    # Return true if this Fetcher understands the given uri/path
+    method fetch-matcher($url --> Bool:D) {
+        return so <https http>.first({ $url.lc.starts-with($_) });
+    }
+
+    # Return true if the `curl` command is available to use
+    method probe(--> Bool:D) {
         state $probe = try { zrun('curl', '--help', :!out, :!err).so };
     }
 
-    method fetch($url, IO() $save-as) {
+    # Fetch the given url
+    method fetch($url, IO() $save-as --> IO::Path) {
         die "target download directory {$save-as.parent} does not exist and could not be created"
             unless $save-as.parent.d || mkdir($save-as.parent);
 
@@ -21,6 +28,6 @@ class Zef::Service::Shell::curl does Fetcher does Probeable does Messenger {
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
         }
 
-        ($passed && $save-as.e) ?? $save-as !! False;
+        return ($passed && $save-as.e) ?? $save-as !! Nil;
     }
 }

@@ -1,9 +1,13 @@
 use Zef;
 
-class Zef::Service::Shell::prove does Tester does Messenger {
-    method test-matcher($path) { True }
+# A simple 'Tester' that uses the `prove` command to test uris/paths
 
-    method probe {
+class Zef::Service::Shell::prove does Tester does Messenger {
+    # Return true if this Tester understands the given uri/path
+    method test-matcher($path --> Bool:D) { return True }
+
+    # Return true if the `prove` command is available to use
+    method probe(--> Bool:D) {
         state $probe;
         once {
             # `prove --help` has exitcode == 1 unlike most other processes
@@ -25,7 +29,8 @@ class Zef::Service::Shell::prove does Tester does Messenger {
         ?$probe;
     }
 
-    method test(IO() $path, :@includes) {
+    # Test the given paths t/ directory using any provided @includes
+    method test(IO() $path, Str :@includes --> Bool:D) {
         die "cannot test path that does not exist: {$path}" unless $path.e;
         my $test-path = $path.child('t');
         return True unless $test-path.e;
@@ -49,6 +54,6 @@ class Zef::Service::Shell::prove does Tester does Messenger {
             whenever $proc.stderr.lines { $.stderr.emit($_) }
             whenever $proc.start(:%ENV, :cwd($path)) { $passed = $_.so }
         }
-        return $passed;
+        return so $passed;
     }
 }

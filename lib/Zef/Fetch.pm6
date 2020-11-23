@@ -1,18 +1,79 @@
 use Zef;
 use Zef::Utils::FileSystem;
 
-# A 'Fetcher' that uses 1 or more other 'Fetcher' instances as backends. It abstracts the logic
-# to do 'grab this uri with the first backend that supports the given uri'.
-
 class Zef::Fetch does Fetcher does Pluggable {
+
+    =begin pod
+
+    =title class Zef::Fetch
+
+    =subtitle A configurable implementation of the Fetcher interface
+
+    =head1 Synopsis
+
+    =begin code :lang<raku>
+
+        use Zef;
+        use Zef::Fetch;
+
+        # Setup with a single fetcher backend
+        my $fetcher = Zef::Fetch.new(
+            backends => [
+                { module => "Zef::Service::Shell::curl" },
+                { module => "Zef::Service::Shell::PowerShell::download" },
+            ],
+        );
+
+        # Save the content of $uri to $save-to
+        my $uri      = "https://httpbin.org/ip";
+        my $save-to  = $*CWD.child("output.txt");
+        my $saved-to = $fetcher.fetch(Candidate.new(:$uri), $save-to);
+
+        say $saved-to ?? $saved-to.slurp !! "Failed to download and save";
+
+    =end code
+
+    =head1 Description
+
+    A C<Fetcher> class that uses 1 or more other C<Fetcher> instances as backends. It abstracts the logic
+    to do 'grab this uri with the first backend that supports the given uri'.
+
+    =head1 Methods
+
+    =head2 method fetch-matcher
+
+        method fetch-matcher($path --> Bool:D)
+
+    Returns C<True> if any of the probeable C<self.plugins> know how to fetch C<$path>.
+
+    =head2 method fetch
+
+        method fetch(Candidate $candi, IO() $save-to, Supplier :$logger, Int :$timeout --> IO::Path)
+
+    Fetches the files for C<$candi> (usually as C<$candi.uri>) to C<$save-to>. If a backend fails to fetch
+    for some reason (such as going over its C<:$timeout>) the next matching backend will be used. Failure occurs
+    when no backend was able to fetch the C<$candi>.
+
+    An optional C<:$logger> can be supplied to receive events about what is occuring.
+
+    An optional C<:$timeout> can be passed to denote the number of seconds after which we'll assume failure.
+
+    On success it returns the C<IO::Path> where the data was actually fetched to. On failure it returns C<Nil>.
+
+    Note this differs from other 'Fetcher' adapters C<method fetch> (i.e. the fetchers this uses as backends) which
+    take a C<Str $uri> as the first parameter, not a C<Candidate $candi>.
+
+    =end pod
+
+
     submethod TWEAK(|) {
         @ = self.plugins; # preload plugins
     }
 
-    # Returns true if any of the backends 'fetch-matcher' understand the given uri/path
+    #| Returns true if any of the backends 'fetch-matcher' understand the given uri/path
     method fetch-matcher($uri --> Bool:D) { return so self!fetch-matcher($uri) }
 
-    # Returns the backends that understand the given uri based on their fetch-matcher result
+    #| Returns the backends that understand the given uri based on their fetch-matcher result
     method !fetch-matcher($uri --> Array[Fetcher]) {
         my @matching-backends = self.plugins.grep(*.fetch-matcher($uri));
 
@@ -20,12 +81,8 @@ class Zef::Fetch does Fetcher does Pluggable {
         return @results;
     }
 
-    # Fetch the given url
-    # Will return the first successful result while attempting to fetch the given $candi
-    # Note this differs from other 'Fetch' adapters .fetch() which take a $uri as the first
-    # parameter, not a $candi... thats so the logging mechanism can emit it, so ideally
-    # we would just pass in the $uri separate; otherwise can just do Candidate.new(:uri($url))
-    # to fetch something that isn't a raku distribution/candidate/module (such as p6c.json)
+    #| Fetch the given url.
+    #| Will return the first successful result while attempting to fetch the given $candi.
     method fetch(Candidate $candi, IO() $save-to, Supplier :$logger, Int :$timeout --> IO::Path) {
         my $uri      = $candi.uri;
         my @fetchers = self!fetch-matcher($uri).cache;

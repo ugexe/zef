@@ -16,7 +16,9 @@ class Zef::Client {
 
     =begin pod
 
-    =title Zef::Client - Task coordinator for raku distribution installation workflows
+    =title class Zef::Client
+
+    =subtitle Task coordinator for raku distribution installation workflows
 
     =head1 Synopsis
 
@@ -57,9 +59,166 @@ class Zef::Client {
     Additionally it provides slightly higher level facilities for fetching, extracting, etc, than the
     e.g. C<Zef::Fetch>, C<Zef::Extract>, etc modules it uses underneath. For example C<Zef::Client.fetch> 
     may run an extraction step unlike C<Zef::Fetch.fetch>, since the former is in the context of a distribution
-    (i.e. we want the distribution at the specific commit/tag, not the HEAD immediately after fetching)
+    (i.e. we want the distribution at the specific commit/tag, not the HEAD immediately after fetching).
+
+    =head1 Methods
+
+    =head2 method find-candidates
+
+        method find-candidates(*@identities ($, *@) --> Array[Candidate])
+
+    Searches all repositories via C<Zef::Repository> and returns a matching C<Candidate> / distribution for each supplied
+    identity. Generally this is used to find the top level distributions requested, such as C<Foo> in C<zef install Foo>.
+
+    =head2 method find-candidates
+
+        method find-prereq-candidates(Bool :$skip-installed = True, *@candis ($, *@) --> Array[Candidate])
+
+    Similar to C<method find-candidates> but returns matching a matching C<Candidate> for each dependency of the supplied
+    identities. Generally this is used to recursively discover and determine the dependencies of the identities requested.
+    If C<$skip-installed> is set to C<False> it will potentially install a newer version of an already installed matching
+    dependency (without uninstalling the previous version). It also skips any identity matching of C<@.ignore>, which allows
+    getting past an unresolvable dependency ala `zef install Inline::Perl5 --ignore="perl"`.
+
+    Returns an C<Array> of C<Candidate> that fulfill the dependency requirements of C<@identities>.
+
+    =head2 method search
+
+        method search(*@identities ($, *@), *%fields, Bool :$strict = False --> Array[Candidate])
+
+    Resolves each identity in C<@identities> to all of its matching C<Candidates> from all backends via C<Zef::Repository> (with C<$max-results>
+    applying to each individual backend). If C<$strict> is C<False> then it will consider partial matches on module short-names (i.e. 'zef search HTTP'
+    will get results for e.g. C<HTTP::UserAgent>).
+
+    =head2 method fetch
+
+        method fetch(*@candidates ($, *@) --> Array[Candidate])
+
+    Fetches a distribution from some location, and unpacks/extracts it to a temporary location to be used be cached, tested,
+    installed, etc. It effective combines the functionality of C<Zef::Fetch.fetch> and C<Zef::Extract.extract> into a single
+    method as there isn't a useful reason to have workflows that work with unextracted archives/packages. Fetches up to
+    C<$.fetch-degree> different C<@candidates> in parallel.
+
+    Anytime a distribution is fetched it will call C<.store(@distributions)> on any C<Zef::Repository> that supports it (usually
+    just C<Zef::Repository::LocalCache>).
+
+    File are saved to the C<TempDir> setting in C<resources/config.json>, and extracted to the C<$.cache> directory (the C<StoreDir>
+    setting in C<resources/config.json>).
+
+    Returns an C<Array> of C<Candidate> containing the successfully fetched results.
+
+    =head2 method build
+
+        method build(*@candidates ($, *@) --> Array[Candidate])
+
+    Runs the build process on each C<@candidates> that the backends for C<Zef::Build> know how to process. Builds up to C<$.build-degree>
+    different C<@candidates> in parallel.
+
+    Returns an C<Array> of C<Candidate> with each C<.build-results> set appropriately.
+
+    =head2 method test
+
+        method test(*@candidates ($, *@) --> Array[Candidate])
+
+    Runs the test process on each C<@candidates> via the backends of C<Zef::Test>. Tests up to C<$.test-degree> different
+    C<@candidates> in parallel.
+
+    Returns an C<Array> of C<Candidate> with each C<.test-results> set appropriately.
+
+    =head2 method uninstall
+
+        method uninstall(CompUnit::Repository :@from!, *@identities --> Array[Candidate])
+
+    Searches each C<CompUnit::Repository> in C<@from> for each C<@identities> and uninstalls any matching distributions.
+    For instance uninstalling C<zef> could potentially uninstall multiple versions, whereas uninstall C<zef:ver("0.9.4")> would
+    only uninstall that specific version.
+
+    Returns an C<Array> containing each uninstalled C<Candidate>.
+
+    =head2 method install
+
+        method install(:@curs, *@candidates ($, *@) --> Array[Candidate])
+
+    Install a C<Candidate> containing a C<Distribution> to each C<CompUnit::Repository> in C<@curs>.
+
+    Returns an C<Array> containing each successfully installed C<Candidate>.
+
+    =head2 method make-install
+
+        method make-install(CompUnit::Repository :@to!, Bool :$fetch = True, Bool :$build = True, Bool :$test  = True, Bool :$dry, Bool :$serial, *@candidates ($, *@), *%_)
+
+    The 'do everything but resolve dependencies' method. You essentially figure out all the C<Candidate> you need to install
+    (dependencies, etc) and pass them to this method. Its similar to C<method install> except it also handles calling C<method fetch>
+    (if C<$fetch> is C<True>), C<method build> (if C<$build> is C<True>), and C<method test> (if <$test> is C<True>). If C<$dry> is
+    C<True> then the final step of calling C<method install> (which moves the modules to where C<raku> will see them) will be skipped.
+    If <$serial> is C<True> then each C<Candidate> will be installed after it passes its own tests (instead of the default behavior of
+    only installing if all C<Candidate>, including dependencies, pass their tests).
+
+    =head2 method list-rev-depends
+
+        method list-rev-depends($identity, Bool :$indirect --> Array[Candidate])
+
+    Return an C<Array> of C<Candidate> of all distribution that directly depend on C<$identity>. If C<$indirect> is C<True> then it
+    additionally returns distributions that indirectly / transitively depend on C<$identity>
+
+    =head2 method list-available
+
+        method list-available(*@recommendation-manager-names --> Array[Candidate])
+
+    Returns an C<Array> of C<Candidate> for every distribution from every repository / recommendation-manager with a name (as
+    set in C<resources/config.json>) matching any of those in C<@recommendation-manager-names> (or all repositories if no names
+    are supplied). Note some non-standard repositories may not support listing all available distributions.
+
+    =head2 method list-installed
+
+        method list-installed(*@curis --> Array[Candidate])
+
+    Returns an C<Array> of C<Candidate> for each Raku distribution installed to each C<CompUnit::Repository::Installion> C<@curis>
+    (or all known C<CompUnit::Repository::Installion> if no C<@curis> are supplied).
+
+    =head2 method list-leaves
+
+        method list-leaves(--> Array[Candidate])
+
+    Returns an C<Array> of C<Candidate> for each installed distributions that nothing else appears to depend on. 
+
+    =head2 method list-dependencies
+
+        method list-dependencies(*@candis, :$from --> Array[DependencySpecification])
+
+    Returns an C<Array> of C<Zef::Distribution::DependencySpecification> and // or C<Zef::Distribution::DependencySpecification::Any>
+    for each C<@candis> distributions various dependency requirements.
+
+    If C<$.depends> is set to C<False> then runtime dependencies will be ignored.
+    If C<$.test-depends> is set to C<False> then test dependencies will be ignored.
+    If C<$.build-depends> is set to C<False> then build dependencies will be ignored.
+
+    =head2 method resolve
+
+        method resolve($spec, CompUnit::Repository :@at --> Array[Candidate])
+
+    Returns the best matching distributions from installed sources for the given C<$spec>, in preferred order (highest api
+    version and highest version) from each C<CompUnit::Repository> in C<@at> (or all known C<CompUnit::Repository> if C<@at>
+    is not set). C<$spec> should be either a C<Zef::Distribution::DependencySpecification> or C<Zef::Distribution::DependencySpecification::Any>.
+
+    =head2 method is-installed
+
+        multi method is-installed(Str $spec, |c --> Bool:D)
+        multi method is-installed(Zef::Distribution::DependencySpecification::Any $spec, |c --> Bool:D)
+        multi method is-installed(Zef::Distribution::DependencySpecification $spec, |c --> Bool:D)
+
+    Returns C<True> if the requested C<$spec> is installed. The logic it uses to decide if something is installed is based on
+    the C<$spec.from-matcher>: C<foo:from<bin>> will search C<$PATH> for C<foo>, C<foo:from<native>> will check if C<NativeCall>
+    can see an e.g. C<libfoo.so> or C<foo.dll>, and everything else will be looked up as a C<foo> raku module.
+
+    =head2 method sort-candidates
+
+        method sort-candidates(@candis, *%_ --> Array[Candidate])
+
+    Does a topological sort of C<@candis> based on their various dependency fields and C<$.depends>/C<$.test-depends>/C<$.build-depends>.
 
     =end pod
+
 
     #| Where zef will cache index databases (p6c.json, etc) and distributions
     has IO::Path $.cache;
@@ -181,7 +340,7 @@ class Zef::Client {
     }
 
     #| Return a matching candidate/distributino for each supplied identity
-    method find-candidates(Bool :$upgrade, *@identities ($, *@)) {
+    method find-candidates(Bool :$upgrade, *@identities ($, *@) --> Array[Candidate]) {
         self.logger.emit({
             level   => INFO,
             stage   => RESOLVE,
@@ -189,7 +348,7 @@ class Zef::Client {
             message => "Searching for: {@identities.join(', ')}",
         });
 
-        my @candidates = self!find-candidates(:$upgrade, @identities);
+        my Candidate @candidates = self!find-candidates(:$upgrade, @identities);
 
         for @candidates.classify({.from}).kv -> $from, $found {
             self.logger.emit({
@@ -207,15 +366,22 @@ class Zef::Client {
     #| it allows the message for the call to .find-candidates(...) to differentiate
     #| between later calls to .find-prereq-candidates(...) (which calls !find-candidates
     #| so it doesn't send the aforementioned logging message for a top level request).
-    method !find-candidates(Bool :$upgrade, *@identities ($, *@)) {
-        my $candidates := $!recommendation-manager.candidates(@identities, :$upgrade)\
+    method !find-candidates(Bool :$upgrade, *@identities ($, *@) --> Array[Candidate]) {
+        my Candidate @candidates = $!recommendation-manager.candidates(@identities, :$upgrade)\
             .grep(-> $candi { not @!exclude.first({$candi.dist.contains-spec($_)}) })\
             .grep(-> $candi { not @!ignore.first({$candi.dist.contains-spec($_)}) })\
             .unique(:as(*.dist.identity));
+        return @candidates;
     }
 
     #| Return matching candidates that fulfill the dependencies (including transitive) for each supplied candidate/distribution
-    method find-prereq-candidates(Bool :$skip-installed = True, Bool :$upgrade, :@certain, *@candis ($, *@)) {
+    method find-prereq-candidates(Bool :$skip-installed = True, Bool :$upgrade, *@candis ($, *@) --> Array[Candidate]) {
+        my Candidate @results = self!find-prereq-candidates(:$skip-installed, :$upgrade, |@candis);
+        return @results;
+    }
+
+    #| Similar .find-prereq-candidates this has an additional non-public api parameter :@certain used during recursion
+    method !find-prereq-candidates(Bool :$skip-installed = True, Bool :$upgrade, :@certain, *@candis ($, *@) --> Array[Candidate]) {
         my @skip = @candis.map(*.dist);
 
         my $prereqs := gather {
@@ -250,19 +416,22 @@ class Zef::Client {
                 });
                 my @prereq-candidates = self!find-candidates(:$upgrade, @identities) if @identities;
 
-                @identities = gather for %needed<alternative>.list -> $needed {
+                my @alt-identities = gather for %needed<alternative>.list -> $needed {
                     next if any(|@certain, |@prereq-candidates).dist.contains-spec($needed);
 
                     my @candidates;
                     if $needed.specs.first({
-                            @candidates = self!find-candidates(:$upgrade, $_.identity);
-                            @candidates.append: self.find-prereq-candidates(
-                                :$upgrade,
-                                :certain(|@certain, |@prereq-candidates),
-                                @candidates,
-                            ) if @candidates;
                             CATCH {
                                 when X::Zef::UnsatisfiableDependency { @candidates = (); }
+                            }
+                            @candidates = self!find-candidates(:$upgrade, $_.identity);
+                            if @candidates {
+                                my Candidate @new-candidates = self!find-prereq-candidates(
+                                    :$upgrade,
+                                    :certain(|@certain, |@prereq-candidates),
+                                    @candidates,
+                                );
+                                @candidates.append: @new-candidates;
                             }
                             @candidates
                         })
@@ -273,12 +442,12 @@ class Zef::Client {
                         take $needed.identity;
                     }
                 } if %needed<alternative>;
-                @prereq-candidates.append: self!find-candidates(:$upgrade, @identities) if @identities;
+                @prereq-candidates.append: self!find-candidates(:$upgrade, @alt-identities) if @alt-identities;
 
-                my $not-found := @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
+                my @not-found = @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
 
                 # The failing part of this should ideally be handled in Zef::CLI I think
-                if +@prereq-candidates == +@needed || $not-found.cache.elems == 0 {
+                if +@prereq-candidates == +@needed || @not-found.cache.elems == 0 {
                     for @prereq-candidates.classify({.from}).kv -> $from, $found {
                         self.logger.emit({
                             level   => VERBOSE,
@@ -293,7 +462,7 @@ class Zef::Client {
                         level   => ERROR,
                         stage   => RESOLVE,
                         phase   => AFTER,
-                        message => "Failed to find dependencies: {$not-found.join(', ')}",
+                        message => "Failed to find dependencies: {@not-found.join(', ')}",
                     });
 
                     $!force-resolve
@@ -315,33 +484,35 @@ class Zef::Client {
             }
         }
 
-        $prereqs.unique(:as(*.dist.identity));
+        my Candidate @results = $prereqs.unique(:as(*.dist.identity));
+        return @results;
     }
 
 
-    method fetch(*@candidates ($, *@)) {
+    method fetch(*@candidates ($, *@) --> Array[Candidate]) {
         my @fetched   = self!fetch(@candidates);
         my @extracted = self!extract(@candidates);
 
-        my @local-candis = @extracted.map: -> $candi {
+        my Candidate @local-candis = @extracted.map: -> $candi {
             my $dist = Zef::Distribution::Local.new(~$candi.uri);
             $candi.clone(:$dist);
         }
 
         $!recommendation-manager.store(@local-candis.map(*.dist));
 
-        @local-candis;
+        return @local-candis;
     }
-    method !fetch(*@candidates ($, *@)) {
+    method !fetch(*@candidates ($, *@) --> Array[Candidate]) {
         my $dispatcher := $*PERL.compiler.version < v2018.08
             ?? @candidates
             !! @candidates.hyper(:batch(1), :degree($!fetch-degree || 5));
 
-        my @fetched = $dispatcher.map: -> $candi {
+        my Candidate @fetched = $dispatcher.map: -> $candi {
             self.logger.emit({
                 level   => DEBUG,
                 stage   => FETCH,
                 phase   => BEFORE,
+                candi   => $candi,
                 message => "Fetching: {$candi.as}",
             });
             die "Cannot determine a uri to fetch {$candi.as} from. Perhaps it's META6.json is missing an e.g. source-url"
@@ -365,6 +536,7 @@ class Zef::Client {
                     level   => ERROR,
                     stage   => FETCH,
                     phase   => AFTER,
+                    candi   => $candi,
                     message => "Fetching [FAIL]: {$candi.dist.?identity // $candi.as} from {$candi.uri}",
                 });
 
@@ -383,6 +555,7 @@ class Zef::Client {
                     level   => VERBOSE,
                     stage   => FETCH,
                     phase   => AFTER,
+                    candi   => $candi,
                     message => "Fetching [OK]: {$candi.dist.?identity // $candi.as} to $save-to",
                 });
             }
@@ -394,12 +567,13 @@ class Zef::Client {
 
         return @fetched;
     }
-    method !extract(*@candidates ($, *@)) {
-        my @extracted = eager gather for @candidates -> $candi {
+    method !extract(*@candidates ($, *@) --> Array[Candidate]) {
+        my Candidate @extracted = eager gather for @candidates -> $candi {
             self.logger.emit({
                 level   => DEBUG,
                 stage   => EXTRACT,
                 phase   => BEFORE,
+                candi   => $candi,
                 message => "Extracting: {$candi.as}",
             });
 
@@ -416,6 +590,7 @@ class Zef::Client {
                 level   => WARN,
                 stage   => EXTRACT,
                 phase   => BEFORE,
+                candi   => $candi,
                 message => "Extraction: Failed to find a META6.json file for {$candi.dist.?identity // $candi.as} -- failure is likely",
             }) unless $meta6-prefix;
 
@@ -426,6 +601,7 @@ class Zef::Client {
                     level   => ERROR,
                     stage   => EXTRACT,
                     phase   => AFTER,
+                    candi   => $candi,
                     message => "Extraction [FAIL]: {$candi.dist.?identity // $candi.as} from {$candi.uri}",
                 });
 
@@ -448,6 +624,7 @@ class Zef::Client {
                         level   => WARN,
                         stage   => EXTRACT,
                         phase   => AFTER,
+                        candi   => $candi,
                         message => "Extraction: Failed to find a META6.json file for {$candi.dist.?identity // $candi.as} -- creating it from deprecated META.info file",
                     });
 
@@ -458,6 +635,7 @@ class Zef::Client {
                     level   => VERBOSE,
                     stage   => EXTRACT,
                     phase   => AFTER,
+                    candi   => $candi,
                     message => "Extraction [OK]: {$candi.as} to {$extract-to}",
                 });
             }
@@ -469,8 +647,8 @@ class Zef::Client {
 
 
     # xxx: needs some love. also an entire specification
-    method build(*@candidates ($, *@)) {
-        my @built = eager gather for @candidates -> $candi {
+    method build(*@candidates ($, *@) --> Array[Candidate]) {
+        my Candidate @built = eager gather for @candidates -> $candi {
             my $dist := $candi.dist;
 
             unless $!builder.build-matcher($dist) {
@@ -478,6 +656,7 @@ class Zef::Client {
                     level   => DEBUG,
                     stage   => BUILD,
                     phase   => BEFORE,
+                    candi   => $candi,
                     message => "# SKIP: No need to build {$candi.dist.?identity // $candi.as}",
                 });
                 take $candi;
@@ -488,18 +667,18 @@ class Zef::Client {
                 level   => INFO,
                 stage   => BUILD,
                 phase   => BEFORE,
+                candi   => $candi,
                 message => "Building: {$candi.dist.?identity // $candi.as}",
             });
 
             my $result := $!builder.build($candi, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!build-timeout)).cache;
-
-            $candi.build-results = $result;
 
             if $result.grep(*.not).elems {
                 self.logger.emit({
                     level   => ERROR,
                     stage   => BUILD,
                     phase   => AFTER,
+                    candi   => $candi,
                     message => "Building [FAIL]: {$candi.dist.?identity // $candi.as}",
                 });
 
@@ -518,6 +697,7 @@ class Zef::Client {
                     level   => INFO,
                     stage   => BUILD,
                     phase   => AFTER,
+                    candi   => $candi,
                     message => "Building [OK] for {$candi.dist.?identity // $candi.as}",
                 });
             }
@@ -529,16 +709,17 @@ class Zef::Client {
     }
 
     # xxx: needs some love
-    method test(:@includes, *@candidates ($, *@)) {
+    method test(*@candidates ($, *@) --> Array[Candidate]) {
         my $dispatcher := $*PERL.compiler.version < v2018.08
             ?? @candidates
             !! @candidates.hyper(:batch(1), :degree($!test-degree || 1));
 
-        my @tested = $dispatcher.map: -> $candi {
+        my Candidate @tested = $dispatcher.map: -> $candi {
             self.logger.emit({
                 level   => INFO,
                 stage   => TEST,
                 phase   => BEFORE,
+                candi   => $candi,
                 message => "Testing: {$candi.dist.?identity // $candi.as}",
             });
 
@@ -551,6 +732,7 @@ class Zef::Client {
                     level   => ERROR,
                     stage   => TEST,
                     phase   => AFTER,
+                    candi   => $candi,
                     message => "Testing [FAIL]: {$candi.dist.?identity // $candi.as}",
                 });
 
@@ -569,6 +751,7 @@ class Zef::Client {
                     level   => INFO,
                     stage   => TEST,
                     phase   => AFTER,
+                    candi   => $candi,
                     message => "Testing [OK] for {$candi.dist.?identity // $candi.as}",
                 });
             }
@@ -580,30 +763,33 @@ class Zef::Client {
     }
 
     #| Search for identities from the various repository backends and returns the matching distributions
-    method search(*@identities ($, *@), *%fields, Bool :$strict = False) {
-        $!recommendation-manager.search(@identities, :$strict, |%fields);
+    method search(*@identities ($, *@), *%fields, Bool :$strict = False --> Array[Candidate]) {
+        my Candidate @results = $!recommendation-manager.search(@identities, :$strict, |%fields);
+        return @results;
     }
 
     #| Uninstall a distribution from a given repository
-    method uninstall(CompUnit::Repository :@from!, *@identities) {
+    method uninstall(CompUnit::Repository :@from!, *@identities --> Array[Candidate]) {
         my @specs = @identities.map: { Zef::Distribution::DependencySpecification.new($_) }
-        eager gather for self.list-installed(@from) -> $candi {
+        my Candidate @results = eager gather for self.list-installed(@from) -> $candi {
             my $dist = $candi.dist;
             if @specs.first({ $dist.spec-matcher($_) }) {
                 my $cur = CompUnit::RepositoryRegistry.repository-for-spec("inst#{$candi.from}", :next-repo($*REPO));
-                $cur.uninstall($dist.compat);
+                $cur.uninstall($dist);
                 take $candi;
             }
         }
+        return @results;
     }
 
     #| Install a distribution to a given repository
-    method install(:@curs, *@candidates ($, *@)) {
-        my @installed = eager gather for @candidates -> $candi {
+    method install(:@curs, *@candidates ($, *@) --> Array[Candidate]) {
+        my Candidate @installed = eager gather for @candidates -> $candi {
             self.logger.emit({
                 level   => INFO,
                 stage   => INSTALL,
                 phase   => BEFORE,
+                candi   => $candi,
                 message => "Installing: {$candi.dist.?identity // $candi.as}",
             });
 
@@ -612,6 +798,7 @@ class Zef::Client {
                     level   => VERBOSE,
                     stage   => INSTALL,
                     phase   => AFTER,
+                    candi   => $candi,
                     message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
                 });
 
@@ -621,6 +808,7 @@ class Zef::Client {
                             level   => INFO,
                             stage   => INSTALL,
                             phase   => AFTER,
+                            candi   => $candi,
                             message => "Install [SKIP] for {$candi.dist.?identity // $candi.as}: {$_}",
                         });
                     }
@@ -629,6 +817,7 @@ class Zef::Client {
                             level   => ERROR,
                             stage   => INSTALL,
                             phase   => AFTER,
+                            candi   => $candi,
                             message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
                         });
                         $_.rethrow;
@@ -709,18 +898,21 @@ class Zef::Client {
                 level   => DEBUG,
                 stage   => FILTER,
                 phase   => BEFORE,
+                candi   => $candi,
                 message => "Filtering: {$candi.dist.identity}",
             });
             KEEP $!logger.emit({
                 level   => DEBUG,
                 stage   => FILTER,
                 phase   => AFTER,
+                candi   => $candi,
                 message => "Filtering [OK] for {$candi.dist.?identity // $candi.as}",
             });
             UNDO $!logger.emit({
                 level   => ERROR,
                 stage   => FILTER,
                 phase   => AFTER,
+                candi   => $candi,
                 message => "Filtering [FAIL] for {$candi.dist.?identity // $candi.as}: {$*error}",
             });
 
@@ -780,7 +972,10 @@ class Zef::Client {
             # Inform user of what was tested/built/installed and what failed
             # Optionally report to any cpan testers type service (testers.perl6.org)
             unless $dry {
-                if @installed-candidates.map(*.dist).flatmap(*.scripts.keys).unique -> @bins {
+                # Get the name of the bin scripts
+                my sub bin-names($dist) { $dist.meta<files>.hash.keys.grep(*.starts-with("bin/")).map(*.substr(4)) };
+
+                if @installed-candidates.map(*.dist).map(*.&bin-names.Slip).unique -> @bins {
                     my $msg = "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins??' ['~@bins~']'!!''} installed to:"
                     ~ "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
                     self.logger.emit({
@@ -795,11 +990,12 @@ class Zef::Client {
             @installed-candidates;
         } # sub installer
 
-        my @installed = ?$serial ?? @linked-candidates.map({ |$installer($_) }) !! $installer(@linked-candidates);
+        my Candidate @installed = ?$serial ?? @linked-candidates.map({ |$installer($_) }) !! $installer(@linked-candidates);
+        return @installed;
     }
 
     #| Return distributions that depend on the given identity
-    method list-rev-depends($identity, Bool :$indirect) {
+    method list-rev-depends($identity, Bool :$indirect --> Array[Candidate]) {
         my $spec  = Zef::Distribution::DependencySpecification.new($identity);
         my $dist  = self.list-available.first(*.dist.contains-spec($spec)).?dist || return [];
 
@@ -808,41 +1004,45 @@ class Zef::Client {
 
             take $candi if $specs.first({ $dist.contains-spec($_, :strict) });
         }
-        $rev-deps.unique(:as(*.dist.identity));
+        my Candidate @results = $rev-deps.unique(:as(*.dist.identity));
+        return @results;
     }
 
     #| Return all distributions from all repositories
-    method list-available(*@recommendation-manager-names) {
-        my $available := $!recommendation-manager.available(@recommendation-manager-names);
+    method list-available(*@recommendation-manager-names --> Array[Candidate]) {
+        my Candidate @available = $!recommendation-manager.available(@recommendation-manager-names);
+        return @available;
     }
 
     #| Return all distributions in known CompUnit::Repository::Installation repositories
-    method list-installed(*@curis) {
+    method list-installed(*@curis --> Array[Candidate]) {
         my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
         my @repo-dirs  = @curs.map({.?prefix // .path-spec.?path}).map(*.IO); #.path-spec.?path is for CUR::Unknown
         my @dist-dirs  = @repo-dirs.map(*.child('dist')).grep(*.e);
         my @dist-files = @dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
 
-        my $dists := gather for @dist-files -> $file {
-            if try { Zef::Distribution.new( |%(from-json($file.IO.slurp)) ) } -> $dist {
+        my Candidate @dists = gather for @dist-files -> $file {
+            if try { Zef::Distribution.new( |%(Zef::from-json($file.IO.slurp)) ) } -> $dist {
                 my $cur = @curs.first: {.prefix eq $file.parent.parent}
                 take Candidate.new( :$dist, :from($cur), :uri($file) );
             }
         }
+        return @dists;
     }
 
-    method list-leaves {
+    method list-leaves(--> Array[Candidate]) {
         my @installed = self.list-installed;
         my @dep-specs = self.list-dependencies(@installed);
 
-        my $leaves := gather for @installed -> $candi {
+        my Candidate @leaves = gather for @installed -> $candi {
             my $dist := $candi.dist;
             take $candi unless @dep-specs.first: { $dist.contains-spec($_) }
         }
+        return @leaves;
     }
 
     #| Return distributions that are direct dependencies of the supplied distributions
-    method list-dependencies(*@candis, :$from) {
+    method list-dependencies(*@candis, :$from --> Array[DependencySpecification]) {
         my $deps := gather for @candis -> $candi {
             take $_ for grep *.defined,
                 ($candi.dist.depends-specs       if ?$!depends).Slip,
@@ -850,25 +1050,32 @@ class Zef::Client {
                 ($candi.dist.build-depends-specs if ?$!build-depends).Slip;
         }
 
-        # if .name is not defined then its invalid but probably a deeply nested
-        # depends hash so just ignore it since it might be valid in the near future.
-        $deps.unique(:as(*.identity));
+        # This returns both Zef::Distribution::DependencySpecification and Zef::Distribution::DependencySpecification::Any
+        #my Zef::Distribution::DependencySpecification @results = $deps.unique(:as(*.identity));
+        my DependencySpecification @results = $deps.unique(:as(*.identity));
+        return @results;
     }
 
     #| Returns the best matching distributions from installed sources, in preferred order, similar to $*REPO.resolve
-    method resolve($spec, :@at) {
+    method resolve($spec, CompUnit::Repository :@at --> Array[Candidate]) {
         my $candis := self.list-installed(@at).grep(*.dist.contains-spec($spec));
-        $candis.sort(*.dist.ver).sort(*.dist.api).reverse;
-    }
-
-    #| Return true of one-or-more of the requested dependencies are already installed
-    multi method is-installed(Zef::Distribution::DependencySpecification::Any $spec, |c) {
-        self.is-installed(any($spec.specs, |c))
+        my Candidate @results = $candis.sort(*.dist.ver).sort(*.dist.api).reverse;
+        return @results;
     }
 
     #| Return true if the requested dependency is already installed
-    multi method is-installed($spec, |c) {
-        do given $spec.?from-matcher {
+    multi method is-installed(Str $spec, |c --> Bool:D) {
+        return self.is-installed(Zef::Distribution::DependencySpecification.new($spec));
+    }
+
+    #| Return true of one-or-more of the requested dependencies are already installed
+    multi method is-installed(Zef::Distribution::DependencySpecification::Any $spec, |c --> Bool:D) {
+        return so $spec.specs.first({ self.is-installed($_, |c) });
+    }
+
+    #| Return true if the requested dependency is already installed
+    multi method is-installed(Zef::Distribution::DependencySpecification $spec, |c --> Bool:D) {
+        return do given $spec.?from-matcher {
             when 'bin'    { so Zef::Utils::FileSystem::which($spec.name) }
             when 'native' { so self!native-library-is-installed($spec) }
             default       { so self.resolve($spec, |c).so }
@@ -888,8 +1095,8 @@ class Zef::Client {
     }
 
     #| Toplogical sort used to determine which dependency can be processed next in a given phase
-    method sort-candidates(@candis, *%_) {
-        my @tree;
+    method sort-candidates(@candis, *%_ --> Array[Candidate]) {
+        my Candidate @tree;
         my $visit = sub ($candi, $from? = '') {
             return if ($candi.dist.metainfo<marked> // 0) == 1;
             if ($candi.dist.metainfo<marked> // 0) == 0 {

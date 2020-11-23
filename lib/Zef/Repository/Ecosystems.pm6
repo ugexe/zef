@@ -3,48 +3,102 @@ use Zef::Utils::FileSystem;
 use Zef::Distribution;
 use Zef::Distribution::DependencySpecification;
 
-# A basic 'Repository' that uses a file (containing an array of hash / META6 json) as a database. It is
-# used for the default 'p6c' and 'cpan' ecosystems, and is also a good choice for ad-hoc darkpans by passing
-# it your own mirrors in the config.
+class Zef::Repository::Ecosystems does PackageRepository {
 
-class Zef::Repository::Ecosystems does Repository {
-    # A name for the repository/ecosystem to be referenced (i.e. '===> Updated myname mirror: ...')
+    =begin pod
+
+    =title class Zef::Repository::Ecosystems
+
+    =subtitle A simple json database based implementation of the Repository interface
+
+    =head1 Synopsis
+
+    =begin code :lang<raku>
+
+        use Zef::Fetch;
+        use Zef::Repository::Ecosystems;
+
+        my @fetching_backends = [
+            { module => "Zef::Service::Shell::curl" },
+            { module => "Zef::Service::Shell::PowerShell::download" },
+        ];
+
+        my @mirrors = 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/11efd9077b398df3766eaa7cf8e6a9519f63c272/cpan.json';
+        my $fetcher = Zef::Fetch.new(:backends(@fetching_backends));
+        my $cache   = $*HOME.child(".zef/store") andthen { mkdir $_ unless $_.IO.e };
+        my $repo    = Zef::Repository::Ecosystems.new(name => "cpan", :$fetcher, :$cache, :@mirrors);
+
+        # Print out all available distributions from this repository
+        say $_.dist.identity for $repo.available;
+
+    =end code
+
+    =head1 Description
+
+    A basic C<Repository> that uses a file (containing an array of hash / META6 json) as a database. It is
+    used for the default 'p6c' and 'cpan' ecosystems, and is also a good choice for ad-hoc darkpans by passing
+    it your own mirrors in the config.
+
+    =head1 Methods
+
+    =head2 method search
+
+        method search(Bool :$strict, *@identities ($, *@), *%fields --> Array[Candidate])
+
+    Resolves each identity in C<@identities> to all of its matching C<Candidates>. If C<$strict> is C<False> then it will
+    consider partial matches on module short-names (i.e. 'zef search HTTP' will get results for e.g. C<HTTP::UserAgent>).
+
+    =head2 method available
+
+        method available(*@plugins --> Array[Candidate])
+
+    Returns an C<Array> of all C<Candidate> provided by this repository instance (i.e. all distributions in the cpan ecosystem).
+
+    =head2 method update
+
+        method update(--> Nil)
+
+    Attempts to update the local file / database using the first of C<@.mirrors> that successfully fetches.
+
+    =end pod
+
+
+    #| A name for the repository/ecosystem to be referenced (i.e. '===> Updated myname mirror: ...')
     has Str $.name;
 
-    # One or more URIs containing an ecosystem 'array-of-hash' database. URI types that work
-    # are whatever the supplied $!fetcher supports (so generally local files and https)
+    #| One or more URIs containing an ecosystem 'array-of-hash' database. URI types that work
+    #| are whatever the supplied $!fetcher supports (so generally local files and https)
     has List $.mirrors;
 
-    # Int | Bool
-    # Int - the db will be lazily updated when it is $!auto-update hours old
-    # Bool True - the db will be lazily updated regardless of how old the db is
-    # Bool False - do not update the db
+    #| Int - the db will be lazily updated when it is $!auto-update hours old.
+    #| Bool True - the db will be lazily updated regardless of how old the db is.
+    #| Bool False - do not update the db.
     has $.auto-update is rw;
 
-    # Where we will save/stage the db file we fetch
+    #| Where we will save/stage the db file we fetch
     has IO::Path $.cache;
 
-    # Used to get data from a URI. Generally uses Zef::Fetcher, which itself uses multiple backends to allow
-    # fetching local paths, https, and git by default
+    #| Used to get data from a URI. Generally uses Zef::Fetcher, which itself uses multiple backends to allow
+    #| fetching local paths, https, and git by default
     has Fetcher $.fetcher;
 
-    # A array of distributions found in the ecosystem db. Lazily populated as soon as the db is referenced
+    #| A array of distributions found in the ecosystem db. Lazily populated as soon as the db is referenced
     has Zef::Distribution @!distributions;
 
-    # Similar to @!distributions, but indexes by short name i.e. { "Foo::Bar" => ($dist1, $dist2), "Baz" => ($dist1) }
+    #| Similar to @!distributions, but indexes by short name i.e. { "Foo::Bar" => ($dist1, $dist2), "Baz" => ($dist1) }
     has Array[Distribution] %!short-name-lookup;
 
-    # see role Repository in lib/Zef.pm6
+    #| see role Repository in lib/Zef.pm6
     method id(--> Str) { $?CLASS.^name.split('+', 2)[0] ~ "<{$!name}>" }
 
-    # see role Repository in lib/Zef.pm6
+    #| see role Repository in lib/Zef.pm6
     method available(--> Array[Candidate]) {
         self!populate-distributions;
 
         my @candidates = @!distributions.map: -> $dist {
             Candidate.new(
                 dist => $dist,
-                uri  => ($dist.source-url || $dist.hash<support><source>),
+                uri  => ($dist.source-url || $dist.meta<support><source>),
                 from => self.id,
                 as   => $dist.identity,
             );
@@ -54,8 +108,8 @@ class Zef::Repository::Ecosystems does Repository {
         return @results;
     }
 
-    # Iterate over mirrors until we successfully fetch and save one
-    # see role Repository in lib/Zef.pm6
+    #| Iterate over mirrors until we successfully fetch and save one
+    #| see role Repository in lib/Zef.pm6
     has Int $!update-counter; # Keep track if we already did an update during this runtime
     method update(--> Nil) {
         $!update-counter++;
@@ -71,7 +125,7 @@ class Zef::Repository::Ecosystems does Repository {
                 CATCH { default { .note; } }
                 $!fetcher.fetch(Candidate.new(:$uri), $save-as, :timeout(180));
             }
-            next unless $saved-as.?chars && $saved-as.IO.e;
+            next unless $saved-as.defined && $saved-as.?chars && $saved-as.IO.e;
 
             # this is kinda odd, but if $path is a file, then its fetching via http from p6c.org
             # and if its a directory its pulling from my ecosystems repo (this hides the difference for now)
@@ -84,13 +138,13 @@ class Zef::Repository::Ecosystems does Repository {
         }
     }
 
-    # see role Repository in lib/Zef.pm6
-    method search(:$max-results, Bool :$strict, *@identities, *%fields --> Array[Candidate]) {
-        return ().Seq unless @identities || %fields;
+    #| see role Repository in lib/Zef.pm6
+    method search(Bool :$strict, *@identities, *%fields --> Array[Candidate]) {
+        return Nil unless @identities || %fields;
 
         my %specs = @identities.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
         my @searchable-identities = %specs.classify({ .value.from-matcher })<Perl6>.grep(*.defined).hash.keys;
-        return ().Seq unless @searchable-identities;
+        return Nil unless @searchable-identities;
 
         # populate %!short-name-lookup
         self!populate-distributions;
@@ -102,7 +156,7 @@ class Zef::Repository::Ecosystems does Repository {
             my $matching-candidates := $dists-to-search.grep(*.contains-spec($wanted-spec, :$strict)).map({
                 Candidate.new(
                     dist => $_,
-                    uri  => ($_.source-url || $_.hash<support><source>),
+                    uri  => ($_.source-url || $_.meta<support><source>),
                     as   => $searchable-identity,
                     from => self.id,
                 );
@@ -116,7 +170,7 @@ class Zef::Repository::Ecosystems does Repository {
         return @results;
     }
 
-    # Location of db file
+    #| Location of db file
     has IO::Path $!package-list-path;
     method !package-list-path(--> IO::Path) {
         unless $!package-list-path {
@@ -127,18 +181,18 @@ class Zef::Repository::Ecosystems does Repository {
         return $!package-list-path;
     }
 
-    # Read our package db
+    #| Read our package db
     method !slurp-package-list(--> List) {
         return [ ] unless self!package-list-path.e;
 
         do given self!package-list-path.open(:r) {
             LEAVE {.close}
             .lock: :shared;
-            try |from-json(.slurp);
+            try |Zef::from-json(.slurp);
         }
     }
 
-    # Write our package db
+    #| Write our package db
     method !spurt-package-list($content --> Bool) {
         do given self!package-list-path.open(:w) {
             LEAVE {.close}
@@ -147,13 +201,13 @@ class Zef::Repository::Ecosystems does Repository {
         }
     }
 
-    # Check if our package list should be updated
+    #| Check if our package list should be updated
     method !is-package-list-stale(--> Bool:D) {
-        return !self!package-list-path.e
+        return so !self!package-list-path.e
             || ($!auto-update && self!package-list-path.modified < now.DateTime.earlier(:hours($!auto-update)).Instant);
     }
 
-    # Populate @!distributions and %!short-name-lookup, essentially initializing the data as late as possible
+    #| Populate @!distributions and %!short-name-lookup, essentially initializing the data as late as possible
     has $!populate-distributions-lock = Lock.new;
     method !populate-distributions(--> Nil) {
         $!populate-distributions-lock.protect: {

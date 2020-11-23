@@ -17,15 +17,9 @@
     ],
     "Report" : [
         { 
-            "short-name" : "p6ctesters",
+            "short-name" : "file-reporter",
             "enabled" : 0,
-            "module" : "Zef::Service::P6CReporter"
-        },
-        {
-            "short-name" : "cpantesters",
-            "enabled" : 1,
-            "module" : "Zef::CPANReporter",
-            "comment" : "Third party plugin - zef install Zef::Reporter::CPAN"
+            "module" : "Zef::Service::FileReporter"
         }
     ],
     "Repository" : [

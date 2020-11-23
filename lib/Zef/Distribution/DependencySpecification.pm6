@@ -1,12 +1,22 @@
+use Zef;
 use Zef::Identity;
 
-class Zef::Distribution::DependencySpecification::Any {
+role DependencySpecification {
+    method name(--> Str) { ... }
+    method identity(--> Str) { ... }
+    method spec-matcher($spec --> Bool:D) { ... }
+}
+
+class Zef::Distribution::DependencySpecification::Any does DependencySpecification {
     has @.specs;
     method name { "any({@.specs.map(*.name).join(', ')})" }
     method identity { "any({@.specs.map(*.identity).join(',')})" }
+    method spec-matcher($spec --> Bool:D) {
+        return so @!specs.first(*.spec-matcher($spec));
+    }
 }
 
-class Zef::Distribution::DependencySpecification {
+class Zef::Distribution::DependencySpecification does DependencySpecification {
     has $!ident;
     has $.spec;
 

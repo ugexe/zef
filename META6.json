@@ -31,10 +31,10 @@
         "Zef::Distribution::DependencySpecification" : "lib/Zef/Distribution/DependencySpecification.pm6",
         "Zef::Distribution::Local"                   : "lib/Zef/Distribution/Local.pm6",
 
-        "Zef::Service::InstallPM6"  : "lib/Zef/Service/InstallPM6.pm6",
-        "Zef::Service::FetchPath"   : "lib/Zef/Service/FetchPath.pm6",
-        "Zef::Service::TAP"         : "lib/Zef/Service/TAP.pm6",
-        "Zef::Service::P6CReporter" : "lib/Zef/Service/P6CReporter.pm6",
+        "Zef::Service::InstallPM6"   : "lib/Zef/Service/InstallPM6.pm6",
+        "Zef::Service::FetchPath"    : "lib/Zef/Service/FetchPath.pm6",
+        "Zef::Service::TAP"          : "lib/Zef/Service/TAP.pm6",
+        "Zef::Service::FileReporter" : "lib/Zef/Service/FileReporter.pm6",
 
         "Zef::Service::Shell::DistributionBuilder" : "lib/Zef/Service/Shell/DistributionBuilder.pm6",
         "Zef::Service::Shell::LegacyBuild"  : "lib/Zef/Service/Shell/LegacyBuild.pm6",
@@ -52,7 +52,6 @@
         "Zef::Service::Shell::PowerShell::unzip"    : "lib/Zef/Service/Shell/PowerShell/unzip.pm6",
 
         "Zef::Utils::FileSystem"  : "lib/Zef/Utils/FileSystem.pm6",
-        "Zef::Utils::SystemInfo"  : "lib/Zef/Utils/SystemInfo.pm6",
         "Zef::Utils::SystemQuery" : "lib/Zef/Utils/SystemQuery.pm6",
         "Zef::Utils::URI"         : "lib/Zef/Utils/URI.pm6"
     },

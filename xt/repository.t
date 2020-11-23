@@ -9,7 +9,7 @@ use Zef::Fetch;
 
 
 subtest 'Repository' => {
-    class Mock::Repository does Repository {
+    class Mock::Repository does PackageRepository {
         method search(:$max-results = 5, *@identities, *%fields) {
             my @candidates =
                 Candidate.new(:as("{@identities[0]}::X")),

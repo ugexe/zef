@@ -10,8 +10,6 @@ class Zef::Utils::URI {
     has $.query;
     has $.fragment;
 
-    method CALL-ME($id) { try self.new($id) }
-
     my grammar URI {
         token URI-reference { <URI> || <relative-ref>                                   }
         token URI           { <scheme> ':' <heir-part> ['?' <query>]? ['#' <fragment>]? }
@@ -186,4 +184,4 @@ class Zef::Utils::URI {
     }
 }
 
-sub uri($str) is export { Zef::Utils::URI($str) }
+sub uri(Str() $uri) is export { try Zef::Utils::URI.new($uri) }

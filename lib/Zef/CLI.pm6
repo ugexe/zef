@@ -4,14 +4,302 @@ use Zef::Config;
 use Zef::Utils::FileSystem;
 use Zef::Identity;
 use Zef::Distribution;
-use Zef::Utils::SystemInfo;
 use Zef::Utils::URI;
 use nqp;
 
-# Content was cut+pasted from bin/zef, leaving bin/zef's contents as just: `use Zef::CLI;`
-# This allows the bin/zef original code to be precompiled, halving bare start up time.
-# Ideally this all ends up back in bin/zef once/if precompilation of scripts is handled in CURI
 package Zef::CLI {
+
+    =begin pod
+
+    =title package Zef::CLI
+
+    =subtitle The zef command line interface
+
+    =head1 Synopsis
+
+    =begin code :lang<sh>
+
+        zef --help
+
+        raku -e 'use Zef::CLI' install ./my-dist
+
+    =end code
+
+    =head1 Description
+
+    Acts as a script-in-module-form (for precompilation reasons). As such the following two commands are the same:
+    C<zef install Foo>, C<raku -e 'use Zef::CLI' install Foo>. See `zef --help` or `raku -I. bin/zef --help` for
+    high level information on the various commands and options.
+
+    =head1 Subroutines
+
+    =head2 sub MAIN(:$version)
+
+        multi sub MAIN(Bool :$version where .so) {
+
+    Show the version of zef being used.
+
+    =head2 sub MAIN(:$help)
+
+        multi sub MAIN(Bool :h(:$help)?)
+
+    Show the usage message.
+
+    =head2 sub MAIN('fetch', ...)
+
+        sub MAIN(
+            'fetch',
+            Bool :force(:$force-fetch),
+            Int  :timeout(:$fetch-timeout) = %*ENV<ZEF_FETCH_TIMEOUT> // 600,
+            Int  :degree(:$fetch-degree)   = %*ENV<ZEF_FETCH_DEGREE> || 5, # default different from Zef::Client,
+            :$update, # Not Yet Implemented
+            *@identities ($, *@)
+        )
+
+    Download and extract the best matching distribution found for each C<@identities>. Will exit 0 on success.
+
+    If C<$force-fetch> is C<True> then a failure to fetch something won't throw an exception.
+
+    If C<$fetch-timeout> is set to a non-zero c<Int> zef will wait for that many seconds when fetching something before attempting to try the next matching fetching adapter.
+
+    If C<$fetch-degree> is set zef will download up to that many distributions in parallel.
+
+    =head2 sub MAIN('test', ...)
+
+        sub MAIN(
+            'test',
+            Bool :force(:$force-test),
+            Int  :timeout(:$test-timeout) = %*ENV<ZEF_TEST_TIMEOUT> || 3600,
+            Int  :degree(:$test-degree) = %*ENV<ZEF_TEST_DEGREE> || 1,
+            *@paths ($, *@)
+        )
+
+    Test the distributions from the provided C<@paths>. Will exit 0 on success.
+
+    If C<$force-test> is C<True> then a test failure won't throw an exception.
+
+    If C<$test-timeout> is set to a non-zero c<Int> zef will wait for that many seconds when testing a distribution before aborting.
+
+    If C<$test-degree> is set zef will test up to that many distributions in parallel.
+
+    =head2 sub MAIN('build', ...)
+
+        sub MAIN(
+            'build',
+            Bool :force(:$force-build),
+            Int  :timeout(:$build-timeout) = %*ENV<ZEF_BUILD_TIMEOUT> || 3600,
+            *@paths ($, *@)
+        )
+
+    Build the distributions from the provided C<@paths>. Will exit 0 on success.
+
+    If C<$force-build> is C<True> then a test failure won't throw an exception.
+
+    If C<$build-timeout> is set to a non-zero c<Int> zef will wait for that many seconds when building a distribution before aborting.
+
+    =head2 sub MAIN('install', ...)
+
+        sub MAIN(
+            'install',
+            Bool :$fetch         = True,
+            Bool :$build         = True,
+            Bool :$test          = True,
+            Bool :$depends       = True,
+            Bool :$build-depends = $build,
+            Bool :$test-depends  = $test,
+            Bool :$force,
+            Bool :$force-resolve = $force,
+            Bool :$force-fetch   = $force,
+            Bool :$force-extract = $force,
+            Bool :$force-build   = $force,
+            Bool :$force-test    = $force,
+            Bool :$force-install = $force,
+            Int  :$timeout,
+            Int  :$fetch-timeout   = %*ENV<ZEF_FETCH_TIMEOUT>   // $timeout // 600,
+            Int  :$extract-timeout = %*ENV<ZEF_EXTRACT_TIMEOUT> // $timeout // 3600,
+            Int  :$build-timeout   = %*ENV<ZEF_BUILD_TIMEOUT>   // $timeout // 3600,
+            Int  :$test-timeout    = %*ENV<ZEF_TEST_TIMEOUT>    // $timeout // 3600,
+            Int  :$install-timeout = %*ENV<ZEF_INSTALL_TIMEOUT> // $timeout // 3600,
+            Int  :$degree,
+            Int  :$fetch-degree   = %*ENV<ZEF_FETCH_DEGREE> || $degree || 5, # default different from Zef::Client
+            Int  :$test-degree    = %*ENV<ZEF_TEST_DEGREE>  || $degree || 1,
+            Bool :$dry,
+            Bool :$upgrade,# Not Yet Implemented
+            Bool :$deps-only,
+            Bool :$serial,
+            Bool :$contained,
+            :$update,
+            :$exclude,
+            :to(:$install-to) = $CONFIG<DefaultCUR>,
+            *@wants ($, *@)
+        )
+
+    Fetch, extract, build, test, and install C<@wanted> distributions and their prerequisites.
+
+    If C<$fetch> is set to C<False> then the fetch phase will be skipped.
+
+    If C<$build> is set to C<False> then the build phase will be skipped.
+
+    If C<$test> is set to C<False> then the test phase will be skipped.
+
+    If C<$depends> is set to C<False> then runtime dependencies will be ignored.
+
+    If C<$build-depends> is set to C<False> then build dependencies will be ignored.
+
+    If C<$test-depends> is set to C<False> then test dependencies will be ignored.
+
+    If C<$force> is set to C<True> then zef will treat any failures as successes, potentially allowing progress to continue on failure.
+
+    If C<$force-resolve> is set to C<True> then zef will treat any name resolution failures as successes, potentially allowing progress to continue on failure.
+
+    If C<$force-fetch> is set to C<True> then zef will treat any fetch failures as successes, potentially allowing progress to continue on failure.
+
+    If C<$force-extract> is set to C<True> then zef will treat any extract failures as successes, potentially allowing progress to continue on failure.
+
+    If C<$force-build> is set to C<True> then zef will treat any build failures as successes, potentially allowing progress to continue on failure.
+
+    If C<$force-test> is set to C<True> then zef will treat any test failures as successes, potentially allowing progress to continue on failure.
+
+    If C<$force-install> is set to C<True> then zef will treat any install failures as successes, potentially allowing progress to continue on failure.
+
+    If C<$timeout> is set to a non-zero c<Int> zef will wait for that many seconds when executing a given action for a specific distribution before aborting.
+
+    If C<$fetch-timeout> is set to a non-zero c<Int> zef will wait for that many seconds when fetching something before attempting to try the next matching fetching adapter.
+
+    If C<$build-timeout> is set to a non-zero c<Int> zef will wait for that many seconds when building a distribution before aborting.
+
+    If C<$test-timeout> is set to a non-zero c<Int> zef will wait for that many seconds when testing a distribution before aborting.
+
+    If C<$install-timeout> is set to a non-zero c<Int> zef will wait for that many seconds when installing a distribution before aborting.
+
+    If C<$fetch-degree> is set zef will download up to that many distributions in parallel.
+
+    If C<$test-degree> is set zef will test up to that many distributions in parallel.
+
+    If C<$dry> is set to C<True> then the final step of actually installing the distribution will be skipped and considered a success.
+
+    If C<$deps-only> is set to C<True> then only the dependencies of the requested identities will be processed.
+
+    If C<$serial> is set to C<True> then zef will install each distribution after it passes its own tests. By default this is C<False> and means nothing will be installed unless all distributions passed their tests.
+
+    If C<$contained> is set to C<True> (and combined with C<:$install-to>) zef will install all distributions to a location, including those that might otherwise already be installed and visible in another location (BETA)
+
+    If C<$update> is set to C<True> it will force an update of all ecosystem / repository indexes. If C<$update> is set to a C<Str> or C<Array[Str]> it will only update the repositories that match the given names.
+
+    If C<$exclude> If C<$exclude> is set to a C<Str> or C<Array[Str]> then any matching dependency will be ignored.
+
+    If C<$to>/C<:$install-to> is set to a C<Str> or C<Array[Str]> then distributions will be installed to all of those C<CompUnit::Repository>. The short names C<site> C<home> C<vendor> can be used to reference their associated repository, otherwise a file path can be given to use a custom location. By default this is set to the zef-specific value C<auto> which makes zef use the C<site> repository if the user has write access and the C<home> otherwise.
+
+    =head2 sub MAIN('uninstall', ...)
+
+        sub MAIN(
+            'uninstall',
+            :from(:$uninstall-from),
+            *@identities ($, *@)
+        )
+
+    Uninstall distributions matching C<@identities> from any visible repository.
+
+    If C<$uninstall-from> is set to a C<Str> or C<Array[Str]> then the uninstall will apply to those repositories instead of all visible ones.
+
+    =head2 sub MAIN('search', ...)
+
+        multi sub MAIN('search', Int :$wrap = False, :$update, *@terms ($, *@))
+
+    Does a basic substring search for any of C<@terms> and returns any matching distributions.
+
+    If C<$wrap> is set to C<True> then the generated table won't wrap (nyi -- need to detect terminal width again), and if set to an C<Int> limit the generated table to that many characters wide.
+
+    If C<$update> is set to C<True> it will force an update of all ecosystem / repository indexes. If C<$update> is set to a C<Str> or C<Array[Str]> it will only update the repository that matches the given names.
+
+    =head2 sub MAIN('list', ...)
+
+        multi sub MAIN('list', Int :$max?, :$update, Bool :i(:$installed), *@at)
+
+    List all distributions from all known repositories.
+
+    If C<$max> is set then only that many results will be returned from each repository.
+
+    If C<$update> is set to C<True> it will force an update of all ecosystem / repository indexes. If C<$update> is set to a C<Str> or C<Array[Str]> it will only update the repositories that match the given names.
+
+    If C<$i>/C<$installed> is set to C<True> then only installed distributions will be listed.
+
+    If C<@at> is set to a C<Array[Str]> it will only list distributions from the repositories that match the given names.
+
+    =head2 sub MAIN('depends', ...)
+
+        multi sub MAIN(
+            'depends',
+            $identity,
+            Bool :$depends       = True,
+            Bool :$test-depends  = True,
+            Bool :$build-depends = True,
+        )
+
+
+    List the dependencies of the given C<$identity>.
+
+    If C<$depends> is set to C<False> then runtime dependencies will be ignored.
+
+    If C<$build-depends> is set to C<False> then build dependencies will be ignored.
+
+    If C<$test-depends> is set to C<False> then test dependencies will be ignored.
+
+    =head2 sub MAIN('rdepends', ...)
+
+        multi sub MAIN(
+            'rdepends',
+            $identity,
+            Bool :$depends       = True,
+            Bool :$test-depends  = True,
+            Bool :$build-depends = True,
+        )
+
+    List the reverse dependencies of the given C<$identity>.
+
+    If C<$depends> is set to C<False> then runtime dependencies will be ignored.
+
+    If C<$build-depends> is set to C<False> then build dependencies will be ignored.
+
+    If C<$test-depends> is set to C<False> then test dependencies will be ignored.
+
+    =head2 sub MAIN('info', ...)
+
+        multi sub MAIN('info', $identity, :$update, Int :$wrap = False)
+
+    List detailed information about the best match for C<$identity>.
+
+    If C<$wrap> is set to C<True> then the generated table won't wrap (nyi -- need to detect terminal width again), and if set to an C<Int> limit the generated table to that many characters wide.
+
+    If C<$update> is set to C<True> it will force an update of all ecosystem / repository indexes. If C<$update> is set to a C<Str> or C<Array[Str]> it will only update the repositories that match the given names.
+
+    =head2 sub MAIN('browse', ...)
+
+        multi sub MAIN('browse', $identity, $url-type where * ~~ any(<homepage bugtracker source>), Bool :$open = True)
+
+    Open a browser to the C<$url-type> resource of the best matching distribution for C<$identity>.
+
+    If C<$open> is set to C<False> then a browser window won't be opened, instead just outputting the url to the terminal.
+
+    =head2 sub MAIN('update', ...)
+
+        multi sub MAIN('update', *@names)
+
+    Update all ecosystem / repository indexes.
+
+    If C<@names> is set to a C<Str> or C<Array[Str]> it will only update the repositories that match the given names.
+
+    =head2 sub MAIN('nuke', ...)
+
+        multi sub MAIN('nuke', Bool :$confirm, *@names ($, *@))
+
+    Delete everything for C<@names>, where C<@names> can be a core repository name (C<site> C<home> C<vendor>), or a config directory reference (C<StoreDir> C<TempDir>).
+
+    If C<$confirm> is set to C<False> then zef will not prompt to confirm deletion.
+
+    =end pod
+
+
     my $verbosity = preprocess-args-verbosity-mutate(@*ARGS);
     %*ENV<ZEF_BUILDPM_DEBUG> = $verbosity >= DEBUG;
     my $CONFIG    = preprocess-args-config-mutate(@*ARGS);
@@ -27,7 +315,7 @@ package Zef::CLI {
     }
 
     #| Download specific distributions
-    multi MAIN(
+    multi sub MAIN(
         'fetch',
         Bool :force(:$force-fetch),
         Int  :timeout(:$fetch-timeout) = %*ENV<ZEF_FETCH_TIMEOUT> // 600,
@@ -47,14 +335,14 @@ package Zef::CLI {
     }
 
     #| Run tests
-    multi MAIN(
+    multi sub MAIN(
         'test',
         Bool :force(:$force-test),
         Int  :timeout(:$test-timeout) = %*ENV<ZEF_TEST_TIMEOUT> || 3600,
-        # Int  :degree(:$test-degree) = %*ENV<ZEF_TEST_DEGREE> || 1, # degree affects simutanious distributions being tests, but this tests a single distribution
+        Int  :degree(:$test-degree) = %*ENV<ZEF_TEST_DEGREE> || 1,
         *@paths ($, *@)
     ) {
-        my $client     = get-client(:config($CONFIG), :$force-test, :$test-timeout);
+        my $client     = get-client(:config($CONFIG), :$force-test, :$test-timeout, :$test-degree);
         my @candidates = $client.link-candidates( @paths.map(*.&path2candidate) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
         my @tested = $client.test(@candidates);
@@ -65,8 +353,8 @@ package Zef::CLI {
         exit ?@test-fail ?? 1 !! ?@test-pass ?? 0 !! 255;
     }
 
-    #| Run Build.pm
-    multi MAIN(
+    #| Run the build process
+    multi sub MAIN(
         'build',
         Bool :force(:$force-build),
         Int  :timeout(:$build-timeout) = %*ENV<ZEF_BUILD_TIMEOUT> || 3600,
@@ -84,15 +372,15 @@ package Zef::CLI {
         exit ?@fail ?? 1 !! ?@pass ?? 0 !! 255;
     }
 
-    #| Install
-    multi MAIN(
+    #| Fetch, extract, build, test and install distributions
+    multi sub MAIN(
         'install',
         Bool :$fetch         = True,
         Bool :$build         = True,
         Bool :$test          = True,
         Bool :$depends       = True,
-        Bool :$test-depends  = $test,
         Bool :$build-depends = $build,
+        Bool :$test-depends  = $test,
         Bool :$force,
         Bool :$force-resolve = $force,
         Bool :$force-fetch   = $force,
@@ -122,9 +410,10 @@ package Zef::CLI {
 
         @wants .= map: *.&str2identity;
         my (:@paths, :@uris, :@identities) := @wants.classify: -> $wanted {
-            $wanted ~~ /^[\. | \/]/                                           ?? <paths>
-                !! ?Zef::Identity.new($wanted)                                ?? <identities>
-                !! (my $uri = Zef::Utils::URI($wanted) and !$uri.is-relative) ?? <uris>
+            $wanted ~~ /^[\. | \/]/                               ?? <paths>
+                !! ($wanted ~~ /^\w+:/ && $wanted.IO.is-absolute) ?? <paths>      # for the rare e.g. C:\foo type paths
+                !! ?Zef::Identity.new($wanted)                    ?? <identities>
+                !! (my $uri = uri($wanted) and !$uri.is-relative) ?? <uris>
                 !! abort("Don't understand identity: {$wanted}");
         }
 
@@ -138,11 +427,13 @@ package Zef::CLI {
             :$test-degree,
         );
 
+        my CompUnit::Repository @at = $install-to.map(*.&str2cur);
+
         # LOCAL PATHS
         abort "The following were recognized as file paths but don't exist as such - {@paths.grep(!*.IO.e)}"
             if +@paths.grep(!*.IO.e);
         my (:@wanted-paths, :@skip-paths) := @paths\
-            .classify: {$client.is-installed(Zef::Distribution::Local.new($_).identity, :at($install-to.map(*.&str2cur))) ?? <skip-paths> !! <wanted-paths>}
+            .classify: {$client.is-installed(Zef::Distribution::Local.new($_).identity, :@at) ?? <skip-paths> !! <wanted-paths>}
         say "The following local path candidates are already installed: {@skip-paths.join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-paths;
         my @requested-paths = ?$force-install ?? @paths !! @wanted-paths;
@@ -153,7 +444,7 @@ package Zef::CLI {
         my @uri-candidates-to-check = $client.fetch( @uris.map({ Candidate.new(:as($_), :uri($_)) }) ) if +@uris;
         abort "No candidates found matching uri: {@uri-candidates-to-check.join(', ')}" if +@uris && +@uri-candidates-to-check == 0;
         my (:@wanted-uris, :@skip-uris) := @uri-candidates-to-check\
-            .classify: {$client.is-installed($_.dist.identity, :at($install-to.map(*.&str2cur))) ?? <skip-uris> !! <wanted-uris>}
+            .classify: {$client.is-installed($_.dist.identity, :@at) ?? <skip-uris> !! <wanted-uris>}
         say "The following uri candidates are already installed: {@skip-uris.map(*.as).join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-uris;
         my @requested-uris = (?$force-install ?? @uri-candidates-to-check !! @wanted-uris)\
@@ -163,7 +454,7 @@ package Zef::CLI {
 
         # IDENTITIES
         my (:@wanted-identities, :@skip-identities) := @identities\
-            .classify: {$client.is-installed($_, :at($install-to.map(*.&str2cur))) ?? <skip-identities> !! <wanted-identities>}
+            .classify: {$client.is-installed($_, :@at) ?? <skip-identities> !! <wanted-identities>}
         say "The following candidates are already installed: {@skip-identities.join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-identities;
         my @requested-identities = (?$force-install ?? @identities !! @wanted-identities)\
@@ -195,14 +486,14 @@ package Zef::CLI {
         exit +@installed && +@installed == +@candidates && +@fail == 0 ?? 0 !! 1;
     }
 
-    #| Uninstall
-    multi MAIN(
+    #| Uninstall distributions
+    multi sub MAIN(
         'uninstall',
-        :from(:$uninstall-from) = $CONFIG<DefaultCUR>,
+        :from(:$uninstall-from),
         *@identities ($, *@)
     ) {
         my $client = get-client(:config($CONFIG));
-        my CompUnit::Repository @from = $uninstall-from.map(*.&str2cur);
+        my CompUnit::Repository @from = $uninstall-from.grep(*.defined).map(*.&str2cur);
 
         my @uninstalled = $client.uninstall( :@from, @identities.map(*.&str2identity) );
         my @fail        = @identities.grep(* !~~ any(@uninstalled.map(*.as)));
@@ -221,7 +512,7 @@ package Zef::CLI {
     }
 
     #| Get a list of possible distribution candidates for the given terms
-    multi MAIN('search', Int :$wrap = False, :$update, *@terms ($, *@)) {
+    multi sub MAIN('search', Int :$wrap = False, :$update, *@terms ($, *@)) {
         my $client = get-client(:config($CONFIG), :$update);
         my @results = $client.search(@terms).unique(:as({ .from ~ ' ' ~ .dist.identity }));
 
@@ -229,7 +520,7 @@ package Zef::CLI {
 
         my @rows = eager gather for @results -> $candi {
             FIRST { take [<ID From Package Description>] }
-            take [ $++, $candi.from, $candi.dist.identity, ($candi.dist.hash<description> // '') ];
+            take [ $++, $candi.from, $candi.dist.identity, ($candi.dist.meta<description> // '') ];
         }
         print-table(@rows, :$wrap);
 
@@ -237,7 +528,7 @@ package Zef::CLI {
     }
 
     #| A list of available modules from enabled repositories
-    multi MAIN('list', Int :$max?, :$update, Bool :i(:$installed), *@at) {
+    multi sub MAIN('list', Int :$max?, :$update, Bool :i(:$installed), *@at) {
         my $client = get-client(:config($CONFIG), :$update);
 
         my $found := ?$installed
@@ -258,7 +549,7 @@ package Zef::CLI {
     }
 
     #| Upgrade installed distributions (BETA)
-    multi MAIN(
+    multi sub MAIN(
         'upgrade',
         Bool :$fetch         = True,
         Bool :$build         = True,
@@ -362,7 +653,7 @@ package Zef::CLI {
     }
 
     #| View dependencies of a distribution
-    multi MAIN(
+    multi sub MAIN(
         'depends',
         $identity,
         Bool :$depends       = True,
@@ -374,9 +665,9 @@ package Zef::CLI {
         # and optionally delivering a message for each section.
         my @wants = ($identity,).map: *.&str2identity;
         my (:@paths, :@uris, :@identities) := @wants.classify: -> $wanted {
-            $wanted ~~ /^[\. | \/]/                                           ?? <paths>
-                !! ?Zef::Identity.new($wanted)                                ?? <identities>
-                !! (my $uri = Zef::Utils::URI($wanted) and !$uri.is-relative) ?? <uris>
+            $wanted ~~ /^[\. | \/]/                               ?? <paths>
+                !! ?Zef::Identity.new($wanted)                    ?? <identities>
+                !! (my $uri = uri($wanted) and !$uri.is-relative) ?? <uris>
                 !! abort("Don't understand identity: {$wanted}");
         }
         my $client = Zef::Client.new(:config($CONFIG), :$depends, :$test-depends, :$build-depends,);
@@ -401,7 +692,7 @@ package Zef::CLI {
     }
 
     #| View direct reverse dependencies of a distribution
-    multi MAIN(
+    multi sub MAIN(
         'rdepends',
         $identity,
         Bool :$depends       = True,
@@ -414,12 +705,12 @@ package Zef::CLI {
     }
 
     #| Lookup locally installed distributions by short-name, name-path, or sha1 id
-    multi MAIN('locate', $identity, Bool :$sha1) {
+    multi sub MAIN('locate', $identity, Bool :$sha1) {
         my $client = get-client(:config($CONFIG));
         if !$sha1 {
-            if $identity.ends-with('.pm' | '.pm6' | '.rakumod') {
+            if $identity.ends-with('.rakumod' | '.pm6' | '.pm') {
                 my @candis = $client.list-installed.grep({
-                    .dist.compat.meta<provides>.values.grep({parse-value($_) eq $identity}).so;
+                    .dist.meta<provides>.values.grep({parse-value($_) eq $identity}).so;
                 });
 
                 for @candis -> $candi {
@@ -429,10 +720,10 @@ package Zef::CLI {
                     if $candi {
                         # This is relying on implementation details for compatability purposes. It will
                         # use something more appropriate sometime in 2019.
-                        my %meta = $candi.dist.compat.meta;
+                        my %meta = $candi.dist.meta;
                         %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
                         my $lib = %meta<provides>.hash.antipairs.hash.{$identity};
-                        my $lib-sha1 = nqp::sha1($lib ~ CompUnit::Repository::Distribution.new($candi.dist.compat).id);
+                        my $lib-sha1 = nqp::sha1($lib ~ CompUnit::Repository::Distribution.new($candi.dist).id);
 
                         say "===> From Distribution: {~$candi.dist}";
                         say "{$lib} => {$candi.from.prefix.child('sources').child($lib-sha1)}";
@@ -441,7 +732,7 @@ package Zef::CLI {
             }
             elsif $identity.starts-with('bin/' | 'resources/') {
                 my @candis = $client.list-installed.grep({
-                    .dist.compat.meta<files>.first({.key eq $identity}).so
+                    .dist.meta<files>.first({.key eq $identity}).so
                 });
 
                 for @candis -> $candi {
@@ -449,7 +740,7 @@ package Zef::CLI {
                     NEXT say '';
 
                     if $candi {
-                        my $libs = $candi.dist.compat.meta<files>;
+                        my $libs = $candi.dist.meta<files>;
                         my $lib  = $libs.first({.key eq $identity});
                         say "===> From Distribution: {~$candi.dist}";
                         say "{$identity} => {$candi.from.prefix.child('resources').child($lib.value)}";
@@ -463,7 +754,7 @@ package Zef::CLI {
 
                     say "===> From Distribution: {~$candi.dist}";
                     my $source-prefix = $candi.from.prefix.child('sources');
-                    my $source-path   = $source-prefix.child(nqp::sha1($identity ~ CompUnit::Repository::Distribution.new($candi.dist.compat).id));
+                    my $source-path   = $source-prefix.child(nqp::sha1($identity ~ CompUnit::Repository::Distribution.new($candi.dist).id));
                     say "{$identity} => {$source-path}" if $source-path.IO.f;
                 }
             }
@@ -472,9 +763,9 @@ package Zef::CLI {
             my @candis = $client.list-installed.grep(-> $candi {
                 # This is relying on implementation details for compatability purposes. It will
                 # use something more appropriate sometime in 2019.
-                my %meta = $candi.dist.compat.meta;
+                my %meta = $candi.dist.meta;
                 %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
-                my @source_files   = %meta<provides>.map({ nqp::sha1($_.key ~ CompUnit::Repository::Distribution.new($candi.dist.compat).id) });
+                my @source_files   = %meta<provides>.map({ nqp::sha1($_.key ~ CompUnit::Repository::Distribution.new($candi.dist).id) });
                 my @resource_files = %meta<files>.values.first({$_ eq $identity});
                 $identity ~~ any(grep *.defined, flat @source_files, @resource_files);
             });
@@ -484,14 +775,14 @@ package Zef::CLI {
                 NEXT say '';
 
                 if $candi {
-                    my %meta = $candi.dist.compat.meta;
+                    my %meta = $candi.dist.meta;
                     %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
-                    my %sources = %meta<provides>.map({ $_.key => nqp::sha1($_.key ~ CompUnit::Repository::Distribution.new($candi.dist.compat).id) }).hash;
+                    my %sources = %meta<provides>.map({ $_.key => nqp::sha1($_.key ~ CompUnit::Repository::Distribution.new($candi.dist).id) }).hash;
 
                     say "===> From Distribution: {~$candi.dist}";
                     $identity ~~ any(%sources.values)
                         ?? (say "{$_} => {$candi.from.prefix.child('sources').child($identity)}" for %sources.antipairs.hash{$identity})
-                        !! (say "{.key} => {.value}" for $candi.dist.compat.meta<files>.first({.value eq $identity}));
+                        !! (say "{.key} => {.value}" for $candi.dist.meta<files>.first({.value eq $identity}));
 
                 }
             }
@@ -503,7 +794,7 @@ package Zef::CLI {
     }
 
     #| Detailed distribution information
-    multi MAIN('info', $identity, :$update, Int :$wrap = False) {
+    multi sub MAIN('info', $identity, :$update, Int :$wrap = False) {
         my $client = get-client(:config($CONFIG), :$update);
         my $latest-installed-candi = $client.resolve($identity).head;
         my @remote-candis = $client.search($identity, :strict, :max-results(1));
@@ -519,14 +810,14 @@ package Zef::CLI {
         say "- Installed: {$latest-installed-candi??$latest-installed-candi.dist.identity eq $dist.identity??qq|Yes|!!qq|Yes, as $latest-installed-candi.dist.identity()|!!'No'}";
         say "Author:\t {$dist.author}"                if $dist.author;
         say "Description:\t {$dist.description}"      if $dist.description;
-        say "License:\t {$dist.compat.meta<license>}" if $dist.compat.meta<license>;
+        say "License:\t {$dist.meta<license>}"        if $dist.meta<license>;
         say "Source-url:\t {$dist.source-url}"        if $dist.source-url;
 
         my @provides = $dist.provides.sort(*.key.chars);
         say "Provides: {@provides.elems} modules";
         if ?($verbosity >= VERBOSE) {
 
-            my $meta := $dist.compat.meta;
+            my $meta := $dist.meta;
             my @rows = eager gather for @provides -> $lib {
                 FIRST {
                     take [<Module Path-Name>]
@@ -538,9 +829,9 @@ package Zef::CLI {
             print-table(@rows, :$wrap);
         }
 
-        if $dist.hash<support> {
+        if $dist.meta<support> {
             say "Support:";
-            for $dist.hash<support>.kv -> $k, $v {
+            for $dist.meta<support>.kv -> $k, $v {
                 say "#   $k:\t$v";
             }
         }
@@ -560,12 +851,12 @@ package Zef::CLI {
     }
 
     #| Browse a distribution's available support urls (homepage, bugtracker, source)
-    multi MAIN('browse', $identity, $url-type where * ~~ any(<homepage bugtracker source>), Bool :$open = True) {
+    multi sub MAIN('browse', $identity, $url-type where * ~~ any(<homepage bugtracker source>), Bool :$open = True) {
         my $client = get-client(:config($CONFIG));
         my $candi  = $client.resolve($identity).head
                 ||   $client.search($identity, :strict, :max-results(1))[0]\
                 ||   abort "!!!> Found no candidates matching identity: {$identity}";
-        my %support  = $candi.dist.compat.meta<support>;
+        my %support  = $candi.dist.meta<support>;
         my $url      = %support{$url-type};
         my @has-urls = grep { %support{$_} }, <homepage bugtracker source>;
         unless $url && $url.starts-with('http://' | 'https://') {
@@ -581,7 +872,7 @@ package Zef::CLI {
     }
 
     #| Download a single module and change into its directory
-    multi MAIN('look', $identity) {
+    multi sub MAIN('look', $identity) {
         my $client     = get-client(:config($CONFIG));
         my @candidates = $client.find-candidates( str2identity($identity) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
@@ -593,7 +884,7 @@ package Zef::CLI {
     }
 
     #| Smoke test
-    multi MAIN(
+    multi sub MAIN(
         'smoke',
         Bool :$fetch         = True,
         Bool :$build         = True,
@@ -675,7 +966,7 @@ package Zef::CLI {
     }
 
     #| Update package indexes
-    multi MAIN('update', *@names) {
+    multi sub MAIN('update', *@names) {
         my $client  = get-client(:config($CONFIG));
         my %results = $client.recommendation-manager.update(@names);
         my $rows    = %results.map: {[.key, .value]};
@@ -688,7 +979,7 @@ package Zef::CLI {
     }
 
     #| Nuke module installations (site, home) and repositories from config (RootDir, StoreDir, TempDir)
-    multi MAIN('nuke', Bool :$confirm, *@names ($, *@)) {
+    multi sub MAIN('nuke', Bool :$confirm, *@names ($, *@)) {
         my sub dir-delete($dir) {
             my @deleted = grep *.defined, try delete-paths($dir, :f, :d, :r);
             say "Deleted " ~ +@deleted ~ " paths from $dir/*";
@@ -720,7 +1011,7 @@ package Zef::CLI {
     }
 
     #| Detailed version information
-    multi MAIN(Bool :$version where .so) {
+    multi sub MAIN(Bool :$version where .so) {
         say $*PERL.compiler.version <= v2018.12
             ?? 'Version detection requires a rakudo newer than v2018.12'
             !! ($VERSION // 'unknown');
@@ -728,7 +1019,7 @@ package Zef::CLI {
         exit 0;
     }
 
-    multi MAIN(Bool :h(:$help)?) {
+    multi sub MAIN(Bool :h(:$help)?) {
         note qq:to/END_USAGE/
             Zef - Raku / Perl6 Module Management
 
@@ -810,7 +1101,7 @@ package Zef::CLI {
     multi sub abort(Str $str, Int $exit-code = 255) { say $str; exit $exit-code }
 
     # Filter/mutate out verbosity flags from @*ARGS and return a verbosity level
-    sub preprocess-args-verbosity-mutate(*@_) {
+    my sub preprocess-args-verbosity-mutate(*@_) {
         my (:@log-level, :@filtered-args) := @_.classify: {
             $_ ~~ any(<--fatal --error --warn --info -v --verbose --debug --trace>)
                 ?? <log-level>
@@ -835,7 +1126,7 @@ package Zef::CLI {
     # Note that `name` can match the config plugin key `short-name` or `module`
     # * Now also removes --config-path $path parameters
     # TODO: Turn this into a more general getopts
-    sub preprocess-args-config-mutate(*@args) {
+    my sub preprocess-args-config-mutate(*@args) {
         # get/remove --config-path=xxx
         # MUTATES @*ARGS
         my Str $config-path-from-args;
@@ -881,8 +1172,7 @@ package Zef::CLI {
         $config;
     }
 
-
-    sub get-client(*%_) {
+    my sub get-client(*%_) {
         my $client   = Zef::Client.new(|%_);
         my $logger   = $client.logger;
         my $stdout   = $logger.Supply.grep({ .<level> <= $verbosity });
@@ -903,8 +1193,8 @@ package Zef::CLI {
                 }
             }
         }
-        $reporter.tap: -> $event {
-            $client.reporter.report($event, :$logger);
+        $reporter.grep({ .<candi> }).tap: {
+            $client.reporter.report(.<candi>, :$logger);
         };
 
         if %_<update>.defined {
@@ -926,7 +1216,7 @@ package Zef::CLI {
     }
 
     # maybe its a name, maybe its a spec/path. either way  Zef::App methods take a CURs, not strings
-    sub str2cur($target) {
+    my sub str2cur($target) {
         my $named-repo = CompUnit::RepositoryRegistry.repository-for-name($target);
         return $named-repo if $named-repo;
 
@@ -951,7 +1241,7 @@ package Zef::CLI {
         return CompUnit::RepositoryRegistry.repository-for-spec(~$spec-target, :next-repo($*REPO));
     }
 
-    sub path2candidate($path) {
+    my sub path2candidate($path) {
         Candidate.new(
             as   => $path,
             uri  => $path.IO.absolute,
@@ -962,13 +1252,9 @@ package Zef::CLI {
     # prints a table with rows and columns. expects a header row.
     # automatically adjusts column widths, as well as `yada`ing
     # any characters on a line past $max-width
-    sub print-table(@rows, Int :$wrap) {
+    my sub print-table(@rows, Int :$wrap = 120) {
         # this ugly thing is so users can pass in Bool or Int as a MAIN argument
-        my $max-width = ($*OUT.t && $wrap.perl eq 'Bool::False')
-            ?? GET-TERM-COLUMNS()
-            !! $wrap.perl eq 'Bool::True'
-                ?? 0 
-                !! $wrap;
+        my $max-width = $wrap === Bool::True ?? 0 !! $wrap;
 
         # returns formatted row
         my sub _row2str (@widths, @cells, Int :$max) {
@@ -1001,7 +1287,7 @@ package Zef::CLI {
         }
     }
 
-    sub parse-value($str-or-kv) {
+    my sub parse-value($str-or-kv) {
         do given $str-or-kv {
             when Str  { $_ }
             when Hash { $_.keys[0] }

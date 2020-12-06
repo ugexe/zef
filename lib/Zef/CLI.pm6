@@ -728,7 +728,7 @@ package Zef::CLI {
     }
 
     multi MAIN(Bool :h(:$help)?) {
-        note qq:to/END_USAGE/
+        say qq:to/END_USAGE/
             Zef - Raku / Perl6 Module Management
 
             USAGE

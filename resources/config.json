@@ -34,7 +34,7 @@
             "enabled": 1,
             "module": "Zef::Repository::Ecosystems",
             "options": {
-                "name": "fez-zef",
+                "name": "zef",
                 "auto-update": 1,
                 "mirrors": [
                     "http://360.zef.pm/"
@@ -46,7 +46,7 @@
             "enabled": 1,
             "module": "Zef::Repository::Ecosystems",
             "options": {
-                "name": "fez-gh",
+                "name": "fez-p6c",
                 "auto-update": 1,
                 "mirrors": [
                     "http://32.zef.pm/"
@@ -72,7 +72,21 @@
                     "git://github.com/ugexe/Perl6-ecosystems.git"
                 ]
             }
-        }
+        },
+        {
+            "short-name" : "p6c",
+            "enabled" : 1,
+            "module" : "Zef::Repository::Ecosystems",
+            "options" : {
+                "name" : "p6c",
+                "auto-update" : 1,
+                "mirrors" : [
+                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c1.json",
+                    "git://github.com/ugexe/Perl6-ecosystems.git",
+                    "http://ecosystem-api.p6c.org/projects1.json"
+                ]
+            }
+				}
     ],
     "Fetch" : [
         {

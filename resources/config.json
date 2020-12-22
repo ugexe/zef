@@ -30,30 +30,6 @@
     ],
     "Repository" : [
         {
-            "short-name": "fez",
-            "enabled": 1,
-            "module": "Zef::Repository::Ecosystems",
-            "options": {
-                "name": "zef",
-                "auto-update": 1,
-                "mirrors": [
-                    "http://360.zef.pm/"
-                ]
-            }
-        },
-        {
-            "short-name": "fez",
-            "enabled": 1,
-            "module": "Zef::Repository::Ecosystems",
-            "options": {
-                "name": "fez-p6c",
-                "auto-update": 1,
-                "mirrors": [
-                    "http://32.zef.pm/"
-                ]
-            }
-        },
-        {
             "short-name" : "cached",
             "enabled" : 1,
             "module" : "Zef::Repository::LocalCache",
@@ -86,7 +62,31 @@
                     "http://ecosystem-api.p6c.org/projects1.json"
                 ]
             }
-				}
+				},
+        {
+            "short-name": "fez",
+            "enabled": 1,
+            "module": "Zef::Repository::Ecosystems",
+            "options": {
+                "name": "fez-p6c",
+                "auto-update": 1,
+                "mirrors": [
+                    "http://32.zef.pm/"
+                ]
+            }
+        },
+        {
+            "short-name": "zef",
+            "enabled": 1,
+            "module": "Zef::Repository::Ecosystems",
+            "options": {
+                "name": "zef",
+                "auto-update": 1,
+                "mirrors": [
+                    "http://360.zef.pm/"
+                ]
+            }
+        }
     ],
     "Fetch" : [
         {

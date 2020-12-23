@@ -9,14 +9,14 @@
         "blacklist" : []
     },
     "Install" : [
-        { 
+        {
             "short-name" : "installpm6",
             "enabled" : 1,
             "module" : "Zef::Service::InstallPM6"
         }
     ],
     "Report" : [
-        { 
+        {
             "short-name" : "p6ctesters",
             "enabled" : 0,
             "module" : "Zef::Service::P6CReporter"
@@ -64,11 +64,11 @@
             }
 				},
         {
-            "short-name": "fez",
+            "short-name": "zef-p6c",
             "enabled": 1,
             "module": "Zef::Repository::Ecosystems",
             "options": {
-                "name": "fez-p6c",
+                "name": "zef-p6c",
                 "auto-update": 1,
                 "mirrors": [
                     "http://32.zef.pm/"

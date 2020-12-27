@@ -11,6 +11,7 @@ use Zef::Build;
 use Zef::Test;
 use Zef::Install;
 use Zef::Report;
+use Zef::Logger;
 
 class Zef::Client {
     has $.cache;
@@ -24,7 +25,7 @@ class Zef::Client {
     has $.reporter;
     has $.config;
 
-    has $.logger = Supplier.new;
+    has $.logger = Zef::Logger::get-logger;
 
     has @.exclude; # user supplied
     has @!ignore;  # internal use

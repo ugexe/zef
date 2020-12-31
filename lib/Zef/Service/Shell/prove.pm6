@@ -102,9 +102,9 @@ class Zef::Service::Shell::prove does Tester does Messenger {
         my Str $test-path-cwd      = $path.absolute;
 
         my %ENV = %*ENV;
-        my @cur-p6lib  = %ENV<PERL6LIB>.?chars ?? %ENV<PERL6LIB>.split($*DISTRO.cur-sep) !! ();
-        my @new-p6lib  = $path.absolute, |@includes;
-        %ENV<PERL6LIB> = (|@new-p6lib, |@cur-p6lib).join($*DISTRO.cur-sep);
+        my @cur-lib  = %ENV<RAKULIB>.?chars ?? %ENV<RAKULIB>.split($*DISTRO.cur-sep) !! ();
+        my @new-lib  = $path.absolute, |@includes;
+        %ENV<RAKULIB> = (|@new-lib, |@cur-lib).join($*DISTRO.cur-sep);
 
         my $passed;
         react {

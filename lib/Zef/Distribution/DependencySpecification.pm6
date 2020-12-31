@@ -64,6 +64,7 @@ class Zef::Distribution::DependencySpecification does DependencySpecification {
     multi method spec-matcher(Zef::Distribution::DependencySpecification::Any $spec, Bool :$strict = True) {
         self.spec-matcher(any($spec.specs), :$strict)
     }
+
     multi method spec-matcher($spec, Bool :$strict = True) {
         return False unless $spec.name.?chars && self.name.?chars;
         if $strict {
@@ -74,20 +75,35 @@ class Zef::Distribution::DependencySpecification does DependencySpecification {
             return False unless self.name ~~ /[:i $name]/;
         }
 
-        if $spec.version-matcher.chars && $spec.version-matcher ne '*' {
-            my $spec-version = Version.new($spec.version-matcher);
-            my $self-version = Version.new($.version-matcher);
-
-            return False unless ?$.version-matcher
-                && $.version-matcher ne '*'
-                && $self-version ~~ $spec-version;
-        }
         if $spec.auth-matcher.chars {
             return False unless $.auth-matcher.chars && $spec.auth-matcher eq $.auth-matcher;
         }
-        if $spec.api-matcher.chars && $.api-matcher ne '*' {
-            return False unless Version.new($spec.api-matcher) ~~ Version.new($.api-matcher);
+
+        if $spec.version-matcher.chars && $spec.version-matcher ne '*' && $.version-matcher ne '*' {
+            my $spec-version = Version.new($spec.version-matcher);
+            my $self-version = Version.new($.version-matcher);
+            return False unless self!version-matcher(:$spec-version, :$self-version);
         }
+
+        if $spec.api-matcher.chars && $spec.api-matcher ne '*' && $.api-matcher ne '*' {
+            my $spec-version = Version.new($spec.api-matcher);
+            my $self-version = Version.new($.api-matcher);
+            return False unless self!version-matcher(:$spec-version, :$self-version);
+        }
+
         return True;
+    }
+
+    method !version-matcher(Version :$self-version is copy, Version :$spec-version is copy) {
+        # Normalize the parts between version so that Version ~~ Version works in the way we need
+        # Example: for `0.1 ~~ 0.1.1` we want `0.1.0` ~~ `0.1.1`
+        my $self-add-parts = $spec-version.parts.elems - $self-version.parts.elems;
+        $self-version = Version.new( (|$self-version.parts, |(0 xx $self-add-parts), ("+" if $self-version.plus)).join('.') )
+            if $self-add-parts > 0;
+        my $spec-add-parts = $self-version.parts.elems - $spec-version.parts.elems;
+        $spec-version = Version.new( (|$spec-version.parts, |(0 xx $spec-add-parts), ("+" if $spec-version.plus)).join('.') )
+            if $spec-add-parts;
+
+        return $self-version ~~ $spec-version;
     }
 }

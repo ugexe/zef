@@ -8,7 +8,7 @@ Raku / Perl6 Module Management
 
     $ git clone https://github.com/ugexe/zef.git
     $ cd zef
-    $ perl6 -I. bin/zef install .
+    $ raku -I. bin/zef install .
 
 #### Rakubrew
 
@@ -258,10 +258,10 @@ View meta information of a distribution
 List known available distributions
 
     $ zef --installed list
-    ===> Found via /home/nickl/.rakubrew/moar-master/install/share/perl6/site
+    ===> Found via /home/foo/.rakubrew/moar-master/install/share/perl6/site
     CSV::Parser:ver<0.1.2>:auth<github:tony-o>
     Zef:auth<github:ugexe>
-    ===> Found via /home/nickl/.rakubrew/moar-master/install/share/perl6
+    ===> Found via /home/foo/.rakubrew/moar-master/install/share/perl6
     CORE:ver<6.c>:auth<perl>
 
 Note that not every Repository may provide such a list, and such lists may only
@@ -335,7 +335,7 @@ Fetches the requested distribution and any dependencies (if requested), changes 
 distribution, and then stops program execution. This allows you modify or look at the source code before manually
 continuing the install via `zef install .`
 
-Note that the path to any dependencies that needed to be fetched will be set in env at **PERL6LIB**, so you should
+Note that the path to any dependencies that needed to be fetched will be set in env at **RAKULIB**, so you should
 be able to run any build scripts, tests, or complete a manual install without having to specify their locations.
 
 #### **browse** $identity \[bugtracker | homepage | source\]
@@ -422,16 +422,16 @@ Second, third, and fourth we look at the path pointed to by `%?RESOURCES<config.
 
         # Modules not loaded from an ::Installation,
         # so %?RESOURCES is $*CWD/resources
-        $ perl6 -I. bin/zef --help
+        $ raku -I. bin/zef --help
         ...
-        CONFIGURATION /home/user/perl6/zef/resources/config.json
+        CONFIGURATION /home/user/raku/zef/resources/config.json
         ...
 
         # Installed zef script loads modules from an ::Installation,
-        # so %?RESOURCES is $perl6-share-dir/site/resources
+        # so %?RESOURCES is $raku-share-dir/site/resources
         $ zef --help
         ...
-        CONFIGURATION /home/user/perl6/install/share/perl6/site/resources/EE5DBAABF07682ECBE72BEE98E6B95E5D08675DE.json
+        CONFIGURATION /home/user/raku/install/share/perl6/site/resources/EE5DBAABF07682ECBE72BEE98E6B95E5D08675DE.json
         ...
 
 This config is loaded, but it is not yet the chosen config! We check that temporary config's `%config<RootDir>` for valid json in a file named `config.json` (i.e. `%config<RootDir>/config.json`). This can be confusing (so it may go away or be refined - PRs welcome) but for most cases it just means `$*HOME/.zef/config.json` will override an installed zef configuration file.
@@ -440,7 +440,7 @@ To summarize:
 
 - You can edit the `resources/config.json` file before you install zef.
 
-    When you `perl6 -I. bin/zef install .` that configuration file be be used to install zef and will also be installed with zef such that it will be the default.
+    When you `raku -I. bin/zef install .` that configuration file be be used to install zef and will also be installed with zef such that it will be the default.
 
 - You can create a `%config<RootDir>/config.json` file.
 
@@ -456,7 +456,7 @@ To summarize:
 - **RootDir** - Where zef will look for a custom config.json file
 - **TempDir** - A staging area for items that have been fetched and need to be extracted/moved
 - **StoreDir** - Where zef caches distributions, package lists, etc after they've been fetched and extracted
-- **DefaultCUR** - This sets the default value for `--install-to="..."`. The default value of `auto` means it will first try installing to rakudo's installation prefix, and if its not writable by the current user it will install to `$*HOME/.perl6`. These directories are not chosen by zef - they are actually represented by the magic strings `site` and `home` (which, like `auto`, are valid values despite not being paths along with `vendor` and `perl`)
+- **DefaultCUR** - This sets the default value for `--install-to="..."`. The default value of `auto` means it will first try installing to rakudo's installation prefix, and if its not writable by the current user it will install to `$*HOME/.raku`. These directories are not chosen by zef - they are actually represented by the magic strings `site` and `home` (which, like `auto`, are valid values despite not being paths along with `vendor` and `perl`)
 
 #### Phases / Plugins Settings
 
@@ -504,7 +504,7 @@ option for that specific plugin in _resources/config.json_
 
 Pass a path to the _-to_ / _--install-to_ option and prefix the path with `inst#` (unless you know what you're doing)
 
-    $ zef -to="inst#/home/perl6/custom" install Text::Table::Simple
+    $ zef -to="inst#/home/raku/custom" install Text::Table::Simple
     ===> Searching for: Text::Table::Simple
     ===> Testing: Text::Table::Simple:ver<0.0.3>:auth<github:ugexe>
     ===> Testing [OK] for Text::Table::Simple:ver<0.0.3>:auth<github:ugexe>
@@ -512,14 +512,10 @@ Pass a path to the _-to_ / _--install-to_ option and prefix the path with `inst#
 
 To make the custom location discoverable:
 
-    # Set the PERL6LIB env:
-    $ PERL6LIB="inst#/home/perl6/custom" perl6 -e "use Text::Table::Simple; say 'ok'"
+    # Set the RAKULIB env:
+    $ RAKULIB="inst#/home/raku/custom" raku -e "use Text::Table::Simple; say 'ok'"
     ok
 
     # or simply include it as needed
-    $ perl6 -Iinst#/home/perl6/custom -e "use Text::Table::Simple; say 'ok'"
+    $ raku -Iinst#/home/raku/custom -e "use Text::Table::Simple; say 'ok'"
     ok
-
-### Test reporting?
-
-This feature can be enabled by passing \`--p6ctesters\` (and having `Net::HTTP` installed) or \`--cpantesters\` (and having `Zef::CPANReporter` installed)

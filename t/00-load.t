@@ -31,7 +31,7 @@ subtest 'Core' => {
 subtest 'Plugins' => {
     use-ok("Zef::Service::FetchPath");
     use-ok("Zef::Service::TAP");
-    use-ok("Zef::Service::InstallPM6");
+    use-ok("Zef::Service::InstallRakuDistribution");
     use-ok("Zef::Service::FileReporter");
     use-ok("Zef::Service::Shell::DistributionBuilder");
     use-ok("Zef::Service::Shell::LegacyBuild");

@@ -366,13 +366,13 @@ Lookup a locally installed module by $identity, $name-path, or $sha1-id
 
     $ zef --sha1 locate A9948E7371E0EB9AFDF1EEEB07B52A1B75537C31
     ===> From Distribution: zef:ver<*>:auth<github:ugexe>:api<>
-    lib/Zef/CLI.pm6 => ~/rakudo/install/share/perl6/site/sources/A9948E7371E0EB9AFDF1EEEB07B52A1B75537C31
+    lib/Zef/CLI.rakumod => ~/rakudo/install/share/perl6/site/sources/A9948E7371E0EB9AFDF1EEEB07B52A1B75537C31
 
     $ zef locate Zef::CLI
     ===> From Distribution: zef:ver<*>:auth<github:ugexe>:api<>
-    lib/Zef/CLI.pm6 => ~/rakudo/install/share/perl6/site/sources/A9948E7371E0EB9AFDF1EEEB07B52A1B75537C31
+    lib/Zef/CLI.rakumod => ~/rakudo/install/share/perl6/site/sources/A9948E7371E0EB9AFDF1EEEB07B52A1B75537C31
 
-    $ zef locate lib/Zef/CLI.pm6
+    $ zef locate lib/Zef/CLI.rakumod
     ===> From Distribution: zef:ver<*>:auth<github:ugexe>:api<>
     Zef::CLI => ~/rakudo/install/share/perl6/site/sources/A9948E7371E0EB9AFDF1EEEB07B52A1B75537C31
 

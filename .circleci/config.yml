@@ -44,7 +44,7 @@ variables:
         zef --version
         zef --help
         zef locate Zef::CLI
-        zef locate lib/Zef/CLI.pm6
+        zef locate lib/Zef/CLI.rakumod
         zef browse zef bugtracker --/open
         zef info zef
 

@@ -10,9 +10,9 @@
     },
     "Install" : [
         { 
-            "short-name" : "installpm6",
+            "short-name" : "install-raku-dist",
             "enabled" : 1,
-            "module" : "Zef::Service::InstallPM6"
+            "module" : "Zef::Service::InstallRakuDistribution"
         }
     ],
     "Report" : [

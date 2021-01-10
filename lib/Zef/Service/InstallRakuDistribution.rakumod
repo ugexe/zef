@@ -1,10 +1,10 @@
 use Zef;
 
-class Zef::Service::InstallPM6 does Installer does Messenger {
+class Zef::Service::InstallRakuDistribution does Installer does Messenger {
 
     =begin pod
 
-    =title class Zef::Service::InstallPM6
+    =title class Zef::Service::InstallRakuDistribution
 
     =subtitle A raku CompUnit::Repository based implementation of the Installer interface
 
@@ -13,9 +13,9 @@ class Zef::Service::InstallPM6 does Installer does Messenger {
     =begin code :lang<raku>
 
         use Zef;
-        use Zef::Service::InstallPM6;
+        use Zef::Service::InstallRakuDistribution;
 
-        my $installer = Zef::Service::InstallPM6.new;
+        my $installer = Zef::Service::InstallRakuDistribution.new;
 
         # Assuming our current directory is a raku distribution
         # with no dependencies or all dependencies already installed...

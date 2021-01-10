@@ -8,8 +8,8 @@ use Zef::Repository::Ecosystems;
 use Zef::Fetch;
 
 
-subtest {
-    class Mock::Repository does Repository {
+subtest 'Repository' => {
+    class Mock::Repository does PackageRepository {
         method search(:$max-results = 5, *@identities, *%fields) {
             my @candidates =
                 Candidate.new(:as("{@identities[0]}::X")),
@@ -17,16 +17,16 @@ subtest {
         }
     }
 
-    subtest {
+    subtest 'Mock::Repository' => {
         my $mock-repository = Mock::Repository.new;
         my @candidates   = $mock-repository.search("Mock::Repository");
 
         is +@candidates, 2;
         is @candidates[0].as, "Mock::Repository::X";
         is @candidates[1].as, "Mock::Repository::XX";
-    }, "Mock::Repository";
+    }
 
-    subtest {
+    subtest 'Zef::Repository service aggregation' => {
         my $mock-repository1 = Mock::Repository.new;
         my $mock-repository2 = Mock::Repository.new;
         my $repository = Zef::Repository.new but role :: {
@@ -38,11 +38,11 @@ subtest {
         is @candidates[1].as, "Mock::Repository::XX";
         is @candidates[2].as, "Mock::Repository::X";
         is @candidates[3].as, "Mock::Repository::XX";
-    }, 'Zef::Repository service aggregation'
-}, "Repository";
+    }
+}
 
 
-subtest {
+subtest 'Ecosystems => p6c' => {
     my $wanted   = 'zef';
     my @mirrors  = 'git://github.com/ugexe/Perl6-ecosystems.git';
     my @backends = [
@@ -53,19 +53,19 @@ subtest {
     ];
 
     my $fetcher = Zef::Fetch.new(:@backends);
-    my $cache   = $*HOME.child('.zef/store').absolute andthen { mkdir $_ unless $_.IO.e };
+    my $cache   = $*HOME.child('.zef/store') andthen { mkdir $_ unless $_.IO.e };
     my $p6c     = Zef::Repository::Ecosystems.new(name => 'p6c', :$fetcher, :$cache, :auto-update, :@mirrors);
     ok $p6c.available > 0;
 
-    subtest {
+    subtest 'search' => {
         my @candidates = $p6c.search($wanted, :strict);
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
-    }, 'search';
-}, "Ecosystems => p6c";
+    }
+}
 
 
-subtest {
+subtest  'Ecosystems => cpan' => {
     my $wanted   = 'zef';
     my @mirrors  = 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/11efd9077b398df3766eaa7cf8e6a9519f63c272/cpan.json';
     my @backends = [
@@ -75,16 +75,16 @@ subtest {
     ];
 
     my $fetcher = Zef::Fetch.new(:@backends);
-    my $cache   = $*HOME.child('.zef/store').absolute andthen { mkdir $_ unless $_.IO.e };
+    my $cache   = $*HOME.child('.zef/store') andthen { mkdir $_ unless $_.IO.e };
     my $cpan    = Zef::Repository::Ecosystems.new(name => 'cpan', :$fetcher, :$cache, :auto-update, :@mirrors);
     ok $cpan.available > 0;
 
-    subtest {
+    subtest 'search' => {
         my @candidates = $cpan.search($wanted, :strict);
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
-    }, 'search';
-}, "Ecosystems => cpan";
+    }
+}
 
 
 done-testing;

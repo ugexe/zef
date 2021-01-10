@@ -9,7 +9,7 @@ use Zef::Repository;
 
 subtest 'Zef::Repository.candidates' => {
     subtest 'api + version sorting' => {
-        my class Mock::Repository::One does Repository {
+        my class Mock::Repository::One does PackageRepository {
             method fetch-matcher(|--> True ) { }
 
             method search(*@identities [$short-name]) {
@@ -29,7 +29,7 @@ subtest 'Zef::Repository.candidates' => {
             }
         }
 
-        my class Mock::Repository::Two does Repository {
+        my class Mock::Repository::Two does PackageRepository {
             method fetch-matcher(|--> True) { }
 
             method search(*@identities [$short-name]) {

@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 36;
+plan 35;
 
 use Zef;
 use Zef::Client;
@@ -165,7 +165,7 @@ my $recommendation-manager = (
     Zef::Repository but role :: {
         method plugins(*@names) {
             [
-                class :: does Repository {
+                class :: does PackageRepository {
                     method search(:$max-results = 5, Bool :$strict, *@identities, *%fields --> Seq) {
                         gather for @identities -> $as {
                             take Candidate.new(:dist(Zef::Distribution.new(:name($as))), :$as, :from<Test>)
@@ -217,14 +217,6 @@ for (
         is $prereq-candidates.elems, 2;
         is $prereq-candidates.map(*.dist.name).sort, <Available AvailableToo>;
     },
-    ["Available", {:any["Unavailable", "Unavailable2"]}] => -> $exception {
-        try sink $exception;
-        isa-ok $!, X::Zef::UnsatisfiableDependency;
-    },
-    ["Available", {:any[{:name<Unavailable>, :from<native>}, {:name<Unavailable2>, :from<native>}]}] => -> $exception {
-        try sink $exception;
-        isa-ok $!, X::Zef::UnsatisfiableDependency;
-    },
 ) -> $test {
     with Zef::Distribution.new(
             :perl(6),
@@ -252,5 +244,39 @@ for (
             Candidate.new(:$dist),
         );
         $test.value.($prereq-candidates);
+    }
+}
+
+subtest 'X::Zef::UnsatisfiableDependency' => {
+    for (
+        ["Unavailable"],
+        ["Available", "Unavailable"],
+        ["Available", {:any["Unavailable", "Unavailable2"]}],
+        ["Available", {:any[{:name<Unavailable>, :from<native>}, {:name<Unavailable2>, :from<native>}]}],
+    ) -> $test {
+        with Zef::Distribution.new(
+                :perl(6),
+                :name<Test::Complex::Depends>,
+                :version<0>,
+                :auth('github:stranger'),
+                :description('Test hash-based depends and native depends parsing'),
+                :license<none>,
+                :depends($test),
+                :provides{ },
+            ) -> $dist {
+            my class Zef::Client::Fake is Zef::Client {
+                method list-installed(*@curis) {
+                    [Candidate.new(:dist(Zef::Distribution.new(:name<Installed>)))]
+                }
+                method logger() {
+                    class :: { method emit($m) { } }
+                }
+            }
+
+            my $client = Zef::Client::Fake.new(:$config, :$recommendation-manager);
+
+            $client.depends = True;
+            throws-like { $client.find-prereq-candidates(Candidate.new(:$dist)) }, X::Zef::UnsatisfiableDependency;
+        }
     }
 }

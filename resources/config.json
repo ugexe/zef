@@ -56,6 +56,32 @@
                     "http://ecosystem-api.p6c.org/projects1.json"
                 ]
             }
+				},
+        {
+            "short-name": "zef-p6c",
+            "enabled": 1,
+            "module": "Zef::Repository::Ecosystems",
+            "options": {
+                "name": "zef-p6c",
+                "auto-update": 1,
+                "uses-path": 1,
+                "mirrors": [
+                    "http://32.zef.pm/"
+                ]
+            }
+        },
+        {
+            "short-name": "zef",
+            "enabled": 1,
+            "module": "Zef::Repository::Ecosystems",
+            "options": {
+                "name": "zef",
+                "auto-update": 1,
+                "uses-path": 1,
+                "mirrors": [
+                    "http://360.zef.pm/"
+                ]
+            }
         }
     ],
     "Fetch" : [

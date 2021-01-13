@@ -70,6 +70,7 @@
             "options": {
                 "name": "zef-p6c",
                 "auto-update": 1,
+                "uses-path": 1,
                 "mirrors": [
                     "http://32.zef.pm/"
                 ]
@@ -82,6 +83,7 @@
             "options": {
                 "name": "zef",
                 "auto-update": 1,
+                "uses-path": 1,
                 "mirrors": [
                     "http://360.zef.pm/"
                 ]

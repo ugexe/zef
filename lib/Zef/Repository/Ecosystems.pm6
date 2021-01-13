@@ -7,6 +7,7 @@ class Zef::Repository::Ecosystems does Repository {
     has $.name;
     has $.mirrors;
     has $.auto-update is rw;
+    has $.uses-path is rw;
 
     has $.fetcher;
     has $.cache;
@@ -76,9 +77,15 @@ class Zef::Repository::Ecosystems does Repository {
             my $wanted-short-name   := $wanted-spec.name;
             my $dists-to-search     := $strict ?? %!short-name-lookup{$wanted-short-name}.grep(*.so) !! %!short-name-lookup{%!short-name-lookup.keys.grep(*.contains($wanted-short-name))}.map(*.Slip).grep(*.so);
             my $matching-candidates := $dists-to-search.grep(*.contains-spec($wanted-spec, :$strict)).map({
+                my $uri;
+                if $_.meta<path> && $.uses-path {
+                    $uri = $_.meta<path>;
+                    $uri ~~ s/^repo\///;
+                    $uri = $.mirrors.first ~ $uri;
+                }
                 Candidate.new(
                     dist => $_,
-                    uri  => ($_.source-url || $_.hash<support><source>),
+                    uri  => ($uri || $_.source-url || $_.hash<support><source>),
                     as   => $searchable-identity,
                     from => self.id,
                 );

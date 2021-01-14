@@ -77,7 +77,7 @@ class Zef::Repository::Ecosystems does PackageRepository {
 
     #| Bool True - will use the meta<path> as the source url
     #| Bool False - will not check meta<path> as the source url
-    has $.uses-path is rw;
+    has Bool $.uses-path is rw;
 
     #| Where we will save/stage the db file we fetch
     has IO::Path $.cache;

@@ -75,6 +75,10 @@ class Zef::Repository::Ecosystems does PackageRepository {
     #| Bool False - do not update the db.
     has $.auto-update is rw;
 
+    #| Bool True - will use the meta<path> as the source url
+    #| Bool False - will not check meta<path> as the source url
+    has Bool $.uses-path is rw = False;
+
     #| Where we will save/stage the db file we fetch
     has IO::Path $.cache;
 
@@ -154,9 +158,15 @@ class Zef::Repository::Ecosystems does PackageRepository {
             my $wanted-short-name   := $wanted-spec.name;
             my $dists-to-search     := $strict ?? (%!short-name-lookup{$wanted-short-name} // Nil).grep(*.so) !! %!short-name-lookup{%!short-name-lookup.keys.grep(*.contains($wanted-short-name))}.map(*.Slip).grep(*.so);
             my $matching-candidates := $dists-to-search.grep(*.contains-spec($wanted-spec, :$strict)).map({
+                my $uri;
+                if $_.meta<path> && $.uses-path {
+                    $uri = $_.meta<path>;
+                    $uri ~~ s/^repo\///;
+                    $uri = $.mirrors.first ~ $uri;
+                }
                 Candidate.new(
                     dist => $_,
-                    uri  => ($_.source-url || $_.meta<support><source>),
+                    uri  => ($uri || $_.source-url || $_.meta<support><source>),
                     as   => $searchable-identity,
                     from => self.id,
                 );

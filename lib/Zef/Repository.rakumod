@@ -76,7 +76,7 @@ class Zef::Repository does PackageRepository does Pluggable {
     manager for the results of recommendation managers. This allows more consistent resolution of dependencies and integration with MetaCPAN like
     services (which may not just provide an entire list of modules it has -- i.e. it makes it own recommendation for a name)
 
-    Returns an C<Array> of C<Candidate>, where each C<Candidate> matches exactly one of the provided C<@identites> (and
+    Returns an C<Array> of C<Candidate>, where each C<Candidate> matches exactly one of the provided C<@identities> (and
     each C<@identities> matches zero or one of the C<Candidate>).
 
     method search
@@ -125,7 +125,7 @@ class Zef::Repository does PackageRepository does Pluggable {
 
     #| This is what is used to resolve dependencies.
     #| Similar to .search(...), except it only returns 1 result (the best match) for each identity provided
-    #| i.e .search for Foo:ver<*> may return multiple versons, but .candidates would only ever return 1 even
+    #| i.e .search for Foo:ver<*> may return multiple versions, but .candidates would only ever return 1 even
     #| if it exists in multiple repositories/backends.
     method candidates(*@identities ($, *@) --> Array[Candidate]) {
         # todo: have a `file` identity in Zef::Identity
@@ -150,7 +150,7 @@ class Zef::Repository does PackageRepository does Pluggable {
             my $api       = @presorted.tail.dist.api;
             my $version   = @presorted.tail.dist.ver;
 
-            # Prefer candidates from Zef::Repository::Local to avoid redownloading cached items
+            # Prefer candidates from Zef::Repository::Local to avoid re-downloading cached items
             my @sorted = @presorted.grep({ .dist.api eq $api }).grep({ .dist.ver eq $version }).sort({ $^a.from eq 'Zef::Repository::LocalCache' });
             @sorted.tail;
         }

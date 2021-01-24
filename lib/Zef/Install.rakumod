@@ -20,7 +20,7 @@ class Zef::Install does Installer does Pluggable {
         # Setup with a single installer backend
         my $installer = Zef::Install.new(
             backends => [
-                { module  => "Zef::Service::InstallPM6" },
+                { module  => "Zef::Service::InstallRakuDistribution" },
             ],
         );
 
@@ -55,7 +55,7 @@ class Zef::Install does Installer does Pluggable {
     Installs the distribution C<$candi.dist> to C<$cur> (see synopsis). Set C<$force> to C<True> to allow installing a distribution
     that is already installed.
 
-    An optional C<:$logger> can be supplied to receive events about what is occuring.
+    An optional C<:$logger> can be supplied to receive events about what is occurring.
 
     An optional C<:$timeout> can be passed to denote the number of seconds after which we'll assume failure.
 

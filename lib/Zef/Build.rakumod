@@ -81,7 +81,7 @@ class Zef::Build does Builder does Pluggable {
 
     #| Build the given path using any provided @includes
     #| Will return results from the first Builder backend that supports the given $candi.dist (distribution)
-    method build(Candidate $candi, Str :@includes, Supplier :$logger, Int :$timeout, :$meta --> Array[Bool]) {
+    method build(Candidate $candi, Str :@includes, Supplier :$logger, Int :$timeout --> Array[Bool]) {
         my $dist := $candi.dist;
         die "Can't build non-existent path: {$dist.path}" unless $dist.path.IO.e;
 

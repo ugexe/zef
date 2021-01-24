@@ -56,7 +56,7 @@ class Zef::Test does Tester does Pluggable {
     the first matching backend, and will not attempt to use a different backend on failure (like e.g. C<Zef::Fetch>) since
     failing test are not unexpected.
 
-    An optional C<:$logger> can be supplied to receive events about what is occuring.
+    An optional C<:$logger> can be supplied to receive events about what is occurring.
 
     An optional C<:$timeout> can be passed to denote the number of seconds after which we'll assume failure.
 

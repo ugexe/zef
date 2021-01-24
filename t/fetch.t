@@ -11,13 +11,13 @@ subtest 'Zef::Fetch.fetch' => {
         my class Mock::Fetcher::One does Fetcher {
             method fetch-matcher(|--> False) { }
 
-            method fetch($from, $to) { die 'should not get called' }
+            method fetch($, $) { die 'should not get called' }
         }
 
         my class Mock::Fetcher::Two does Fetcher {
             method fetch-matcher(|--> True) { }
 
-            method fetch($from, $to) { $to }
+            method fetch($, $to) { $to }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;
@@ -30,13 +30,13 @@ subtest 'Zef::Fetch.fetch' => {
         my class Mock::Fetcher::One does Fetcher {
             method fetch-matcher(|--> False) { }
 
-            method fetch($from, $to) { die 'should not get called' }
+            method fetch($, $) { die 'should not get called' }
         }
 
         my class Mock::Fetcher::Two does Fetcher {
             method fetch-matcher(|--> True) { }
 
-            method fetch($from, $to) { $to }
+            method fetch($, $to) { $to }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;
@@ -49,13 +49,13 @@ subtest 'Zef::Fetch.fetch' => {
         my class Mock::Fetcher::One does Fetcher {
             method fetch-matcher(|--> True) { }
 
-            method fetch($from, $to --> Nil) { }
+            method fetch($, $ --> Nil) { }
         }
 
         my class Mock::Fetcher::Two does Fetcher {
             method fetch-matcher(|--> True) { }
 
-            method fetch($from, $to) { $to }
+            method fetch($, $to) { $to }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;
@@ -70,13 +70,13 @@ subtest 'Zef::Fetch.fetch' => {
         my class Mock::Fetcher::One does Fetcher {
             method fetch-matcher(|--> True) { }
 
-            method fetch($from, $to) { sleep(timeout * 5); timeout; }
+            method fetch($, $) { sleep(timeout * 5); timeout; }
         }
 
         my class Mock::Fetcher::Two does Fetcher {
             method fetch-matcher(|--> True) { }
 
-            method fetch($from, $to) { $to }
+            method fetch($, $to) { $to }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;

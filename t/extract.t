@@ -11,7 +11,7 @@ subtest 'Zef::Extract.extract' => {
         my class Mock::Extracter::One does Extractor {
             method extract-matcher(|--> False) { }
 
-            method extract($from, $to) { die 'should not get called' }
+            method extract($, $) { die 'should not get called' }
 
             method ls-files { }
         }
@@ -19,7 +19,7 @@ subtest 'Zef::Extract.extract' => {
         my class Mock::Extracter::Two does Extractor {
             method extract-matcher(|--> True) { }
 
-            method extract($from, $to) { $to }
+            method extract($, $to) { $to }
 
             method ls-files { }
         }
@@ -34,7 +34,7 @@ subtest 'Zef::Extract.extract' => {
         my class Mock::Extracter::One does Extractor {
             method extract-matcher(|--> False) { }
 
-            method extract($from, $to) { die 'should not get called' }
+            method extract($, $) { die 'should not get called' }
 
             method ls-files { }
         }
@@ -42,7 +42,7 @@ subtest 'Zef::Extract.extract' => {
         my class Mock::Extracter::Two does Extractor {
             method extract-matcher(|--> True) { }
 
-            method extract($from, $to) { $to }
+            method extract($, $to) { $to }
 
             method ls-files { }
         }
@@ -57,7 +57,7 @@ subtest 'Zef::Extract.extract' => {
         my class Mock::Extracter::One does Extractor {
             method extract-matcher(|--> True) { }
 
-            method extract($from, $to --> Nil) { }
+            method extract($, $ --> Nil) { }
 
             method ls-files { }
         }
@@ -65,7 +65,7 @@ subtest 'Zef::Extract.extract' => {
         my class Mock::Extracter::Two does Extractor {
             method extract-matcher(|--> True) { }
 
-            method extract($from, $to) { $to }
+            method extract($, $to) { $to }
 
             method ls-files { }
         }
@@ -82,7 +82,7 @@ subtest 'Zef::Extract.extract' => {
         my class Mock::Extracter::One does Extractor {
             method extract-matcher(|--> True) { }
 
-            method extract($from, $to) { sleep(timeout * 5); timeout; }
+            method extract($, $) { sleep(timeout * 5); timeout; }
 
             method ls-files { }
         }
@@ -90,7 +90,7 @@ subtest 'Zef::Extract.extract' => {
         my class Mock::Extracter::Two does Extractor {
             method extract-matcher(|--> True) { }
 
-            method extract($from, $to) { $to }
+            method extract($, $to) { $to }
 
             method ls-files { }
         }

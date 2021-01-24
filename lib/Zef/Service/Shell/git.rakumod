@@ -18,7 +18,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable does M
 
         my $git = Zef::Service::Shell::git.new;
 
-        # Fetch the repositorh
+        # Fetch the git repository
         my $tag-or-sha = "@v0.9.0";
         my $source     = "https://github.com/ugexe/zef.git{$tag-or-sha}";
         my $save-to    = $*CWD.child("backup_dir{$tag-or-sha}"); # must include tag in save path currently :/

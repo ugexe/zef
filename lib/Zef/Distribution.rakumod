@@ -109,7 +109,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
 
     Returns a file system safe unique string identifier for the distribution. This is generally meant for internal use only.
 
-    Note: This should not publically be relied on for matching any C<Raku> implementation details this may appear to be emulating.
+    Note: This should not publicly be relied on for matching any C<Raku> implementation details this may appear to be emulating.
 
     =end pod
 
@@ -141,7 +141,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
 
     method new(*%_) { self.bless(|%_, :meta(%_)) }
 
-    method TWEAK(:%!meta, :@!resources --> Nil) {
+    submethod TWEAK(:%!meta, :@!resources --> Nil) {
         @!resources = @!resources.flatmap(*.flat);
     }
 
@@ -212,7 +212,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         return self!long-name($!name);
     }
 
-    method !long-name($name! --> Str) {
+    method !long-name($name --> Str) {
         return sprintf '%s:ver<%s>:auth<%s>:api<%s>',
             $name,
             (self.ver  // ''),
@@ -228,7 +228,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
 
     method meta(--> Hash:D) { return %!meta }
 
-    method content($name-path) {
+    method content(|) {
         die "this method must be subclassed by something that can read from a content store";
     }
 }

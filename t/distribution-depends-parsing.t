@@ -3,6 +3,7 @@ use Test;
 plan 35;
 
 use Zef;
+use Zef::Config;
 use Zef::Client;
 use Zef::Distribution;
 
@@ -148,7 +149,7 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
     }
     META6
     my class Zef::Client::Fake is Zef::Client {
-        method list-installed(*@curis) { [] }
+        method list-installed(*@) { [] }
     }
     my $client = Zef::Client::Fake.CREATE;
     $client.depends = True;
@@ -157,16 +158,16 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
     )[1].specs[0].name, "Bar";
 }
 
-use Zef::Config;
+
 my $guess-path = $?FILE.IO.parent.parent.child('resources/config.json');
 my $config-file = $guess-path.e ?? ~$guess-path !! Zef::Config::guess-path();
 my $config = Zef::Config::parse-file($config-file);
 my $recommendation-manager = (
     Zef::Repository but role :: {
-        method plugins(*@names) {
+        method plugins(*@) {
             [
                 class :: does PackageRepository {
-                    method search(:$max-results = 5, Bool :$strict, *@identities, *%fields --> Seq) {
+                    method search(*@identities --> Seq) {
                         gather for @identities -> $as {
                             take Candidate.new(:dist(Zef::Distribution.new(:name($as))), :$as, :from<Test>)
                                 if $as ∈ <Available AvailableToo>;
@@ -229,11 +230,11 @@ for (
             :provides{ },
         ) -> $dist {
         my class Zef::Client::Fake is Zef::Client {
-            method list-installed(*@curis) {
+            method list-installed(*@) {
                 [Candidate.new(:dist(Zef::Distribution.new(:name<Installed>)))]
             }
             method logger() {
-                class :: { method emit($m) { } }
+                class :: { method emit($) { } }
             }
         }
 
@@ -265,11 +266,11 @@ subtest 'X::Zef::UnsatisfiableDependency' => {
                 :provides{ },
             ) -> $dist {
             my class Zef::Client::Fake is Zef::Client {
-                method list-installed(*@curis) {
+                method list-installed(*@) {
                     [Candidate.new(:dist(Zef::Distribution.new(:name<Installed>)))]
                 }
                 method logger() {
-                    class :: { method emit($m) { } }
+                    class :: { method emit($) { } }
                 }
             }
 

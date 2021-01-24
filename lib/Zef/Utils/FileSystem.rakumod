@@ -38,7 +38,7 @@ module Zef::Utils::FileSystem {
 
     =head2 sub list-paths
 
-        sub list-paths(IO() $path!, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path])
+        sub list-paths(IO() $path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path])
 
     Returns an C<Array> of C<IO::Path> of all paths under C<$path>.
 
@@ -52,7 +52,7 @@ module Zef::Utils::FileSystem {
 
     =head2 sub copy-paths
 
-        sub copy-paths(IO() $from-path!, IO() $to-path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path])
+        sub copy-paths(IO() $from-path, IO() $to-path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path])
 
     Copy all paths under C<$from-path> to a directory C<$to-path> and returns an C<Array> of C<IO::Path> of the successfully
     copied files (their new locations).
@@ -96,7 +96,7 @@ module Zef::Utils::FileSystem {
     
         sub lock-file-protect(IO() $path, &code, Bool :$shared = False)
 
-    Provides an interface similiar to C<Lock.protect> that is backed by a file lock on C<$path> instead of a semiphore.
+    Provides an interface similar to C<Lock.protect> that is backed by a file lock on C<$path> instead of a semaphore.
     Its purpose is to help keep multiple instances of zef from trying to edit the e.g. p6c/cpan ecosystem index at the
     same time (although how well it serves that purpose in practice is unknown).
 
@@ -109,7 +109,7 @@ module Zef::Utils::FileSystem {
 
     =end pod
 
-    sub list-paths(IO() $path!, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path]) is export {
+    sub list-paths(IO() $path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path]) is export {
         die "{$path} does not exists" unless $path.e;
         my &wanted-paths := -> @_ { grep { .basename.starts-with('.') && !$dot ?? 0 !! 1 }, @_ }
 
@@ -125,7 +125,7 @@ module Zef::Utils::FileSystem {
         return @results;
     }
 
-    sub copy-paths(IO() $from-path!, IO() $to-path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path]) is export {
+    sub copy-paths(IO() $from-path, IO() $to-path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path]) is export {
         die "{$from-path} does not exists" unless $from-path.IO.e;
         mkdir($to-path) unless $to-path.e;
 
@@ -133,7 +133,7 @@ module Zef::Utils::FileSystem {
             my $from-relpath = $from-file.relative($from-path);
             my $to-file      = IO::Path.new($from-relpath, :CWD($to-path));
             mkdir($to-file.parent) unless $to-file.e;
-            next if $from-file eq $to-file; # copy deadlocks on older rakudos otherwise
+            next if $from-file eq $to-file; # copy can deadlock on an older rakudo
             take $to-file if copy($from-file, $to-file);
         }
         return @results;

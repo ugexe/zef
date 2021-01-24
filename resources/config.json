@@ -159,7 +159,7 @@
             "module" : "Zef::Service::Shell::prove"
         },
         {
-            "short-name" : "perl6-test",
+            "short-name" : "raku-test",
             "module" : "Zef::Service::Shell::Test"
         }
     ]

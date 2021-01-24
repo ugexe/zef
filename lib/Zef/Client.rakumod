@@ -444,7 +444,7 @@ class Zef::Client {
                 } if %needed<alternative>;
                 @prereq-candidates.append: self!find-candidates(:$upgrade, @alt-identities) if @alt-identities;
 
-                my @not-found = @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) }).map(*.identity);
+                my @not-found = @needed.grep({ not @prereq-candidates.first(*.dist.contains-spec($_)) });
 
                 # The failing part of this should ideally be handled in Zef::CLI I think
                 if +@prereq-candidates == +@needed || @not-found.cache.elems == 0 {
@@ -462,7 +462,7 @@ class Zef::Client {
                         level   => ERROR,
                         stage   => RESOLVE,
                         phase   => AFTER,
-                        message => "Failed to find dependencies: {@not-found.join(', ')}",
+                        message => "Failed to find dependencies: {@not-found.map(*.identity).join(', ')}",
                     });
 
                     $!force-resolve
@@ -472,7 +472,11 @@ class Zef::Client {
                                 phase   => LIVE,
                                 message => 'Failed to resolve missing dependencies, but continuing with --force-resolve',
                             })
-                        !! die X::Zef::UnsatisfiableDependency.new;
+                        !! die X::Zef::UnsatisfiableDependency.new but role :: {
+                            method message {
+                                X::Zef::UnsatisfiableDependency.message ~ qq| (use e.g. --exclude="{@not-found.head.name}" to skip)|;
+                            }
+                        };
                 };
 
                 @skip.append: @prereq-candidates.map(*.dist);

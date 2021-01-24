@@ -152,7 +152,7 @@
         {
             "short-name" : "tap-harness",
             "module" : "Zef::Service::TAP",
-            "comment" : "Perl6 TAP::Harness adapter"
+            "comment" : "Raku TAP::Harness adapter"
         },
         {
             "short-name" : "prove",

@@ -29,28 +29,28 @@ before_install:
 
 install:
     # need at least 1 statement in 'install'
-    - perl6 -v
+    - raku -v
 
 script:
-    - perl6 -I. bin/zef --version
+    - raku -I. bin/zef --version
 
     # run xtests
-    - perl6 -I. xt/repository.t
-    - perl6 -I. xt/install.t
+    - raku -I. xt/repository.t
+    - raku -I. xt/install.t
 
-    # test explicitly via `prove t/*` and `perl6 t/foo.t && perl6 t/bar.t`
+    # test explicitly via `prove t/*` and `raku t/foo.t && raku t/bar.t`
     # both should work, since all our CI envs have prove
-    - perl6 -I. bin/zef --debug --/tap-harness --/prove --perl6-test  test .
-    - perl6 -I. bin/zef --debug --/tap-harness --prove  --/perl6-test test .
+    - raku -I. bin/zef --debug --/tap-harness --/prove --raku-test  test .
+    - raku -I. bin/zef --debug --/tap-harness --prove  --/raku-test test .
 
     # run relative local path test + install
-    - perl6 -I. bin/zef --debug install .
+    - raku -I. bin/zef --debug install .
 
     # test uninstall
-    - perl6 -I. bin/zef uninstall zef
+    - raku -I. bin/zef uninstall zef
 
     # run absolute local path test + install
-    - perl6 -I. bin/zef install $TRAVIS_BUILD_DIR
+    - raku -I. bin/zef install $TRAVIS_BUILD_DIR
 
     # change path to make sure next `zef` commands aren't using any files in cwd or lib/
     - cd $TRAVIS_BUILD_DIR/..
@@ -71,7 +71,7 @@ script:
     - zef --debug depends Cro::SSL
     - zef --debug fetch Base64
     # test installing from what `fetch` put in ::LocalCache
-    - zef --debug --/cpan --/p6c install Base64
+    - zef --debug --/fez --/cpan --/p6c install Base64
 
     - zef --debug --max=10 list
     - zef --debug --installed list
@@ -91,8 +91,8 @@ script:
     - zef install Distribution::Common --/test
     - zef install Distribution::Common::Remote -to=inst#foo --contained --/test
     - zef uninstall Distribution::Common
-    - perl6 -I inst#foo -M Distribution::Common::Remote::Github -e ''
+    - raku -I inst#foo -M Distribution::Common::Remote::Github -e ''
 
     - zef --/confirm nuke TempDir StoreDir RootDir
     - zef update cached # test single repository update; should be 0 after previous nuke
-    - perl6 -I $TRAVIS_BUILD_DIR $TRAVIS_BUILD_DIR/bin/zef --/confirm nuke site home
+    - raku -I $TRAVIS_BUILD_DIR $TRAVIS_BUILD_DIR/bin/zef --/confirm nuke site home

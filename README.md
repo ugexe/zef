@@ -201,7 +201,7 @@ Upgrade specified identities. If no identities are provided, zef attempts to upg
 
 How these are handled depends on the `Repository` engine used, which by default is `Zef::Repository::Ecosystems>p6c<`
 
-    $ zef -v --cpan search URI
+    $ zef -v search URI
     ===> Found 4 results
     -------------------------------------------------------------------------
     ID|From                              |Package             |Description
@@ -486,13 +486,6 @@ little more information on how plugins are invoked.
 You can see debug output related to chosing and loading plugins by setting the env variable **ZEF\_PLUGIN\_DEBUG=1**
 
 # FAQ
-
-### CPAN?
-
-CPAN is now used as a default (alongside the familiar p6c "ecosystem").
-
-    # Explicitly enable cpan (now defaults to the same as `zef search zef`)
-    $ zef --cpan search Inline::Perl5
 
 ### Proxy support?
 

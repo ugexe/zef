@@ -56,7 +56,7 @@ class Zef::Repository does PackageRepository does Pluggable {
     A C<Repository> that uses 1 or more other C<Repository> instances as backends. It abstracts the logic
     for e.g. sorting by version from multiple repositories. Each C<Repository> (including this one and
     whatever backends this may use) can be thought of as recommendation managers, where C<Zef::Repository>
-    gives a recommendation based on recommendations it gets from its backends (i.e. p6c, cpan, cached).
+    gives a recommendation based on recommendations it gets from its backends (i.e. fez, p6c, cpan, cached).
 
     =head1 Methods
 
@@ -92,7 +92,7 @@ class Zef::Repository does PackageRepository does Pluggable {
         method store(*@dists --> Nil)
 
     Attempts to store/save/cache each C<@dist> to each backend repository that provides a C<store> method. Generally this is used when
-    a module is fetched from e.g. cpan so that C<Zef::Repository::LocalCache> can cache it for next time. Note distributions fetched from
+    a module is fetched from e.g. fez so that C<Zef::Repository::LocalCache> can cache it for next time. Note distributions fetched from
     local paths (i.e. `zef install .`) do not generally get passed to this method.
 
     method available
@@ -101,7 +101,7 @@ class Zef::Repository does PackageRepository does Pluggable {
 
     Returns an C<Array> of all C<Candidate> provided by all backend repositories that support the C<available> method (http-query-per-request
     repositories may not be able to provide this) and have a 'name' (as defined in its entry in C<resources/config.json>) matching any of
-    those in C<@names> (i.e. C<zef list cpan> will only show stuff from the 'cpan' backend).
+    those in C<@names> (i.e. C<zef list fez> will only show stuff from the 'fez' backend).
 
     method update
 
@@ -208,7 +208,7 @@ class Zef::Repository does PackageRepository does Pluggable {
         return @results;
     }
 
-    #| Update each Repository / backend (generally downloading a p6c.json or cpan.json file, or updating the 'cached' index)
+    #| Update each Repository / backend
     method update(*@plugins --> Hash) {
         my @can-update = self!plugins(@plugins).grep: -> $plugin {
             note "Plugin '{$plugin.short-name}' does not support `.update` -- Skipping" unless $plugin.can('update'); # UNDO doesn't work here yet
@@ -222,7 +222,7 @@ class Zef::Repository does PackageRepository does Pluggable {
 
     #| Like self.plugins this returns a list of plugins that Pluggable + @.backends provides, but also allows
     #| filtering which plugins are used by short-name (short-name is set in the config per Repository) so that
-    #| things like `--update=p6c` or `--/update=cpan` work.
+    #| things like `--update=fez` or `--/update=cpan` work.
     method !plugins(*@_) {
         +@_ ?? self.plugins.grep({.short-name ~~ any(@_)}) !! self.plugins
     }

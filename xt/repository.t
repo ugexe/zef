@@ -10,10 +10,11 @@ use Zef::Fetch;
 
 subtest 'Repository' => {
     class Mock::Repository does PackageRepository {
-        method search(:$max-results = 5, *@identities, *%fields) {
-            my @candidates =
+        method search(*@identities) {
+            my Candidate @candidates =
                 Candidate.new(:as("{@identities[0]}::X")),
                 Candidate.new(:as("{@identities[0]}::XX"));
+            return @candidates;
         }
     }
 
@@ -30,7 +31,7 @@ subtest 'Repository' => {
         my $mock-repository1 = Mock::Repository.new;
         my $mock-repository2 = Mock::Repository.new;
         my $repository = Zef::Repository.new but role :: {
-            method plugins { state @plugins = $mock-repository1, $mock-repository2 }
+            method plugins { state @plugins = $mock-repository1, $mock-repository2; return @plugins; }
         }
         my @candidates = $repository.search("Mock::Repository");
         is +@candidates, 4;

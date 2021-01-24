@@ -13,13 +13,13 @@ subtest 'Zef::Install.install' => {
         my class Mock::Installer::One does Installer {
             method install-matcher(|--> False) { }
 
-            method install($candi) { die 'should not get called' }
+            method install($) { die 'should not get called' }
         }
 
         my class Mock::Installer::Two does Installer {
             method install-matcher(|--> True) { }
 
-            method install($candi --> True) { }
+            method install($ --> True) { }
         }
 
         my $save-to   = $*TMPDIR.child(100000.rand).mkdir;
@@ -33,13 +33,13 @@ subtest 'Zef::Install.install' => {
         my class Mock::Installer::One does Installer {
             method install-matcher(|--> False) { }
 
-            method install($candi) { die 'should not get called' }
+            method install($) { die 'should not get called' }
         }
 
         my class Mock::Installer::Two does Installer {
             method install-matcher(|--> True) { }
 
-            method install($candi --> True) { }
+            method install($ --> True) { }
         }
 
         my $save-to   = $*TMPDIR.child(100000.rand).mkdir;
@@ -53,13 +53,13 @@ subtest 'Zef::Install.install' => {
         my class Mock::Installer::One does Installer {
             method install-matcher(|--> True) { }
 
-            method install($candi --> False) { }
+            method install($ --> False) { }
         }
 
         my class Mock::Installer::Two does Installer {
             method install-matcher(|--> True) { }
 
-            method install($candi --> True) { die 'should not get called' }
+            method install($ --> True) { die 'should not get called' }
         }
 
         my $save-to   = $*TMPDIR.child(100000.rand).mkdir;
@@ -75,13 +75,13 @@ subtest 'Zef::Install.install' => {
         my class Mock::Installer::One does Installer {
             method install-matcher(|--> True) { }
 
-            method install($candi) { sleep(timeout * 5); timeout; }
+            method install($) { sleep(timeout * 5); timeout; }
         }
 
         my class Mock::Installer::Two does Installer {
             method install-matcher(|--> True) { }
 
-            method install($candi --> True) { die 'should not get called' }
+            method install($ --> True) { die 'should not get called' }
         }
 
         my $save-to   = $*TMPDIR.child(100000.rand).mkdir;

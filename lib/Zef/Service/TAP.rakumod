@@ -90,8 +90,6 @@ class Zef::Service::TAP does Tester does Messenger {
         my $stderr = $*ERR;
         my $out-supply = $.stdout;
         my $err-supply = $.stderr;
-        my $out;
-        my $err;
         my $cwd = $*CWD;
 
         my class OUT_CAPTURE is IO::Handle {

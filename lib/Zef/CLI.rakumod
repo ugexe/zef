@@ -35,13 +35,13 @@ package Zef::CLI {
 
     =head2 sub MAIN(:$version)
 
-        multi sub MAIN(Bool :$version where .so) {
+        multi sub MAIN(Bool :version($) where .so) {
 
     Show the version of zef being used.
 
     =head2 sub MAIN(:$help)
 
-        multi sub MAIN(Bool :h(:$help)?)
+        multi sub MAIN(Bool :h(:help($)))
 
     Show the usage message.
 
@@ -309,7 +309,7 @@ package Zef::CLI {
     @*ARGS = @*ARGS.map: { $_ eq '--depsonly' ?? '--deps-only' !! $_ }
 
     proto MAIN(|) is export {
-        # Supress backtrace
+        # Suppress backtrace
         CATCH { default { try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! .message.&note; &*EXIT(1) } }
         {*}
     }
@@ -528,7 +528,7 @@ package Zef::CLI {
     }
 
     #| A list of available modules from enabled repositories
-    multi sub MAIN('list', Int :$max?, :$update, Bool :i(:$installed), *@at) {
+    multi sub MAIN('list', Int :$max, :$update, Bool :i(:$installed), *@at) {
         my $client = get-client(:config($CONFIG), :$update);
 
         my $found := ?$installed
@@ -718,7 +718,7 @@ package Zef::CLI {
                     NEXT say '';
 
                     if $candi {
-                        # This is relying on implementation details for compatability purposes. It will
+                        # This is relying on implementation details for compatibility purposes. It will
                         # use something more appropriate sometime in 2019.
                         my %meta = $candi.dist.meta;
                         %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
@@ -761,7 +761,7 @@ package Zef::CLI {
         }
         else {
             my @candis = $client.list-installed.grep(-> $candi {
-                # This is relying on implementation details for compatability purposes. It will
+                # This is relying on implementation details for compatibility purposes. It will
                 # use something more appropriate sometime in 2019.
                 my %meta = $candi.dist.meta;
                 %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
@@ -816,8 +816,6 @@ package Zef::CLI {
         my @provides = $dist.provides.sort(*.key.chars);
         say "Provides: {@provides.elems} modules";
         if ?($verbosity >= VERBOSE) {
-
-            my $meta := $dist.meta;
             my @rows = eager gather for @provides -> $lib {
                 FIRST {
                     take [<Module Path-Name>]
@@ -841,7 +839,7 @@ package Zef::CLI {
         if ?($verbosity >= VERBOSE) {
             my @rows = eager gather for @deps -> $spec {
                 FIRST { take [<ID Identity Installed?>] }
-                my $row = [ "{state $id += 1}", $spec.name, ($client.is-installed($spec) ?? '✓' !! '')];
+                my $row = [ ++$, $spec.name, ($client.is-installed($spec) ?? '✓' !! '')];
                 take $row;
             }
             print-table(@rows, :$wrap);
@@ -926,7 +924,6 @@ package Zef::CLI {
         );
 
         my @identities = $client.list-available.map(*.dist.identity).unique;
-        my CompUnit::Repository @to = $install-to.map(*.&str2cur);
         say "===> Smoke testing with {+@identities} distributions...";
 
         my &installer = &MAIN.assuming(
@@ -1011,7 +1008,7 @@ package Zef::CLI {
     }
 
     #| Detailed version information
-    multi sub MAIN(Bool :$version where .so) {
+    multi sub MAIN(Bool :version($) where .so) {
         say $*PERL.compiler.version <= v2018.12
             ?? 'Version detection requires a rakudo newer than v2018.12'
             !! ($VERSION // 'unknown');
@@ -1019,7 +1016,7 @@ package Zef::CLI {
         exit 0;
     }
 
-    multi sub MAIN(Bool :h(:$help)?) {
+    multi sub MAIN(Bool :h(:help($))) {
         note qq:to/END_USAGE/
             Zef - Raku / Perl6 Module Management
 
@@ -1153,7 +1150,7 @@ package Zef::CLI {
             }.new(:%hash, :$IO);
         }
 
-        # - Move named options to start of @*ARGS so the git familiar style of options after positionals works
+        # - Move named options to start of @*ARGS so the git familiar style of options after positional parameters works
         # - get/remove --$short-name and --/$short-name where $short-name is a value in the config file
         my $plugin-lookup := Zef::Config::plugin-lookup($config.hash);
         for @*ARGS -> $arg {
@@ -1197,7 +1194,7 @@ package Zef::CLI {
             $client.reporter.report(.<candi>, :$logger);
         };
 
-        if %_<update>.defined {
+        with %_<update> {
             my @plugins = $client.recommendation-manager.plugins;
 
             if %_<update> === Bool::False {

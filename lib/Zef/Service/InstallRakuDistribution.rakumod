@@ -43,9 +43,9 @@ class Zef::Service::InstallRakuDistribution does Installer does Messenger {
 
     =head2 method install-matcher
 
-        method install-matcher(Distribution $dist --> Bool:D) { return True }
+        method install-matcher(Distribution $ --> Bool:D) { return True }
 
-    Returns C<True> if this module knows how to install the distribution C<$dist>.
+    Returns C<True> if this module knows how to install the given C<Distribution>.
 
     Note: This always returns C<True> right now, but may not in the future if zef learns how to
     install packages from other languages (such as perl via a cpanm wrapper).
@@ -66,7 +66,7 @@ class Zef::Service::InstallRakuDistribution does Installer does Messenger {
     method probe(--> Bool:D) { True }
 
     #| Return true as long as we have a Distribution class that raku knows how to install
-    method install-matcher(Distribution $dist --> Bool:D) { return True }
+    method install-matcher(Distribution $ --> Bool:D) { return True }
 
     #| Install the distribution in $candi.dist to the $cur CompUnit::Repository.
     #| Use :force to install over an existing distribution using the same name/auth/ver/api

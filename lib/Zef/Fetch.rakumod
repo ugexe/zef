@@ -54,7 +54,7 @@ class Zef::Fetch does Fetcher does Pluggable {
     for some reason (such as going over its C<:$timeout>) the next matching backend will be used. Failure occurs
     when no backend was able to fetch the C<$candi>.
 
-    An optional C<:$logger> can be supplied to receive events about what is occuring.
+    An optional C<:$logger> can be supplied to receive events about what is occurring.
 
     An optional C<:$timeout> can be passed to denote the number of seconds after which we'll assume failure.
 

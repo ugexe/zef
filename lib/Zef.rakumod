@@ -11,9 +11,9 @@ package Zef {
     enum STAGE is export <RESOLVE FETCH EXTRACT FILTER BUILD TEST INSTALL REPORT>;
     enum PHASE is export <BEFORE START LIVE STOP AFTER>;
 
-    # A way to avoid printing everything to make --quiet option more univesal between plugins
+    # A way to avoid printing everything to make --quiet option more universal between plugins
     # Need to create a messaging format to include the phase, file, verbosity level, progress,
-    # etc we may or may not display as neccesary. It's current usage is not finalized and
+    # etc we may or may not display as necessary. It's current usage is not finalized and
     # any suggestions for this are well taken
     role Messenger  is export {
         has $.stdout = Supplier.new;

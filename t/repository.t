@@ -12,8 +12,8 @@ subtest 'Zef::Repository.candidates' => {
         my class Mock::Repository::One does PackageRepository {
             method fetch-matcher(|--> True ) { }
 
-            method search(*@identities [$short-name]) {
-                my @candidates =
+            method search(*@ [$short-name]) {
+                my Candidate @candidates =
                     Candidate.new(
                         dist => Zef::Distribution.new(:name($short-name ~ '::Quick'), :ver<0>, :api<1>,),
                         as   => $short-name,
@@ -26,14 +26,15 @@ subtest 'Zef::Repository.candidates' => {
                         dist => Zef::Distribution.new(:name($short-name ~ '::Fast'), :ver<0.2>, :api<1>),
                         as   => $short-name,
                     );
+                return @candidates;
             }
         }
 
         my class Mock::Repository::Two does PackageRepository {
             method fetch-matcher(|--> True) { }
 
-            method search(*@identities [$short-name]) {
-                my @candidates =
+            method search(*@ [$short-name]) {
+                my Candidate @candidates =
                     Candidate.new(
                         dist => Zef::Distribution.new(:name($short-name ~ '::Fast'), :ver<0.3>,),
                         as   => $short-name,
@@ -46,6 +47,7 @@ subtest 'Zef::Repository.candidates' => {
                         dist => Zef::Distribution.new(:name($short-name ~ '::Quick'), :ver<0>, :auth<B>),
                         as   => $short-name,
                     );
+                return @candidates;
             }
         }
 

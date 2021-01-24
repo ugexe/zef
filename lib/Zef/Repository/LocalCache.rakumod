@@ -115,7 +115,7 @@ class Zef::Repository::LocalCache does PackageRepository {
         self!populate-distributions;
     }
 
-    #| Method to allow self.store() call the equivilent of self.update() without infinite recursion
+    #| Method to allow self.store() call the equivalent of self.update() without infinite recursion
     method !update(--> Bool:D) {
         # $.cache/level1/level2/ # dirs containing dist files
         my @dirs    = $!cache.IO.dir.grep(*.d).map(*.dir.Slip).grep(*.d);

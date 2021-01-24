@@ -59,7 +59,7 @@ class Zef::Extract does Extractor does Pluggable {
     for some reason (such as going over its C<:$timeout>) the next matching backend will be used. Failure occurs
     when no backend was able to extract the C<$candi>.
 
-    An optional C<:$logger> can be supplied to receive events about what is occuring.
+    An optional C<:$logger> can be supplied to receive events about what is occurring.
 
     An optional C<:$timeout> can be passed to denote the number of seconds after which we'll assume failure.
 
@@ -147,10 +147,10 @@ class Zef::Extract does Extractor does Pluggable {
     }
 
     #| Will return the results first successful extraction, where the results are an array of strings, where
-    #| each string is a relative path representing a file that can be extracted from the given $acandi.uri
+    #| each string is a relative path representing a file that can be extracted from the given $candi.uri
     #| Note this differs from other 'Extract' adapters .extract() which take a $uri as the first
     #| parameter, not a $candi
-    method ls-files($candi, :$logger --> Array[Str]) {
+    method ls-files($candi --> Array[Str]) {
         my $path       := $candi.uri;
         my $extractors := self!extractors($path);
         my $name-paths := $extractors.map(*.ls-files($path)).first(*.defined).map(*.IO);

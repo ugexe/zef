@@ -16,19 +16,19 @@ class Zef::Service::FetchPath does Fetcher does Extractor does Messenger {
         use Zef;
         use Zef::Service::FetchPath;
 
-        my $fetchpath = Zef::Service::FetchPath.new;
+        my $fetch-path = Zef::Service::FetchPath.new;
 
         # Copy the content of the current directory to ./backup_dir/$random/*
         my $source   = $*CWD;
         my $save-to  = $*CWD.child("backup_dir");
-        my $saved-to = $fetchpath.fetch($source, $save-to);
+        my $saved-to = $fetch-path.fetch($source, $save-to);
 
         die "Failed to copy paths" unless $saved-to;
         say "The following top level paths now exist:";
         say "\t{$_.Str}" for $saved-to.dir;
 
         my $extract-to   = $*CWD.child("extracted_backup_dir");
-        my $extracted-to = $fetchpath.extract($saved-to, $extract-to);
+        my $extracted-to = $fetch-path.extract($saved-to, $extract-to);
 
         die "Failed to extract paths" unless $extracted-to;
         say "The following top level paths now exist:";

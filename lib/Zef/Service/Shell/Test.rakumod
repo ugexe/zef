@@ -50,7 +50,7 @@ class Zef::Service::Shell::Test does Tester does Messenger {
 
     =head2 method test-matcher
 
-        method test-matcher(Str() $path --> Bool:D)
+        method test-matcher(Str() :uri($) --> Bool:D)
 
     Returns C<True> if this module knows how to test C<$uri>. This module always returns C<True> right now since
     it just launches tests directly with the C<raku> command.
@@ -71,7 +71,7 @@ class Zef::Service::Shell::Test does Tester does Messenger {
     method probe(--> Bool:D) { True }
 
     #| Return true if this Tester understands the given uri/path
-    method test-matcher(Str() $path --> Bool:D) { return True }
+    method test-matcher(Str() $ --> Bool:D) { return True }
 
     #| Test the given paths t/ directory using any provided @includes
     method test(IO() $path, :@includes --> Bool:D) {

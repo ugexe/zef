@@ -48,7 +48,7 @@ class Zef::Report does Pluggable does Reporter {
     Reports information about the distribution C<$candi.dist> to a temporary file (the file can be discovered
     from the output message emitted).
 
-    An optional C<:$logger> can be supplied to receive events about what is occuring.
+    An optional C<:$logger> can be supplied to receive events about what is occurring.
 
     Returns C<True> if the reporting succeeded.
 
@@ -64,8 +64,6 @@ class Zef::Report does Pluggable does Reporter {
         my $reporters := self.plugins.grep(*.so).cache;
 
         my @reports = $reporters.map: -> $reporter {
-            my Str $output;
-            my $output-lock = Lock.new;
             if ?$logger {
                 $logger.emit({ level => DEBUG, stage => REPORT, phase => START, candi => $candi, message => "Reporting with plugin: {$reporter.^name}" });
                 $reporter.stdout.Supply.grep(*.defined).act: -> $out { $logger.emit({ level => VERBOSE, stage => REPORT, phase => LIVE, candi => $candi, message => $out }) }

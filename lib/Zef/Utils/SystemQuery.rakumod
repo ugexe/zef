@@ -41,7 +41,7 @@ module Zef::Utils::SystemQuery {
 
         our sub system-collapse($data)
 
-    Traverses an C<Array> or C<Hash> C<$data>, collasping the blocks of declarative logic and returns the
+    Traverses an C<Array> or C<Hash> C<$data>, collapsing the blocks of declarative logic and returns the
     otherwise same data structure.
 
     Declarative logic current supports three main query forms:

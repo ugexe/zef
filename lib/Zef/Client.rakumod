@@ -96,7 +96,7 @@ class Zef::Client {
 
     Fetches a distribution from some location, and unpacks/extracts it to a temporary location to be used be cached, tested,
     installed, etc. It effective combines the functionality of C<Zef::Fetch.fetch> and C<Zef::Extract.extract> into a single
-    method as there isn't a useful reason to have workflows that work with unextracted archives/packages. Fetches up to
+    method as there isn't yet a useful reason to have workflows that work with compressed archives/packages. Fetches up to
     C<$.fetch-degree> different C<@candidates> in parallel.
 
     Anytime a distribution is fetched it will call C<.store(@distributions)> on any C<Zef::Repository> that supports it (usually
@@ -173,8 +173,8 @@ class Zef::Client {
 
         method list-installed(*@curis --> Array[Candidate])
 
-    Returns an C<Array> of C<Candidate> for each Raku distribution installed to each C<CompUnit::Repository::Installion> C<@curis>
-    (or all known C<CompUnit::Repository::Installion> if no C<@curis> are supplied).
+    Returns an C<Array> of C<Candidate> for each Raku distribution installed to each C<CompUnit::Repository::Installation> C<@curis>
+    (or all known C<CompUnit::Repository::Installation> if no C<@curis> are supplied).
 
     =head2 method list-leaves
 
@@ -184,7 +184,7 @@ class Zef::Client {
 
     =head2 method list-dependencies
 
-        method list-dependencies(*@candis, :$from --> Array[DependencySpecification])
+        method list-dependencies(*@candis --> Array[DependencySpecification])
 
     Returns an C<Array> of C<Zef::Distribution::DependencySpecification> and // or C<Zef::Distribution::DependencySpecification::Any>
     for each C<@candis> distributions various dependency requirements.
@@ -213,7 +213,7 @@ class Zef::Client {
 
     =head2 method sort-candidates
 
-        method sort-candidates(@candis, *%_ --> Array[Candidate])
+        method sort-candidates(@candis --> Array[Candidate])
 
     Does a topological sort of C<@candis> based on their various dependency fields and C<$.depends>/C<$.test-depends>/C<$.build-depends>.
 
@@ -339,7 +339,7 @@ class Zef::Client {
         ;
     }
 
-    #| Return a matching candidate/distributino for each supplied identity
+    #| Return a matching candidate/distribution for each supplied identity
     method find-candidates(Bool :$upgrade, *@identities ($, *@) --> Array[Candidate]) {
         self.logger.emit({
             level   => INFO,
@@ -435,7 +435,7 @@ class Zef::Client {
                             }
                             @candidates
                         })
-                    -> $spec {
+                    -> $ {
                         @prereq-candidates.append(@candidates);
                     }
                     else {
@@ -495,7 +495,7 @@ class Zef::Client {
 
     method fetch(*@candidates ($, *@) --> Array[Candidate]) {
         my @fetched   = self!fetch(@candidates);
-        my @extracted = self!extract(@candidates);
+        my @extracted = self!extract(@fetched);
 
         my Candidate @local-candis = @extracted.map: -> $candi {
             my $dist = Zef::Distribution::Local.new(~$candi.uri);
@@ -532,8 +532,6 @@ class Zef::Client {
             # originally located but we may want to use a local copy (while retaining
             # the original source-url for some other purpose like updating)
             my $save-to    = $!fetcher.fetch($candi, $stage-at, :$!logger, :timeout($!fetch-timeout));
-            my $relpath    = $stage-at.relative($tmp);
-            my $extract-to = $!cache.IO.child($relpath);
 
             if !$save-to {
                 self.logger.emit({
@@ -647,6 +645,7 @@ class Zef::Client {
             $candi.uri = $extracted-to.child($meta6-prefix);
             take $candi;
         }
+        return @extracted;
     }
 
 
@@ -828,10 +827,6 @@ class Zef::Client {
                     }
                 }
 
-                # Previously we put this through the deprecation CURI.install shim no matter what,
-                # but that doesn't play nicely with relative paths. We want to keep the original meta
-                # paths for newer rakudos so we must avoid using :absolute for the source paths by
-                # using the newer CURI.install if available
                 take $candi if $!installer.install($candi, :$cur, :force($!force-install), :timeout($!install-timeout));
             }
         }
@@ -846,7 +841,6 @@ class Zef::Client {
         Bool :$build = True,        # run Build.pm (DEPRECATED..?)
         Bool :$test  = True,        # run tests
         Bool :$dry,                 # do everything *but* actually install
-        Bool :$upgrade,             # NYI
         Bool :$serial,
         *@candidates ($, *@),
         *%_
@@ -879,7 +873,7 @@ class Zef::Client {
         die "Must specify something to install" unless +@candidates;
 
         # Fetch Stage:
-        # Use the results from searching Repositorys and download/fetch the distributions they point at
+        # Use the results from searching each available Repository and download/fetch the distributions they point at
         my @fetched-candidates = eager gather for @candidates -> $store {
             # Note that this method of not fetching Zef::Distribution::Local means we cannot
             # show fetching messages that would be fired in self.fetch(|) ( such as the download uri ).
@@ -999,7 +993,7 @@ class Zef::Client {
     }
 
     #| Return distributions that depend on the given identity
-    method list-rev-depends($identity, Bool :$indirect --> Array[Candidate]) {
+    method list-rev-depends($identity, Bool :indirect($) --> Array[Candidate]) {
         my $spec  = Zef::Distribution::DependencySpecification.new($identity);
         my $dist  = self.list-available.first(*.dist.contains-spec($spec)).?dist || return [];
 
@@ -1046,7 +1040,7 @@ class Zef::Client {
     }
 
     #| Return distributions that are direct dependencies of the supplied distributions
-    method list-dependencies(*@candis, :$from --> Array[DependencySpecification]) {
+    method list-dependencies(*@candis --> Array[DependencySpecification]) {
         my $deps := gather for @candis -> $candi {
             take $_ for grep *.defined,
                 ($candi.dist.depends-specs       if ?$!depends).Slip,
@@ -1098,10 +1092,10 @@ class Zef::Client {
         return True;
     }
 
-    #| Toplogical sort used to determine which dependency can be processed next in a given phase
-    method sort-candidates(@candis, *%_ --> Array[Candidate]) {
+    #| Topological sort used to determine which dependency can be processed next in a given phase
+    method sort-candidates(@candis --> Array[Candidate]) {
         my Candidate @tree;
-        my $visit = sub ($candi, $from? = '') {
+        my $visit = sub ($candi) {
             return if ($candi.dist.metainfo<marked> // 0) == 1;
             if ($candi.dist.metainfo<marked> // 0) == 0 {
                 $candi.dist.metainfo<marked> = 1;
@@ -1110,7 +1104,7 @@ class Zef::Client {
 
                 for @deps -> $m {
                     for @candis.grep(*.dist.contains-spec($m)) -> $m2 {
-                        $visit($m2, $candi);
+                        $visit($m2);
                     }
                 }
                 @tree.append($candi);
@@ -1118,7 +1112,7 @@ class Zef::Client {
         };
 
         for @candis -> $candi {
-            $visit($candi, 'olaf') if ($candi.dist.metainfo<marked> // 0) == 0;
+            $visit($candi) if ($candi.dist.metainfo<marked> // 0) == 0;
         }
 
         .dist.metainfo<marked> = Nil for @tree;
@@ -1127,7 +1121,7 @@ class Zef::Client {
 
     #| Adds appropriate include (-I / PERL6LIB) paths for dependencies
     proto method link-candidates(|) {*}
-    multi method link-candidates(Bool :$recursive! where *.so, *@candidates) {
+    multi method link-candidates(Bool :recursive($)! where *.so, *@candidates) {
         # :recursive
         # Given Foo::XXX that depends on Bar::YYY that depends on Baz::ZZZ
         #   - Foo::XXX -> -I/Foo/XXX -I/Bar/YYY -I/Baz/ZZZ
@@ -1135,14 +1129,14 @@ class Zef::Client {
         #   - Baz::ZZZ -> -I/Baz/ZZZ
 
         # XXX: Need to change this so it only add indirect dependencies
-        # instead of just recursing the array in order. Otherwise there
+        # instead of just using recursion on the array in order. Otherwise there
         # can be distributions that are part of a different dependency
         # chain will end up with some extra includes
 
         my @linked = self.link-candidates(@candidates);
         @ = @linked.map: -> $candi { # can probably use rotor instead of doing the `@a[$index + 1..*]` dance
             my @direct-includes    = $candi.dist.metainfo<includes>.grep(*.so);
-            my @recursive-includes = try @linked[(state $i += 1)..*]\
+            my @recursive-includes = try @linked[(++$)..*]\
                 .map(*.dist.metainfo<includes>).flatmap(*.flat);
             my @unique-includes    = unique(@direct-includes, @recursive-includes);
             my Str @results        = @unique-includes.grep(*.so);
@@ -1150,7 +1144,7 @@ class Zef::Client {
             $candi;
         }
     }
-    multi method link-candidates(Bool :$inclusive! where *.so, *@candidates) {
+    multi method link-candidates(Bool :inclusive($)! where *.so, *@candidates) {
         # :inclusive
         # Given Foo::XXX that depends on Bar::YYY that depends on Baz::ZZZ
         #   - Foo::XXX -> -I/Foo/XXX -I/Bar/YYY -I/Baz/ZZZ
@@ -1166,8 +1160,6 @@ class Zef::Client {
         #   - Bar::YYY -> -I/Bar/YYY -I/Baz/ZZZ
         #   - Baz::ZZZ -> -I/Baz/ZZZ
         @ = @candidates.map: -> $candi {
-            my $dist := $candi.dist;
-
             my @dep-specs = |self.list-dependencies($candi);
 
             # this could probably be done in the topological-sort itself

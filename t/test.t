@@ -12,13 +12,13 @@ subtest 'Zef::Test.test' => {
         my class Mock::Tester::One does Tester {
             method test-matcher(|--> False) { }
 
-            method test($candi) { die 'should not get called' }
+            method test($) { die 'should not get called' }
         }
 
         my class Mock::Tester::Two does Tester {
             method test-matcher(|--> True) { }
 
-            method test($candi --> True) { }
+            method test($ --> True) { }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;
@@ -32,13 +32,13 @@ subtest 'Zef::Test.test' => {
         my class Mock::Tester::One does Tester {
             method test-matcher(|--> False) { }
 
-            method test($candi) { die 'should not get called' }
+            method test($) { die 'should not get called' }
         }
 
         my class Mock::Tester::Two does Tester {
             method test-matcher(|--> True) { }
 
-            method test($candi --> True) { }
+            method test($ --> True) { }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;
@@ -52,13 +52,13 @@ subtest 'Zef::Test.test' => {
         my class Mock::Tester::One does Tester {
             method test-matcher(|--> True) { }
 
-            method test($candi --> Nil) { }
+            method test($ --> Nil) { }
         }
 
         my class Mock::Tester::Two does Tester {
             method test-matcher(|--> True) { }
 
-            method test($candi --> True) { die 'should not get called' }
+            method test($ --> True) { die 'should not get called' }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;
@@ -74,13 +74,13 @@ subtest 'Zef::Test.test' => {
         my class Mock::Tester::One does Tester {
             method test-matcher(|--> True) { }
 
-            method test($candi) { sleep(timeout * 5); timeout; }
+            method test($) { sleep(timeout * 5); timeout; }
         }
 
         my class Mock::Tester::Two does Tester {
             method test-matcher(|--> True) { }
 
-            method test($candi --> True) { die 'should not get called' }
+            method test($ --> True) { die 'should not get called' }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;

@@ -68,7 +68,7 @@ class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
     =end pod
 
 
-    #| Get the path of the Build file that will be executaed
+    #| Get the path of the Build file that will be executed
     method !guess-build-file(IO() $prefix --> IO::Path) { return <Build.rakumod Build.pm6 Build.pm>.map({ $prefix.child($_) }).first({ $_.e }) }
 
     #| Return true always since it just requires launching another raku process
@@ -81,7 +81,6 @@ class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
     method build(Zef::Distribution::Local $dist, Str :@includes --> Bool:D) {
         die "path does not exist: {$dist.path}" unless $dist.path.IO.e;
 
-        # make sure to use -Ilib instead of -I. or else Linenoise's Build.pm will trigger a strange precomp error
         my $build-file = self!guess-build-file($dist.path).absolute;
         my $cmd        = "require '$build-file'; ::('Build').new.build('$dist.path.IO.absolute()') ?? exit(0) !! exit(1);";
         my @exec       = |($*EXECUTABLE.absolute, |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");

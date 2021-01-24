@@ -10,7 +10,6 @@ use Zef::Config;
 
 
 my $path = $*TMPDIR.child("zef").child("{time}.{$*PID}");
-my $bin-dir     = $path.child('bin');
 my $dist-dir    = $path.child('dist');
 my $sources-dir = $path.child('sources');
 my CompUnit::Repository @cur = CompUnit::RepositoryRegistry\
@@ -97,3 +96,6 @@ subtest 'uninstall' => {
             is +$dist-dir.dir,    0, 'No distribution files should remain';
         }
 }
+
+
+done-testing;

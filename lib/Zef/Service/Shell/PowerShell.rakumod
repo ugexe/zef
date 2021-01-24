@@ -6,7 +6,7 @@ class Zef::Service::Shell::PowerShell does Probeable {
 
     =title class Zef::Service::Shell::PowerShell
 
-    =subtitle A base class for PowerShell invocating adapters
+    =subtitle A base class for PowerShell invoking adapters
 
     =head1 Synopsis
 

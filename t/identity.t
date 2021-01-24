@@ -81,7 +81,6 @@ subtest 'str2identity' => {
 
 subtest 'identity2hash' => {
     my $require = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
-    my %hash    = %( :name<Net::HTTP>, :ver<1.0+>, :auth<github:ugexe> );
     ok ?identity2hash("***not valid***");
 
     my %i-require = identity2hash($require);
@@ -93,7 +92,6 @@ subtest 'identity2hash' => {
 
 
 subtest 'hash2identity' => {
-    my $require = "Net::HTTP:ver<1.0+>:auth<github:ugexe>";
     my %hash    = %( :name<Net::HTTP>, :ver<1.0+>, :auth<github:ugexe> );
     ok ?hash2identity("***not valid***");
 

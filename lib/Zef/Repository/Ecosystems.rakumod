@@ -36,8 +36,8 @@ class Zef::Repository::Ecosystems does PackageRepository {
     =head1 Description
 
     A basic C<Repository> that uses a file (containing an array of hash / META6 json) as a database. It is
-    used for the default 'p6c' and 'cpan' ecosystems, and is also a good choice for ad-hoc darkpans by passing
-    it your own mirrors in the config.
+    used for the default 'fez', p6c', and 'cpan' ecosystems, and is also a good choice for ad-hoc darkpans
+    by passing it your own mirrors in the config.
 
     =head1 Methods
 

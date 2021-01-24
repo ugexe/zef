@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 3;
+plan 4;
 
 use Zef;
 use Zef::Repository;
@@ -81,6 +81,28 @@ subtest  'Ecosystems => cpan' => {
 
     subtest 'search' => {
         my @candidates = $cpan.search($wanted, :strict);
+        ok +@candidates > 0;
+        is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
+    }
+}
+
+
+subtest  'Ecosystems => fez' => {
+    my $wanted   = 'fez';
+    my @mirrors  = 'http://360.zef.pm/';
+    my @backends = [
+        { module => "Zef::Service::Shell::wget" },
+        { module => "Zef::Service::Shell::curl" },
+        { module => "Zef::Service::Shell::PowerShell::download" },
+    ];
+
+    my $fetcher = Zef::Fetch.new(:@backends);
+    my $cache   = $*HOME.child('.zef/store') andthen { mkdir $_ unless $_.IO.e };
+    my $fez    = Zef::Repository::Ecosystems.new(name => 'fez', :$fetcher, :$cache, :auto-update, :@mirrors);
+    ok $fez.available > 0;
+
+    subtest 'search' => {
+        my @candidates = $fez.search($wanted, :strict);
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
     }

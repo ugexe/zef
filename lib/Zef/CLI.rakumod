@@ -1090,8 +1090,8 @@ package Zef::CLI {
             CONFIGURATION {$CONFIG.IO.absolute}
                 Enable or disable plugins that match the configuration that has field `short-name` that matches <short-name>
 
-                --<short-name>  # `--cpan`  Enable plugin with short-name `cpan`
-                --/<short-name> # `--/cpan` Disable plugin with short-name `cpan`
+                --<short-name>  # `--fez`  Enable plugin with short-name `fez`
+                --/<short-name> # `--/fez` Disable plugin with short-name `fez`
 
             END_USAGE
     }

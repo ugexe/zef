@@ -24,11 +24,11 @@
     ],
     "Repository" : [
         {
-            "short-name": "zef-eco",
+            "short-name": "fez",
             "enabled": 1,
             "module": "Zef::Repository::Ecosystems",
             "options": {
-                "name": "zef",
+                "name": "fez",
                 "auto-update": 1,
                 "uses-path": true,
                 "mirrors": [
@@ -71,11 +71,12 @@
             }
         },
         {
-            "short-name": "zef-p6c",
+            "short-name": "fez-p6c",
             "enabled": 0,
             "module": "Zef::Repository::Ecosystems",
+            "comment": "A not-yet-ready variant of the p6c ecosystem that attempts to add e.g. versioning",
             "options": {
-                "name": "zef-p6c",
+                "name": "fez-p6c",
                 "auto-update": 1,
                 "uses-path": true,
                 "mirrors": [

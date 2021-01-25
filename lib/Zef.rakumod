@@ -101,7 +101,7 @@ package Zef {
     # be used. for instance, ::Shell wrappers probe via `cmd --help`. Note
     # that the result of .probe is cached by each phase loader
     role Probeable is export {
-        method probe returns Bool { ... }
+        method probe (--> Bool) { ... }
     }
 
     role Pluggable is export {

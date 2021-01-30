@@ -142,32 +142,23 @@ class Zef::Repository does PackageRepository does Pluggable {
             $storage.search(@search-for, :strict).Slip
         }
 
-        my @unsorted-grouped-candis = @unsorted-candis.categorize({.dist.meta<name>}).values;
+        my @unsorted-grouped-candis = @unsorted-candis.categorize({.as}).values;
 
         # Take the distribution with the highest version out of all matching distributions from each repository
-        my @partially-sorted-candis = @unsorted-grouped-candis.map: -> $candis {
-            my @presorted = $candis.sort(*.dist.api).sort(*.dist.ver);
+        my @sorted-candis = @unsorted-grouped-candis.map: -> $candis {
+            my @presorted = $candis.sort(*.dist.ver).sort(*.dist.api);
             my $api       = @presorted.tail.dist.api;
             my $version   = @presorted.tail.dist.ver;
 
+            my @sorted = @presorted.grep({ .dist.ver eq $version }).grep({ .dist.api eq $api });
+
             # Prefer candidates from Zef::Repository::Local to avoid re-downloading cached items
-            my @sorted = @presorted.grep({ .dist.api eq $api }).grep({ .dist.ver eq $version }).sort({ $^a.from eq 'Zef::Repository::LocalCache' });
-            @sorted.tail;
+            @sorted.sort({ ($^a.from // '') eq 'Zef::Repository::LocalCache' }).tail;
         }
 
-        # Sort the highest distribution versions from each repository. This must be done
-        # before the call to `.unique` later so that unique doesn't remove the higher
-        # versioned distribution based on randomness of @unsorted-candis.categorize({.dist.name}).values
-        my @sorted-candis = @partially-sorted-candis.sort(*.dist.ver).sort(*.dist.api).reverse;
-
-        # $candi.as tells us what string was used to request its distribution ($candi.dist)
-        # So this is similar to the .categorize(*.dist.name) filter above, except it
-        # covers when two different repositories have a matching candidate with different
-        # distribution names (likely matching *module* names in provides)
-        my @distinct-requested-as = @sorted-candis.unique(:as(*.as));
-
-        my Candidate @result = @distinct-requested-as;
-        return @result;
+        # dedupe things the earlier `.as` categorization won't group right, like Foo:ver<1.0+> and Foo:ver<1.1+>
+        my Candidate @results = @sorted-candis.unique(:as(*.dist.identity));
+        return @results;
     }
 
     #| This is what is used to search for identities.

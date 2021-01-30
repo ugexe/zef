@@ -676,6 +676,8 @@ class Zef::Client {
 
             my $result := $!builder.build($candi, :includes($candi.dist.metainfo<includes> // []), :$!logger, :timeout($!build-timeout)).cache;
 
+            $candi.build-results = $result;
+
             if $result.grep(*.not).elems {
                 self.logger.emit({
                     level   => ERROR,

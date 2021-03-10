@@ -69,20 +69,6 @@
                     "http://ecosystem-api.p6c.org/projects1.json"
                 ]
             }
-        },
-        {
-            "short-name": "fez-p6c",
-            "enabled": 0,
-            "module": "Zef::Repository::Ecosystems",
-            "comment": "A not-yet-ready variant of the p6c ecosystem that attempts to add e.g. versioning",
-            "options": {
-                "name": "fez-p6c",
-                "auto-update": 1,
-                "uses-path": true,
-                "mirrors": [
-                    "http://32.zef.pm/"
-                ]
-            }
         }
     ],
     "Fetch" : [

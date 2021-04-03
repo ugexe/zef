@@ -113,41 +113,80 @@ package Zef {
                 if ?%*ENV<ZEF_PLUGIN_DEBUG>;
         }
 
-        method plugins(*@names) {
-            +@names ?? self!list-plugins.grep({@names.contains(.short-name)}) !! self!list-plugins;
+        method plugins(*@short-names) {
+            my $all-plugins := self!list-plugins;
+            return $all-plugins unless +@short-names;
+
+            my @plugins;
+            for $all-plugins -> @plugin-group {
+                if @plugin-group.grep(-> $plugin { dd $plugin.short-name; $plugin.short-name ~~ any(@short-names) }) -> @filtered-group {
+                    push @plugins, @filtered-group;
+                }
+            }
+            return @plugins;
         }
 
-        method !list-plugins {
-            gather for @!backends -> $plugin {
-                my $module = $plugin<module>;
-                DEBUG($plugin, "Checking: {$module}");
-
-                # default to enabled unless `"enabled" : 0`
-                next() R, DEBUG($plugin, "\t(SKIP) Not enabled")\
-                    if $plugin<enabled>:exists && (!$plugin<enabled> || $plugin<enabled> eq "0");
-
-                next() R, DEBUG($plugin, "\t(SKIP) Plugin could not be loaded")\
-                    if (try require ::($ = $module)) ~~ Nil;
-
-                DEBUG($plugin, "\t(OK) Plugin loaded successful");
-
-                if ::($ = $module).^find_method('probe') {
-                    ::($ = $module).probe
-                        ?? DEBUG($plugin, "\t(OK) Probing successful")
-                        !! (next() R, DEBUG($plugin, "\t(SKIP) Probing failed"))
+        method !list-plugins(@backends = @!backends) {
+            # @backends used to only be an array of hash. However now the ::Repository
+            # section of the config an an array of an array of hash and thus the logic
+            # below was adapted (it wasn't designed this way from the start).
+            my @plugins;
+            for @backends -> $backend {
+                if $backend ~~ Hash {
+                    if self!try-load($backend) -> $class {
+                        push @plugins, $class;
+                    }
                 }
-
-                # add attribute `short-name` here to make filtering by name slightly easier
-                # until a more elegant solution can be integrated into plugins themselves
-                my $class = ::($ = $module).new(|($plugin<options> // []))\
-                    but role :: { has $.short-name = $plugin<short-name> // '' };
-
-                next() R, DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure")\
-                    unless ?$class;
-
-                DEBUG($plugin, "(OK) Plugin is now usable: {$module}");
-                take $class;
+                else {
+                    my @group;
+                    for @$backend -> $plugin {
+                        if self!try-load($plugin) -> $class {
+                            push @group, $class;
+                        }
+                    }
+                    push( @plugins, @group ) if +@group;
+                }
             }
+            return @plugins;
+        }
+
+        method !try-load(Hash $plugin) {
+            my $module = $plugin<module>;
+            DEBUG($plugin, "Checking: {$module}");
+
+            # default to enabled unless `"enabled" : 0`
+            if $plugin<enabled>:exists && (!$plugin<enabled> || $plugin<enabled> eq "0") {
+                DEBUG($plugin, "\t(SKIP) Not enabled");
+                return;
+            }
+
+            if (try require ::($ = $module)) ~~ Nil {
+                DEBUG($plugin, "\t(SKIP) Plugin could not be loaded");
+                return;
+            }
+
+            DEBUG($plugin, "\t(OK) Plugin loaded successful");
+
+            if ::($ = $module).^find_method('probe') {
+                unless ::($ = $module).probe {
+                    DEBUG($plugin, "\t(SKIP) Probing failed");
+                    return;
+                }
+                DEBUG($plugin, "\t(OK) Probing successful")
+            }
+
+            # add attribute `short-name` here to make filtering by name slightly easier
+            # until a more elegant solution can be integrated into plugins themselves
+            my $class = ::($ = $module).new(|($plugin<options> // []))\
+                but role :: { has $.short-name = $plugin<short-name> // '' };
+
+            unless ?$class {
+                DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure");
+                return;
+            }
+
+            DEBUG($plugin, "(OK) Plugin is now usable: {$module}");
+            return $class;
         }
     }
 }

@@ -967,7 +967,7 @@ package Zef::CLI {
         my $client  = get-client(:config($CONFIG), :update(@names || Bool::True));
 
         if $verbosity >= VERBOSE {
-            my $plugins := $client.recommendation-manager.plugins.grep({!+@names || .short-name ~~ any(@names)});
+            my $plugins := $client.recommendation-manager.plugins(|@names).map(*.Slip).grep(*.defined);
             my $rows    := $plugins.map({ [.id, .available.elems] });
             print-table( [["Content Storage", "Distribution Count"], |$rows], wrap => True );
         }
@@ -1195,7 +1195,7 @@ package Zef::CLI {
         };
 
         with %_<update> {
-            my @plugins = $client.recommendation-manager.plugins;
+            my @plugins = $client.recommendation-manager.plugins.map(*.Slip).grep(*.defined);
 
             if %_<update> === Bool::False {
                 @plugins.map({ try .auto-update = False });

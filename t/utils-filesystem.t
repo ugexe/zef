@@ -40,7 +40,7 @@ subtest "list-paths and delete-paths :d :f :r (rm -rf)" => {
     my $to-be-deleted = any($save-to, $sub-folder, $save-to-file, $sub-folder-file);
     for @delete-us -> $path-to-delete {
         is $path-to-delete, any(|@paths,$save-to), 'file was found in list-paths';
-        is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete.path}";
+        is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete}";
     }
 }
 

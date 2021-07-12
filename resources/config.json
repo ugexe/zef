@@ -23,53 +23,57 @@
         }
     ],
     "Repository" : [
-        {
-            "short-name": "fez",
-            "enabled": 1,
-            "module": "Zef::Repository::Ecosystems",
-            "options": {
-                "name": "fez",
-                "auto-update": 1,
-                "uses-path": true,
-                "mirrors": [
-                    "http://360.zef.pm/"
-                ]
+        [
+            {
+                "short-name": "fez",
+                "enabled": 1,
+                "module": "Zef::Repository::Ecosystems",
+                "options": {
+                    "name": "fez",
+                    "auto-update": 1,
+                    "uses-path": true,
+                    "mirrors": [
+                        "http://360.zef.pm/"
+                    ]
+                }
+            },
+            {
+                "short-name" : "cached",
+                "enabled" : 1,
+                "module" : "Zef::Repository::LocalCache",
+                "options" : { }
             }
-        },
-        {
-            "short-name" : "cached",
-            "enabled" : 1,
-            "module" : "Zef::Repository::LocalCache",
-            "options" : { }
-        },
-        {
-            "short-name" : "cpan",
-            "enabled" : 1,
-            "module" : "Zef::Repository::Ecosystems",
-            "options" : {
-                "name" : "cpan",
-                "auto-update" : 1,
-                "mirrors" : [
-                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan1.json",
-                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json",
-                    "git://github.com/ugexe/Perl6-ecosystems.git"
-                ]
+        ],
+        [
+            {
+                "short-name" : "cpan",
+                "enabled" : 1,
+                "module" : "Zef::Repository::Ecosystems",
+                "options" : {
+                    "name" : "cpan",
+                    "auto-update" : 1,
+                    "mirrors" : [
+                        "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan1.json",
+                        "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json",
+                        "git://github.com/ugexe/Perl6-ecosystems.git"
+                    ]
+                }
+            },
+            {
+                "short-name" : "p6c",
+                "enabled" : 1,
+                "module" : "Zef::Repository::Ecosystems",
+                "options" : {
+                    "name" : "p6c",
+                    "auto-update" : 1,
+                    "mirrors" : [
+                        "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c1.json",
+                        "git://github.com/ugexe/Perl6-ecosystems.git",
+                        "http://ecosystem-api.p6c.org/projects1.json"
+                    ]
+                }
             }
-        },
-        {
-            "short-name" : "p6c",
-            "enabled" : 1,
-            "module" : "Zef::Repository::Ecosystems",
-            "options" : {
-                "name" : "p6c",
-                "auto-update" : 1,
-                "mirrors" : [
-                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c1.json",
-                    "git://github.com/ugexe/Perl6-ecosystems.git",
-                    "http://ecosystem-api.p6c.org/projects1.json"
-                ]
-            }
-        }
+        ]
     ],
     "Fetch" : [
         {

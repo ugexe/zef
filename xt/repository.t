@@ -31,7 +31,7 @@ subtest 'Repository' => {
         my $mock-repository1 = Mock::Repository.new;
         my $mock-repository2 = Mock::Repository.new;
         my $repository = Zef::Repository.new but role :: {
-            method plugins { state @plugins = $mock-repository1, $mock-repository2; return @plugins; }
+            method plugins { [[$mock-repository1, $mock-repository2],] }
         }
         my @candidates = $repository.search("Mock::Repository");
         is +@candidates, 4;

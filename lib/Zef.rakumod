@@ -117,8 +117,15 @@ package Zef {
             +@names ?? self!list-plugins.grep({@names.contains(.short-name)}) !! self!list-plugins;
         }
 
-        method !list-plugins {
-            gather for @!backends -> $plugin {
+        method !list-plugins(@backends = @!backends) {
+            gather for @backends -> $plugin {
+                # a hack to allow the array of array backends to work (for Zef::Repository)
+                unless $plugin ~~ Hash {
+                    my $plugins := self!list-plugins($plugin);
+                    take $plugins;
+                    next;
+                }
+
                 my $module = $plugin<module>;
                 DEBUG($plugin, "Checking: {$module}");
 

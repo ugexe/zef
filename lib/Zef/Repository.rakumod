@@ -29,17 +29,19 @@ class Zef::Repository does PackageRepository does Pluggable {
         # be done in Zef::Repository)
         my $repo = Zef::Repository.new(
             backends => [
-                {
-                    module     => "Zef::Repository::Ecosystems",
-                    options => {
-                        cache       => $cache,
-                        fetcher     => $fetcher,
-                        name        => "cpan",
-                        auto-update => 1,
-                        mirrors     => ["https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/11efd9077b398df3766eaa7cf8e6a9519f63c272/cpan.json"]
-                    }
-                },
-            ],
+                [
+                    {
+                        module     => "Zef::Repository::Ecosystems",
+                        options => {
+                            cache       => $cache,
+                            fetcher     => $fetcher,
+                            name        => "cpan",
+                            auto-update => 1,
+                            mirrors     => ["https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/11efd9077b398df3766eaa7cf8e6a9519f63c272/cpan.json"]
+                        }
+                    },
+                ],
+            ]
         );
 
         # Print out all available distributions from all supplied backend repositories
@@ -75,6 +77,11 @@ class Zef::Repository does PackageRepository does Pluggable {
     This module purposely does not combine multiple ecosystems into a single list to make a recommendation from; by design it a recommendation
     manager for the results of recommendation managers. This allows more consistent resolution of dependencies and integration with MetaCPAN like
     services (which may not just provide an entire list of modules it has -- i.e. it makes it own recommendation for a name)
+
+    One difference in how recommendations are made from raku is that repos are grouped. Given pseudo backends C<[[Eco1,Eco2],[Eco3]]> we see three
+    repository backends in two different groups -- ecosystems in later groups are only searched if previous groups found no matches. This allows
+    users to avoid dependency confusion attacks by allowing custom ecosystems to be the preferred source for whatever namespaces it provides
+    regardless if another ecosystem later provides a module by the same name but higher version number.
 
     Returns an C<Array> of C<Candidate>, where each C<Candidate> matches exactly one of the provided C<@identities> (and
     each C<@identities> matches zero or one of the C<Candidate>).
@@ -131,15 +138,25 @@ class Zef::Repository does PackageRepository does Pluggable {
         # todo: have a `file` identity in Zef::Identity
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });
 
-        # XXX: Delete this eventually
-        my $dispatchers := $*PERL.compiler.version < v2018.08
-            ?? self!plugins
-            !! self!plugins.race(:batch(1)); # a new thread per Repository backend we will search with below
-
         # Search each Repository / backend
-        my @unsorted-candis = $dispatchers.map: -> $storage {
-            my @search-for = $storage.id eq 'Zef::Repository::LocalCache' ?? @identities !! @searchable;
-            $storage.search(@search-for, :strict).Slip
+        # TODO: this currently just checks `if @group-results.elems` to decide if it should iterate to the next
+        # group, but since the search is for multiple module names we actually need to keep track of what specifically
+        # to look for in e.g. the second group
+        my @unsorted-candis = eager gather GROUP: for self!plugins -> @repo-group {
+            # XXX: Delete this eventually
+            my $dispatchers := $*PERL.compiler.version < v2018.08
+                ?? @repo-group
+                !! @repo-group.race(:batch(1)); # a new thread per Repository backend we will search with below
+
+            my @group-results = $dispatchers.race(:batch(1)).map: -> $repo {
+                my @search-for = $repo.id eq 'Zef::Repository::LocalCache' ?? @identities !! @searchable;
+                $repo.search(@search-for, :strict).Slip;
+            }
+            if @group-results.elems {
+                take $_ for @group-results;
+                last GROUP;
+            }
+
         }
 
         my @unsorted-grouped-candis = @unsorted-candis.grep(*.defined).categorize({.as}).values;
@@ -168,8 +185,8 @@ class Zef::Repository does PackageRepository does Pluggable {
 
         # XXX: Delete this eventually
         my $dispatcher := $*PERL.compiler.version < v2018.08
-            ?? self!plugins
-            !! self!plugins.race(:batch(1)); # a new thread per Repository backend we will search with below
+            ?? self!plugins.map(*.Slip)
+            !! self!plugins.map(*.Slip).race(:batch(1)); # a new thread per Repository backend we will search with below
 
         my @unsorted-candis = $dispatcher.map: -> $storage {
             $storage.search(@identities, |%fields, :$max-results, :$strict).Slip

@@ -166,20 +166,22 @@ my $recommendation-manager = (
     Zef::Repository but role :: {
         method plugins(*@) {
             [
-                class :: does PackageRepository {
-                    method search(*@identities --> Seq) {
-                        gather for @identities -> $as {
-                            take Candidate.new(:dist(Zef::Distribution.new(:name($as))), :$as, :from<Test>)
-                                if $as ∈ <Available AvailableToo>;
-                            take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends['Unsatisfiable'])), :$as, :from<Test>)
-                                if $as eq 'HasUnsatisfiableDep';
-                            take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends['HasUnsatisfiableDep'])), :$as, :from<Test>)
-                                if $as eq 'HasTransitivelyUnsatisfiableDep';
-                            take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends[{:any["AvailableToo", "Available"]},])), :$as, :from<Test>)
-                                if $as eq 'DependsOnAvailableTooOrAvailable';
+                [
+                    class :: does PackageRepository {
+                        method search(*@identities --> Seq) {
+                            gather for @identities -> $as {
+                                take Candidate.new(:dist(Zef::Distribution.new(:name($as))), :$as, :from<Test>)
+                                    if $as ∈ <Available AvailableToo>;
+                                take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends['Unsatisfiable'])), :$as, :from<Test>)
+                                    if $as eq 'HasUnsatisfiableDep';
+                                take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends['HasUnsatisfiableDep'])), :$as, :from<Test>)
+                                    if $as eq 'HasTransitivelyUnsatisfiableDep';
+                                take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends[{:any["AvailableToo", "Available"]},])), :$as, :from<Test>)
+                                    if $as eq 'DependsOnAvailableTooOrAvailable';
+                            }
                         }
-                    }
-                },
+                    },
+                ],
             ]
         }
     }

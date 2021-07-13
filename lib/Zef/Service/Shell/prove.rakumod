@@ -70,6 +70,14 @@ class Zef::Service::Shell::prove does Tester does Messenger {
     method probe(--> Bool:D) {
         state $probe;
         once {
+            if $*EXECUTABLE.absolute.contains(" ") {
+                # prove can't deal with spaces in the executable path.
+                # It assumes everything after the first space to be args to the
+                # executable. So we can't use prove if our executables path
+                # contains a space. Sad.
+                # https://metacpan.org/dist/Test-Harness/view/bin/prove#-exec
+                return False
+            }
             # `prove --help` has exitcode == 1 unlike most other processes
             # so it requires a more convoluted probe check
             try {

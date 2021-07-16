@@ -1165,13 +1165,13 @@ class Zef::Client {
             my @dep-specs = |self.list-dependencies($candi);
 
             # this could probably be done in the topological-sort itself
-            my $includes := eager gather DEPSPEC: for @dep-specs -> $spec {
-                for @candidates -> $fcandi {
+            my $includes := eager gather for @dep-specs -> $spec {
+                CANDIDATE: for @candidates -> $fcandi {
                     my $fdist := $fcandi.dist;
                     if $fdist.contains-spec($spec) {
                         take $fdist.IO.absolute;
                         take $_ for |$fdist.metainfo<includes>.grep(*.so);
-                        next DEPSPEC;
+                        last CANDIDATE;
                     }
                 }
             }

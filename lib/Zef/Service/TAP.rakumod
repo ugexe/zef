@@ -46,7 +46,7 @@ class Zef::Service::TAP does Tester does Messenger {
 
         method probe(--> Bool:D)
 
-    Returns C<True> if this module can successfully load the C<TAP::Harness> module.
+    Returns C<True> if this module can successfully load the C<TAP> module.
 
     =head2 method test-matcher
 
@@ -60,15 +60,15 @@ class Zef::Service::TAP does Tester does Messenger {
         method test(IO() $path, Str :@includes --> Bool:D)
 
     Test the files ending in C<.rakutest> C<.t6> or C<.t> in the C<t/> directory of the given C<$path> using the
-    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<TAP::Harness> raku module.
+    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<TAP> raku module.
 
-    Returns C<True> if there were no failed tests and no errors according to C<TAP::Harness>.
+    Returns C<True> if there were no failed tests and no errors according to C<TAP>.
 
     =end pod
 
 
-    #| Return true if the `TAP::Harness` raku module is available
-    method probe(--> Bool:D) { state $probe = (try require TAP::Harness) !~~ Nil ?? True !! False }
+    #| Return true if the `TAP` raku module is available
+    method probe(--> Bool:D) { state $probe = (try require ::('TAP')) !~~ Nil ?? True !! False }
 
     #| Return true if this Tester understands the given uri/path
     method test-matcher(Str() $uri --> Bool:D) { return $uri.IO.e }
@@ -83,7 +83,7 @@ class Zef::Service::TAP does Tester does Messenger {
             list-paths($test-path.absolute, :f, :!d, :r).sort;
         return True unless +@test-files;
 
-        # Much of the code below is to capture what TAP::Harness prints to stdout / stderr so that
+        # Much of the code below is to capture what TAP prints to stdout / stderr so that
         # we can instead emit that output as events (or just not output anything at all depending
         # on the verbosity level). There might be a better way to do all of this now; this code is old.
         my $stdout = $*OUT;

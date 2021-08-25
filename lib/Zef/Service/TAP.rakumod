@@ -111,7 +111,7 @@ class Zef::Service::TAP does Tester does Messenger {
         }
 
         my $result = try {
-            require TAP;
+            require ::('TAP');
             chdir($path);
             $*OUT = OUT_CAPTURE.new;
             $*ERR = ERR_CAPTURE.new;

@@ -964,13 +964,13 @@ package Zef::CLI {
 
     #| Update package indexes
     multi sub MAIN('update', *@names) {
-        my $client  = get-client(:config($CONFIG));
-        my %results = $client.recommendation-manager.update(@names);
-        my $rows    = %results.map: {[.key, .value]};
-        abort "A plugin name was provided that does not exist or does not support 'update'"
-            if +@names && (+@names > +$rows);
+        my $client  = get-client(:config($CONFIG), :update(@names || Bool::True));
 
-        print-table( [["Content Storage", "Distribution Count"], |$rows], wrap => True );
+        if $verbosity >= VERBOSE {
+            my $plugins := $client.recommendation-manager.plugins.grep({!+@names || .short-name ~~ any(@names)});
+            my $rows    := $plugins.map({ [.id, .available.elems] });
+            print-table( [["Content Storage", "Distribution Count"], |$rows], wrap => True );
+        }
 
         exit 0;
     }
@@ -1201,11 +1201,11 @@ package Zef::CLI {
                 @plugins.map({ try .auto-update = False });
             }
             elsif %_<update> === Bool::True {
-                @plugins.map(*.?update);
+                @plugins.race(:batch(1)).map(*.?update);
             }
             else {
                 @plugins.grep({.short-name ~~ any(%_<update>.grep(*.not))}).map({ try .auto-update = False });
-                @plugins.grep({.short-name ~~ any(%_<update>.grep(*.so))}).map(*.?update);
+                @plugins.grep({.short-name ~~ any(%_<update>.grep(*.so))}).race(:batch(1)).map(*.?update);
             }
         }
 

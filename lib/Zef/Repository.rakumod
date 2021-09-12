@@ -134,7 +134,7 @@ class Zef::Repository does PackageRepository does Pluggable {
         # XXX: Delete this eventually
         my $dispatchers := $*PERL.compiler.version < v2018.08
             ?? self!plugins
-            !! self!plugins.race(:batch(1)); # a new thread per Repository backend we will search with below
+            !! self!plugins.hyper(:batch(1)); # a new thread per Repository backend we will search with below
 
         # Search each Repository / backend
         my @unsorted-candis = $dispatchers.map: -> $storage {
@@ -169,7 +169,7 @@ class Zef::Repository does PackageRepository does Pluggable {
         # XXX: Delete this eventually
         my $dispatcher := $*PERL.compiler.version < v2018.08
             ?? self!plugins
-            !! self!plugins.race(:batch(1)); # a new thread per Repository backend we will search with below
+            !! self!plugins.hyper(:batch(1)); # a new thread per Repository backend we will search with below
 
         my @unsorted-candis = $dispatcher.map: -> $storage {
             $storage.search(@identities, |%fields, :$max-results, :$strict).Slip
@@ -193,7 +193,7 @@ class Zef::Repository does PackageRepository does Pluggable {
             $plugin.can('available');
         }
 
-        my @available = @can-available.race(:batch(1)).map({ $_.available.Slip });
+        my @available = @can-available.hyper(:batch(1)).map({ $_.available.Slip });
 
         my Candidate @results = @available;
         return @results;
@@ -206,7 +206,7 @@ class Zef::Repository does PackageRepository does Pluggable {
             $plugin.can('update');
         }
 
-        my %updates = @can-update.race(:batch(1)).map({ $_.update; $_.id => $_.available.elems }).hash;
+        my %updates = @can-update.hyper(:batch(1)).map({ $_.update; $_.id => $_.available.elems }).hash;
 
         return %updates;
     }

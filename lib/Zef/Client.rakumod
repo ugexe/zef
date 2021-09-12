@@ -582,7 +582,7 @@ class Zef::Client {
             my $tmp        = $candi.uri.parent;
             my $stage-at   = $candi.uri;
             my $relpath    = $stage-at.relative($tmp);
-            my $extract-to = $!cache.IO.child($relpath);
+            my $extract-to = %!config<TempDir>.IO.child($relpath);
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
 

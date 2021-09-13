@@ -160,8 +160,10 @@ class Zef::Repository::LocalCache does PackageRepository {
     #| provides it, allowing each Repository to do things like keep a simple list of
     #| identities installed, keep a cache of anything installed (how its used here), etc
     method store(*@dists --> Bool) {
-        for @dists.unique(:as(*.identity)).map(*.IO.parent.IO).unique -> $from {
-            try copy-paths( $from, $.cache.IO.child($from.basename) )
+        for @dists.grep({ not self.search($_.identity).elems }) -> $dist {
+            my $from = $dist.IO;
+            my $to   = $.cache.IO.child($from.basename).child($dist.id);
+            try copy-paths( $from, $to )
         }
         self!update;
     }

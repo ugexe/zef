@@ -109,13 +109,6 @@ class Zef::Repository does PackageRepository does Pluggable {
 
     Updates each ecosystem backend (generally downloading a p6c.json or cpan.json file, or updating the 'cached' index).
 
-    Generally you won't care about the return result of this method, and indeed in the future maybe it should be removed. Usually we just want the
-    effects to happen (updating all ecosystem backends), but C<Zef::CLI> currently relies on the return result to show how many distributions are
-    in each ecosystem after updating.
-
-    Returns a C<Hash> where the key is the ecosystem 'name' (as defined in its entry in C<resources/config.json>) and its values are the results
-    of calling C<.available> on that ecosystem (i.e. an C<Array> of C<Candidate>).
-
     =end pod
 
 
@@ -200,15 +193,13 @@ class Zef::Repository does PackageRepository does Pluggable {
     }
 
     #| Update each Repository / backend
-    method update(*@plugins --> Hash) {
+    method update(*@plugins --> Nil) {
         my @can-update = self!plugins(@plugins).grep: -> $plugin {
             note "Plugin '{$plugin.short-name}' does not support `.update` -- Skipping" unless $plugin.can('update'); # UNDO doesn't work here yet
             $plugin.can('update');
         }
 
-        my %updates = @can-update.hyper(:batch(1)).map({ $_.update; $_.id => $_.available.elems }).hash;
-
-        return %updates;
+        @can-update.race(:batch(1)).map({ $_.update });
     }
 
     #| Like self.plugins this returns a list of plugins that Pluggable + @.backends provides, but also allows

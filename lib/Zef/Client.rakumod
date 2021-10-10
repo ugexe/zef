@@ -325,10 +325,9 @@ class Zef::Client {
         :$!installer              = Zef::Install.new(:backends(|%!config<Install>)),
         :$!tester                 = Zef::Test.new(:backends(|%!config<Test>)),
         :$!reporter               = Zef::Report.new(:backends(|%!config<Report>)),
-        :$!recommendation-manager = Zef::Repository.new(:backends(%!config<Repository>.map({ $_<options><cache> //= $!cache; $_<options><fetcher> = $!fetcher; $_ }).Slip)),
+        :$!recommendation-manager = Zef::Repository.new(:backends(%!config<Repository>.tree({$_}, *.map({ $_<options><cache> //= $!cache; $_<options><fetcher> = $!fetcher; $_ })).Array)),
     ) {
         mkdir $!cache unless $!cache.IO.e;
-
         # Ignore CORE modules to speed up searches and to avoid dual-life issues until CORE is more strictly versioned
         @!ignore = CompUnit::RepositoryRegistry
                     .repository-for-name('core')
@@ -488,6 +487,7 @@ class Zef::Client {
             }
         }
 
+# check $prereqs to see if we have any unneeded depends
         my Candidate @results = $prereqs.unique(:as(*.dist.identity));
         return @results;
     }

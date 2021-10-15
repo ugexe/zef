@@ -105,7 +105,7 @@ module Zef::Utils::SystemQuery {
                     my $query-source = do given $/[0] {
                         when 'distro' { $*DISTRO }
                         when 'kernel' { $*KERNEL }
-                        when 'perl'   { $*PERL   }
+                        when 'perl'   { $*RAKU   }
                         when 'raku'   { $*RAKU   }
                         when 'vm'     { $*VM     }
                     }

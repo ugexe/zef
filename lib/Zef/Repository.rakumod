@@ -161,9 +161,7 @@ class Zef::Repository does PackageRepository does Pluggable {
             my $version   = @presorted.tail.dist.ver;
 
             my @sorted = @presorted.grep({ .dist.ver eq $version }).grep({ .dist.api eq $api });
-
-            # Prefer candidates from Zef::Repository::Local to avoid re-downloading cached items
-            @sorted.sort({ ($^a.from // '') eq 'Zef::Repository::LocalCache' }).tail;
+            @sorted.tail;
         }
 
         # dedupe things the earlier `.as` categorization won't group right, like Foo:ver<1.0+> and Foo:ver<1.1+>

@@ -83,15 +83,15 @@ class Zef::Service::FileReporter does Messenger does Reporter {
                 :bits($*KERNEL.bits),
             }),
             :perl({
-                :name($*PERL.name),
-                :version($*PERL.version.Str),
-                :auth($*PERL.auth),
+                :name($*RAKU.name),
+                :version($*RAKU.version.Str),
+                :auth($*RAKU.auth),
                 :compiler({
-                    :name($*PERL.compiler.name),
-                    :version($*PERL.compiler.version.Str),
-                    :auth($*PERL.compiler.auth),
-                    :release($*PERL.compiler.release),
-                    :codename($*PERL.compiler.codename),
+                    :name($*RAKU.compiler.name),
+                    :version($*RAKU.compiler.version.Str),
+                    :auth($*RAKU.compiler.auth),
+                    :release($*RAKU.compiler.release),
+                    :codename($*RAKU.compiler.codename),
                 }),
             }),
             :vm({

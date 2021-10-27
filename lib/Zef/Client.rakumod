@@ -507,11 +507,7 @@ class Zef::Client {
         return @local-candis;
     }
     method !fetch(*@candidates ($, *@) --> Array[Candidate]) {
-        my $dispatcher := $*PERL.compiler.version < v2018.08
-            ?? @candidates
-            !! @candidates.hyper(:batch(1), :degree($!fetch-degree || 5));
-
-        my Candidate @fetched = $dispatcher.map: -> $candi {
+        my Candidate @fetched = @candidates.hyper(:batch(1), :degree($!fetch-degree || 5)).map: -> $candi {
             self.logger.emit({
                 level   => DEBUG,
                 stage   => FETCH,
@@ -715,11 +711,7 @@ class Zef::Client {
 
     # xxx: needs some love
     method test(*@candidates ($, *@) --> Array[Candidate]) {
-        my $dispatcher := $*PERL.compiler.version < v2018.08
-            ?? @candidates
-            !! @candidates.hyper(:batch(1), :degree($!test-degree || 1));
-
-        my Candidate @tested = $dispatcher.map: -> $candi {
+        my Candidate @tested = @candidates.hyper(:batch(1), :degree($!test-degree || 1)).map: -> $candi {
             self.logger.emit({
                 level   => INFO,
                 stage   => TEST,

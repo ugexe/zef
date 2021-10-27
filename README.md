@@ -460,7 +460,7 @@ To summarize:
 
 #### Phases / Plugins Settings
 
-These consist of an array of hashes that describe how to instantiate some class that fulfills the appropriate interface from _Zef.pm_ (`Repository` `Fetcher` `Extractor` `Builder` `Tester`)
+These consist of an array of hashes that describe how to instantiate some class that fulfills the appropriate interface from _Zef.pm_ (`Repository` `Fetcher` `Extractor` `Builder` `Tester` `Reporter`)
 
 The descriptions follow this format:
 

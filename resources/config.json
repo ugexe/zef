@@ -36,12 +36,6 @@
                         "http://360.zef.pm/"
                     ]
                 }
-            },
-            {
-                "short-name" : "cached",
-                "enabled" : 1,
-                "module" : "Zef::Repository::LocalCache",
-                "options" : { }
             }
         ],
         [
@@ -72,6 +66,14 @@
                         "http://ecosystem-api.p6c.org/projects1.json"
                     ]
                 }
+            }
+        ],
+        [
+            {
+                "short-name" : "cached",
+                "enabled" : 1,
+                "module" : "Zef::Repository::LocalCache",
+                "options" : { }
             }
         ]
     ],

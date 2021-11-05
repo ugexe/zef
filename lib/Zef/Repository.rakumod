@@ -173,7 +173,7 @@ class Zef::Repository does PackageRepository does Pluggable {
 
         my @unsorted-candis = eager gather GROUP: for self!plugins -> @repo-group {
             my @group-results = @repo-group.hyper(:batch(1)).map: -> $repo {
-                $repo.search(@searchable).Slip;
+                $repo.search(@searchable, :$strict).Slip;
             }
             if @group-results.elems {
                 take $_ for @group-results;

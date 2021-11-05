@@ -988,8 +988,10 @@ class Zef::Client {
 
     #| Return distributions that depend on the given identity
     method list-rev-depends($identity, Bool :indirect($) --> Array[Candidate]) {
-        my $spec  = Zef::Distribution::DependencySpecification.new($identity);
-        my $dist  = self.list-available.first(*.dist.contains-spec($spec)).?dist || return [];
+        my $spec = Zef::Distribution::DependencySpecification.new($identity);
+        my $dist = self.list-available.first(*.dist.contains-spec($spec)).?dist
+                || self.list-installed.first(*.dist.contains-spec($spec)).?dist;
+        return Array[Candidate].new unless $dist;
 
         my $rev-deps := gather for self.list-available -> $candi {
             my $specs := self.list-dependencies($candi);
@@ -1000,7 +1002,7 @@ class Zef::Client {
         return @results;
     }
 
-    #| Return all distributions from all repositories
+    #| Return all distributions from all configured repositories
     method list-available(*@recommendation-manager-names --> Array[Candidate]) {
         my Candidate @available = $!recommendation-manager.available(@recommendation-manager-names);
         return @available;

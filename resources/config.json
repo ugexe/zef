@@ -33,7 +33,7 @@
                     "auto-update": 1,
                     "uses-path": true,
                     "mirrors": [
-                        "http://360.zef.pm/"
+                        "https://360.zef.pm/"
                     ]
                 }
             }

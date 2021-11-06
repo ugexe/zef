@@ -1009,16 +1009,15 @@ class Zef::Client {
     }
 
     #| Return all distributions in known CompUnit::Repository::Installation repositories
-    method list-installed(*@curis --> Array[Candidate]) {
-        my @curs       = +@curis ?? @curis !! $*REPO.repo-chain.grep(*.?prefix.?e);
-        my @repo-dirs  = @curs.map({.?prefix // .path-spec.?path}).map(*.IO); #.path-spec.?path is for CUR::Unknown
-        my @dist-dirs  = @repo-dirs.map(*.child('dist')).grep(*.e);
-        my @dist-files = @dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
-
-        my Candidate @dists = gather for @dist-files -> $file {
-            if try { Zef::Distribution.new( |%(Zef::from-json($file.IO.slurp)) ) } -> $dist {
-                my $cur = @curs.first: {.prefix eq $file.parent.parent}
-                take Candidate.new( :$dist, :from($cur), :uri($file) );
+    method list-installed(*@repos --> Array[Candidate]) {
+        my @curs  = +@repos ?? @repos !! $*REPO.repo-chain;
+        my @curis = @curs.grep(CompUnit::Repository::Installation);
+        my @curi-dists = @curis.map(-> $curi { Hash.new({ :$curi, :dists($curi.installed) }) }).grep({ $_<dists>.defined });
+        my Candidate @dists = gather for @curi-dists -> % [:$curi, :@dists] {
+            for @dists -> $curi-dist {
+                if try { Zef::Distribution.new( |%($curi-dist.meta) ) } -> $dist {
+                    take Candidate.new( :$dist, :from($curi), :uri($curi.path-spec) );
+                }
             }
         }
         return @dists;

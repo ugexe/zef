@@ -821,7 +821,7 @@ class Zef::Client {
                     }
                 }
 
-                take $candi if $!installer.install($candi, :$cur, :force($!force-install), :timeout($!install-timeout));
+                take $candi if $!installer.install($candi, :$cur, :force($!force-install), :$!logger, :timeout($!install-timeout));
             }
         }
 

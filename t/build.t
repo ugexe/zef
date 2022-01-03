@@ -12,13 +12,13 @@ subtest 'Zef::Build.build' => {
         my class Mock::Builder::One does Builder {
             method build-matcher(|--> False) { }
 
-            method build($candi) { die 'should not get called' }
+            method build($) { die 'should not get called' }
         }
 
         my class Mock::Builder::Two does Builder {
             method build-matcher(|--> True) { }
 
-            method build($candi --> True) { }
+            method build($ --> True) { }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;
@@ -32,13 +32,13 @@ subtest 'Zef::Build.build' => {
         my class Mock::Builder::One does Builder {
             method build-matcher(|--> False) { }
 
-            method build($candi) { die 'should not get called' }
+            method build($) { die 'should not get called' }
         }
 
         my class Mock::Builder::Two does Builder {
             method build-matcher(|--> True) { }
 
-            method build($candi --> True) { }
+            method build($ --> True) { }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;
@@ -52,13 +52,13 @@ subtest 'Zef::Build.build' => {
         my class Mock::Builder::One does Builder {
             method build-matcher(|--> True) { }
 
-            method build($candi --> Nil) { }
+            method build($ --> Nil) { }
         }
 
         my class Mock::Builder::Two does Builder {
             method build-matcher(|--> True) { }
 
-            method build($candi --> True) { }
+            method build($ --> True) { }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;
@@ -74,13 +74,13 @@ subtest 'Zef::Build.build' => {
         my class Mock::Builder::One does Builder {
             method build-matcher(|--> True) { }
 
-            method build($candi) { sleep(timeout * 5); timeout; }
+            method build($) { sleep(timeout * 5); timeout; }
         }
 
         my class Mock::Builder::Two does Builder {
             method build-matcher(|--> True) { }
 
-            method build($candi --> True) { }
+            method build($ --> True) { }
         }
 
         my $save-to = $*TMPDIR.child(100000.rand).mkdir;

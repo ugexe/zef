@@ -8,7 +8,7 @@ my $save-to = $*TMPDIR.child(time);
 my $dir-id  = 0;
 
 # :d :f :r
-subtest {
+subtest "list-paths and delete-paths :d :f :r (rm -rf)" => {
     temp $save-to = $save-to.child(++$dir-id);
     my @delete-us;
 
@@ -35,16 +35,18 @@ subtest {
     my @paths   = list-paths($save-to, :f, :d, :r);
     my @deleted = delete-paths($save-to, :f, :d, :r);
 
+    is +@deleted, +@paths + 1;
+
     my $to-be-deleted = any($save-to, $sub-folder, $save-to-file, $sub-folder-file);
     for @delete-us -> $path-to-delete {
         is $path-to-delete, any(|@paths,$save-to), 'file was found in list-paths';
-        is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete.path}";
+        is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete}";
     }
-}, "list-paths and delete-paths :d :f :r (rm -rf)";
+}
 
 
 # :d :f
-subtest {
+subtest "list-paths and delete-paths :d :f (no recursion)" => {
     temp $save-to = $save-to.child(++$dir-id);
 
     my @delete-us;
@@ -70,6 +72,8 @@ subtest {
     my @paths   = list-paths($save-to, :d, :f);
     my @deleted = delete-paths($save-to, :d, :f);
 
+    is +@deleted, +@paths + 1;
+
     my $to-be-deleted = any($save-to-file);
     my $not-deleted   = any($save-to, $sub-folder, $sub-folder-file);
 
@@ -78,11 +82,11 @@ subtest {
         is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete.path}";
         isnt $path-to-delete, $not-deleted, 'Did not delete sub-file or delete non-empty directory';
     }
-}, "list-paths and delete-paths :d :f (no recursion)";
+}
 
 
 # :d :r
-subtest {
+subtest "list-paths and delete-paths :d :r" => {
     temp $save-to = $save-to.child(++$dir-id);
 
     my @delete-us;
@@ -111,6 +115,8 @@ subtest {
     my @paths   = list-paths($save-to, :d, :r);
     my @deleted = delete-paths($save-to, :d, :r);
 
+    is +@deleted, +@paths + 1;
+
     my $to-be-deleted = any($sub-folder-empty);
     my $not-deleted   = any($save-to, $save-to-file, $sub-folder, $sub-folder-file);
     for @delete-us -> $path-to-delete {
@@ -118,11 +124,11 @@ subtest {
         is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete.path}";
         isnt $path-to-delete, $not-deleted, 'Did not delete sub-file or delete non-empty directory';
     }
-}, "list-paths and delete-paths :d :r";
+}
 
 
 # :f :r
-subtest {
+subtest "list-paths and delete-paths :f :r" => {
     temp $save-to = $save-to.child(++$dir-id);
 
     my @delete-us;
@@ -152,6 +158,8 @@ subtest {
     my @paths   = list-paths($save-to, :f, :r);
     my @deleted = delete-paths($save-to, :f, :r);
 
+    is +@deleted, +@paths + 3;
+
     my $to-be-deleted = any($save-to-file, $sub-folder-file);
     my $not-deleted   = any($save-to, $sub-folder, $sub-folder-empty);
     for @delete-us -> $path-to-delete {
@@ -159,7 +167,9 @@ subtest {
         is $path-to-delete, $to-be-deleted, "Deleted: {$path-to-delete.path}";
         isnt $path-to-delete, $not-deleted, 'Did not delete sub-file or delete non-empty directory';
     }
-}, "list-paths and delete-paths :f :r";
-
+}
 
 try rmdir($save-to);
+
+
+done-testing;

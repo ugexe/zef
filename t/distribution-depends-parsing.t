@@ -1,8 +1,9 @@
 use v6;
 use Test;
-plan 36;
+plan 35;
 
 use Zef;
+use Zef::Config;
 use Zef::Client;
 use Zef::Distribution;
 
@@ -148,7 +149,7 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
     }
     META6
     my class Zef::Client::Fake is Zef::Client {
-        method list-installed(*@curis) { [] }
+        method list-installed(*@) { [] }
     }
     my $client = Zef::Client::Fake.CREATE;
     $client.depends = True;
@@ -157,28 +158,30 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
     )[1].specs[0].name, "Bar";
 }
 
-use Zef::Config;
+
 my $guess-path = $?FILE.IO.parent.parent.child('resources/config.json');
 my $config-file = $guess-path.e ?? ~$guess-path !! Zef::Config::guess-path();
 my $config = Zef::Config::parse-file($config-file);
 my $recommendation-manager = (
     Zef::Repository but role :: {
-        method plugins(*@names) {
+        method plugins(*@) {
             [
-                class :: does Repository {
-                    method search(:$max-results = 5, Bool :$strict, *@identities, *%fields --> Seq) {
-                        gather for @identities -> $as {
-                            take Candidate.new(:dist(Zef::Distribution.new(:name($as))), :$as, :from<Test>)
-                                if $as ∈ <Available AvailableToo>;
-                            take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends['Unsatisfiable'])), :$as, :from<Test>)
-                                if $as eq 'HasUnsatisfiableDep';
-                            take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends['HasUnsatisfiableDep'])), :$as, :from<Test>)
-                                if $as eq 'HasTransitivelyUnsatisfiableDep';
-                            take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends[{:any["AvailableToo", "Available"]},])), :$as, :from<Test>)
-                                if $as eq 'DependsOnAvailableTooOrAvailable';
+                [
+                    class :: does PackageRepository {
+                        method search(*@identities --> Seq) {
+                            gather for @identities -> $as {
+                                take Candidate.new(:dist(Zef::Distribution.new(:name($as))), :$as, :from<Test>)
+                                    if $as ∈ <Available AvailableToo>;
+                                take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends['Unsatisfiable'])), :$as, :from<Test>)
+                                    if $as eq 'HasUnsatisfiableDep';
+                                take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends['HasUnsatisfiableDep'])), :$as, :from<Test>)
+                                    if $as eq 'HasTransitivelyUnsatisfiableDep';
+                                take Candidate.new(:dist(Zef::Distribution.new(:name($as), :depends[{:any["AvailableToo", "Available"]},])), :$as, :from<Test>)
+                                    if $as eq 'DependsOnAvailableTooOrAvailable';
+                            }
                         }
-                    }
-                },
+                    },
+                ],
             ]
         }
     }
@@ -217,14 +220,6 @@ for (
         is $prereq-candidates.elems, 2;
         is $prereq-candidates.map(*.dist.name).sort, <Available AvailableToo>;
     },
-    ["Available", {:any["Unavailable", "Unavailable2"]}] => -> $exception {
-        try sink $exception;
-        isa-ok $!, X::Zef::UnsatisfiableDependency;
-    },
-    ["Available", {:any[{:name<Unavailable>, :from<native>}, {:name<Unavailable2>, :from<native>}]}] => -> $exception {
-        try sink $exception;
-        isa-ok $!, X::Zef::UnsatisfiableDependency;
-    },
 ) -> $test {
     with Zef::Distribution.new(
             :perl(6),
@@ -237,11 +232,11 @@ for (
             :provides{ },
         ) -> $dist {
         my class Zef::Client::Fake is Zef::Client {
-            method list-installed(*@curis) {
+            method list-installed(*@) {
                 [Candidate.new(:dist(Zef::Distribution.new(:name<Installed>)))]
             }
             method logger() {
-                class :: { method emit($m) { } }
+                class :: { method emit($) { } }
             }
         }
 
@@ -252,5 +247,39 @@ for (
             Candidate.new(:$dist),
         );
         $test.value.($prereq-candidates);
+    }
+}
+
+subtest 'X::Zef::UnsatisfiableDependency' => {
+    for (
+        ["Unavailable"],
+        ["Available", "Unavailable"],
+        ["Available", {:any["Unavailable", "Unavailable2"]}],
+        ["Available", {:any[{:name<Unavailable>, :from<native>}, {:name<Unavailable2>, :from<native>}]}],
+    ) -> $test {
+        with Zef::Distribution.new(
+                :perl(6),
+                :name<Test::Complex::Depends>,
+                :version<0>,
+                :auth('github:stranger'),
+                :description('Test hash-based depends and native depends parsing'),
+                :license<none>,
+                :depends($test),
+                :provides{ },
+            ) -> $dist {
+            my class Zef::Client::Fake is Zef::Client {
+                method list-installed(*@) {
+                    [Candidate.new(:dist(Zef::Distribution.new(:name<Installed>)))]
+                }
+                method logger() {
+                    class :: { method emit($) { } }
+                }
+            }
+
+            my $client = Zef::Client::Fake.new(:$config, :$recommendation-manager);
+
+            $client.depends = True;
+            throws-like { $client.find-prereq-candidates(Candidate.new(:$dist)) }, X::Zef::UnsatisfiableDependency;
+        }
     }
 }

@@ -24,15 +24,15 @@ subtest 'Core' => {
     use-ok("Zef::Distribution::Local");
 
     use-ok("Zef::Utils::FileSystem");
-    use-ok("Zef::Utils::SystemInfo");
+    use-ok("Zef::Utils::SystemQuery");
     use-ok("Zef::Utils::URI");
 }
 
 subtest 'Plugins' => {
     use-ok("Zef::Service::FetchPath");
     use-ok("Zef::Service::TAP");
-    use-ok("Zef::Service::InstallPM6");
-    use-ok("Zef::Service::P6CReporter");
+    use-ok("Zef::Service::InstallRakuDistribution");
+    use-ok("Zef::Service::FileReporter");
     use-ok("Zef::Service::Shell::DistributionBuilder");
     use-ok("Zef::Service::Shell::LegacyBuild");
     use-ok("Zef::Service::Shell::Test");

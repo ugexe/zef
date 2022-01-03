@@ -10,59 +10,72 @@
     },
     "Install" : [
         { 
-            "short-name" : "installpm6",
+            "short-name" : "install-raku-dist",
             "enabled" : 1,
-            "module" : "Zef::Service::InstallPM6"
+            "module" : "Zef::Service::InstallRakuDistribution"
         }
     ],
     "Report" : [
         { 
-            "short-name" : "p6ctesters",
+            "short-name" : "file-reporter",
             "enabled" : 0,
-            "module" : "Zef::Service::P6CReporter"
-        },
-        {
-            "short-name" : "cpantesters",
-            "enabled" : 1,
-            "module" : "Zef::CPANReporter",
-            "comment" : "Third party plugin - zef install Zef::Reporter::CPAN"
+            "module" : "Zef::Service::FileReporter"
         }
     ],
     "Repository" : [
-        {
-            "short-name" : "cached",
-            "enabled" : 1,
-            "module" : "Zef::Repository::LocalCache",
-            "options" : { }
-        },
-        {
-            "short-name" : "cpan",
-            "enabled" : 1,
-            "module" : "Zef::Repository::Ecosystems",
-            "options" : {
-                "name" : "cpan",
-                "auto-update" : 1,
-                "mirrors" : [
-                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan1.json",
-                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json",
-                    "git://github.com/ugexe/Perl6-ecosystems.git"
-                ]
+        [
+            {
+                "short-name": "fez",
+                "enabled": 1,
+                "module": "Zef::Repository::Ecosystems",
+                "options": {
+                    "name": "fez",
+                    "auto-update": 1,
+                    "uses-path": true,
+                    "mirrors": [
+                        "https://360.zef.pm/"
+                    ]
+                }
             }
-        },
-        {
-            "short-name" : "p6c",
-            "enabled" : 1,
-            "module" : "Zef::Repository::Ecosystems",
-            "options" : {
-                "name" : "p6c",
-                "auto-update" : 1,
-                "mirrors" : [
-                    "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c1.json",
-                    "git://github.com/ugexe/Perl6-ecosystems.git",
-                    "http://ecosystem-api.p6c.org/projects1.json"
-                ]
+        ],
+        [
+            {
+                "short-name" : "cpan",
+                "enabled" : 1,
+                "module" : "Zef::Repository::Ecosystems",
+                "options" : {
+                    "name" : "cpan",
+                    "auto-update" : 1,
+                    "mirrors" : [
+                        "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan1.json",
+                        "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json",
+                        "git://github.com/ugexe/Perl6-ecosystems.git"
+                    ]
+                }
+            },
+            {
+                "short-name" : "p6c",
+                "enabled" : 1,
+                "module" : "Zef::Repository::Ecosystems",
+                "options" : {
+                    "name" : "p6c",
+                    "auto-update" : 1,
+                    "mirrors" : [
+                        "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c1.json",
+                        "git://github.com/ugexe/Perl6-ecosystems.git",
+                        "http://ecosystem-api.p6c.org/projects1.json"
+                    ]
+                }
             }
-        }
+        ],
+        [
+            {
+                "short-name" : "cached",
+                "enabled" : 1,
+                "module" : "Zef::Repository::LocalCache",
+                "options" : { }
+            }
+        ]
     ],
     "Fetch" : [
         {
@@ -131,14 +144,14 @@
         {
             "short-name" : "tap-harness",
             "module" : "Zef::Service::TAP",
-            "comment" : "Perl6 TAP::Harness adapter"
+            "comment" : "Raku TAP::Harness adapter"
         },
         {
             "short-name" : "prove",
             "module" : "Zef::Service::Shell::prove"
         },
         {
-            "short-name" : "perl6-test",
+            "short-name" : "raku-test",
             "module" : "Zef::Service::Shell::Test"
         }
     ]

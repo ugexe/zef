@@ -1,6 +1,6 @@
 use v6;
 use Test;
-plan 4;
+plan 5;
 
 use Zef;
 use Zef::Repository;
@@ -109,5 +109,27 @@ subtest  'Ecosystems => fez' => {
     }
 }
 
+
+subtest 'Ecosystems => rea' => {
+    my $wanted   = 'zef';
+    my @mirrors  = 'https://raw.githubusercontent.com/Raku/REA/main/META.json';
+    my @backends = [
+        { module => "Zef::Service::Shell::git" },
+        { module => "Zef::Service::Shell::wget" },
+        { module => "Zef::Service::Shell::curl" },
+        { module => "Zef::Service::Shell::PowerShell::download" },
+    ];
+
+    my $fetcher = Zef::Fetch.new(:@backends);
+    my $cache   = $*HOME.child('.zef/store') andthen { mkdir $_ unless $_.IO.e };
+    my $p6c     = Zef::Repository::Ecosystems.new(name => 'rea', :$fetcher, :$cache, :auto-update, :@mirrors);
+    ok $p6c.available > 0;
+
+    subtest 'search' => {
+        my @candidates = $p6c.search($wanted, :strict);
+        ok +@candidates > 0;
+        is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
+    }
+}
 
 done-testing;

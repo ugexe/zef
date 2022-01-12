@@ -84,7 +84,7 @@ class Zef::Utils::URI {
         token segment       { <.pchar>* }
         token segment-nz    { <.pchar>+ }
         token segment-nz-nc { [<.unreserved> || <.pct-encoded> || <.sub-delims>]+    }
-        token pchar { <.unreserved> || <.pct-encoded> || <.sub-delims> || ':' || '@' || '<' || '>' }
+        token pchar { <.unreserved> || <.pct-encoded> || <.sub-delims> || ':' || '@' }
         token query       { [<.pchar> || '/' || '?']*           }
         token fragment    { [<.pchar> || '/' || '?']*           }
         token pct-encoded { '%' <.xdigit> <.xdigit>             }

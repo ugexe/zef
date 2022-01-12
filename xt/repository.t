@@ -122,11 +122,11 @@ subtest 'Ecosystems => rea' => {
 
     my $fetcher = Zef::Fetch.new(:@backends);
     my $cache   = $*HOME.child('.zef/store') andthen { mkdir $_ unless $_.IO.e };
-    my $p6c     = Zef::Repository::Ecosystems.new(name => 'rea', :$fetcher, :$cache, :auto-update, :@mirrors);
-    ok $p6c.available > 0;
+    my $rea     = Zef::Repository::Ecosystems.new(name => 'rea', :$fetcher, :$cache, :auto-update, :@mirrors);
+    ok $rea.available > 0;
 
     subtest 'search' => {
-        my @candidates = $p6c.search($wanted, :strict);
+        my @candidates = $rea.search($wanted, :strict);
         ok +@candidates > 0;
         is @candidates.grep({ .dist.name ne $wanted }).elems, 0;
     }

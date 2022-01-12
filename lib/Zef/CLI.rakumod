@@ -302,6 +302,7 @@ package Zef::CLI {
 
     my $verbosity = preprocess-args-verbosity-mutate(@*ARGS);
     %*ENV<ZEF_BUILDPM_DEBUG> = $verbosity >= DEBUG;
+    %*ENV<HARNESS_VERBOSE> = $verbosity >= DEBUG;
     my $CONFIG    = preprocess-args-config-mutate(@*ARGS);
     my $VERSION   = try EVAL q[$?DISTRIBUTION.meta<ver version>.first(*.so)];
 

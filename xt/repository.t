@@ -114,7 +114,6 @@ subtest 'Ecosystems => rea' => {
     my $wanted   = 'zef';
     my @mirrors  = 'https://raw.githubusercontent.com/Raku/REA/main/META.json';
     my @backends = [
-        { module => "Zef::Service::Shell::git" },
         { module => "Zef::Service::Shell::wget" },
         { module => "Zef::Service::Shell::curl" },
         { module => "Zef::Service::Shell::PowerShell::download" },

@@ -70,6 +70,20 @@
         ],
         [
             {
+                "short-name": "rea",
+                "enabled": 1,
+                "module": "Zef::Repository::Ecosystems",
+                "options": {
+                    "name": "Raku Ecosystem Archive",
+                    "auto-update": 1,
+                    "mirrors": [
+                        "https://raw.githubusercontent.com/Raku/REA/main/META.json"
+                    ]
+                }
+            }
+        ],
+        [
+            {
                 "short-name" : "cached",
                 "enabled" : 1,
                 "module" : "Zef::Repository::LocalCache",

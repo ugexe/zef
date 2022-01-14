@@ -68,7 +68,17 @@ class Zef::Service::TAP does Tester does Messenger {
 
 
     #| Return true if the `TAP` raku module is available
-    method probe(--> Bool:D) { state $probe = (try require ::('TAP')) !~~ Nil ?? True !! False }
+    method probe(--> Bool:D) {
+        state $probe = self!has-correct-tap-version && (try require ::('TAP')) !~~ Nil ?? True !! False;
+    }
+
+    method !has-correct-tap-version(--> Bool:D) {
+        # 0.3.1 has fixed support for :err and added support for :output
+        return so $*REPO.resolve(CompUnit::DependencySpecification.new(
+            short-name      => 'TAP',
+            version-matcher => '0.3.1+',
+        ));
+    }
 
     #| Return true if this Tester understands the given uri/path
     method test-matcher(Str() $uri --> Bool:D) { return $uri.IO.e }
@@ -83,51 +93,15 @@ class Zef::Service::TAP does Tester does Messenger {
             list-paths($test-path.absolute, :f, :!d, :r).sort;
         return True unless +@test-files;
 
-        # Much of the code below is to capture what TAP prints to stdout / stderr so that
-        # we can instead emit that output as events (or just not output anything at all depending
-        # on the verbosity level). There might be a better way to do all of this now; this code is old.
-        my $stdout = $*OUT;
-        my $stderr = $*ERR;
-        my $out-supply = $.stdout;
-        my $err-supply = $.stderr;
-        my $cwd = $*CWD;
-
-        my class OUT_CAPTURE is IO::Handle {
-            method print(*@_) {
-                temp $*OUT = $stdout;
-                $out-supply.emit(.chomp) for @_;
-                True;
-            }
-            method flush {}
-        }
-
-        my class ERR_CAPTURE is IO::Handle {
-            method print(*@_) {
-                temp $*ERR = $stderr;
-                $err-supply.emit(.chomp) for @_;
-                True;
-            }
-            method flush {}
-        }
-
         my $result = try {
             require ::('TAP');
-            chdir($path);
-            $*OUT = OUT_CAPTURE.new;
-            $*ERR = ERR_CAPTURE.new;
             my @incdirs  = $path.absolute, |@includes;
             my @handlers = ::("TAP::Harness::SourceHandler::Raku").new(:@incdirs);
-            my $parser   = ::("TAP::Harness").new(:@handlers);
-            my $promise  = $parser.run(@test-files>>.relative($path));
+            my $parser   = ::("TAP::Harness").new(:@handlers, :output($.stdout), :err($.stderr));
+            my $promise  = $parser.run(@test-files.map(*.relative($path)));
             my $result = $promise.result;
             $result;
         }
-        chdir($cwd);
-
-        $out-supply.done;
-        $err-supply.done;
-        $*OUT = $stdout;
-        $*ERR = $stderr;
 
         my $passed = $result.failed == 0 && not $result.errors ?? True !! False;
         return $passed;

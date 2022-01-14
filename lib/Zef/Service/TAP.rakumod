@@ -95,6 +95,9 @@ class Zef::Service::TAP does Tester does Messenger {
 
         my $result = try {
             require ::('TAP');
+            my $cwd = $*CWD;
+            chdir($path);
+            LEAVE chdir($cwd);
             my @incdirs  = $path.absolute, |@includes;
             my @handlers = ::("TAP::Harness::SourceHandler::Raku").new(:@incdirs);
             my $parser   = ::("TAP::Harness").new(:@handlers, :output($.stdout), :err($.stderr));

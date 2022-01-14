@@ -56,7 +56,7 @@ variables:
         zef --debug fetch Base64
         
         # test installing from what `fetch` put in ::LocalCache
-        zef --debug --/fez --/cpan --/p6c install Base64
+        zef --debug --/fez --/cpan --/p6c --/rea install Base64
 
         zef --debug --max=10 list
         zef --debug --installed list

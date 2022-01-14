@@ -74,7 +74,7 @@
                 "enabled": 1,
                 "module": "Zef::Repository::Ecosystems",
                 "options": {
-                    "name": "Raku Ecosystem Archive",
+                    "name": "rea",
                     "auto-update": 1,
                     "mirrors": [
                         "https://raw.githubusercontent.com/Raku/REA/main/META.json"

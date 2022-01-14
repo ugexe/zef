@@ -71,7 +71,7 @@
         [
             {
                 "short-name": "rea",
-                "enabled": 1,
+                "enabled": 0,
                 "module": "Zef::Repository::Ecosystems",
                 "options": {
                     "name": "rea",

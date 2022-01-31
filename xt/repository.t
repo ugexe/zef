@@ -45,7 +45,7 @@ subtest 'Repository' => {
 
 subtest 'Ecosystems => p6c' => {
     my $wanted   = 'zef';
-    my @mirrors  = 'git://github.com/ugexe/Perl6-ecosystems.git';
+    my @mirrors  = 'https://github.com/ugexe/Perl6-ecosystems.git';
     my @backends = [
         { module => "Zef::Service::Shell::git" },
         { module => "Zef::Service::Shell::wget" },

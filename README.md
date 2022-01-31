@@ -86,7 +86,7 @@ if both passed all their tests. For example: if module A failed its tests, then 
     zef install ./Perl6-Net--HTTP
 
     # URL
-    zef -v install git://github.com/ugexe/zef.git
+    zef -v install https://github.com/ugexe/zef.git
     zef -v install https://github.com/ugexe/zef/archive/master.tar.gz
     zef -v install https://github.com/ugexe/zef.git@v0.1.22
 
@@ -222,7 +222,7 @@ View meta information of a distribution
     - Recommended By: Zef::Repository::LocalCache
     Author:  github:sergot
     Description:     Web user agent
-    Source-url:      git://github.com/sergot/http-useragent.git
+    Source-url:      https://github.com/sergot/http-useragent.git
     Provides: 11 modules
     #       HTTP::Cookie
     #       HTTP::Header

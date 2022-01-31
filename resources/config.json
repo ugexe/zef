@@ -49,7 +49,7 @@
                     "mirrors" : [
                         "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan1.json",
                         "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/cpan.json",
-                        "git://github.com/ugexe/Perl6-ecosystems.git"
+                        "https://github.com/ugexe/Perl6-ecosystems.git"
                     ]
                 }
             },
@@ -62,8 +62,8 @@
                     "auto-update" : 1,
                     "mirrors" : [
                         "https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/master/p6c1.json",
-                        "git://github.com/ugexe/Perl6-ecosystems.git",
-                        "http://ecosystem-api.p6c.org/projects1.json"
+                        "https://github.com/ugexe/Perl6-ecosystems.git",
+                        "https://ecosystem-api.p6c.org/projects1.json"
                     ]
                 }
             }

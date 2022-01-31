@@ -114,15 +114,21 @@ class Zef::Service::Shell::prove does Tester does Messenger {
         my @new-lib  = $path.absolute, |@includes;
         %ENV<RAKULIB> = (|@new-lib, |@cur-lib).join($*DISTRO.cur-sep);
 
+        my @args =
+            '--ext', '.rakutest',
+            '--ext', '.t',
+            '--ext', '.t6',
+            '-r',
+            ('--verbose' if %*ENV<HARNESS_VERBOSE>),
+        ;
         my $passed;
         react {
             my $proc = $*DISTRO.is-win
-                ?? Proc::Async.new(:win-verbatim-args, 'prove.bat', '--ext',
-                    '.rakutest', '--ext', '.t', '--ext', '.t6', '-r', '-e',
+                ?? Proc::Async.new(:win-verbatim-args, 'prove.bat', |@args, '-e',
                     '"' ~ $*EXECUTABLE.absolute ~ '"',
                     '"' ~ $test-path-relative ~ '"')
-                !! Proc::Async.new('prove', '--ext', '.rakutest', '--ext',
-                    '.t', '--ext', '.t6', '-r', '-e', $*EXECUTABLE.absolute,
+                !! Proc::Async.new('prove', |@args, '-e',
+                    $*EXECUTABLE.absolute,
                     $test-path-relative);
             whenever $proc.stdout.lines { $.stdout.emit($_) }
             whenever $proc.stderr.lines { $.stderr.emit($_) }

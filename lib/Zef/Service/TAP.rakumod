@@ -76,7 +76,7 @@ class Zef::Service::TAP does Tester does Messenger {
         # 0.3.1 has fixed support for :err and added support for :output
         return so $*REPO.resolve(CompUnit::DependencySpecification.new(
             short-name      => 'TAP',
-            version-matcher => '0.3.1+',
+            version-matcher => '0.3.5+',
         ));
     }
 
@@ -95,15 +95,16 @@ class Zef::Service::TAP does Tester does Messenger {
 
         my $result = try {
             require ::('TAP');
-            my $cwd = $*CWD;
-            chdir($path);
-            LEAVE chdir($cwd);
             my @incdirs  = $path.absolute, |@includes;
             my @handlers = ::("TAP::Harness::SourceHandler::Raku").new(:@incdirs);
-            my $parser   = ::("TAP::Harness").new(:@handlers, :output($.stdout), :err($.stderr));
-            my $promise  = $parser.run(@test-files.map(*.relative($path)));
-            my $result = $promise.result;
-            $result;
+            my $parser   = ::("TAP::Harness").new(:@handlers);
+            my $promise  = $parser.run(
+                @test-files.map(*.relative($path)),
+                :cwd($path),
+                :out($.stdout),
+                :err($.stderr),
+            );
+            $promise.result;
         }
 
         my $passed = $result.failed == 0 && not $result.errors ?? True !! False;

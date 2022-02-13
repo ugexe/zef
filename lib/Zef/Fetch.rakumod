@@ -74,7 +74,7 @@ class Zef::Fetch does Fetcher does Pluggable {
     method fetch-matcher($uri --> Bool:D) { return so self!fetch-matcher($uri) }
 
     #| Returns the backends that understand the given uri based on their fetch-matcher result
-    method !fetch-matcher($uri --> Array[Fetcher]) {
+    method !fetch-matchers($uri --> Array[Fetcher]) {
         my @matching-backends = self.plugins.grep(*.fetch-matcher($uri));
 
         my Fetcher @results = @matching-backends;
@@ -85,7 +85,7 @@ class Zef::Fetch does Fetcher does Pluggable {
     #| Will return the first successful result while attempting to fetch the given $candi.
     method fetch(Candidate $candi, IO() $save-to, Supplier :$logger, Int :$timeout --> IO::Path) {
         my $uri      = $candi.uri;
-        my @fetchers = self!fetch-matcher($uri).cache;
+        my @fetchers = self!fetch-matchers($uri).cache;
 
         unless +@fetchers {
             my @report_enabled  = self.plugins.map(*.short-name);

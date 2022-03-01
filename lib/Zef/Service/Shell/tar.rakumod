@@ -121,7 +121,7 @@ class Zef::Service::Shell::tar does Extractor {
         react {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
-            my $proc = Zef::zrun-async('tar', '-zxvf', $archive-file.basename, '-C', $extract-to.relative($cwd));
+            my $proc = Zef::zrun-async('tar', '-zxvf', self!cli-path($archive-file.basename), '-C', $extract-to.relative($cwd));
             $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
@@ -141,7 +141,7 @@ class Zef::Service::Shell::tar does Extractor {
         react {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
-            my $proc = Zef::zrun-async('tar', '-zt', '-f', $archive-file.basename);
+            my $proc = Zef::zrun-async('tar', '-zt', '-f', self!cli-path($archive-file.basename));
             $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { $output.append($_) }
             whenever $proc.stderr(:bin) { }
@@ -150,5 +150,14 @@ class Zef::Service::Shell::tar does Extractor {
 
         my @extracted-paths = $output.decode.lines;
         $passed ?? @extracted-paths.grep(*.defined) !! ();
+    }
+
+    # Workaround for https://github.com/ugexe/zef/issues/444
+    # We could alternative use --force-local but that requires figuring out which
+    # flavor of tar we're using.
+    # Expects $path to already be a relative path string (not an absolute path)
+    method !cli-path(Str $path --> Str) {
+        return $path if <./ ../ .\\ ..\\>.grep({ $path.starts-with($_) });
+        return './' ~ $path;
     }
 }

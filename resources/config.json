@@ -41,7 +41,7 @@
         [
             {
                 "short-name" : "cpan",
-                "enabled" : 1,
+                "enabled" : 0,
                 "module" : "Zef::Repository::Ecosystems",
                 "options" : {
                     "name" : "cpan",
@@ -55,7 +55,7 @@
             },
             {
                 "short-name" : "p6c",
-                "enabled" : 1,
+                "enabled" : 0,
                 "module" : "Zef::Repository::Ecosystems",
                 "options" : {
                     "name" : "p6c",
@@ -71,7 +71,7 @@
         [
             {
                 "short-name": "rea",
-                "enabled": 0,
+                "enabled": 1,
                 "module": "Zef::Repository::Ecosystems",
                 "options": {
                     "name": "rea",

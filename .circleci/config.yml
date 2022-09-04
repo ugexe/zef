@@ -20,10 +20,10 @@ variables:
         raku -I. bin/zef --version
 
         # run xtests
-        raku -I. xt/repository.t
-        raku -I. xt/install.t
+        raku -I. xt/repository.rakutest
+        raku -I. xt/install.rakutest
 
-        # test explicitly via `prove t/*` and `raku t/foo.t && raku t/bar.t`
+        # test explicitly via `prove t/*` and `raku t/foo.rakutest && raku t/bar.rakutest`
         # both should work, since all our CI envs have prove
         raku -I. bin/zef --debug --/tap-harness --/prove --raku-test  test .
         raku -I. bin/zef --debug --/tap-harness --prove  --/raku-test test .

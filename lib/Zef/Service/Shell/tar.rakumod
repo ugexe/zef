@@ -20,14 +20,14 @@ class Zef::Service::Shell::tar does Extractor does Messenger {
 
         my $tar = Zef::Service::Shell::tar.new;
 
-        # Assuming a zef-master.tar.gz file is in the cwd...
-        my $source       = $*HOME.child("zef-master.tar.gz");
+        # Assuming a zef-main.tar.gz file is in the cwd...
+        my $source       = $*HOME.child("zef-main.tar.gz");
         my $extract-to   = $*TMPDIR.child(time);
         my $extracted-to = $tar.extract($source, $extract-to);
 
         die "Something went wrong" unless $extracted-to;
         say "Zef META6 from HEAD: ";
-        say $extracted-to.child("zef-master/META6.json").slurp;
+        say $extracted-to.child("zef-main/META6.json").slurp;
 
     =end code
 

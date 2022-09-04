@@ -17,14 +17,14 @@ class Zef::Service::Shell::p5tar does Extractor does Messenger {
 
         my $p5tar = Zef::Service::Shell::p5tar.new;
 
-        # Assuming a zef-master.tar.gz file is in the cwd...
-        my $source       = $*HOME.child("zef-master.tar.gz");
+        # Assuming a zef-main.tar.gz file is in the cwd...
+        my $source       = $*HOME.child("zef-main.tar.gz");
         my $extract-to   = $*TMPDIR.child(time);
         my $extracted-to = $p5tar.extract($source, $extract-to);
 
         die "Something went wrong" unless $extracted-to;
         say "Zef META6 from HEAD: ";
-        say $extracted-to.child("zef-master/META6.json").slurp;
+        say $extracted-to.child("zef-main/META6.json").slurp;
 
     =end code
 
@@ -93,6 +93,7 @@ class Zef::Service::Shell::p5tar does Extractor does Messenger {
             my $ENV := %*ENV;
             my $script := %?RESOURCES<scripts/perl5tar.pl>.IO.absolute;
             my $proc = Zef::zrun-async('perl', $script, $archive-file.absolute);
+
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

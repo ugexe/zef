@@ -87,7 +87,7 @@ if both passed all their tests. For example: if module A failed its tests, then 
 
     # URL
     zef -v install https://github.com/ugexe/zef.git
-    zef -v install https://github.com/ugexe/zef/archive/master.tar.gz
+    zef -v install https://github.com/ugexe/zef/archive/main.tar.gz
     zef -v install https://github.com/ugexe/zef.git@v0.1.22
 
 A request may contain any number and combination of these. Paths and URLs will be resolved first so they are available
@@ -258,10 +258,10 @@ View meta information of a distribution
 List known available distributions
 
     $ zef --installed list
-    ===> Found via /home/foo/.rakubrew/moar-master/install/share/perl6/site
+    ===> Found via /home/foo/.rakubrew/moar/install/share/perl6/site
     CSV::Parser:ver<0.1.2>:auth<github:tony-o>
     Zef:auth<github:ugexe>
-    ===> Found via /home/foo/.rakubrew/moar-master/install/share/perl6
+    ===> Found via /home/foo/.rakubrew/moar/install/share/perl6
     CORE:ver<6.c>:auth<perl>
 
 Note that not every Repository may provide such a list, and such lists may only
@@ -480,7 +480,7 @@ and are instantiated via
 - **module** - The name of the class to instantiate. While it doesn't technically have to be a module it _does_ need to be a known namespace to `require`.
 - **options** - These are passed to the objects `new` method and may not be consistent between modules as they are free to implement their own requirements.
 
-See the configuration file in [resources/config.json](https://github.com/ugexe/zef/blob/master/resources/config.json) for a
+See the configuration file in [resources/config.json](https://github.com/ugexe/zef/blob/main/resources/config.json) for a
 little more information on how plugins are invoked.
 
 You can see debug output related to chosing and loading plugins by setting the env variable **ZEF\_PLUGIN\_DEBUG=1**

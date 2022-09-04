@@ -1,8 +1,7 @@
-use v6;
-use Zef::Utils::FileSystem;
-
-use Test;
+use Test:ver<6.c+>;
 plan 4;
+
+use Zef::Utils::FileSystem;
 
 my $save-to = $*TMPDIR.child(time);
 my $dir-id  = 0;

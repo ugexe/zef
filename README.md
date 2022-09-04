@@ -1,6 +1,6 @@
 ## Zef
 
-Raku / Perl6 Module Management
+Raku Module Management
 
 # Installation
 

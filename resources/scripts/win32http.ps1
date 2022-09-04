@@ -1,7 +1,7 @@
 Param (
     [Parameter(Mandatory=$True)] [System.Uri]$uri,
     [Parameter(Mandatory=$True)] [string]$FilePath,
-    $UserAgent = "rakudo perl6/zef powershell downloader"
+    $UserAgent = "raku/zef-ps"
 )
 
 [Net.ServicePointManager]::SecurityProtocol = "tls12, tls11, tls";

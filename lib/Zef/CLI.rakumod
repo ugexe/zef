@@ -1017,7 +1017,7 @@ package Zef::CLI {
 
     multi sub MAIN(Bool :h(:help($))) {
         note qq:to/END_USAGE/
-            Zef - Raku / Perl6 Module Management
+            Zef - Raku Module Management
 
             USAGE
 

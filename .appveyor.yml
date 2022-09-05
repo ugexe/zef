@@ -3,10 +3,20 @@ os: Visual Studio 2017
 platform: x64
 
 install:
+    # Enable x64 Native Tools
     - '"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"'
+
+    # Workaround for path length errors during precompilation of longer repo names
+    - SET TMPDIR=C:\tmp
+    - cd C:\
+    - md tmp
+
+    # Install Perl
     - appveyor-retry choco install strawberryperl --allow-empty-checksums
     - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
     - appveyor-retry git clone https://github.com/rakudo/rakudo.git %APPVEYOR_BUILD_FOLDER%\..\rakudo
+
+    # Install Rakudo
     - cd %APPVEYOR_BUILD_FOLDER%\..\rakudo
     - perl Configure.pl --gen-moar --gen-nqp --backends=moar
     - nmake install

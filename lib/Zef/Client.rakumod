@@ -481,13 +481,12 @@ class Zef::Client {
                 @skip.append: @prereq-candidates.map(*.dist);
                 @specs = self.list-dependencies(@prereq-candidates);
                 for @prereq-candidates -> $prereq {
-                    $prereq.is-dependency = True;
                     take $prereq;
                 }
             }
         }
 
-# check $prereqs to see if we have any unneeded depends
+        # check $prereqs to see if we have any unneeded depends
         my Candidate @results = $prereqs.unique(:as(*.dist.identity));
         return @results;
     }
@@ -575,8 +574,8 @@ class Zef::Client {
                 message => "Extracting: {$candi.as}",
             });
 
-            my $tmp        = $candi.uri.parent;
-            my $stage-at   = $candi.uri;
+            my $tmp        = $candi.uri.IO.parent;
+            my $stage-at   = $candi.uri.IO;
             my $relpath    = $stage-at.relative($tmp);
             my $extract-to = %!config<TempDir>.IO.child($relpath);
             die "failed to create directory: {$tmp.absolute}"
@@ -771,7 +770,7 @@ class Zef::Client {
         my Candidate @results = eager gather for self.list-installed(@from) -> $candi {
             my $dist = $candi.dist;
             if @specs.first({ $dist.spec-matcher($_) }) {
-                my $cur = CompUnit::RepositoryRegistry.repository-for-spec("inst#{$candi.from}", :next-repo($*REPO));
+                my $cur = CompUnit::RepositoryRegistry.repository-for-spec($candi.from, :next-repo($*REPO));
                 $cur.uninstall($dist);
                 take $candi;
             }
@@ -1016,7 +1015,7 @@ class Zef::Client {
         my Candidate @dists = gather for @curi-dists -> % [:$curi, :@dists] {
             for @dists -> $curi-dist {
                 if try { Zef::Distribution.new( |%($curi-dist.meta) ) } -> $dist {
-                    take Candidate.new( :$dist, :from($curi), :uri($curi.path-spec) );
+                    take Candidate.new( :$dist, :from($curi.path-spec), :uri($curi.path-spec) );
                 }
             }
         }

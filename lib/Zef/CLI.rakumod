@@ -725,9 +725,10 @@ package Zef::CLI {
                         %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
                         my $lib = %meta<provides>.hash.antipairs.hash.{$identity};
                         my $lib-sha1 = nqp::sha1($lib ~ CompUnit::Repository::Distribution.new($candi.dist).id);
+                        my $curi = CompUnit::RepositoryRegistry.repository-for-spec($candi.from);
 
                         say "===> From Distribution: {~$candi.dist}";
-                        say "{$lib} => {$candi.from.prefix.child('sources').child($lib-sha1)}";
+                        say "{$lib} => {$curi.prefix.child('sources').child($lib-sha1)}";
                     }
                 }
             }
@@ -743,8 +744,10 @@ package Zef::CLI {
                     if $candi {
                         my $libs = $candi.dist.meta<files>;
                         my $lib  = $libs.first({.key eq $identity});
+                        my $curi = CompUnit::RepositoryRegistry.repository-for-spec($candi.from);
+
                         say "===> From Distribution: {~$candi.dist}";
-                        say "{$identity} => {$candi.from.prefix.child('resources').child($lib.value)}";
+                        say "{$identity} => {$curi.prefix.child('resources').child($lib.value)}";
                     }
                 }
             }
@@ -753,8 +756,10 @@ package Zef::CLI {
                     LAST exit 0;
                     NEXT say '';
 
+                    my $curi = CompUnit::RepositoryRegistry.repository-for-spec($candi.from);
+
                     say "===> From Distribution: {~$candi.dist}";
-                    my $source-prefix = $candi.from.prefix.child('sources');
+                    my $source-prefix = $curi.prefix.child('sources');
                     my $source-path   = $source-prefix.child(nqp::sha1($identity ~ CompUnit::Repository::Distribution.new($candi.dist).id));
                     say "{$identity} => {$source-path}" if $source-path.IO.f;
                 }
@@ -779,10 +784,11 @@ package Zef::CLI {
                     my %meta = $candi.dist.meta;
                     %meta<provides> = %meta<provides>.map({ $_.key => parse-value($_.value) }).hash;
                     my %sources = %meta<provides>.map({ $_.key => nqp::sha1($_.key ~ CompUnit::Repository::Distribution.new($candi.dist).id) }).hash;
+                    my $curi = CompUnit::RepositoryRegistry.repository-for-spec($candi.from);
 
                     say "===> From Distribution: {~$candi.dist}";
                     $identity ~~ any(%sources.values)
-                        ?? (say "{$_} => {$candi.from.prefix.child('sources').child($identity)}" for %sources.antipairs.hash{$identity})
+                        ?? (say "{$_} => {$curi.prefix.child('sources').child($identity)}" for %sources.antipairs.hash{$identity})
                         !! (say "{.key} => {.value}" for $candi.dist.meta<files>.first({.value eq $identity}));
 
                 }

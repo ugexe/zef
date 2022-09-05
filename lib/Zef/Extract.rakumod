@@ -140,7 +140,7 @@ class Zef::Extract does Extractor does Pluggable {
                 if ?$logger && !(.value.defined && .value.IO.e);
             .value.defined && .value.IO.e;
         }).map(*.value).head;
-        die "something went wrong extracting {$path} to {$extract-to} with {$.plugins.join(',')}" unless $extracted-to.IO.e;
+        die "something went wrong extracting {$path} to {$extract-to} with {$.plugins.join(',')}" unless $extracted-to.so && $extracted-to.IO.e;
 
         my IO::Path $result = $extracted-to.IO;
         return $result;

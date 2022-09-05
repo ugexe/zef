@@ -4,8 +4,10 @@ module Zef::Config {
     our sub parse-file($path) {
         my %config = %(Zef::from-json( $path.IO.slurp ));
 
-        %config{$_.key} = $_.value.subst(/'{$*HOME}' || '$*HOME'/, $*HOME // $*TMPDIR, :g)\
-            for %config.grep(*.key.ends-with('Dir'));
+        for %config.grep(*.key.ends-with('Dir')) {
+            %config{$_.key} = $_.value.subst(/'{$*HOME}' || '$*HOME'/, $*HOME // $*TMPDIR, :g);
+            %config{$_.key} = $_.value.subst(/'{$*TMPDIR}' || '$*TMPDIR'/, $*TMPDIR, :g);
+        }
 
         %config<DefaultCUR> //= 'auto';
 

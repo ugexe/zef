@@ -88,7 +88,7 @@ test_script:
     - zef uninstall Distribution::Common
     - raku -I inst#foo -M Distribution::Common::Remote::Github -e ""
 
-    - zef --/confirm nuke TempDir StoreDir RootDir
+    - zef --/confirm nuke TempDir StoreDir
     - zef update cached --debug # test single repository update; should be 0 after previous nuke
     - raku -I %APPVEYOR_BUILD_FOLDER% %APPVEYOR_BUILD_FOLDER%/bin/zef --/confirm nuke site home
 

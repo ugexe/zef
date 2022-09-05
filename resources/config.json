@@ -1,6 +1,5 @@
 {
     "ConfigVersion" : "1",
-    "RootDir"  : "$*HOME/.zef",
     "StoreDir" : "$*HOME/.zef/store",
     "TempDir"  : "$*TMPDIR/.zef",
     "DefaultCUR" : ["auto"],

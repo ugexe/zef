@@ -976,7 +976,7 @@ package Zef::CLI {
         exit 0;
     }
 
-    #| Nuke module installations (site, home) and repositories from config (RootDir, StoreDir, TempDir)
+    #| Nuke module installations (site, home) and repositories from config (StoreDir, TempDir)
     multi sub MAIN('nuke', Bool :$confirm, *@names ($, *@)) {
         my sub dir-delete($dir) {
             my @deleted = grep *.defined, try delete-paths($dir, :f, :d, :r);
@@ -993,7 +993,7 @@ package Zef::CLI {
             }
         }
 
-        my @config-keys = <RootDir StoreDir TempDir>;
+        my @config-keys = <StoreDir TempDir>;
         my @config-dirs = $CONFIG<<{@names (&) @config-keys}>>.map(*.IO.absolute).sort;
 
         my @curli-dirs = @names\

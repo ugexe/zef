@@ -1,5 +1,4 @@
-use v6;
-use Test;
+use Test:ver<6.c+>;
 plan 5;
 
 use Zef;

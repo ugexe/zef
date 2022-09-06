@@ -18,14 +18,14 @@ class Zef::Service::Shell::PowerShell::unzip is Zef::Service::Shell::PowerShell 
 
         my $unzip = Zef::Service::Shell::PowerShell::unzip.new;
 
-        # Assuming a zef-master.zip file is in the cwd...
-        my $source       = $*HOME.child("zef-master.zip");
+        # Assuming a zef-main.zip file is in the cwd...
+        my $source       = $*HOME.child("zef-main.zip");
         my $extract-to   = $*TMPDIR.child(time);
         my $extracted-to = $unzip.extract($source, $extract-to);
 
         die "Something went wrong" unless $extracted-to;
         say "Zef META6 from HEAD: ";
-        say $extracted-to.child("zef-master/META6.json").slurp;
+        say $extracted-to.child("zef-main/META6.json").slurp;
 
     =end code
 

@@ -1,8 +1,7 @@
 {
     "ConfigVersion" : "1",
-    "RootDir"  : "$*HOME/.zef",
     "StoreDir" : "$*HOME/.zef/store",
-    "TempDir"  : "$*HOME/.zef/tmp",
+    "TempDir"  : "$*TMPDIR/.zef",
     "DefaultCUR" : ["auto"],
     "License" : {
         "whitelist" : "*",

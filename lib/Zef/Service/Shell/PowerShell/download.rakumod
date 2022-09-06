@@ -18,7 +18,7 @@ class Zef::Service::Shell::PowerShell::download is Zef::Service::Shell::PowerShe
 
         my $downloader = Zef::Service::Shell::PowerShell::download.new;
 
-        my $source   = "https://raw.githubusercontent.com/ugexe/zef/master/META6.json";
+        my $source   = "https://raw.githubusercontent.com/ugexe/zef/main/META6.json";
         my $save-to  = $*TMPDIR.child("zef-meta6.json");
         my $saved-to = $downloader.fetch($source, $save-to);
 

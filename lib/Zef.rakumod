@@ -59,10 +59,9 @@ package Zef {
 
     role Candidate is export {
         has $.dist;
-        has $.as;        # Requested as (maybe a url, maybe an identity, maybe a path)
-        has $.from;      # Recommended from (::Ecosystems, ::MetaCPAN, ::LocalCache)
-        has $.uri is rw; # url, file path, etc
-        has Bool $.is-dependency is rw; # I don't think we use/need this anymore...
+        has Str $.as;              # Requested as (maybe a url, maybe an identity, maybe a path)
+        has Str() $.from;          # Recommended from (::Ecosystems, ::LocalCache)
+        has Str() $.uri is rw;     # url, file path, etc
         has $.build-results is rw;
         has $.test-results is rw;
     }

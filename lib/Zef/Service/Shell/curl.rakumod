@@ -17,7 +17,7 @@ class Zef::Service::Shell::curl does Fetcher does Probeable does Messenger {
 
         my $curl = Zef::Service::Shell::curl.new;
 
-        my $source   = "https://raw.githubusercontent.com/ugexe/zef/master/META6.json";
+        my $source   = "https://raw.githubusercontent.com/ugexe/zef/main/META6.json";
         my $save-to  = $*TMPDIR.child("zef-meta6.json");
         my $saved-to = $curl.fetch($source, $save-to);
 

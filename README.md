@@ -1,6 +1,6 @@
 ## Zef
 
-Raku / Perl6 Module Management
+Raku Module Management
 
 # Installation
 
@@ -87,7 +87,7 @@ if both passed all their tests. For example: if module A failed its tests, then 
 
     # URL
     zef -v install https://github.com/ugexe/zef.git
-    zef -v install https://github.com/ugexe/zef/archive/master.tar.gz
+    zef -v install https://github.com/ugexe/zef/archive/main.tar.gz
     zef -v install https://github.com/ugexe/zef.git@v0.1.22
 
 A request may contain any number and combination of these. Paths and URLs will be resolved first so they are available
@@ -258,10 +258,10 @@ View meta information of a distribution
 List known available distributions
 
     $ zef --installed list
-    ===> Found via /home/foo/.rakubrew/moar-master/install/share/perl6/site
+    ===> Found via /home/foo/.rakubrew/moar/install/share/perl6/site
     CSV::Parser:ver<0.1.2>:auth<github:tony-o>
     Zef:auth<github:ugexe>
-    ===> Found via /home/foo/.rakubrew/moar-master/install/share/perl6
+    ===> Found via /home/foo/.rakubrew/moar/install/share/perl6
     CORE:ver<6.c>:auth<perl>
 
 Note that not every Repository may provide such a list, and such lists may only
@@ -376,7 +376,7 @@ Lookup a locally installed module by $identity, $name-path, or $sha1-id
     ===> From Distribution: zef:ver<*>:auth<github:ugexe>:api<>
     Zef::CLI => ~/rakudo/install/share/perl6/site/sources/A9948E7371E0EB9AFDF1EEEB07B52A1B75537C31
 
-#### **nuke** \[RootDir | TempDir | StoreDir\]
+#### **nuke** \[StoreDir | TempDir\]
 
 Deletes all paths in the specific configuration directory
 
@@ -434,18 +434,16 @@ Second, third, and fourth we look at the path pointed to by `%?RESOURCES<config.
         CONFIGURATION /home/user/raku/install/share/perl6/site/resources/EE5DBAABF07682ECBE72BEE98E6B95E5D08675DE.json
         ...
 
-This config is loaded, but it is not yet the chosen config! We check that temporary config's `%config<RootDir>` for valid json in a file named `config.json` (i.e. `%config<RootDir>/config.json`). This can be confusing (so it may go away or be refined - PRs welcome) but for most cases it just means `$*HOME/.zef/config.json` will override an installed zef configuration file.
-
 To summarize:
 
 - You can edit the `resources/config.json` file before you install zef.
 
     When you `raku -I. bin/zef install .` that configuration file be be used to install zef and will also be installed with zef such that it will be the default.
 
-- You can create a `%config<RootDir>/config.json` file.
+- You can create a `$*HOME/.config/zef/config.json` file.
 
-    Where `%config<RootDir>`
-    comes from the previously mentioned `%?RESOURCES<config.json>`'s `RootDir` field (`$*HOME/.zef` in most cases), to allow overriding zef config behavior on a per user basis (allows setting different `--install-to` targets for, say, a root user and a regular user). Since this new config file could have a different `RootDir` than the default config (used to find the new one in the first place) this behavior may be changed in the future to be less confusing.
+    To allow overriding zef config behavior on a per user basis (allows setting different `--install-to` targets for, say, a root user and a regular user). Alternative one can set the `XDG_CONFIG_HOME` env variable to instead look
+    in `$XDG_CONFIG_HOME/zef/config.json`.
 
 - You can override both of the previous entries by passing `zef --config-path="$path" <any command>`
 
@@ -453,7 +451,6 @@ To summarize:
 
 #### Basic Settings
 
-- **RootDir** - Where zef will look for a custom config.json file
 - **TempDir** - A staging area for items that have been fetched and need to be extracted/moved
 - **StoreDir** - Where zef caches distributions, package lists, etc after they've been fetched and extracted
 - **DefaultCUR** - This sets the default value for `--install-to="..."`. The default value of `auto` means it will first try installing to rakudo's installation prefix, and if its not writable by the current user it will install to `$*HOME/.raku`. These directories are not chosen by zef - they are actually represented by the magic strings `site` and `home` (which, like `auto`, are valid values despite not being paths along with `vendor` and `perl`)
@@ -480,7 +477,7 @@ and are instantiated via
 - **module** - The name of the class to instantiate. While it doesn't technically have to be a module it _does_ need to be a known namespace to `require`.
 - **options** - These are passed to the objects `new` method and may not be consistent between modules as they are free to implement their own requirements.
 
-See the configuration file in [resources/config.json](https://github.com/ugexe/zef/blob/master/resources/config.json) for a
+See the configuration file in [resources/config.json](https://github.com/ugexe/zef/blob/main/resources/config.json) for a
 little more information on how plugins are invoked.
 
 You can see debug output related to chosing and loading plugins by setting the env variable **ZEF\_PLUGIN\_DEBUG=1**

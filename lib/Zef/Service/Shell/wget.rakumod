@@ -17,7 +17,7 @@ class Zef::Service::Shell::wget does Fetcher does Probeable does Messenger {
 
         my $wget = Zef::Service::Shell::wget.new;
 
-        my $source   = "https://raw.githubusercontent.com/ugexe/zef/master/META6.json";
+        my $source   = "https://raw.githubusercontent.com/ugexe/zef/main/META6.json";
         my $save-to  = $*TMPDIR.child("zef-meta6.json");
         my $saved-to = $wget.fetch($source, $save-to);
 

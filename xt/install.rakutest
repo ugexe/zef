@@ -1,5 +1,4 @@
-use v6;
-use Test;
+use Test:ver<6.c+>;
 plan 3;
 
 use Zef;
@@ -19,7 +18,6 @@ END { try delete-paths($path, :r, :d, :f, :dot) }
 my $guess-path = $?FILE.IO.parent.parent.child('resources/config.json');
 my $config-file = $guess-path.e ?? ~$guess-path !! Zef::Config::guess-path();
 my $config      = Zef::Config::parse-file($config-file);
-$config<RootDir>  = "$path/.cache";
 $config<StoreDir> = "$path/.cache/store";
 $config<TempDir>  = "$path/.cache/tmp";
 

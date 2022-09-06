@@ -1,3 +1,4 @@
+#!/usr/bin/env perl
 use Archive::Tar;
 
 if( !defined $ARGV[0] ) {

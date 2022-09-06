@@ -98,7 +98,7 @@ class Zef::Repository::LocalCache does PackageRepository {
         my Candidate @candidates = @!distributions.map: -> $dist {
             Candidate.new(
                 dist => $dist,
-                uri  => ($dist.source-url || $dist.meta<support><source> || Nil),
+                uri  => ($dist.source-url || $dist.meta<support><source> || Str),
                 from => self.id,
                 as   => $dist.identity,
             );
@@ -142,7 +142,7 @@ class Zef::Repository::LocalCache does PackageRepository {
             my $matching-candidates := $dists-to-search.grep(*.contains-spec($wanted-spec, :$strict)).map({
                 Candidate.new(
                     dist => $_,
-                    uri  => ($_.source-url || $_.meta<support><source>),
+                    uri  => ($_.source-url || $_.meta<support><source> || Str),
                     as   => $searchable-identity,
                     from => self.id,
                 );

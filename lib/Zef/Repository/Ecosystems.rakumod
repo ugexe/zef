@@ -102,7 +102,7 @@ class Zef::Repository::Ecosystems does PackageRepository {
         my @candidates = @!distributions.map: -> $dist {
             Candidate.new(
                 dist => $dist,
-                uri  => ($dist.source-url || $dist.meta<support><source> || Nil),
+                uri  => ($dist.source-url || $dist.meta<support><source> || Str),
                 from => self.id,
                 as   => $dist.identity,
             );
@@ -166,7 +166,7 @@ class Zef::Repository::Ecosystems does PackageRepository {
                 }
                 Candidate.new(
                     dist => $_,
-                    uri  => ($uri || $_.source-url || $_.meta<support><source>),
+                    uri  => ($uri || $_.source-url || $_.meta<support><source> || Str),
                     as   => $searchable-identity,
                     from => self.id,
                 );

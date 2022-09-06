@@ -3,7 +3,7 @@
     "perl"          : "6.c",
     "name"          : "zef",
     "api"           : "0",
-    "version"       : "0.14.0",
+    "version"       : "0.14.1",
     "auth"          : "github:ugexe",
     "description"   : "Raku Module Management",
     "license"       : "Artistic-2.0",

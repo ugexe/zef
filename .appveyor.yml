@@ -73,14 +73,14 @@ test_script:
     - zef --debug --force-install install Base64
 
     # test tar + upgrade
-    - zef --debug install https://github.com/ugexe/Perl6-PathTools/archive/0434191c56e0f3254ab1d756d90f9191577de5a0.tar.gz
+    - zef --debug install https://github.com/ugexe/Raku-PathTools/archive/0434191c56e0f3254ab1d756d90f9191577de5a0.tar.gz
     - zef --debug upgrade PathTools
 
     # test zip
-    - zef --debug install https://github.com/ugexe/Perl6-Text--Table--Simple/archive/v0.0.3.zip
+    - zef --debug install https://github.com/ugexe/Raku-Text--Table--Simple/archive/v0.0.3.zip
 
     # test remote git repo + tag
-    - zef --debug install https://github.com/ugexe/Perl6-Text--Table--Simple.git@v0.0.4
+    - zef --debug install https://github.com/ugexe/Raku-Text--Table--Simple.git@v0.0.4
 
     # Test self contained installation
     - zef install Distribution::Common --/test

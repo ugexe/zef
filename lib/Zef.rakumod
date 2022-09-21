@@ -104,8 +104,11 @@ package Zef {
     }
 
     role Pluggable is export {
-        has $!plugins;
+        #| Stringified module names to load as a plugin
         has @.backends;
+
+        #| All the loaded @.backend objects
+        has $!plugins;
 
         sub DEBUG($plugin, $message) {
             say "[Plugin - {$plugin<short-name> // $plugin<module> // qq||}] $message"\
@@ -118,35 +121,40 @@ package Zef {
 
             my @plugins;
             for $all-plugins -> @plugin-group {
-                if @plugin-group.grep(-> $plugin { dd $plugin.short-name; $plugin.short-name ~~ any(@short-names) }) -> @filtered-group {
+                if @plugin-group.grep(-> $plugin { $plugin.short-name ~~ any(@short-names) }) -> @filtered-group {
                     push @plugins, @filtered-group;
                 }
             }
             return @plugins;
         }
 
+        has $!list-plugins-lock = Lock.new;
         method !list-plugins(@backends = @!backends) {
-            # @backends used to only be an array of hash. However now the ::Repository
-            # section of the config an an array of an array of hash and thus the logic
-            # below was adapted (it wasn't designed this way from the start).
-            my @plugins;
-            for @backends -> $backend {
-                if $backend ~~ Hash {
-                    if self!try-load($backend) -> $class {
-                        push @plugins, $class;
-                    }
-                }
-                else {
-                    my @group;
-                    for @$backend -> $plugin {
-                        if self!try-load($plugin) -> $class {
-                            push @group, $class;
+            $!list-plugins-lock.protect: {
+                return $!plugins if $!plugins.so;
+
+                # @backends used to only be an array of hash. However now the ::Repository
+                # section of the config an an array of an array of hash and thus the logic
+                # below was adapted (it wasn't designed this way from the start).
+                my @plugins;
+                for @backends -> $backend {
+                    if $backend ~~ Hash {
+                        if self!try-load($backend) -> $class {
+                            push @plugins, $class;
                         }
                     }
-                    push( @plugins, @group ) if +@group;
+                    else {
+                        my @group;
+                        for @$backend -> $plugin {
+                            if self!try-load($plugin) -> $class {
+                                push @group, $class;
+                            }
+                        }
+                        push( @plugins, @group ) if +@group;
+                    }
                 }
+                return $!plugins := @plugins
             }
-            return @plugins;
         }
 
         method !try-load(Hash $plugin) {

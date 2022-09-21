@@ -131,7 +131,7 @@ class Zef::Repository does PackageRepository does Pluggable {
         # todo: have a `file` identity in Zef::Identity
         my %searchable = @identities.grep({ not $_.starts-with("." | "/") }).map({ $_ => 1 });
 
-        my @unsorted-candis = eager gather GROUP: for self!plugins -> @repo-group {
+        my @unsorted-candis = eager gather GROUP: for self.plugins -> @repo-group {
             my @look-for = %searchable.grep(*.value).hash.keys.sort;
 
             my @group-results = @repo-group.hyper(:batch(1)).map: -> $repo {
@@ -171,7 +171,7 @@ class Zef::Repository does PackageRepository does Pluggable {
 
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });
 
-        my @unsorted-candis = eager gather GROUP: for self!plugins -> @repo-group {
+        my @unsorted-candis = eager gather GROUP: for self.plugins -> @repo-group {
             my @group-results = @repo-group.hyper(:batch(1)).map: -> $repo {
                 $repo.search(@searchable, :$strict).Slip;
             }
@@ -186,14 +186,14 @@ class Zef::Repository does PackageRepository does Pluggable {
 
     #| Call 'store' on any Repository that provides that interface (by default just 'cached')
     method store(*@dists --> Nil) {
-        for self!plugins.map(*.Slip).grep(*.^can('store')) -> $storage {
+        for self.plugins.map(*.Slip).grep(*.^can('store')) -> $storage {
             $storage.?store(@dists);
         }
     }
 
     #| Get all candidates/distributions from each backend
     method available(*@plugins --> Array[Candidate]) {
-        my @can-available = self!plugins(@plugins).map(*.Slip).grep: -> $plugin {
+        my @can-available = self.plugins(@plugins).map(*.Slip).grep: -> $plugin {
             note "Plugin '{$plugin.short-name}' does not support `.available` -- Skipping" unless $plugin.can('available'); # UNDO doesn't work here yet
             $plugin.can('available');
         }
@@ -206,27 +206,11 @@ class Zef::Repository does PackageRepository does Pluggable {
 
     #| Update each Repository / backend
     method update(*@plugins --> Nil) {
-        my @can-update = self!plugins(@plugins).grep: -> $plugin {
+        my @can-update = self.plugins(@plugins).grep: -> $plugin {
             note "Plugin '{$plugin.short-name}' does not support `.update` -- Skipping" unless $plugin.can('update'); # UNDO doesn't work here yet
             $plugin.can('update');
         }
 
         @can-update.race(:batch(1)).map({ $_.update });
-    }
-
-    #| Like self.plugins this returns a list of plugins that Pluggable + @.backends provides, but also allows
-    #| filtering which plugins are used by short-name (short-name is set in the config per Repository) so that
-    #| things like `--update=fez` or `--/update=cpan` work.
-    method !plugins(*@short-names) {
-        my $all-plugins := self.plugins;
-        return $all-plugins unless +@short-names;
-
-        my @plugins;
-        for $all-plugins -> @plugin-group {
-            if @plugin-group.grep(-> $plugin { $plugin.short-name ~~ any(@short-names) }) -> @filtered-group {
-                push @plugins, @filtered-group;
-            }
-        }
-        return @plugins;
     }
 }

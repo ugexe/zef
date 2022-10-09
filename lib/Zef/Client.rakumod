@@ -831,7 +831,7 @@ class Zef::Client {
     method make-install(
         CompUnit::Repository :@to!, # target CompUnit::Repository
         Bool :$fetch = True,        # try fetching whats missing
-        Bool :$build = True,        # run Build.pm (DEPRECATED..?)
+        Bool :$build = True,        # run Build.rakumod (DEPRECATED..?)
         Bool :$test  = True,        # run tests
         Bool :$dry,                 # do everything *but* actually install
         Bool :$serial,

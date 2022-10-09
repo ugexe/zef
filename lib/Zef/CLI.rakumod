@@ -1037,7 +1037,7 @@ package Zef::CLI {
                 uninstall               Uninstall specified distributions
                 test                    Run tests on a given module's path
                 fetch                   Fetch and extract module's source
-                build                   Run the Build.pm in a given module's path
+                build                   Run the Build.rakumod in a given module's path
                 look                    Fetch followed by shelling into the module's path
                 update                  Update package indexes for repositories
                 upgrade (BETA)          Upgrade specific distributions (or all if no arguments)

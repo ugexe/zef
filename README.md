@@ -48,7 +48,7 @@ To install via rakubrew, please use the following command:
     # smoke test modules from all repositories
     zef smoke
 
-    # run Build.pm if one exists in given path
+    # run Build.rakumod if one exists in given path
     zef build .
 
     # update Repository package lists
@@ -313,10 +313,10 @@ Run tests on each distribution located at \[`@paths`\]
 
 #### **build** \[\*@paths\]
 
-Run the Build.pm file located in the given \[`@paths`\]
+Run the Build.rakumod file located in the given \[`@paths`\]
 
 If you want to create a build hook, put the following dependency-free boilerplate
-in a file named `Build.pm` at the root of your distribution:
+in a file named `Build.rakumod` at the root of your distribution:
 
     class Build {
         method build($dist-path) {
@@ -457,7 +457,7 @@ To summarize:
 
 #### Phases / Plugins Settings
 
-These consist of an array of hashes that describe how to instantiate some class that fulfills the appropriate interface from _Zef.pm_ (`Repository` `Fetcher` `Extractor` `Builder` `Tester` `Reporter`)
+These consist of an array of hashes that describe how to instantiate some class that fulfills the appropriate interface from _Zef.rakumod_ (`Repository` `Fetcher` `Extractor` `Builder` `Tester` `Reporter`)
 
 The descriptions follow this format:
 

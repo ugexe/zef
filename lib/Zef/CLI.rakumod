@@ -130,7 +130,7 @@ package Zef::CLI {
             Bool :$contained,
             :$update,
             :$exclude,
-            :to(:$install-to) = $CONFIG<DefaultCUR>,
+            :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
             *@wants ($, *@)
         )
 
@@ -405,7 +405,7 @@ package Zef::CLI {
         Bool :$contained,
         :$update,
         :$exclude,
-        :to(:$install-to) = $CONFIG<DefaultCUR>,
+        :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
         *@wants ($, *@)
     ) {
 
@@ -578,7 +578,7 @@ package Zef::CLI {
         Bool :$update,
         Bool :$serial,
         :$exclude,
-        :to(:$install-to) = $CONFIG<DefaultCUR>,
+        :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
         *@identities
     ) {
         # XXX: This is a very inefficient prototype. Not sure how to handle an 'upgrade' when
@@ -918,7 +918,7 @@ package Zef::CLI {
         Bool :$dry,
         Bool :$serial,
         :$exclude,
-        :to(:$install-to) = $CONFIG<DefaultCUR>,
+        :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
     ) {
         my $client = get-client(
             :config($CONFIG), :exclude($exclude.grep(*.defined).map({ Zef::Distribution::DependencySpecification.new($_) })),

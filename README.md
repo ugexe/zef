@@ -83,7 +83,7 @@ if both passed all their tests. For example: if module A failed its tests, then 
     zef install "CSV::Parser:ver<0.1.2>"
 
     # PATH
-    zef install ./Perl6-Net--HTTP
+    zef install ./Raku-Net--HTTP
 
     # URL
     zef -v install https://github.com/ugexe/zef.git
@@ -349,11 +349,11 @@ Output the url and launch a browser to open it.
 
     # also opens browser
     $ zef browse Net::HTTP bugtracker
-    https://github.com/ugexe/Perl6-Net--HTTP/issues
+    https://github.com/ugexe/Raku-Net--HTTP/issues
 
     # only outputs the url
     $ zef browse Net::HTTP bugtracker --/open
-    https://github.com/ugexe/Perl6-Net--HTTP/issues
+    https://github.com/ugexe/Raku-Net--HTTP/issues
 
 #### **locate** \[$identity, $name-path, $sha1-id\]
 

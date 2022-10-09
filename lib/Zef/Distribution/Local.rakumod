@@ -18,7 +18,7 @@ class Zef::Distribution::Local is Zef::Distribution {
         my $dist = Zef::Distribution::Local.new($*CWD);
 
         # Show the meta data
-        say $dist.meta.perl;
+        say $dist.meta.raku;
 
         # Output the content of the first item in provides
         with $dist.meta<provides>.hash.values.head -> $name-path {

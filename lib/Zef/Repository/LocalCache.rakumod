@@ -129,7 +129,8 @@ class Zef::Repository::LocalCache does PackageRepository {
         return Nil unless @identities || %fields;
 
         my %specs = @identities.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
-        my @searchable-identities = %specs.classify({ .value.from-matcher })<Perl6>.grep(*.defined).hash.keys;
+        my @raku-specs = %specs.classify({ .value.from-matcher })<Raku Perl6>.map(*.Slip);
+        my @searchable-identities = @raku-specs.grep(*.defined).hash.keys;
         return Nil unless @searchable-identities;
 
         # populate %!short-name-lookup

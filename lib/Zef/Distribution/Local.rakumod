@@ -55,7 +55,7 @@ class Zef::Distribution::Local is Zef::Distribution {
         method content($name-path --> IO::Handle:D)
 
     Returns an unopened C<IO::Handle> that can be used to get the content of the C<$name-path>, where C<$name-path>
-    is a value of the distributions C<provides> e.g. C<lib/Foo.pm6>, C<$dist.content($dist.meta<provides>{"Foo"})>.
+    is a value of the distributions C<provides> e.g. C<lib/Foo.rakumod>, C<$dist.content($dist.meta<provides>{"Foo"})>.
 
     =end pod
 

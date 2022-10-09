@@ -313,21 +313,24 @@ Run tests on each distribution located at \[`@paths`\]
 
 #### **build** \[\*@paths\]
 
-Run the Build.rakumod file located in the given \[`@paths`\]
+Run the build step for each distribution located in the given \[`@paths`\]
 
-If you want to create a build hook, put the following dependency-free boilerplate
-in a file named `Build.rakumod` at the root of your distribution:
+Set the env variable **ZEF\_BUILDPM\_DEBUG=1** or use the _--debug_ flag for additional debugging information.
 
+If you want to create a build hook you have two options:
+
+* **PREFERRED** List a builder module that can do what you need in the `builder` field of the META6.json file. For instace many cases of the I-need-to-run-make pattern can list `"builder":"Distribution::Builder::MakeFromJSON"` and supply some extra info to the `"build"` field (a non-standard `Distribution::Builder::MakeFromJSON` specific field). For a more concrete example check out how `Inline::Perl5` [uses the builder field](https://github.com/niner/Inline-Perl5/blob/2e7b99fb03d182d15df4f88818d835b151117786/META6.json#L58-L68). Remember to add any such module to your `build-depends` though! See `Zef::Service::Shell::DistributionBuilder` for more information.
+
+* **DEPRECATED** (_but probably never going away_) Put the following dependency-free boilerplate in a file named `Build.rakumod` at the root of your distribution:
+
+    ```
     class Build {
         method build($dist-path) {
             # do build stuff to your module
             # which is located at $dist-path
         }
     }
-
-Set the env variable **ZEF\_BUILDPM\_DEBUG=1** or use the _--debug_ flag for additional debugging information.
-
-_Note: In the future, a more appropriate hooking solution will replace this._
+    ```
 
 #### **look** \[$identity\]
 

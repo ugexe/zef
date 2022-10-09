@@ -8,7 +8,7 @@ use Zef::Distribution;
 
 my $json = q:to/META6/;
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -42,7 +42,7 @@ ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'native';
 
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -73,7 +73,7 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
 # mixed depends types
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -115,7 +115,7 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
 
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -134,7 +134,7 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
 
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -221,7 +221,7 @@ for (
     },
 ) -> $test {
     with Zef::Distribution.new(
-            :perl(6),
+            :raku<6.c>,
             :name<Test::Complex::Depends>,
             :version<0>,
             :auth('github:stranger'),
@@ -257,7 +257,7 @@ subtest 'X::Zef::UnsatisfiableDependency' => {
         ["Available", {:any[{:name<Unavailable>, :from<native>}, {:name<Unavailable2>, :from<native>}]}],
     ) -> $test {
         with Zef::Distribution.new(
-                :perl(6),
+                :raku<6.c>,
                 :name<Test::Complex::Depends>,
                 :version<0>,
                 :auth('github:stranger'),

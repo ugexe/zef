@@ -1,6 +1,6 @@
 {
     "meta-version"  : "0",
-    "perl"          : "6.c",
+    "raku"          : "6.c",
     "name"          : "zef",
     "api"           : "0",
     "version"       : "0.14.2",

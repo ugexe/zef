@@ -48,7 +48,7 @@ To install via rakubrew, please use the following command:
     # smoke test modules from all repositories
     zef smoke
 
-    # run Build.pm if one exists in given path
+    # run Build.rakumod if one exists in given path
     zef build .
 
     # update Repository package lists
@@ -83,7 +83,7 @@ if both passed all their tests. For example: if module A failed its tests, then 
     zef install "CSV::Parser:ver<0.1.2>"
 
     # PATH
-    zef install ./Perl6-Net--HTTP
+    zef install ./Raku-Net--HTTP
 
     # URL
     zef -v install https://github.com/ugexe/zef.git
@@ -199,54 +199,47 @@ Upgrade specified identities. If no identities are provided, zef attempts to upg
 
 #### **search** \[$identity\]
 
-How these are handled depends on the `Repository` engine used, which by default is `Zef::Repository::Ecosystems>p6c<`
+How these are handled depends on the `Repository` engine used, which by default is `Zef::Repository::Ecosystems<fez>` and `Zef::Repository::Ecosystems<rea>`
 
     $ zef -v search URI
     ===> Found 4 results
     -------------------------------------------------------------------------
     ID|From                              |Package             |Description
     -------------------------------------------------------------------------
-    1 |Zef::Repository::LocalCache       |URI:ver<0.1.1>    |A URI impleme...
-    2 |Zef::Repository::Ecosystems<p6c>  |URI:ver<0.1.1>    |A URI impleme...
-    3 |Zef::Repository::Ecosystems<cpan> |URI:ver<0.1.1>    |A URI impleme...
-    4 |Zef::Repository::Ecosystems<cpan> |URI:ver<0.000.001>|A URI impleme...
-    -------------------------------------------------------------------------
+    2 |Zef::Repository::Ecosystems<fez> |URI:ver<0.1.1>    |A URI impleme...
+    3 |Zef::Repository::Ecosystems<rea> |URI:ver<0.1.1>    |A URI impleme...
+    4 |Zef::Repository::Ecosystems<rea> |URI:ver<0.000.001>|A URI impleme...
+    ------------------------------------------f-------------------------------
 
 #### **info** \[$identity\]
 
 View meta information of a distribution
 
-    $ zef -v info HTTP::UserAgent
-    - Info for: HTTP::UserAgent
-    - Identity: HTTP::UserAgent:ver<1.1.16>:auth<github:sergot>
-    - Recommended By: Zef::Repository::LocalCache
-    Author:  github:sergot
-    Description:     Web user agent
-    Source-url:      https://github.com/sergot/http-useragent.git
-    Provides: 11 modules
-    #       HTTP::Cookie
-    #       HTTP::Header
-    #       HTTP::Cookies
-    #       HTTP::Message
-    #       HTTP::Request
-    #       HTTP::Response
-    #       HTTP::MediaType
-    #       HTTP::UserAgent
-    #       HTTP::Header::Field
-    #       HTTP::Request::Common
-    #       HTTP::UserAgent::Common
-    Depends: 7 items
-    ---------------------------------
-    ID|Identity           |Installed?
-    ---------------------------------
-    1 |HTTP::Status       |✓
-    2 |File::Temp         |✓
-    3 |DateTime::Parse    |✓
-    4 |Encode             |✓
-    5 |MIME::Base64       |✓
-    6 |URI                |✓
-    7 |IO::Capture::Simple|✓
-    ---------------------------------
+    $ zef info Distribution::Common::Remote -v
+    - Info for: Distribution::Common::Remote
+    - Identity: Distribution::Common::Remote:ver<0.1.0>:auth<github:ugexe>:api<0>
+    - Recommended By: Zef::Repository::Ecosystems<rea>
+    - Installed: No
+    Description:     Create an installable Distribution from common remote sources
+    License:     Artistic-2.0
+    Source-url:  https://raw.githubusercontent.com/raku/REA/main/archive/D/Distribution%3A%3ACommon%3A%3ARemote/Distribution%3A%3ACommon%3A%3ARemote%3Aver%3C0.1.0%3E%3Aauth%3Cgithub%3Augexe%3E.tar.gz
+    Provides: 2 modules
+    ----------------------------------------------------------------------------------
+    Module                              |Path-Name
+    ----------------------------------------------------------------------------------
+    Distribution::IO::Remote::Github    |lib/Distribution/IO/Remote/Github.rakumod
+    Distribution::Common::Remote::Github|lib/Distribution/Common/Remote/Github.rakumod
+    ----------------------------------------------------------------------------------
+    Support:
+    #   bugtracker: https://github.com/ugexe/Raku-Distribution--Common--Remote/issues
+    #   source: https://github.com/ugexe/Raku-Distribution--Common--Remote.git
+    Depends: 2 items
+    ----------------------------------
+    ID|Identity            |Installed?
+    ----------------------------------
+    1 |Distribution::Common|✓
+    2 |Test                |✓
+    ----------------------------------
 
 **Options**
 
@@ -272,9 +265,10 @@ on cpan, but we \*can\* get the $x most recent additions (we use 100 for now).
 
     zef --installed list perl   # Only list modules installed by rakudo itself
 
-    zef list cpan               # Only show available modules from the repository
-    zef list p6c                # with a name field matching the arguments to `list`
-    zef list cached             # (be sure the repository is enabled in config)
+    zef list fez               # Only show available modules from the repository
+    zef list rea               # with a name field matching the arguments to `list`
+    zef list p6c               # (be sure the repository is enabled in config)
+    zef list cpan --cpan       # (or enabled via a cli flag)
 
 Otherwise results from all enabled repositories will be returned.
 
@@ -313,21 +307,24 @@ Run tests on each distribution located at \[`@paths`\]
 
 #### **build** \[\*@paths\]
 
-Run the Build.pm file located in the given \[`@paths`\]
+Run the build step for each distribution located in the given \[`@paths`\]
 
-If you want to create a build hook, put the following dependency-free boilerplate
-in a file named `Build.pm` at the root of your distribution:
+Set the env variable **ZEF\_BUILDPM\_DEBUG=1** or use the _--debug_ flag for additional debugging information.
 
+If you want to create a build hook you have two options:
+
+* **PREFERRED** List a builder module that can do what you need in the `builder` field of the META6.json file. For instace many cases of the I-need-to-run-make pattern can list `"builder":"Distribution::Builder::MakeFromJSON"` and supply some extra info to the `"build"` field (a non-standard `Distribution::Builder::MakeFromJSON` specific field). For a more concrete example check out how `Inline::Perl5` [uses the builder field](https://github.com/niner/Inline-Perl5/blob/2e7b99fb03d182d15df4f88818d835b151117786/META6.json#L58-L68). Remember to add any such module to your `build-depends` though! See `Zef::Service::Shell::DistributionBuilder` for more information.
+
+* **DEPRECATED** (_but probably never going away_) Put the following dependency-free boilerplate in a file named `Build.rakumod` at the root of your distribution:
+
+    ```
     class Build {
         method build($dist-path) {
             # do build stuff to your module
             # which is located at $dist-path
         }
     }
-
-Set the env variable **ZEF\_BUILDPM\_DEBUG=1** or use the _--debug_ flag for additional debugging information.
-
-_Note: In the future, a more appropriate hooking solution will replace this._
+    ```
 
 #### **look** \[$identity\]
 
@@ -349,11 +346,11 @@ Output the url and launch a browser to open it.
 
     # also opens browser
     $ zef browse Net::HTTP bugtracker
-    https://github.com/ugexe/Perl6-Net--HTTP/issues
+    https://github.com/ugexe/Raku-Net--HTTP/issues
 
     # only outputs the url
     $ zef browse Net::HTTP bugtracker --/open
-    https://github.com/ugexe/Perl6-Net--HTTP/issues
+    https://github.com/ugexe/Raku-Net--HTTP/issues
 
 #### **locate** \[$identity, $name-path, $sha1-id\]
 
@@ -457,12 +454,12 @@ To summarize:
 
 #### Phases / Plugins Settings
 
-These consist of an array of hashes that describe how to instantiate some class that fulfills the appropriate interface from _Zef.pm_ (`Repository` `Fetcher` `Extractor` `Builder` `Tester` `Reporter`)
+These consist of an array of hashes that describe how to instantiate some class that fulfills the appropriate interface from _Zef.rakumod_ (`Repository` `Fetcher` `Extractor` `Builder` `Tester` `Reporter`)
 
 The descriptions follow this format:
 
     {
-        "short-name" : "p6c",
+        "short-name" : "fez",
         "enabled" : 1,
         "module" : "Zef::Repository::Ecosystems",
         "options" : { }
@@ -472,7 +469,7 @@ and are instantiated via
 
     ::($hash<module>).new(|($hash<options>)
 
-- **short-name** - This adds an enable and disable flag by the same name to the CLI (e.g. `--p6c` and `--/p6c`) and is used when referencing which object took some action.
+- **short-name** - This adds an enable and disable flag by the same name to the CLI (e.g. `--fez` and `--/fez`) and is used when referencing which object took some action.
 - **enabled** - Set to 0 to skip over the object during consideration (it will never be loaded). If omitted or if the value is non 0 then it will be enabled for use.
 - **module** - The name of the class to instantiate. While it doesn't technically have to be a module it _does_ need to be a known namespace to `require`.
 - **options** - These are passed to the objects `new` method and may not be consistent between modules as they are free to implement their own requirements.

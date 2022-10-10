@@ -91,7 +91,7 @@ class Zef::Repository::LocalCache does PackageRepository {
     #| Similar to @!distributions, but indexes by short name i.e. { "Foo::Bar" => ($dist1, $dist2), "Baz" => ($dist1) }
     has Array[Distribution] %!short-name-lookup;
 
-    #| see role Repository in lib/Zef.pm6
+    #| see role Repository in lib/Zef.rakumod
     method available(--> Array[Candidate]) {
         self!populate-distributions;
 
@@ -124,12 +124,13 @@ class Zef::Repository::LocalCache does PackageRepository {
         so $content ?? self!spurt-package-list($content) !! False;
     }
 
-    #| see role Repository in lib/Zef.pm6
+    #| see role Repository in lib/Zef.rakumod
     method search(Bool :$strict, *@identities, *%fields --> Array[Candidate]) {
         return Nil unless @identities || %fields;
 
         my %specs = @identities.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
-        my @searchable-identities = %specs.classify({ .value.from-matcher })<Perl6>.grep(*.defined).hash.keys;
+        my @raku-specs = %specs.classify({ .value.from-matcher })<Raku Perl6>.map(*.Slip);
+        my @searchable-identities = @raku-specs.grep(*.defined).hash.keys;
         return Nil unless @searchable-identities;
 
         # populate %!short-name-lookup

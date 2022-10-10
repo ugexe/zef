@@ -8,7 +8,7 @@ use Zef::Distribution;
 
 my $json = q:to/META6/;
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -36,13 +36,13 @@ my $json = q:to/META6/;
 
 my $dist = Zef::Distribution.new(|Rakudo::Internals::JSON.from-json($json));
 ok any($dist.depends-specs.map(*.name)) ~~ 'Zef::Client';
-ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'Perl6';
+ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'Raku';
 ok any($dist.depends-specs.map(*.name)) ~~ any('mac', 'win', 'linux', 'unknown');
 ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'native';
 
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -67,13 +67,13 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
     is $dist.depends-specs.elems, 2;
     ok any($dist.depends-specs.map(*.name)) ~~ any("Foo::Win32_1", "Foo::Linux_1", "Foo::Unknown_1");
     ok any($dist.depends-specs.map(*.name)) ~~ any("Foo::Win32_2", "Foo::Linux_2", "Foo::Unknown_2");
-    ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'Perl6';
+    ok any($dist.depends-specs.map(*.from-matcher)) ~~ 'Raku';
 }
 
 # mixed depends types
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -115,7 +115,7 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
 
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -134,7 +134,7 @@ with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $
 
 with Zef::Distribution.new(|Rakudo::Internals::JSON.from-json(q:to/META6/)) -> $dist {
     {
-        "perl":"6",
+        "raku":"6.c",
         "name":"Test::Complex::Depends",
         "version":"0",
         "auth":"github:stranger",
@@ -221,7 +221,7 @@ for (
     },
 ) -> $test {
     with Zef::Distribution.new(
-            :perl(6),
+            :raku<6.c>,
             :name<Test::Complex::Depends>,
             :version<0>,
             :auth('github:stranger'),
@@ -257,7 +257,7 @@ subtest 'X::Zef::UnsatisfiableDependency' => {
         ["Available", {:any[{:name<Unavailable>, :from<native>}, {:name<Unavailable2>, :from<native>}]}],
     ) -> $test {
         with Zef::Distribution.new(
-                :perl(6),
+                :raku<6.c>,
                 :name<Test::Complex::Depends>,
                 :version<0>,
                 :auth('github:stranger'),

@@ -21,7 +21,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
         my $dist = Zef::Distribution.new(|%meta);
 
         # Show the meta data
-        say $dist.meta.perl;
+        say $dist.meta.raku;
 
         # Output if the $dist contains a namespace matching Foo::Bar:ver<1>
         say $dist.contains-spec("Foo::Bar:ver<1>");

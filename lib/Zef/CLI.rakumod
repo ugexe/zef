@@ -1035,10 +1035,10 @@ package Zef::CLI {
 
                 install                 Install specific dependencies by name or path
                 uninstall               Uninstall specified distributions
-                test                    Run tests on a given module's path
-                fetch                   Fetch and extract module's source
-                build                   Run the Build.rakumod in a given module's path
-                look                    Fetch followed by shelling into the module's path
+                test                    Run tests on a given distribution path
+                fetch                   Fetch and extract distribution source
+                build                   Run the builder for given distribution path
+                look                    Fetch followed by shelling into the distribution path
                 update                  Update package indexes for repositories
                 upgrade (BETA)          Upgrade specific distributions (or all if no arguments)
                 search                  Show a list of possible distribution candidates for the given terms

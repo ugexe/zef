@@ -1068,6 +1068,11 @@ package Zef::CLI {
 
                 ZEF_[phase]_TIMEOUT     See --[phase]-timeout ( phases: FETCH, BUILD, TEST, INSTALL )
                 ZEF_[phase]_DEGREE      See --[phase]-degree ( phases: FETCH, TEST )
+                ZEF_INSTALL_TO          See --install-to
+                ZEF_CONFIG_PATH         Set the path to the config file zef should use
+                ZEF_CONFIG_DEFAULTCUR   Override DefaultCUR from the config file
+                ZEF_CONFIG_STOREDIR     Override StoreDir from the config file
+                ZEF_CONFIG_TEMPDIR      Override TempDir from the config file
 
             VERBOSITY LEVEL (from least to most verbose)
                 --error, --warn, --info (default), --verbose, --debug

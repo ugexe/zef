@@ -176,8 +176,20 @@ to fulfill any dependencies of other requested identities.
     ZEF_TEST_TIMEOUT=3600
     ZEF_INSTALL_TIMEOUT=3600
 
+    # Set default --install-to target
+    ZEF_INSTALL_TO=site
+
     # Path to config file (see: --config-path option)
     ZEF_CONFIG_PATH=$PWD/resources/config.json
+
+    # Override DefaultCUR from the config file
+    ZEF_CONFIG_DEFAULTCUR=auto
+
+    # Override StoreDir from the config file
+    ZEF_CONFIG_STOREDIR=/home/ugexe/.config/zef/store
+
+    # Override TempDir from the config file
+    ZEF_CONFIG_TEMPDIR=/home/ugexe/.config/zef/temp
 
 #### **uninstall** \[\*@identities\]
 

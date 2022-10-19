@@ -1,10 +1,10 @@
-os: Visual Studio 2017
+os: Visual Studio 2022
 
 platform: x64
 
 install:
     # Enable x64 Native Tools
-    - '"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"'
+    - '"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64'
 
     # Workaround for path length errors during precompilation of longer repo names
     - SET TMPDIR=C:\tmp

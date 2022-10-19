@@ -195,8 +195,6 @@ to fulfill any dependencies of other requested identities.
 
 Uninstall the specified distributions
 
-Note: Requires a bleeding edge rakudo (not available in 6.c)
-
 #### **update**
 
 Update the package indexes for all `Repository` backends
@@ -417,7 +415,7 @@ If you are most users (e.g. not: power users, packagers, zef plugin developers) 
 
 ### How the configuration file is chosen
 
-The configuration file will be chosen at runtime from one of two (technically four) locations, and one can affect the others (this is not really a design decision and suggestions and PRs are welcome).
+The configuration file will be chosen at runtime from one of two (technically four) locations.
 
 First, and the most precise way, is to specify the config file by passing `--config-path="..."` to any zef command.
 

@@ -176,14 +176,24 @@ to fulfill any dependencies of other requested identities.
     ZEF_TEST_TIMEOUT=3600
     ZEF_INSTALL_TIMEOUT=3600
 
+    # Set default --install-to target
+    ZEF_INSTALL_TO=site
+
     # Path to config file (see: --config-path option)
     ZEF_CONFIG_PATH=$PWD/resources/config.json
+
+    # Override DefaultCUR from the config file
+    ZEF_CONFIG_DEFAULTCUR=auto
+
+    # Override StoreDir from the config file
+    ZEF_CONFIG_STOREDIR=/home/ugexe/.config/zef/store
+
+    # Override TempDir from the config file
+    ZEF_CONFIG_TEMPDIR=/home/ugexe/.config/zef/temp
 
 #### **uninstall** \[\*@identities\]
 
 Uninstall the specified distributions
-
-Note: Requires a bleeding edge rakudo (not available in 6.c)
 
 #### **update**
 
@@ -405,7 +415,7 @@ If you are most users (e.g. not: power users, packagers, zef plugin developers) 
 
 ### How the configuration file is chosen
 
-The configuration file will be chosen at runtime from one of two (technically four) locations, and one can affect the others (this is not really a design decision and suggestions and PRs are welcome).
+The configuration file will be chosen at runtime from one of two (technically four) locations.
 
 First, and the most precise way, is to specify the config file by passing `--config-path="..."` to any zef command.
 

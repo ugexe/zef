@@ -311,7 +311,17 @@ package Zef::CLI {
 
     proto MAIN(|) is export {
         # Suppress backtrace
-        CATCH { default { try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! .message.&note; &*EXIT(1) } }
+        CATCH { default { try { ::("Rakudo::Internals").?LL-EXCEPTION } ?? .rethrow !! .message.&
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        ; &*EXIT(1) } }
         {*}
     }
 
@@ -1022,7 +1032,7 @@ package Zef::CLI {
     }
 
     multi sub MAIN(Bool :h(:help($))) {
-        note qq:to/END_USAGE/
+        say qq:to/END_USAGE/
             Zef - Raku Module Management
 
             USAGE

@@ -101,7 +101,7 @@ module Zef::Utils::SystemQuery {
                         unless defined($value) && ($data{$idx}{$value}:exists);
                     return system-collapse($data{$idx}{$value});
                 }
-                when /^'by-' (distro|kernel|perl|vm)/ {
+                when /^'by-' (distro|kernel|perl|raku|vm)/ {
                     my $query-source = do given $/[0] {
                         when 'distro' { $*DISTRO }
                         when 'kernel' { $*KERNEL }

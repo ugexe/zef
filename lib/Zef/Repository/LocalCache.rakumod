@@ -118,7 +118,7 @@ class Zef::Repository::LocalCache does PackageRepository {
     #| Method to allow self.store() call the equivalent of self.update() without infinite recursion
     method !update(--> Bool:D) {
         # $.cache/level1/level2/ # dirs containing dist files
-        my @dirs    = $!cache.IO.dir.grep(*.d).map(*.dir.Slip).grep(*.d);
+        my @dirs    = $!cache.IO.dir.grep(*.d).map(*.dir).flat.grep(*.d);
         my @dists   = grep { .defined }, map { try Zef::Distribution::Local.new($_) }, @dirs;
         my $content = join "\n", @dists.map: { join "\0", (.identity, .path) }
         so $content ?? self!spurt-package-list($content) !! False;
@@ -129,7 +129,7 @@ class Zef::Repository::LocalCache does PackageRepository {
         return Nil unless @identities || %fields;
 
         my %specs = @identities.map: { $_ => Zef::Distribution::DependencySpecification.new($_) }
-        my @raku-specs = %specs.classify({ .value.from-matcher })<Raku Perl6>.map(*.Slip);
+        my @raku-specs = %specs.classify({ .value.from-matcher })<Raku Perl6>.map(*.List).flat;
         my @searchable-identities = @raku-specs.grep(*.defined).hash.keys;
         return Nil unless @searchable-identities;
 
@@ -139,8 +139,11 @@ class Zef::Repository::LocalCache does PackageRepository {
         my $grouped-results := @searchable-identities.map: -> $searchable-identity {
             my $wanted-spec         := %specs{$searchable-identity};
             my $wanted-short-name   := $wanted-spec.name;
-            my $dists-to-search     := $strict ?? (%!short-name-lookup{$wanted-short-name} // Nil).grep(*.so) !! %!short-name-lookup{%!short-name-lookup.keys.grep(*.contains($wanted-short-name))}.map(*.Slip).grep(*.so);
-            my $matching-candidates := $dists-to-search.grep(*.contains-spec($wanted-spec, :$strict)).map({
+            my $dists-to-search     := grep *.so, $strict
+                ?? %!short-name-lookup{$wanted-short-name}.flat
+                !! %!short-name-lookup{%!short-name-lookup.keys.grep(*.contains($wanted-short-name))}.map(*.List).flat;;
+
+            $dists-to-search.grep(*.contains-spec($wanted-spec, :$strict)).map({
                 Candidate.new(
                     dist => $_,
                     uri  => ($_.source-url || $_.meta<support><source> || Str),
@@ -148,11 +151,10 @@ class Zef::Repository::LocalCache does PackageRepository {
                     from => self.id,
                 );
             });
-            $matching-candidates;
         }
 
         # ((A_Match_1, A_Match_2), (B_Match_1)) -> ( A_Match_1, A_Match_2, B_Match_1)
-        my Candidate @results = $grouped-results.map(*.Slip);
+        my Candidate @results = $grouped-results.flat;
 
         return @results;
     }

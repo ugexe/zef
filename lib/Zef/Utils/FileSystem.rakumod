@@ -170,13 +170,13 @@ module Zef::Utils::FileSystem {
     our sub which(Str $name --> Array[IO::Path]) {
         my $source-paths  := $*SPEC.path.grep(*.?chars).map(*.IO).grep(*.d);
         my $path-guesses  := $source-paths.map({ $_.child($name) });
-        my $possibilities := $path-guesses.map: -> $path {
+        my $possibilities := $path-guesses.map(-> $path {
             ((BEGIN $*DISTRO.is-win)
-                ?? ($path.absolute, %*ENV<PATHEXT>.split(';').map({ $path.absolute ~ $_ }).Slip)
-                !! $path.absolute).Slip
-        }
+                ?? ($path.absolute, %*ENV<PATHEXT>.split(';').map({ $path.absolute ~ $_ }))
+                !! $path.absolute)
+        });
 
-        my IO::Path @results = $possibilities.grep(*.defined).grep(*.IO.f).map(*.IO);
+        my IO::Path @results = $possibilities.flat.grep(*.defined).grep(*.IO.f).map(*.IO);
         return @results;
     }
 }

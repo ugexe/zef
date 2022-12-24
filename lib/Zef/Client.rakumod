@@ -1131,7 +1131,7 @@ class Zef::Client {
         @ = @linked.map: -> $candi { # can probably use rotor instead of doing the `@a[$index + 1..*]` dance
             my @direct-includes    = $candi.dist.metainfo<includes>.grep(*.so);
             my @recursive-includes = try @linked[(++$)..*]\
-                .map(*.dist.metainfo<includes>).flatmap(*.flat);
+                .map(*.dist.metainfo<includes>).map(*.flat);
             my @unique-includes    = unique(@direct-includes, @recursive-includes);
             my Str @results        = @unique-includes.grep(*.so);
             $candi.dist.metainfo<includes> = @results;
@@ -1145,7 +1145,7 @@ class Zef::Client {
         #   - Bar::YYY -> -I/Foo/XXX -I/Bar/YYY -I/Baz/ZZZ
         #   - Baz::ZZZ -> -I/Foo/XXX -I/Bar/YYY -I/Baz/ZZZ
         my @linked = self.link-candidates(@candidates);
-        @ = @linked.map(*.dist.metainfo<includes>).flatmap(*.flat).unique;
+        @ = @linked.map(*.dist.metainfo<includes>).map(*.flat).unique;
     }
     multi method link-candidates(*@candidates) {
         # Default

@@ -804,7 +804,7 @@ package Zef::CLI {
     multi sub MAIN('info', $identity, :$update, Int :$wrap = False) {
         my $client = get-client(:config($CONFIG), :$update);
         my $latest-installed-candi = $client.resolve($identity).head;
-        my @remote-candis = $client.search($identity, :strict, :max-results(1));
+        my @remote-candis = $client.find-candidates($identity, :strict);
         abort "!!!> Found no candidates matching identity: {$identity}"
             unless $latest-installed-candi || +@remote-candis;
 

@@ -974,7 +974,7 @@ package Zef::CLI {
         my $client  = get-client(:config($CONFIG), :update(@names || Bool::True));
 
         if $verbosity >= VERBOSE {
-            my $plugins := $client.recommendation-manager.plugins(|@names).map(*.Slip).grep(*.defined);
+            my $plugins := $client.recommendation-manager.plugins(|@names).map(*.List).flat.grep(*.defined);
             my $rows    := $plugins.map({ [.id, .available.elems] });
             print-table( [["Content Storage", "Distribution Count"], |$rows], wrap => True );
         }

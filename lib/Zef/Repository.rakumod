@@ -134,12 +134,12 @@ class Zef::Repository does PackageRepository does Pluggable {
         my @unsorted-candis = eager gather GROUP: for self.plugins -> @repo-group {
             my @look-for = %searchable.grep(*.value).hash.keys.sort;
 
-            my @group-results = @repo-group.hyper(:batch(1)).map: -> $repo {
+            my $group-results := @repo-group.hyper(:batch(1)).map: -> $repo {
                 my @search-for = $repo.id eq 'Zef::Repository::LocalCache' ?? @identities !! @look-for;
-                $repo.search(@search-for, :strict).Slip;
+                $repo.search(@search-for, :strict);
             }
 
-            for @group-results -> $dist {
+            for $group-results.flat -> $dist {
                 %searchable{$dist.as} = 0;
                 take $dist;
             }            
@@ -172,12 +172,10 @@ class Zef::Repository does PackageRepository does Pluggable {
         my @searchable = @identities.grep({ not $_.starts-with("." | "/") });
 
         my @unsorted-candis = eager gather GROUP: for self.plugins -> @repo-group {
-            my @group-results = @repo-group.hyper(:batch(1)).map: -> $repo {
-                $repo.search(@searchable, :$strict).Slip;
+            my $group-results := @repo-group.hyper(:batch(1)).map: -> $repo {
+                $repo.search(@searchable, :$strict);
             }
-            if @group-results.elems {
-                take $_ for @group-results;
-            }
+            take $_ for $group-results.map(*.List).flat;
         }
 
         my Candidate @results = @unsorted-candis;
@@ -186,19 +184,19 @@ class Zef::Repository does PackageRepository does Pluggable {
 
     #| Call 'store' on any Repository that provides that interface (by default just 'cached')
     method store(*@dists --> Nil) {
-        for self.plugins.map(*.Slip).grep(*.^can('store')) -> $storage {
+        for self.plugins.map(*.List).flat.grep(*.^can('store')) -> $storage {
             $storage.?store(@dists);
         }
     }
 
     #| Get all candidates/distributions from each backend
     method available(*@plugins --> Array[Candidate]) {
-        my @can-available = self.plugins(@plugins).map(*.Slip).grep: -> $plugin {
+        my @can-available = self.plugins(@plugins).map(*.List).flat.grep: -> $plugin {
             note "Plugin '{$plugin.short-name}' does not support `.available` -- Skipping" unless $plugin.can('available'); # UNDO doesn't work here yet
             $plugin.can('available');
         }
 
-        my @available = @can-available.hyper(:batch(1)).map({ $_.available.Slip });
+        my @available = @can-available.hyper(:batch(1)).map({ $_.available }).flat;
 
         my Candidate @results = @available;
         return @results;
@@ -206,7 +204,7 @@ class Zef::Repository does PackageRepository does Pluggable {
 
     #| Update each Repository / backend
     method update(*@plugins --> Nil) {
-        my @can-update = self.plugins(@plugins).grep: -> $plugin {
+        my @can-update = self.plugins(@plugins).map(*.List).flat.grep: -> $plugin {
             note "Plugin '{$plugin.short-name}' does not support `.update` -- Skipping" unless $plugin.can('update'); # UNDO doesn't work here yet
             $plugin.can('update');
         }

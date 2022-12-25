@@ -154,7 +154,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     method !new-depends($type) {
         return Empty unless $.depends ~~ Hash;
         $!new-depends-cache := system-collapse($.depends) unless $!new-depends-cache.defined;
-        return system-collapse($.depends){$type}.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.Slip).Slip;
+        return system-collapse($.depends){$type}.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.flat);
     }
     method !depends2specs(*@depends --> Array[DependencySpecification]) {
         my $depends := @depends.map({$_ ~~ List ?? $_.Slip !! $_ }).grep(*.defined);
@@ -192,7 +192,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
             my $spec = Zef::Distribution::DependencySpecification.new(self!long-name(.key));
             next unless defined($spec.name);
             $spec;
-        }).grep(*.defined).Slip;
+        }).grep(*.defined).flat;
         return @!provides-specs := @provides-specs;
     }
 

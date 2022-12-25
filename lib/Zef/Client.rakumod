@@ -332,7 +332,8 @@ class Zef::Client {
         @!ignore = CompUnit::RepositoryRegistry
                     .repository-for-name('core')
                     .candidates('CORE')
-                    .map(*.meta<provides>.keys.Slip)
+                    .map(*.meta<provides>.keys)
+                    .flat
                     .unique
                     .map({ Zef::Distribution::DependencySpecification.new($_) })
         ;
@@ -966,7 +967,7 @@ class Zef::Client {
                 # Get the name of the bin scripts
                 my sub bin-names($dist) { $dist.meta<files>.hash.keys.grep(*.starts-with("bin/")).map(*.substr(4)) };
 
-                if @installed-candidates.map(*.dist).map(*.&bin-names.Slip).unique -> @bins {
+                if @installed-candidates.map(*.dist).map(*.&bin-names).flat.unique -> @bins {
                     my $msg = "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins??' ['~@bins~']'!!''} installed to:"
                     ~ "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
                     self.logger.emit({
@@ -1036,10 +1037,10 @@ class Zef::Client {
     #| Return distributions that are direct dependencies of the supplied distributions
     method list-dependencies(*@candis --> Array[DependencySpecification]) {
         my $deps := gather for @candis -> $candi {
-            take $_ for grep *.defined,
-                ($candi.dist.depends-specs       if ?$!depends).Slip,
-                ($candi.dist.test-depends-specs  if ?$!test-depends).Slip,
-                ($candi.dist.build-depends-specs if ?$!build-depends).Slip;
+            take $_ for grep *.defined, flat
+                ($candi.dist.depends-specs       if ?$!depends),
+                ($candi.dist.test-depends-specs  if ?$!test-depends),
+                ($candi.dist.build-depends-specs if ?$!build-depends);
         }
 
         # This returns both Zef::Distribution::DependencySpecification and Zef::Distribution::DependencySpecification::Any

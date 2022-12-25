@@ -142,7 +142,7 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     method new(*%_) { self.bless(|%_, :meta(%_)) }
 
     submethod TWEAK(:%!meta, :@!resources --> Nil) {
-        @!resources = @!resources.flatmap(*.flat);
+        @!resources = @!resources.map(*.flat);
     }
 
     method auth { with $!auth { .Str } else { Nil } }

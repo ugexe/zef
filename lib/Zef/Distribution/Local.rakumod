@@ -107,16 +107,12 @@ class Zef::Distribution::Local is Zef::Distribution {
         # in a directory containing the meta file, but for convience we'll do this for files
         return $dir if !$dir || $dir.IO.f;
 
-        # META.info and META6.info are not spec, but are still in use.
         # The windows path size check is for windows symlink wonkiness.
         # "12" is the minimum size required for a valid meta that
         # rakudos internal json parser can understand (and is longer than
         # what the symlink issue noted above usually involves)
-        my $meta-variants = <META6.json META.info META6.info>.map: { $ = $dir.child($_) }
-        my $chosen-meta   = $meta-variants.grep(*.IO.e).first: -> $file {
-            so ($file.e && ($*DISTRO.is-win ?? ((try $file.s) > 12) !! $file.f));
-        } || IO::Path;
-        return $chosen-meta;
+        my $meta-file = $dir.add('META6.json');
+        return $meta-file.IO.e ?? $meta-file !! IO::Path;
     }
 
     #| Get all files in resources/ directory and map them into a hash CURI.install understands.

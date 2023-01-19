@@ -433,6 +433,8 @@ package Zef::CLI {
         # LOCAL PATHS
         abort "The following were recognized as file paths but don't exist as such - {@paths.grep(!*.IO.e)}"
             if +@paths.grep(!*.IO.e);
+        abort "The following were recognized as directory paths but don't contain a META6.json file - {@paths.grep(*.IO.d).grep(!*.IO.add('META6.json').e)}"
+            if +@paths.grep(*.IO.d).grep(!*.IO.add('META6.json').e);
         my (:@wanted-paths, :@skip-paths) := @paths\
             .classify: {$client.is-installed(Zef::Distribution::Local.new($_).identity, :@at) ?? <skip-paths> !! <wanted-paths>}
         say "The following local path candidates are already installed: {@skip-paths.join(', ')}"\
@@ -675,6 +677,8 @@ package Zef::CLI {
 
         abort "The following were recognized as file paths but don't exist as such - {@paths.grep(!*.IO.e)}"
             if +@paths.grep(!*.IO.e);
+        abort "The following were recognized as directory paths but don't contain a META6.json file - {@paths.grep(*.IO.d).grep(!*.IO.add('META6.json').e)}"
+            if +@paths.grep(*.IO.d).grep(!*.IO.add('META6.json').e);
         my @path-candidates = @paths.map(*.&path2candidate);
 
         my @uri-candidates-to-check = $client.fetch( @uris.map({ Candidate.new(:as($_), :uri($_)) }) ) if +@uris;

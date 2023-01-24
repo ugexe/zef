@@ -133,7 +133,6 @@ module Zef::Utils::FileSystem {
             my $from-relpath = $from-file.relative($from-path);
             my $to-file      = IO::Path.new($from-relpath, :CWD($to-path));
             mkdir($to-file.parent) unless $to-file.e;
-            next if $from-file eq $to-file; # copy can deadlock on an older rakudo
             take $to-file if copy($from-file, $to-file);
         }
         return @results;
@@ -153,7 +152,7 @@ module Zef::Utils::FileSystem {
 
         my IO::Path @results = eager gather {
             for @files.sort(*.chars).reverse { take $_ if try unlink($_) }
-            for @dirs\.sort(*.chars).reverse { take $_ if try rmdir($_) }
+            for @dirs.sort(*.chars).reverse { take $_ if try rmdir($_) }
         }
         return @results;
     }

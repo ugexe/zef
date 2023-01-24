@@ -131,7 +131,7 @@ module Zef::Utils::FileSystem {
 
         my IO::Path @results = eager gather for list-paths($from-path, :$d, :$f, :$r, :$dot).sort -> $from-file {
             my $from-relpath = $from-file.relative($from-path);
-            my $to-file      = IO::Path.new($from-relpath, :CWD($to-path));
+            my $to-file      = IO::Path.new($from-relpath, :CWD($to-path)).resolve;
             mkdir($to-file.parent) unless $to-file.e;
             take $to-file if copy($from-file, $to-file);
         }

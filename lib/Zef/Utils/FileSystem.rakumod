@@ -127,7 +127,7 @@ module Zef::Utils::FileSystem {
 
     sub copy-paths(IO() $from-path, IO() $to-path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path]) is export {
         die "{$from-path} does not exists" unless $from-path.IO.e;
-        mkdir($to-path) unless $to-path.e;
+        mkdir($to-path) if $from-path.d && !$to-path.e;
 
         my IO::Path @results = eager gather for list-paths($from-path, :$d, :$f, :$r, :$dot).sort -> $from-file {
             my $from-relpath = $from-file.relative($from-path);

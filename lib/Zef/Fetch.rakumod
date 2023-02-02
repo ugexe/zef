@@ -95,15 +95,20 @@ class Zef::Fetch does Fetcher does Pluggable {
             ~   "You may need to configure one of the following backends, or install its underlying software - [{@report_disabled}]";
         }
 
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        if ?$logger {
+            $stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => FETCH, phase => LIVE, candi => $candi, message => $out }) }
+            $stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => FETCH, phase => LIVE, candi => $candi, message => $err }) }
+        }
+
         my $got := @fetchers.map: -> $fetcher {
             if ?$logger {
                 $logger.emit({ level => DEBUG, stage => FETCH, phase => START, candi => $candi, message => "Fetching $uri with plugin: {$fetcher.^name}" });
-                $fetcher.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => FETCH, phase => LIVE, candi => $candi, message => $out }) }
-                $fetcher.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => FETCH, phase => LIVE, candi => $candi, message => $err }) }
             }
 
             my $ret = lock-file-protect("{$save-to}.lock", -> {
-                my $todo    = start { try $fetcher.fetch($uri, $save-to) };
+                my $todo    = start { try $fetcher.fetch($uri, $save-to, :$stdout, :$stderr) };
                 my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
                 await Promise.anyof: $todo, $time-up;
                 $logger.emit({ level => DEBUG, stage => FETCH, phase => LIVE, candi => $candi, message => "Fetching $uri timed out" })
@@ -115,6 +120,10 @@ class Zef::Fetch does Fetcher does Pluggable {
         }
 
         my IO::Path $result = $got.grep(*.so).map(*.IO).head;
+
+        $stdout.done();
+        $stderr.done();
+
         return $result;
     }
 }

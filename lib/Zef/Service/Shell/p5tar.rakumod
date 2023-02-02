@@ -1,6 +1,6 @@
 use Zef;
 
-class Zef::Service::Shell::p5tar does Extractor does Messenger {
+class Zef::Service::Shell::p5tar does Extractor {
 
     =begin pod
 
@@ -55,9 +55,10 @@ class Zef::Service::Shell::p5tar does Extractor does Messenger {
 
     =head2 method extract
 
-        method extract(IO() $archive-file, IO() $extract-to --> IO::Path)
+        method extract(IO() $archive-file, IO() $extract-to, Supplier :$stdout, Supplier :$stderr --> IO::Path)
 
     Extracts the files in C<$archive-file> to C<$save-to> via a Perl script C<%?RESOURCES{"scripts/perl5tar.pl"}>.
+    A C<Supplier> can be supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     On success it returns the C<IO::Path> where the data was actually extracted to. On failure it returns C<Nil>.
 
@@ -81,7 +82,7 @@ class Zef::Service::Shell::p5tar does Extractor does Messenger {
     }
 
     #| Extract the given $archive-file
-    method extract(IO() $archive-file, IO() $extract-to --> IO::Path) {
+    method extract(IO() $archive-file, IO() $extract-to, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         die "archive file does not exist: {$archive-file.absolute}"
             unless $archive-file.e && $archive-file.f;
         die "target extraction directory {$extract-to.absolute} does not exist and could not be created"

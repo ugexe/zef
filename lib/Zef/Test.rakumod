@@ -99,19 +99,25 @@ class Zef::Test does Tester does Pluggable {
 
         my $tester = $testers.head;
 
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
         if ?$logger {
             $logger.emit({ level => DEBUG, stage => TEST, phase => START, candi => $candi, message => "Testing with plugin: {$tester.^name}" });
-            $tester.stdout.Supply.grep(*.defined).act: -> $out is copy { $logger.emit({ level => VERBOSE, stage => TEST, phase => LIVE, candi => $candi, message => $out }) }
-            $tester.stderr.Supply.grep(*.defined).act: -> $err is copy { $logger.emit({ level => ERROR,   stage => TEST, phase => LIVE, candi => $candi, message => $err }) }
+            $stdout.Supply.grep(*.defined).act: -> $out is copy { $logger.emit({ level => VERBOSE, stage => TEST, phase => LIVE, candi => $candi, message => $out }) }
+            $stderr.Supply.grep(*.defined).act: -> $err is copy { $logger.emit({ level => ERROR,   stage => TEST, phase => LIVE, candi => $candi, message => $err }) }
         }
 
-        my $todo    = start { try $tester.test($path, :@includes) };
+        my $todo    = start { try $tester.test($path, :@includes, :$stdout, :$stderr) };
         my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
         await Promise.anyof: $todo, $time-up;
         $logger.emit({ level => DEBUG, stage => TEST, phase => LIVE, message => "Testing $path timed out" })
             if ?$logger && $time-up.so && $todo.not;
 
         my Bool @results = $todo.so ?? $todo.result !! False;
+
+        $stdout.done();
+        $stderr.done();
+
         return @results;
     }
 }

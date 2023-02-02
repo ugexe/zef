@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Service::Shell::PowerShell;
 
-class Zef::Service::Shell::PowerShell::download is Zef::Service::Shell::PowerShell does Fetcher does Messenger {
+class Zef::Service::Shell::PowerShell::download is Zef::Service::Shell::PowerShell does Fetcher {
 
     =begin pod
 
@@ -55,9 +55,10 @@ class Zef::Service::Shell::PowerShell::download is Zef::Service::Shell::PowerShe
 
     =head2 method fetch
 
-        method fetch(Str() $uri, IO() $save-as --> IO::Path)
+        method fetch(Str() $uri, IO() $save-as, Supplier :$stdout, Supplier :$stderr --> IO::Path)
 
     Fetches the given C<$uri> to C<$save-to> via a PowerShell script C<%?RESOURCES{"scripts/win32http.ps1"}>.
+    A C<Supplier> can be supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     On success it returns the C<IO::Path> where the data was actually saved to. On failure it returns C<Nil>.
 
@@ -73,7 +74,7 @@ class Zef::Service::Shell::PowerShell::download is Zef::Service::Shell::PowerShe
     }
 
     #| Fetch the given url
-    method fetch(Str() $uri, IO() $save-as --> IO::Path) {
+    method fetch(Str() $uri, IO() $save-as, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         die "target download directory {$save-as.parent} does not exist and could not be created"
             unless $save-as.parent.d || mkdir($save-as.parent);
 

@@ -1,6 +1,6 @@
 use Zef;
 
-class Zef::Service::InstallRakuDistribution does Installer does Messenger {
+class Zef::Service::InstallRakuDistribution does Installer {
 
     =begin pod
 
@@ -17,11 +17,17 @@ class Zef::Service::InstallRakuDistribution does Installer does Messenger {
 
         my $installer = Zef::Service::InstallRakuDistribution.new;
 
+        # Add logging if we want to see output
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        $stdout.Supply.tap: { say $_ };
+        $stderr.Supply.tap: { note $_ };
+
         # Assuming our current directory is a raku distribution
         # with no dependencies or all dependencies already installed...
         my $dist-to-install = Zef::Distribution::Local.new($*CWD);
         my $cur = CompUnit::RepositoryRegistry.repository-for-name("site"); # default install location
-        my $passed = so $installer.install($dist-to-test, :$cur);
+        my $passed = so $installer.install($dist-to-test, :$cur, :$stdout, :$stderr);
         say $passed ?? "PASS" !! "FAIL";
 
     =end code
@@ -52,10 +58,11 @@ class Zef::Service::InstallRakuDistribution does Installer does Messenger {
 
     =head2 method install
     
-        method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force --> Bool:D)
+        method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force, Supplier $stdout, Suppluer :$stderr --> Bool:D)
 
     Install the distribution C<$dist> to the CompUnit::Repository C<$cur>. If C<$force> is C<True>
-    then it will allow reinstalling an already installed distribution.
+    then it will allow reinstalling an already installed distribution. A C<Supplier> can be supplied
+    as C<:$stdout> and C<:$stderr> to receive any output.
 
     Returns C<True> if the install succeeded.
 
@@ -70,7 +77,7 @@ class Zef::Service::InstallRakuDistribution does Installer does Messenger {
 
     #| Install the distribution in $candi.dist to the $cur CompUnit::Repository.
     #| Use :force to install over an existing distribution using the same name/auth/ver/api
-    method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force --> Bool:D) {
+    method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force, Supplier :$stdout, Supplier :$stderr --> Bool:D) {
         $cur.install($dist, :$force);
         return True;
     }

@@ -3,7 +3,7 @@ use Zef;
 # Note: when passing command line arguments to tar in this module be sure to use
 # relative paths. ex: set :cwd to $tar-file.parent, and use $tar-file.basename as the target
 # This is because gnu tar on windows can't handle a windows style volume in path arguments
-class Zef::Service::Shell::tar does Extractor does Messenger {
+class Zef::Service::Shell::tar does Extractor {
 
     =begin pod
 
@@ -57,9 +57,10 @@ class Zef::Service::Shell::tar does Extractor does Messenger {
 
     =head2 method extract
 
-        method extract(IO() $archive-file, IO() $extract-to --> IO::Path)
+        method extract(IO() $archive-file, IO() $extract-to, Supplier :$stdout, Supplier :$stderr --> IO::Path)
 
-    Extracts the files in C<$archive-file> to C<$save-to> via the C<tar> command.
+    Extracts the files in C<$archive-file> to C<$save-to> via the C<tar> command. A C<Supplier> can be supplied
+    as C<:$stdout> and C<:$stderr> to receive any output.
 
     On success it returns the C<IO::Path> where the data was actually extracted to. On failure it returns C<Nil>.
 
@@ -83,7 +84,7 @@ class Zef::Service::Shell::tar does Extractor does Messenger {
     }
 
     #| Extract the given $archive-file
-    method extract(IO() $archive-file, IO() $extract-to --> IO::Path) {
+    method extract(IO() $archive-file, IO() $extract-to, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         die "archive file does not exist: {$archive-file.absolute}"
             unless $archive-file.e && $archive-file.f;
         die "target extraction directory {$extract-to.absolute} does not exist and could not be created"

@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Utils::URI;
 
-class Zef::Service::Shell::git does Fetcher does Extractor does Probeable does Messenger {
+class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
 
     =begin pod
 
@@ -69,17 +69,19 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable does M
 
     =head2 method fetch
 
-        method fetch(Str() $uri, IO() $save-to --> IO::Path)
+        method fetch(Str() $uri, IO() $save-to, Supplier :$stdout, Supplier :$stderr --> IO::Path)
 
     Fetches the given C<$uri> via C<git clone $uri $save-to>, or via C<git pull> if C<$save-to> is an existing git repo.
+    A C<Supplier> can be supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     On success it returns the C<IO::Path> where the data was actually saved to. On failure it returns C<Nil>.
 
     =head2 method extract
 
-        method extract(IO() $repo-path, IO() $extract-to)
+        method extract(IO() $repo-path, IO() $extract-to, Supplier :$stdout, Supplier :$stderr)
 
-    Extracts the given C<$repo-path> from the file system to C<$save-to> via C<git checkout ...>.
+    Extracts the given C<$repo-path> from the file system to C<$save-to> via C<git checkout ...>. A C<Supplier> can
+    be supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     On success it returns the C<IO::Path> where the data was actually extracted to. On failure it returns C<Nil>.
 
@@ -118,13 +120,13 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable does M
 
     #| Fetch the given url.
     #| First attempts to clone the repository, but if it already exists (or fails) it attempts to pull down new changes
-    method fetch(Str() $uri, IO() $save-as --> IO::Path) {
+    method fetch(Str() $uri, IO() $save-as, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         return self!clone(self!repo-url($uri), $save-as) || self!pull($save-as);
     }
 
     #| Extracts the given path.
     #| For a git repo extraction is equivalent to checking out a specific revision and copying it to separate location
-    method extract(IO() $repo-path, IO() $extract-to) {
+    method extract(IO() $repo-path, IO() $extract-to, Supplier :$stdout, Supplier :$stderr) {
         die "target repo directory {$repo-path.absolute} does not contain a .git/ folder"
             unless $repo-path.child('.git').d;
 

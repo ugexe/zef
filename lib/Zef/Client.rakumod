@@ -616,19 +616,6 @@ class Zef::Client {
             else {
                 try { delete-paths($tmp) }
 
-                # Remove this when META.info support can finally be removed
-                if !$meta6-prefix and my $meta-info = $extracted-to.IO.add('META.info') and $meta-info.e {
-                    self.logger.emit({
-                        level   => WARN,
-                        stage   => EXTRACT,
-                        phase   => AFTER,
-                        candi   => $candi,
-                        message => "Extraction: Failed to find a META6.json file for {$candi.dist.?identity // $candi.as} -- creating it from deprecated META.info file",
-                    });
-
-                    try { $meta-info.copy($meta-info.parent.add('META6.json')) }
-                }
-
                 self.logger.emit({
                     level   => VERBOSE,
                     stage   => EXTRACT,

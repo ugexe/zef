@@ -86,7 +86,6 @@ jobs:
   test-linux:
     <<: *linux
     environment:
-      ZEF_PLUGIN_DEBUG: 1
       ZEF_BUILDPM_DEBUG: 1
       PATH: /home/circleci/rakudo/install/share/perl6/site/bin:/home/circleci/rakudo/install/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     steps:
@@ -97,7 +96,6 @@ jobs:
   #test-macos:
   #  <<: *macos
   #  environment:
-  #    ZEF_PLUGIN_DEBUG: 1
   #    ZEF_BUILDPM_DEBUG: 1
   #    PATH: /Users/circleci/rakudo/install/share/perl6/site/bin:/Users/circleci/rakudo/install/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
   #  steps:

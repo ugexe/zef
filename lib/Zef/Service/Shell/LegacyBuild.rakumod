@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Distribution::Local;
 
-class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
+class Zef::Service::Shell::LegacyBuild does Builder {
 
     =begin pod
 
@@ -19,15 +19,17 @@ class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
         my $builder = Zef::Service::Shell::LegacyBuild.new;
 
         # Add logging if we want to see output
-        $builder.stdout.Supply.tap: { say $_ };
-        $builder.stderr.Supply.tap: { note $_ };
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        $stdout.Supply.tap: { say $_ };
+        $stderr.Supply.tap: { note $_ };
 
         # Assuming our current directory is a raku distribution with a
         # Build.rakumod and has no dependencies (or all dependencies
         # already installed)...
         my $dist-to-build = Zef::Distribution::Local.new($*CWD);
         my Str @includes = $*CWD.absolute;
-        my $built-ok = so $builder.build($dist-to-build, :@includes);
+        my $built-ok = so $builder.build($dist-to-build, :@includes, :$stdout, :$stderr);
         say $built-ok ?? "OK" !! "Something went wrong";
 
     =end code
@@ -58,10 +60,11 @@ class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
 
     =head2 method build
 
-        method build(Zef::Distribution::Local $dist, Str :@includes --> Bool:D)
+        method build(Zef::Distribution::Local $dist, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D)
 
     Launch the e.g. C<Build.rakumod> module in the root directory of an extracted C<$dist> using the provided C<@includes>
     (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<raku> command (essentially doing C<::(Build).new.build($dist-dir)>).
+    A C<Supplier> can be supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     Returns C<True> if the C<raku> process spawned to run the build module exits 0.
 
@@ -78,21 +81,21 @@ class Zef::Service::Shell::LegacyBuild does Builder does Messenger {
     method build-matcher(Zef::Distribution::Local $dist --> Bool:D) { return so self!guess-build-file($dist.path) }
 
     #| Run the Build.rakumod of the given distribution
-    method build(Zef::Distribution::Local $dist, Str :@includes --> Bool:D) {
+    method build(Zef::Distribution::Local $dist, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D) {
         die "path does not exist: {$dist.path}" unless $dist.path.IO.e;
 
         my $build-file = self!guess-build-file($dist.path).absolute;
         my $cmd        = "require '$build-file'; ::('Build').new.build('$dist.path.IO.absolute()') ?? exit(0) !! exit(1);";
         my @exec       = |($*EXECUTABLE.absolute, |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
 
-        $.stdout.emit("Command: {@exec.join(' ')}");
+        $stdout.emit("Command: {@exec.join(' ')}");
 
         my $ENV := %*ENV;
         my $passed;
         react {
             my $proc = Zef::zrun-async(@exec);
-            whenever $proc.stdout.lines { $.stdout.emit($_) }
-            whenever $proc.stderr.lines { $.stderr.emit($_) }
+            whenever $proc.stdout.lines { $stdout.emit($_) }
+            whenever $proc.stderr.lines { $stderr.emit($_) }
             whenever $proc.start(:$ENV, :cwd($dist.path)) { $passed = $_.so }
         }
         return $passed;

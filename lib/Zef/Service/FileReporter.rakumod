@@ -1,6 +1,6 @@
 use Zef;
 
-class Zef::Service::FileReporter does Messenger does Reporter {
+class Zef::Service::FileReporter does Reporter {
 
     =begin pod
 
@@ -19,13 +19,15 @@ class Zef::Service::FileReporter does Messenger does Reporter {
         my $reporter = Zef::Service::FileReporter.new;
 
         # Add logging if we want to see output
-        $reporter.stdout.Supply.tap: { say $_ };
-        $reporter.stderr.Supply.tap: { note $_ };
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        $stdout.Supply.tap: { say $_ };
+        $stderr.Supply.tap: { note $_ };
 
         # Assuming our current directory is a raku distribution
         my $dist = Zef::Distribution::Local.new($*CWD);
         my $candidate = Candidate.new(:$dist);
-        my $reported = so $reporter.report($candidate);
+        my $reported = so $reporter.report($candidate, :$stdout, :$stderr);
         say $reported ?? "Report Success" !! "Report Failure";
 
     =end code
@@ -47,10 +49,11 @@ class Zef::Service::FileReporter does Messenger does Reporter {
 
     =head2 method report
 
-        method report(Candidate $candi --> Bool:D)
+        method report(Candidate $candi, Supplier $stdout, Supplier $stderr --> Bool:D)
 
     Given C<$candi> it will save various information including the distribution meta data, system information,
-    if the tests passed, and (in the future, so nyi) test output.
+    if the tests passed, and (in the future, so nyi) test output. A C<Supplier> can be supplied as C<:$stdout>
+    and C<:$stderr> to receive any output.
 
     Returns C<True> if the report data was saved successfully.
 
@@ -59,7 +62,7 @@ class Zef::Service::FileReporter does Messenger does Reporter {
 
     method probe(--> Bool:D) { return True }
 
-    method report(Candidate $candi) {
+    method report(Candidate $candi, Supplier :$stdout, Supplier :$stderr) {
         my $report-json = Zef::to-json(:pretty, {
             :name($candi.dist.name),
             :version(first *.defined, $candi.dist.meta<ver version>),
@@ -111,14 +114,14 @@ class Zef::Service::FileReporter does Messenger does Reporter {
         try {
             CATCH {
                 default {
-                    $.stderr.emit("Encountered problems sending test report for {$candi.dist.identity}");
+                    $stderr.emit("Encountered problems sending test report for {$candi.dist.identity}");
                     return False;
                 }
             }
 
             $out-file.spurt: $report-json;
 
-            $.stdout.emit("Report for {$candi.dist.identity} will be available at {$out-file.absolute}");
+            $stdout.emit("Report for {$candi.dist.identity} will be available at {$out-file.absolute}");
         }
 
         return $out-file.e;

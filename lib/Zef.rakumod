@@ -11,15 +11,6 @@ package Zef {
     enum STAGE is export <RESOLVE FETCH EXTRACT FILTER BUILD TEST INSTALL REPORT>;
     enum PHASE is export <BEFORE START LIVE STOP AFTER>;
 
-    # A way to avoid printing everything to make --quiet option more universal between plugins
-    # Need to create a messaging format to include the phase, file, verbosity level, progress,
-    # etc we may or may not display as necessary. It's current usage is not finalized and
-    # any suggestions for this are well taken
-    role Messenger  is export {
-        has $.stdout = Supplier.new;
-        has $.stderr = Supplier.new;
-    }
-
     # Get a resource located at a uri and save it to the local disk
     role Fetcher is export {
         method fetch($uri, $save-as) { ... }
@@ -39,12 +30,12 @@ package Zef {
 
     # test a single file OR all the files in a directory (recursive optional)
     role Tester is export {
-        method test($path, :@includes) { ... }
+        method test($path, :@includes, :$stdout, :$stderr) { ... }
         method test-matcher($path) { ... }
     }
 
     role Builder is export {
-        method build($dist, :@includes) { ... }
+        method build($dist, :@includes, :$stdout, :$stderr) { ... }
         method build-matcher($path) { ... }
     }
 

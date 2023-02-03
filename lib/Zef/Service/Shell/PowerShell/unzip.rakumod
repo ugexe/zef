@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Service::Shell::PowerShell;
 
-class Zef::Service::Shell::PowerShell::unzip is Zef::Service::Shell::PowerShell does Extractor does Messenger {
+class Zef::Service::Shell::PowerShell::unzip is Zef::Service::Shell::PowerShell does Extractor {
 
     =begin pod
 
@@ -31,8 +31,6 @@ class Zef::Service::Shell::PowerShell::unzip is Zef::Service::Shell::PowerShell 
 
     =head1 Description
 
-    C<Extractor> class for handling file based URIs ending in .zip using the C<unzip> command.
-
     C<Extractor> class for handling file based URIs ending in .zip using PowerShell to launch a thin wrapper found
     in C<resources/scripts/win32unzip.ps1>.
 
@@ -58,9 +56,10 @@ class Zef::Service::Shell::PowerShell::unzip is Zef::Service::Shell::PowerShell 
 
     =head2 method extract
 
-        method extract(IO() $archive-file, IO() $extract-to --> IO::Path)
+        method extract(IO() $archive-file, IO() $extract-to, Supplier :$stdout, Supplier :$stderr --> IO::Path)
 
     Extracts the files in C<$archive-file> to C<$save-to> via a PowerShell script C<%?RESOURCES{"scripts/win32unzip.ps1"}>.
+    A C<Supplier> can be supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     On success it returns the C<IO::Path> where the data was actually extracted to. On failure it returns C<Nil>.
 
@@ -82,7 +81,7 @@ class Zef::Service::Shell::PowerShell::unzip is Zef::Service::Shell::PowerShell 
     }
 
     # Extract the given $archive-file
-    method extract(IO() $archive-file, IO() $extract-to --> IO::Path) {
+    method extract(IO() $archive-file, IO() $extract-to, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         die "archive file does not exist: {$archive-file.absolute}"
             unless $archive-file.e && $archive-file.f;
         die "target extraction directory {$extract-to.absolute} does not exist and could not be created"

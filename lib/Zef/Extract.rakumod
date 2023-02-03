@@ -114,15 +114,20 @@ class Zef::Extract does Extractor does Pluggable {
         die "Can't extract non-existent path: {$path}" unless $path.IO.e;
         die "Can't extract to non-existent path: {$extract-to}" unless $extract-to.e || $extract-to.mkdir;
 
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        if ?$logger {
+            $stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, candi => $candi, message => $out }) }
+            $stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, candi => $candi, message => $err }) }
+        }
+
         my $extractors = self!extractors($path).map(-> $extractor {
             if ?$logger {
                 $logger.emit({ level => DEBUG, stage => EXTRACT, phase => START, candi => $candi, message => "Extracting with plugin: {$extractor.^name}" });
-                $extractor.stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, candi => $candi, message => $out }) }
-                $extractor.stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, candi => $candi, message => $err }) }
             }
 
             my $out = lock-file-protect("{$extract-to}.lock", -> {
-                my $todo    = start { try $extractor.extract($path, $extract-to) };
+                my $todo    = start { try $extractor.extract($path, $extract-to, :$stdout, :$stderr) };
                 my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
                 await Promise.anyof: $todo, $time-up;
                 $logger.emit({ level => DEBUG, stage => EXTRACT, phase => LIVE, candi => $candi, message => "Extracting $path timed out" })
@@ -140,6 +145,10 @@ class Zef::Extract does Extractor does Pluggable {
                 if ?$logger && !(.value.defined && .value.IO.e);
             .value.defined && .value.IO.e;
         }).map(*.value).head;
+
+        $stdout.done();
+        $stderr.done();
+
         die "something went wrong extracting {$path} to {$extract-to} with {$.plugins.join(',')}" unless $extracted-to.so && $extracted-to.IO.e;
 
         my IO::Path $result = $extracted-to.IO;

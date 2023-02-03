@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Utils::FileSystem;
 
-class Zef::Service::TAP does Tester does Messenger {
+class Zef::Service::TAP does Tester {
 
     =begin pod
 
@@ -19,14 +19,16 @@ class Zef::Service::TAP does Tester does Messenger {
         my $tap = Zef::Service::TAP.new;
 
         # Add logging if we want to see output
-        $tap.stdout.Supply.tap: { say $_ };
-        $tap.stderr.Supply.tap: { note $_ };
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        $stdout.Supply.tap: { say $_ };
+        $stderr.Supply.tap: { note $_ };
 
         # Assuming our current directory is a raku distribution
         # with no dependencies or all dependencies already installed...
         my $dist-to-test = $*CWD;
         my Str @includes = $*CWD.absolute;
-        my $passed = so $tap.test($dist-to-test, :@includes);
+        my $passed = so $tap.test($dist-to-test, :@includes, :$stdout, :$stderr);
         say $passed ?? "PASS" !! "FAIL";
 
     =end code
@@ -57,10 +59,11 @@ class Zef::Service::TAP does Tester does Messenger {
 
     =head2 method test
 
-        method test(IO() $path, Str :@includes --> Bool:D)
+        method test(IO() $path, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D)
 
     Test the files ending in C<.rakutest> C<.t6> or C<.t> in the C<t/> directory of the given C<$path> using the
-    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<TAP> raku module.
+    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<TAP> raku module. A C<Supplier> can be
+    supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     Returns C<True> if there were no failed tests and no errors according to C<TAP>.
 
@@ -84,7 +87,7 @@ class Zef::Service::TAP does Tester does Messenger {
     method test-matcher(Str() $uri --> Bool:D) { return $uri.IO.e }
 
     #| Test the given paths t/ directory using any provided @includes
-    method test(IO() $path, Str :@includes --> Bool:D) {
+    method test(IO() $path, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D) {
         die "path does not exist: {$path}" unless $path.e;
 
         my $test-path = $path.child('t');
@@ -101,8 +104,8 @@ class Zef::Service::TAP does Tester does Messenger {
             my $promise  = $parser.run(
                 @test-files.map(*.relative($path)),
                 :cwd($path),
-                :out($.stdout),
-                :err($.stderr),
+                :out($stdout),
+                :err($stderr),
             );
             $promise.result;
         }

@@ -1,6 +1,6 @@
 use Zef;
 
-class Zef::Service::Shell::prove does Tester does Messenger {
+class Zef::Service::Shell::prove does Tester {
 
     =begin pod
 
@@ -18,14 +18,16 @@ class Zef::Service::Shell::prove does Tester does Messenger {
         my $prove = Zef::Service::Shell::prove.new;
 
         # Add logging if we want to see output
-        $prove.stdout.Supply.tap: { say $_ };
-        $prove.stderr.Supply.tap: { note $_ };
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        $stdout.Supply.tap: { say $_ };
+        $stderr.Supply.tap: { note $_ };
 
         # Assuming our current directory is a raku distribution
         # with no dependencies or all dependencies already installed...
         my $dist-to-test = $*CWD;
         my Str @includes = $*CWD.absolute;
-        my $passed = so $prove.test($dist-to-test, :@includes);
+        my $passed = so $prove.test($dist-to-test, :@includes, :$stdout, :$stderr);
         say $passed ?? "PASS" !! "FAIL";
 
     =end code
@@ -56,10 +58,11 @@ class Zef::Service::Shell::prove does Tester does Messenger {
 
     =head2 method test
 
-        method test(IO() $path, Str :@includes --> Bool:D)
+        method test(IO() $path, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D)
 
     Test the files ending in C<.rakutest> C<.t6> or C<.t> in the C<t/> directory of the given C<$path> using the
-    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<prove> command.
+    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<prove> command. A C<Supplier> can be
+    supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     Returns C<True> if all tests passed according to C<prove>.
 
@@ -101,7 +104,7 @@ class Zef::Service::Shell::prove does Tester does Messenger {
     method test-matcher(Str() $uri --> Bool:D) { return $uri.IO.e }
 
     #| Test the given paths t/ directory using any provided @includes
-    method test(IO() $path, Str :@includes --> Bool:D) {
+    method test(IO() $path, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D) {
         die "cannot test path that does not exist: {$path}" unless $path.e;
         my $test-path = $path.child('t');
         return True unless $test-path.e;
@@ -130,8 +133,8 @@ class Zef::Service::Shell::prove does Tester does Messenger {
                 !! Proc::Async.new('prove', |@args, '-e',
                     $*EXECUTABLE.absolute,
                     $test-path-relative);
-            whenever $proc.stdout.lines { $.stdout.emit($_) }
-            whenever $proc.stderr.lines { $.stderr.emit($_) }
+            whenever $proc.stdout.lines { $stdout.emit($_) }
+            whenever $proc.stderr.lines { $stderr.emit($_) }
             whenever $proc.start(:%ENV, :cwd($test-path-cwd)) { $passed = $_.so }
         }
         return so $passed;

@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Distribution::Local;
 
-class Zef::Service::Shell::DistributionBuilder does Builder does Messenger {
+class Zef::Service::Shell::DistributionBuilder does Builder {
 
     =begin pod
 
@@ -19,15 +19,17 @@ class Zef::Service::Shell::DistributionBuilder does Builder does Messenger {
         my $builder = Zef::Service::Shell::DistributionBuilder.new;
 
         # Add logging if we want to see output
-        $builder.stdout.Supply.tap: { say $_ };
-        $builder.stderr.Supply.tap: { note $_ };
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        $stdout.Supply.tap: { say $_ };
+        $stderr.Supply.tap: { note $_ };
 
         # Assuming our current directory is a raku distribution with something like
         # `"builder" : "Distribution::Builder::MakeFromJSON"` in its META6.json
         #  and has no dependencies (or all dependencies already installed)...
         my $dist-to-build = Zef::Distribution::Local.new($*CWD);
         my Str @includes = $*CWD.absolute;
-        my $built-ok = so $builder.build($dist-to-build, :@includes);
+        my $built-ok = so $builder.build($dist-to-build, :@includes, :$stdout, :$stderr);
         say $built-ok ?? "OK" !! "Something went wrong";
 
     =end code
@@ -56,11 +58,12 @@ class Zef::Service::Shell::DistributionBuilder does Builder does Messenger {
 
     =head2 method build
 
-        method build(Zef::Distribution::Local $dist, Str :@includes --> Bool:D)
+        method build(Zef::Distribution::Local $dist, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D)
 
     Launches a process to invoke whatever module is in the C<builder> field of the C<$dist> META6.json while passing
     that module the meta data of C<$dist> it is to build (allowing non-spec keys to be used by such modules to allow
-    consumers/authors to supply additional data).
+    consumers/authors to supply additional data). A C<Supplier> can be supplied as C<:$stdout> and C<:$stderr> to receive
+    any output.
 
     See C<Distribution::Builder::MakeFromJSON> in the ecosystem for an example of such a C<builder>, and see C<Inline::Python>
     for an example of a distribution built using such a C<builder>.
@@ -77,7 +80,7 @@ class Zef::Service::Shell::DistributionBuilder does Builder does Messenger {
     method build-matcher(Zef::Distribution::Local $dist) { so $dist.builder }
 
     #| Run the build step of this distribution.
-    method build(Zef::Distribution::Local $dist, Str :@includes --> Bool:D) {
+    method build(Zef::Distribution::Local $dist, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D) {
         die "path does not exist: {$dist.path}" unless $dist.path.IO.e;
 
         # todo: remove this ( and corresponding code in Zef::Distribution.build-depends-specs ) in the near future
@@ -93,14 +96,14 @@ class Zef::Service::Shell::DistributionBuilder does Builder does Messenger {
 
         my @exec = |($*EXECUTABLE.absolute, |@includes.grep(*.defined).map({ "-I{$_}" }), '-MMONKEY-SEE-NO-EVAL', '-e', "$cmd");
 
-        $.stdout.emit("Command: {@exec.join(' ')}");
+        $stdout.emit("Command: {@exec.join(' ')}");
 
         my $ENV := %*ENV;
         my $passed;
         react {
             my $proc = Zef::zrun-async(@exec, :w);
-            whenever $proc.stdout.lines { $.stdout.emit($_) }
-            whenever $proc.stderr.lines { $.stderr.emit($_) }
+            whenever $proc.stdout.lines { $stdout.emit($_) }
+            whenever $proc.stderr.lines { $stderr.emit($_) }
             whenever $proc.start(:$ENV, :cwd($dist.path)) { $passed = $_.so }
             whenever $proc.print($dist.meta.hash.perl) { $proc.close-stdin }
         }

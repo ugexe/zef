@@ -1,6 +1,6 @@
 use Zef;
 
-class Zef::Service::Shell::wget does Fetcher does Probeable does Messenger {
+class Zef::Service::Shell::wget does Fetcher does Probeable {
 
     =begin pod
 
@@ -53,9 +53,10 @@ class Zef::Service::Shell::wget does Fetcher does Probeable does Messenger {
 
     =head2 method fetch
 
-        method fetch(Str() $uri, IO() $save-as --> IO::Path)
+        method fetch(Str() $uri, IO() $save-as, Supplier :$stdout, Supplier :$stderr --> IO::Path)
 
-    Fetches the given C<$uri>, saving it to C<$save-to>.
+    Fetches the given C<$uri>, saving it to C<$save-to>. A C<Supplier> can be supplied as C<:$stdout> and
+    C<:$stderr> to receive any output.
 
     On success it returns the C<IO::Path> where the data was actually saved to. On failure it returns C<Nil>.
 
@@ -73,7 +74,7 @@ class Zef::Service::Shell::wget does Fetcher does Probeable does Messenger {
     }
 
     #| Fetch the given url
-    method fetch(Str() $uri, IO() $save-as --> IO::Path) {
+    method fetch(Str() $uri, IO() $save-as, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         die "target download directory {$save-as.parent} does not exist and could not be created"
             unless $save-as.parent.d || mkdir($save-as.parent);
 

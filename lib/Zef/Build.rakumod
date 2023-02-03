@@ -88,17 +88,23 @@ class Zef::Build does Builder does Pluggable {
         my $builder = self!build-matcher($dist).first(*.so);
         die "No building backend available" unless ?$builder;
 
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+
         if ?$logger {
             $logger.emit({ level => DEBUG, stage => BUILD, phase => START, candi => $candi, message => "Building with plugin: {$builder.^name}" });
-            $builder.stdout.Supply.grep(*.defined).act: -> $out { $logger.emit({ level => VERBOSE, stage => BUILD, phase => LIVE, candi => $candi, message => $out }) }
-            $builder.stderr.Supply.grep(*.defined).act: -> $err { $logger.emit({ level => ERROR,   stage => BUILD, phase => LIVE, candi => $candi, message => $err }) }
+            $stdout.Supply.grep(*.defined).act: -> $out { $logger.emit({ level => VERBOSE, stage => BUILD, phase => LIVE, candi => $candi, message => $out }) }
+            $stderr.Supply.grep(*.defined).act: -> $err { $logger.emit({ level => ERROR,   stage => BUILD, phase => LIVE, candi => $candi, message => $err }) }
         }
 
-        my $todo    = start { try $builder.build($dist, :@includes) };
+        my $todo    = start { try $builder.build($dist, :@includes, :$stdout, :$stderr) };
         my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
         await Promise.anyof: $todo, $time-up;
         $logger.emit({ level => DEBUG, stage => BUILD, phase => LIVE, candi => $candi, message => "Building {$dist.path} timed out" })
             if ?$logger && $time-up.so && $todo.not;
+
+        $stdout.done();
+        $stderr.done();
 
         my Bool @results = $todo.so ?? $todo.result !! False;
         return @results;

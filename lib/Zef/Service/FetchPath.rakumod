@@ -1,7 +1,7 @@
 use Zef;
 use Zef::Utils::FileSystem;
 
-class Zef::Service::FetchPath does Fetcher does Extractor does Messenger {
+class Zef::Service::FetchPath does Fetcher does Extractor {
 
     =begin pod
 
@@ -70,19 +70,20 @@ class Zef::Service::FetchPath does Fetcher does Extractor does Messenger {
 
     =head2 method fetch
 
-        method fetch(IO() $source-path, IO() $save-to --> IO::Path)
+        method fetch(IO() $source-path, IO() $save-to, Supplier :$stdout, Supplier :$stderr --> IO::Path)
 
     Fetches the given C<$source-path> from the file system and copies it to C<$save-to> (+ timestamp if C<$source-path>
-    is a directory) directory.
+    is a directory) directory. A C<Supplier> can be supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     On success it returns the C<IO::Path> where the data was actually saved to (usually a subdirectory under the passed-in
     C<$save-to>). On failure it returns C<Nil>.
 
     =head2 method extract
 
-        method extract(IO() $source-path, IO() $save-to --> IO::Path)
+        method extract(IO() $source-path, IO() $save-to, Supplier :$stdout, Supplier :$stderr --> IO::Path)
 
-    Extracts the given C<$source-path> from the file system and copies it to C<$save-to>.
+    Extracts the given C<$source-path> from the file system and copies it to C<$save-to>. A C<Supplier> can be
+    supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     On success it returns the C<IO::Path> where the data was actually extracted to. On failure it returns C<Nil>.
 
@@ -113,7 +114,7 @@ class Zef::Service::FetchPath does Fetcher does Extractor does Messenger {
     }
 
     #| Fetch (copy) the given source path to the $save-to (+ timestamp if source-path is a directory) directory
-    method fetch(IO() $source-path, IO() $save-to --> IO::Path) {
+    method fetch(IO() $source-path, IO() $save-to, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         return Nil if !$source-path.e;
         return $source-path if $source-path.absolute eq $save-to.absolute; # fakes a fetch
         my $dest-path = $source-path.d ?? $save-to.child("{$source-path.IO.basename}_{time}") !! $save-to;
@@ -125,7 +126,7 @@ class Zef::Service::FetchPath does Fetcher does Extractor does Messenger {
     #| Extract (copy) the files located in $source-path directory to $save-to directory.
     #| This is mostly the same as fetch, and essentially allows the workflow to treat
     #| any uri type (including paths) as if they can be extracted.
-    method extract(IO() $source-path, IO() $save-to --> IO::Path) {
+    method extract(IO() $source-path, IO() $save-to, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         my $extracted-to = $save-to.child($source-path.basename);
         my @extracted = copy-paths($source-path, $extracted-to);
         return +@extracted ?? $extracted-to !! Nil;

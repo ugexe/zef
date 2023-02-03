@@ -127,13 +127,12 @@ module Zef::Utils::FileSystem {
 
     sub copy-paths(IO() $from-path, IO() $to-path, Bool :$d, Bool :$f = True, Bool :$r = True, Bool :$dot --> Array[IO::Path]) is export {
         die "{$from-path} does not exists" unless $from-path.IO.e;
-        mkdir($to-path) unless $to-path.e;
+        mkdir($to-path) if $from-path.d && !$to-path.e;
 
         my IO::Path @results = eager gather for list-paths($from-path, :$d, :$f, :$r, :$dot).sort -> $from-file {
             my $from-relpath = $from-file.relative($from-path);
-            my $to-file      = IO::Path.new($from-relpath, :CWD($to-path));
+            my $to-file      = IO::Path.new($from-relpath, :CWD($to-path)).resolve;
             mkdir($to-file.parent) unless $to-file.e;
-            next if $from-file eq $to-file; # copy can deadlock on an older rakudo
             take $to-file if copy($from-file, $to-file);
         }
         return @results;
@@ -153,7 +152,7 @@ module Zef::Utils::FileSystem {
 
         my IO::Path @results = eager gather {
             for @files.sort(*.chars).reverse { take $_ if try unlink($_) }
-            for @dirs\.sort(*.chars).reverse { take $_ if try rmdir($_) }
+            for @dirs.sort(*.chars).reverse { take $_ if try rmdir($_) }
         }
         return @results;
     }

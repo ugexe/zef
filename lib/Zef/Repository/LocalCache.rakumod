@@ -141,7 +141,7 @@ class Zef::Repository::LocalCache does PackageRepository {
             my $wanted-short-name   := $wanted-spec.name;
             my $dists-to-search     := grep *.so, $strict
                 ?? %!short-name-lookup{$wanted-short-name}.flat
-                !! %!short-name-lookup{%!short-name-lookup.keys.grep(*.contains($wanted-short-name))}.map(*.List).flat;;
+                !! %!short-name-lookup{%!short-name-lookup.keys.grep(*.contains($wanted-short-name, :ignorecase))}.map(*.List).flat;;
 
             $dists-to-search.grep(*.contains-spec($wanted-spec, :$strict)).map({
                 Candidate.new(

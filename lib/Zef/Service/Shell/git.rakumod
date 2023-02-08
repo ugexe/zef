@@ -1,5 +1,5 @@
 use Zef;
-use Zef::Utils::URI;
+use Zef::Utils::URI :internals;
 
 class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
 

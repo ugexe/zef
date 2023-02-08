@@ -4,7 +4,7 @@ use Zef::Config;
 use Zef::Utils::FileSystem;
 use Zef::Identity;
 use Zef::Distribution;
-use Zef::Utils::URI;
+use Zef::Utils::URI :internals;
 use nqp;
 
 package Zef::CLI {

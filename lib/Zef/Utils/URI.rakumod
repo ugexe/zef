@@ -184,4 +184,4 @@ class Zef::Utils::URI {
     }
 }
 
-sub uri(Str() $uri) is export { try Zef::Utils::URI.new($uri) }
+sub uri(Str() $uri) is export(:internals) { try Zef::Utils::URI.new($uri) }

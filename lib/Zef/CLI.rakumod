@@ -304,7 +304,7 @@ package Zef::CLI {
     %*ENV<ZEF_BUILDPM_DEBUG> = $verbosity >= DEBUG;
     %*ENV<HARNESS_VERBOSE> = $verbosity >= DEBUG;
     my $CONFIG    = preprocess-args-config-mutate(@*ARGS);
-    my $VERSION   = try EVAL q[$?DISTRIBUTION.meta<ver version>.first(*.so)];
+    my $VERSION   = BEGIN $?DISTRIBUTION.meta<version>;
 
     # TODO: deprecate usage of --depsonly
     @*ARGS = @*ARGS.map: { $_ eq '--depsonly' ?? '--deps-only' !! $_ }

@@ -69,10 +69,16 @@ class Zef::Service::Shell::unzip does Extractor {
 
     =end pod
 
+    my Lock $probe-lock = Lock.new;
+    my Bool $probe-cache;
 
     #| Return true if the `unzip` command is available to use
     method probe(--> Bool:D) {
-        state $probe = try { Zef::zrun('unzip', '--help', :!out, :!err).so };
+        $probe-lock.protect: {
+            return $probe-cache if $probe-cache.defined;
+            my $probe is default(False) = try so Zef::zrun('unzip', '--help', :!out, :!err);
+            return $probe-cache = $probe;
+        }
     }
 
     #| Return true if this Fetcher understands the given uri/path

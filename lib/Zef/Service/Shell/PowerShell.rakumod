@@ -56,8 +56,15 @@ class Zef::Service::Shell::PowerShell does Probeable {
     #| The invocation to use when launching PowerShell
     has @.ps-invocation = 'powershell', '-NoProfile', '-ExecutionPolicy', 'unrestricted', '-Command';
 
+    my Lock $probe-lock = Lock.new;
+    my Bool $probe-cache;
+
     #| Return true if the powershell command is available
     method probe(--> Bool:D) {
-        state $probe = !$*DISTRO.is-win ?? False !! so try { Zef::zrun('powershell', '-help', :!out, :!err) };
+        $probe-lock.protect: {
+            return $probe-cache if $probe-cache.defined;
+            my $probe is default(False) = !$*DISTRO.is-win ?? False !! try so Zef::zrun('powershell', '-help', :!out, :!err);
+            return $probe-cache = $probe;
+        }
     }
 }

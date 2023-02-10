@@ -69,10 +69,16 @@ class Zef::Service::TAP does Tester {
 
     =end pod
 
+    my Lock $probe-lock = Lock.new;
+    my Bool $probe-cache;
 
     #| Return true if the `TAP` raku module is available
     method probe(--> Bool:D) {
-        state $probe = self!has-correct-tap-version && (try require ::('TAP')) !~~ Nil ?? True !! False;
+        $probe-lock.protect: {
+            return $probe-cache if $probe-cache.defined;
+            my $probe = self!has-correct-tap-version && (try require ::('TAP')) !~~ Nil;
+            return $probe-cache = $probe;
+        }
     }
 
     method !has-correct-tap-version(--> Bool:D) {

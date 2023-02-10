@@ -306,8 +306,15 @@ package Zef::CLI {
     my $CONFIG    = preprocess-args-config-mutate(@*ARGS);
     my $VERSION   = BEGIN $?DISTRIBUTION.meta<version>;
 
-    # TODO: deprecate usage of --depsonly
-    @*ARGS = @*ARGS.map: { $_ eq '--depsonly' ?? '--deps-only' !! $_ }
+    @*ARGS = eager gather for @*ARGS -> $arg {
+        if $arg eq '--depsonly' {
+            note 'DEPRECATED: --depsonly is deprecated, please use --deps-only instead';
+            take '--deps-only'
+        }
+        else {
+            take $arg
+        }
+    }
 
     proto MAIN(|) is export {
         # Suppress backtrace

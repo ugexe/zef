@@ -5,11 +5,6 @@ class Zef::Identity {
     has $.api;
     has $.from;
 
-    method CALL-ME($id) {
-        once { note 'Zef::Identity(...) is deprecated. Use Zef::Identity.new(...) instead' }
-        try self.new(|$id)
-    }
-
     my grammar REQUIRE {
         regex TOP { ^^ <name> [':' <key> <value>]* $$ }
 

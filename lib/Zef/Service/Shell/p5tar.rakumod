@@ -70,10 +70,16 @@ class Zef::Service::Shell::p5tar does Extractor {
 
     =end pod
 
+    my Lock $probe-lock = Lock.new;
+    my Bool $probe-cache;
 
     #| Returns true if the included Perl script can be executed
     method probe(--> Bool:D) {
-        state $probe = try { Zef::zrun('perl', %?RESOURCES<scripts/perl5tar.pl>.IO.absolute, '--help', :!out, :!err).so };
+        $probe-lock.protect: {
+            return $probe-cache if $probe-cache.defined;
+            my $probe is default(False) = try so Zef::zrun('perl', %?RESOURCES<scripts/perl5tar.pl>.IO.absolute, '--help', :!out, :!err);
+            return $probe-cache = $probe;
+        }
     }
 
     #| Return true if this Extractor understands the given uri/path

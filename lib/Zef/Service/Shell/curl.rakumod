@@ -62,10 +62,16 @@ class Zef::Service::Shell::curl does Fetcher does Probeable {
 
     =end pod
 
+    my Lock $probe-lock = Lock.new;
+    my Bool $probe-cache;
 
     #| Return true if the `curl` command is available to use
     method probe(--> Bool:D) {
-        state $probe = try { Zef::zrun('curl', '--help', :!out, :!err).so };
+        $probe-lock.protect: {
+            return $probe-cache if $probe-cache.defined;
+            my $probe is default(False) = try so Zef::zrun('curl', '--help', :!out, :!err);
+            return $probe-cache = $probe;
+        }
     }
 
     #| Return true if this Fetcher understands the given uri/path

@@ -3,7 +3,7 @@
     "raku"          : "6.c",
     "name"          : "zef",
     "api"           : "0",
-    "version"       : "0.16.0",
+    "version"       : "0.16.1",
     "auth"          : "github:ugexe",
     "description"   : "Raku Module Management",
     "license"       : "Artistic-2.0",

@@ -62,6 +62,21 @@ class Zef::Service::Shell::curl does Fetcher does Probeable {
 
     =end pod
 
+    my Str $command-cache;
+    my Lock $command-lock = Lock.new;
+
+    method !command {
+        $command-lock.protect: {
+            return $command-cache if $command-cache.defined;
+            if BEGIN { $*DISTRO.is-win } && try so Zef::zrun('curl.exe', '--help', :!out, :!err) {
+                # When running under powershell we don't want to use the curl Invoke-WebRequest
+                # alias so explicitly add the .exe
+                return $command-cache = 'curl.exe';
+            }
+            return $command-cache = 'curl';
+        }
+    }
+
     my Lock $probe-lock = Lock.new;
     my Bool $probe-cache;
 
@@ -69,7 +84,8 @@ class Zef::Service::Shell::curl does Fetcher does Probeable {
     method probe(--> Bool:D) {
         $probe-lock.protect: {
             return $probe-cache if $probe-cache.defined;
-            my $probe is default(False) = try so Zef::zrun('curl', '--help', :!out, :!err);
+            my $command = self!command();
+            my $probe is default(False) = try so Zef::zrun($command, '--help', :!out, :!err);
             return $probe-cache = $probe;
         }
     }
@@ -88,7 +104,8 @@ class Zef::Service::Shell::curl does Fetcher does Probeable {
         react {
             my $cwd := $save-as.parent;
             my $ENV := %*ENV;
-            my $proc = Zef::zrun-async('curl', '--silent', '-L', '-z', $save-as.absolute, '-o', $save-as.absolute, $uri);
+            my $cmd := self!command();
+            my $proc = Zef::zrun-async($cmd, '--silent', '-L', '-z', $save-as.absolute, '-o', $save-as.absolute, $uri);
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

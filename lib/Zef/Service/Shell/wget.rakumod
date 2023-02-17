@@ -62,14 +62,30 @@ class Zef::Service::Shell::wget does Fetcher does Probeable {
 
     =end pod
 
+    my Str $command-cache;
+    my Lock $command-lock = Lock.new;
+
+    method !command {
+        $command-lock.protect: {
+            return $command-cache if $command-cache.defined;
+            if BEGIN { $*DISTRO.is-win } && try so Zef::zrun('curl.exe', '--help', :!out, :!err) {
+                # When running under powershell we don't want to use the curl Invoke-WebRequest
+                # alias so explicitly add the .exe
+                return $command-cache = 'wget.exe';
+            }
+            return $command-cache = 'wget';
+        }
+    }
+
     my Lock $probe-lock = Lock.new;
     my Bool $probe-cache;
 
-    #} Return true if the `wget` command is available to use
+    #| Return true if the `curl` command is available to use
     method probe(--> Bool:D) {
         $probe-lock.protect: {
             return $probe-cache if $probe-cache.defined;
-            my $probe is default(False) = try so Zef::zrun('wget', '--help', :!out, :!err);
+            my $command = self!command();
+            my $probe is default(False) = try so Zef::zrun($command, '--help', :!out, :!err);
             return $probe-cache = $probe;
         }
     }
@@ -88,7 +104,8 @@ class Zef::Service::Shell::wget does Fetcher does Probeable {
         react {
             my $cwd := $save-as.parent;
             my $ENV := %*ENV;
-            my $proc = Zef::zrun-async('wget', '-P', $cwd, '--quiet', $uri, '-O', $save-as.absolute);
+            my $cmd := self!command();
+            my $proc = Zef::zrun-async($cmd, '-P', $cwd, '--quiet', $uri, '-O', $save-as.absolute);
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

@@ -38,7 +38,6 @@ subtest 'Plugins' => {
     use-ok("Zef::Service::Shell::prove");
     use-ok("Zef::Service::Shell::unzip");
     use-ok("Zef::Service::Shell::tar");
-    use-ok("Zef::Service::Shell::p5tar");
     use-ok("Zef::Service::Shell::curl");
     use-ok("Zef::Service::Shell::git");
     use-ok("Zef::Service::Shell::wget");

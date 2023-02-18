@@ -43,7 +43,6 @@
         "Zef::Service::Shell::prove"        : "lib/Zef/Service/Shell/prove.rakumod",
         "Zef::Service::Shell::unzip"        : "lib/Zef/Service/Shell/unzip.rakumod",
         "Zef::Service::Shell::tar"          : "lib/Zef/Service/Shell/tar.rakumod",
-        "Zef::Service::Shell::p5tar"        : "lib/Zef/Service/Shell/p5tar.rakumod",
         "Zef::Service::Shell::curl"         : "lib/Zef/Service/Shell/curl.rakumod",
         "Zef::Service::Shell::git"          : "lib/Zef/Service/Shell/git.rakumod",
         "Zef::Service::Shell::wget"         : "lib/Zef/Service/Shell/wget.rakumod",
@@ -58,7 +57,6 @@
     },
     "resources" : [
         "config.json",
-        "scripts/perl5tar.pl",
         "scripts/win32http.ps1",
         "scripts/win32unzip.ps1"
     ],

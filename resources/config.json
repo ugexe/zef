@@ -131,10 +131,6 @@
             "module" : "Zef::Service::Shell::tar"
         },
         {
-            "short-name" : "p5tar",
-            "module" : "Zef::Service::Shell::p5tar"
-        },
-        {
             "short-name" : "unzip",
             "module" : "Zef::Service::Shell::unzip"
         },

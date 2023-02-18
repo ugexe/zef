@@ -109,10 +109,6 @@
         {
             "short-name" : "wget",
             "module" : "Zef::Service::Shell::wget"
-        },
-        {
-            "short-name" : "pswebrequest",
-            "module" : "Zef::Service::Shell::PowerShell::download"
         }
     ],
     "Extract" : [

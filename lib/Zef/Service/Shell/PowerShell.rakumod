@@ -33,8 +33,8 @@ class Zef::Service::Shell::PowerShell does Probeable {
     =begin code :lang<json>
 
         {
-            "short-name" : "pswebrequest",
-            "module" : "Zef::Service::Shell::PowerShell::download"
+            "short-name" : "psunzip",
+            "module" : "Zef::Service::Shell::PowerShell::unzip"
             "options" : {
                 "ps-invocation" : ["powershell","-Command"]
             }

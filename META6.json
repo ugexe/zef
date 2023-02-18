@@ -48,7 +48,6 @@
         "Zef::Service::Shell::wget"         : "lib/Zef/Service/Shell/wget.rakumod",
 
         "Zef::Service::Shell::PowerShell"           : "lib/Zef/Service/Shell/PowerShell.rakumod",
-        "Zef::Service::Shell::PowerShell::download" : "lib/Zef/Service/Shell/PowerShell/download.rakumod",
         "Zef::Service::Shell::PowerShell::unzip"    : "lib/Zef/Service/Shell/PowerShell/unzip.rakumod",
 
         "Zef::Utils::FileSystem"  : "lib/Zef/Utils/FileSystem.rakumod",
@@ -57,7 +56,6 @@
     },
     "resources" : [
         "config.json",
-        "scripts/win32http.ps1",
         "scripts/win32unzip.ps1"
     ],
     "authors" : [

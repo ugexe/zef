@@ -178,6 +178,10 @@ package Zef {
             my $class = ::($module).new(|($plugin<options> // []))\
                 but role :: { has $.short-name = $plugin<short-name> // '' };
 
+            # make the class name more human readable for cli output,
+            # i.e. Zef::Service::Shell::curl instead of Zef::Service::Shell::curl+{<anon|1>}
+            $class.^set_name($module);
+
             unless ?$class {
                 DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure");
                 return;

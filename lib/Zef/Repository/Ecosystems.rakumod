@@ -20,7 +20,7 @@ class Zef::Repository::Ecosystems does PackageRepository {
 
         my @fetching_backends = [
             { module => "Zef::Service::Shell::curl" },
-            { module => "Zef::Service::Shell::PowerShell::download" },
+            { module => "Zef::Service::Shell::wget" },
         ];
 
         my @mirrors = 'https://raw.githubusercontent.com/ugexe/Perl6-ecosystems/11efd9077b398df3766eaa7cf8e6a9519f63c272/cpan.json';

@@ -158,15 +158,15 @@ package Zef {
                 return;
             }
 
-            if (try require ::($ = $module)) ~~ Nil {
+            if (try require ::($module)) ~~ Nil {
                 DEBUG($plugin, "\t(SKIP) Plugin could not be loaded");
                 return;
             }
 
             DEBUG($plugin, "\t(OK) Plugin loaded successful");
 
-            if ::($ = $module).^find_method('probe') {
-                unless ::($ = $module).probe {
+            if ::($module).^find_method('probe') {
+                unless ::($module).probe {
                     DEBUG($plugin, "\t(SKIP) Probing failed");
                     return;
                 }
@@ -175,8 +175,12 @@ package Zef {
 
             # add attribute `short-name` here to make filtering by name slightly easier
             # until a more elegant solution can be integrated into plugins themselves
-            my $class = ::($ = $module).new(|($plugin<options> // []))\
+            my $class = ::($module).new(|($plugin<options> // []))\
                 but role :: { has $.short-name = $plugin<short-name> // '' };
+
+            # make the class name more human readable for cli output,
+            # i.e. Zef::Service::Shell::curl instead of Zef::Service::Shell::curl+{<anon|1>}
+            $class.^set_name($module);
 
             unless ?$class {
                 DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure");

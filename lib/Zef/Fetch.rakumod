@@ -20,7 +20,7 @@ class Zef::Fetch does Fetcher does Pluggable {
         my $fetcher = Zef::Fetch.new(
             backends => [
                 { module => "Zef::Service::Shell::curl" },
-                { module => "Zef::Service::Shell::PowerShell::download" },
+                { module => "Zef::Service::Shell::wget" },
             ],
         );
 

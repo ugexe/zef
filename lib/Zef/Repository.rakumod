@@ -18,7 +18,7 @@ class Zef::Repository does PackageRepository does Pluggable {
         # Need a fetcher and cache for the backend repository to fetch and save to 
         my @fetching_backends = [
             { module => "Zef::Service::Shell::curl" },
-            { module => "Zef::Service::Shell::PowerShell::download" },
+            { module => "Zef::Service::Shell::wget" },
         ];
         my $fetcher = Zef::Fetch.new(:backends(@fetching_backends));
         my $cache   = $*TMPDIR.child("{time}") andthen { mkdir $_ unless $_.IO.e };

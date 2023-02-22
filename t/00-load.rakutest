@@ -41,6 +41,4 @@ subtest 'Plugins' => {
     use-ok("Zef::Service::Shell::curl");
     use-ok("Zef::Service::Shell::git");
     use-ok("Zef::Service::Shell::wget");
-    use-ok("Zef::Service::Shell::PowerShell");
-    use-ok("Zef::Service::Shell::PowerShell::unzip");
 }

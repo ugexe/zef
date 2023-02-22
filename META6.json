@@ -47,16 +47,12 @@
         "Zef::Service::Shell::git"          : "lib/Zef/Service/Shell/git.rakumod",
         "Zef::Service::Shell::wget"         : "lib/Zef/Service/Shell/wget.rakumod",
 
-        "Zef::Service::Shell::PowerShell"           : "lib/Zef/Service/Shell/PowerShell.rakumod",
-        "Zef::Service::Shell::PowerShell::unzip"    : "lib/Zef/Service/Shell/PowerShell/unzip.rakumod",
-
         "Zef::Utils::FileSystem"  : "lib/Zef/Utils/FileSystem.rakumod",
         "Zef::Utils::SystemQuery" : "lib/Zef/Utils/SystemQuery.rakumod",
         "Zef::Utils::URI"         : "lib/Zef/Utils/URI.rakumod"
     },
     "resources" : [
-        "config.json",
-        "scripts/win32unzip.ps1"
+        "config.json"
     ],
     "authors" : [
         "Nick Logan",

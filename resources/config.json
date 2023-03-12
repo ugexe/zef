@@ -1,7 +1,7 @@
 {
     "ConfigVersion" : "1",
     "StoreDir" : "$*HOME/.zef/store",
-    "TempDir"  : "$*TMPDIR/.zef",
+    "TempDir"  : "$*TMPDIR/.zef/{time}.{$*PID}",
     "DefaultCUR" : ["auto"],
     "License" : {
         "whitelist" : "*",

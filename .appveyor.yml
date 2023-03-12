@@ -7,7 +7,7 @@ install:
     - '"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat" x86_amd64'
 
     # Workaround for path length errors during precompilation of longer repo names
-    - SET TMPDIR=C:\tmp
+    - SET ZEF_CONFIG_TEMPDIR=C:\tmp
     - cd C:\
     - md tmp
 

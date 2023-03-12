@@ -8,6 +8,8 @@ module Zef::Config {
             if $node.key.ends-with('Dir') {
                 %config{$node.key} = $node.value.subst(/'{$*HOME}' || '$*HOME'/, $*HOME // $*TMPDIR, :g);
                 %config{$node.key} = $node.value.subst(/'{$*TMPDIR}' || '$*TMPDIR'/, $*TMPDIR, :g);
+                %config{$node.key} = $node.value.subst(/'{$*PID}' || '$*PID'/, $*PID, :g);
+                %config{$node.key} = $node.value.subst(/'{time}'/, time, :g);
             }
 
             with %*ENV{sprintf 'ZEF_CONFIG_%s', $node.key.uc} {

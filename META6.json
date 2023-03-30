@@ -60,6 +60,7 @@
     ],
     "support" : {
         "bugtracker" : "https://github.com/ugexe/zef/issues",
+        "irc"        : "ircs://irc.libera.chat:6697/raku-zef",
         "source"     : "https://github.com/ugexe/zef.git"
     },
     "tags"        : [

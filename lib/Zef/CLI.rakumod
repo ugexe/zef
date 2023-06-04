@@ -680,7 +680,7 @@ package Zef::CLI {
                 !! (my $uri = uri($wanted) and !$uri.is-relative) ?? <uris>
                 !! abort("Don't understand identity: {$wanted}");
         }
-        my $client = Zef::Client.new(:config($CONFIG), :$depends, :$test-depends, :$build-depends,);
+        my $client = Zef::Client.new(:config($CONFIG), :$depends, :$test-depends, :$build-depends, :force-resolve);
 
         abort "The following were recognized as file paths but don't exist as such - {@paths.grep(!*.IO.e)}"
             if +@paths.grep(!*.IO.e);
@@ -711,7 +711,7 @@ package Zef::CLI {
         Bool :$test-depends  = True,
         Bool :$build-depends = True,
     ) {
-        my $client = get-client(:config($CONFIG), :$depends, :$test-depends, :$build-depends);
+        my $client = get-client(:config($CONFIG), :$depends, :$test-depends, :$build-depends, :force-resolve);
         .dist.identity.say for $client.list-rev-depends($identity);
         exit 0;
     }

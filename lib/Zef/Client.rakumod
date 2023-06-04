@@ -465,19 +465,39 @@ class Zef::Client {
                         message => "Failed to find dependencies: {@not-found.map(*.identity).join(', ')}",
                     });
 
-                    $!force-resolve
-                        ??  $!logger.emit({
-                                level   => ERROR,
-                                stage   => RESOLVE,
-                                phase   => LIVE,
-                                message => 'Failed to resolve missing dependencies, but continuing with --force-resolve',
+                    if $!force-resolve {
+                        $!logger.emit({
+                            level   => ERROR,
+                            stage   => RESOLVE,
+                            phase   => LIVE,
+                            message => 'Failed to resolve missing dependencies, but continuing with --force-resolve',
+                        });
+
+                        # When using force-resolve we still want to treat the missing dependency as if it exists.
+                        # This is intended to allow `zef depends XXX` to show dependencies for e.g. native dependencies
+                        # where we don't have to worry about not finding their transitive dependencies.
+                        @prereq-candidates.append(
+                            @not-found.map({
+                                Candidate.new(
+                                    as => $_.identity,
+                                    dist => Zef::Distribution.new(
+                                        name => $_.name,
+                                        auth => $_.auth-matcher,
+                                        ver  => $_.version-matcher,
+                                        api  => $_.api-matcher,
+                                    ),
+                                )
                             })
-                        !! die X::Zef::UnsatisfiableDependency.new but role :: {
+                        )
+                    }
+                    else {
+                        die X::Zef::UnsatisfiableDependency.new but role :: {
                             method message {
                                 X::Zef::UnsatisfiableDependency.message ~ qq| (use e.g. --exclude="{@not-found.head.name}" to skip)|;
                             }
                         };
-                };
+                    }
+                }
 
                 @skip.append: @prereq-candidates.map(*.dist);
                 @specs = self.list-dependencies(@prereq-candidates);

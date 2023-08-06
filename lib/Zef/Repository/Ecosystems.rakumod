@@ -56,9 +56,10 @@ class Zef::Repository::Ecosystems does PackageRepository {
 
     =head2 method update
 
-        method update(--> Nil)
+        method update(Supplier :$stdout = Supplier.new, Supplier :$stderr = Supplier.new --> Nil)
 
-    Attempts to update the local file / database using the first of C<@.mirrors> that successfully fetches.
+    Attempts to update the local file / database using the first of C<@.mirrors> that successfully fetches. A C<Supplier> can be
+    supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     =end pod
 
@@ -115,18 +116,18 @@ class Zef::Repository::Ecosystems does PackageRepository {
     #| Iterate over mirrors until we successfully fetch and save one
     #| see role Repository in lib/Zef.rakumod
     has Int $!update-counter; # Keep track if we already did an update during this runtime
-    method update(--> Nil) {
+    method update(Supplier :$stdout = Supplier.new, Supplier :$stderr = Supplier.new --> Nil) {
         $!update-counter++;
 
         $!mirrors.first: -> $uri {
             # TODO: use the logger to send these as events
-            note "===> Updating $!name mirror: $uri";
-            UNDO note "!!!> Failed to update $!name mirror: $uri";
-            KEEP note "===> Updated $!name mirror: $uri";
+            $stderr.emit("===> Updating $!name mirror: $uri");
+            UNDO $stderr.emit("!!!> Failed to update $!name mirror: $uri");
+            KEEP $stderr.emit("===> Updated $!name mirror: $uri");
 
             my $save-as  = $!cache.IO.child($uri.IO.basename);
             my $saved-as = try {
-                CATCH { default { .note; } }
+                CATCH { default { $stderr.emit($_) } }
                 $!fetcher.fetch(Candidate.new(:$uri), $save-as, :timeout(180));
             }
             next unless $saved-as.defined && $saved-as.?chars && $saved-as.IO.e;

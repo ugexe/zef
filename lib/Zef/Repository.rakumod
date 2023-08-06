@@ -112,9 +112,11 @@ class Zef::Repository does PackageRepository does Pluggable {
 
     method update
 
-        method update(*@plugins --> Hash)
+        method update(*@plugins, Supplier :$logger --> Hash)
 
     Updates each ecosystem backend (generally downloading a p6c.json or cpan.json file, or updating the 'cached' index).
+
+    An optional C<:$logger> can be supplied to receive events about what is occurring.
 
     =end pod
 
@@ -203,12 +205,23 @@ class Zef::Repository does PackageRepository does Pluggable {
     }
 
     #| Update each Repository / backend
-    method update(*@plugins --> Nil) {
+    method update(*@plugins, Supplier :$logger --> Nil) {
         my @can-update = self.plugins(@plugins).map(*.List).flat.grep: -> $plugin {
             note "Plugin '{$plugin.short-name}' does not support `.update` -- Skipping" unless $plugin.can('update'); # UNDO doesn't work here yet
             $plugin.can('update');
         }
 
-        @can-update.race(:batch(1)).map({ $_.update });
+        @can-update.race(:batch(1)).map({
+            my $stdout = Supplier.new;
+            my $stderr = Supplier.new;
+            if ?$logger {
+                $stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => RESOLVE, phase => LIVE, message => $out }) }
+                $stderr.Supply.act: -> $err { $logger.emit({ level => ERROR, stage => RESOLVE, phase => LIVE, message => $err }) }
+            }
+
+            $_.update(:$stdout, :$stderr);
+
+            $stderr.done()
+        });
     }
 }

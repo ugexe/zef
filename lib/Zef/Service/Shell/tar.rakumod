@@ -141,7 +141,7 @@ class Zef::Service::Shell::tar does Extractor {
         react {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
-            my $proc = Zef::zrun-async('tar', '--list', '-f', $archive-file.basename);
+            my $proc = Zef::zrun-async('tar', '-t', '-f', $archive-file.basename);
             whenever $proc.stdout(:bin) { $output.append($_) }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

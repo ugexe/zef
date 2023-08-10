@@ -83,7 +83,7 @@ class Zef::Service::Shell::tar does Extractor {
         $probe-lock.protect: {
             return $probe-cache if $probe-cache.defined;
             my $proc = Zef::zrun('tar', '--help', :out, :!err);
-            my $probe is default(False) = try so Zef::zrun('tar', '--help', :out, :!err);
+            my $probe is default(False) = try so $proc;
             @extract-matcher-extensions.push('.zip') if $proc.out.slurp(:close).contains('bsdtar');
             return $probe-cache = $probe;
         }

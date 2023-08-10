@@ -82,6 +82,20 @@ class Zef::Service::Shell::tar does Extractor {
     method probe(--> Bool:D) {
         $probe-lock.protect: {
             return $probe-cache if $probe-cache.defined;
+
+            # OpenBSD tar doesn't have a --help flag so we can't probe
+            # using that, and we need the --help output to detect if
+            # it can support .zip files. So we have a special case to
+            # probe for tar on OpenBSD (which doesn't support .zip).
+            if BEGIN $*VM.osname.lc.contains('openbsd') {
+                # For OpenBSD run just `tar` and see if the output contains
+                # any of the following words (which suggest the command exists)
+                BEGIN my @needles = <archive file specify>;
+                my $proc = Zef::zrun('tar', :!out, :err);
+                my $stderr = $proc.err.slurp(:close).lc;
+                return $probe-cache = any($stderr.words) ~~ any(@needles);
+            }
+
             my $proc = Zef::zrun('tar', '--help', :out, :!err);
             my $probe is default(False) = try so $proc;
             @extract-matcher-extensions.push('.zip') if $proc.out.slurp(:close).contains('bsdtar');
@@ -127,7 +141,7 @@ class Zef::Service::Shell::tar does Extractor {
         react {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
-            my $proc = Zef::zrun-async('tar', '--list', '-f', $archive-file.basename);
+            my $proc = Zef::zrun-async('tar', '-t', '-f', $archive-file.basename);
             whenever $proc.stdout(:bin) { $output.append($_) }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

@@ -1,4 +1,4 @@
-use Test:ver<6.c+>;
+use Test;
 plan 6;
 
 use Zef::Identity;

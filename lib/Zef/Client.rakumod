@@ -1068,7 +1068,7 @@ class Zef::Client {
         my $lib = "'$spec.name()'";
         $lib = "$lib, v$spec.ver()" if $spec.ver;
         try {
-            EVAL qq[use NativeCall:ver<6.c+>; sub native_library_is_installed is native($lib) \{ !!! \}; native_library_is_installed(); ];
+            EVAL qq[use NativeCall; sub native_library_is_installed is native($lib) \{ !!! \}; native_library_is_installed(); ];
             CATCH { default { return False if .payload.starts-with("Cannot locate native library") } }
         }
         return True;

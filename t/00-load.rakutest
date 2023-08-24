@@ -1,4 +1,4 @@
-use Test:ver<6.c+>;
+use Test;
 plan 2;
 
 subtest 'Core' => {

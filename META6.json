@@ -8,8 +8,8 @@
     "description"   : "Raku Module Management",
     "license"       : "Artistic-2.0",
     "build-depends" : [ ],
-    "test-depends"  : [ "Test:ver<6.c+>" ],
-    "depends"       : [ "NativeCall:ver<6.c+>" ],
+    "test-depends"  : [ "Test" ],
+    "depends"       : [ "NativeCall" ],
     "provides"      : {
         "Zef"           : "lib/Zef.rakumod",
         "Zef::Build"    : "lib/Zef/Build.rakumod",

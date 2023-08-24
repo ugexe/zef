@@ -1,4 +1,4 @@
-use Zef;
+use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
 
 class Zef::Test does Tester does Pluggable {
 

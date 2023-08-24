@@ -1,4 +1,4 @@
-package Zef {
+module Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>) {
     our sub zrun(*@_, *%_) is export { run (|@_).grep(*.?chars), |%_ }
     our sub zrun-async(*@_, *%_) is export { Proc::Async.new( (|@_).grep(*.?chars), |%_ ) }
 
@@ -149,8 +149,15 @@ package Zef {
         }
 
         method !try-load(Hash $plugin) {
-            my $module = $plugin<module>;
-            DEBUG($plugin, "Checking: {$module}");
+            use Zef::Identity:auth(Zef.^auth):api(Zef.^api):ver(Zef.^ver);
+            my $identity        = Zef::Identity.new($plugin<module>);
+            my $short-name      = $identity.name;
+            my $plugin-is-core  = so $?DISTRIBUTION.meta<provides>{$short-name}.?chars;
+            my $auth-matcher    = $identity.auth    || do { $plugin-is-core ?? Zef.^auth !! True };
+            my $api-matcher     = $identity.api     || do { $plugin-is-core ?? Zef.^api  !! True };
+            my $version-matcher = $identity.version || do { $plugin-is-core ?? Zef.^ver  !! True };
+            my $dep-spec        = CompUnit::DependencySpecification.new(:$short-name, :$auth-matcher, :$api-matcher, :$version-matcher);
+            DEBUG($plugin, "Checking: {$short-name}");
 
             # default to enabled unless `"enabled" : 0`
             if $plugin<enabled>:exists && (!$plugin<enabled> || $plugin<enabled> eq "0") {
@@ -158,15 +165,15 @@ package Zef {
                 return;
             }
 
-            if (try require ::($module)) ~~ Nil {
+            unless try $*REPO.need($dep-spec) {
                 DEBUG($plugin, "\t(SKIP) Plugin could not be loaded");
                 return;
             }
 
             DEBUG($plugin, "\t(OK) Plugin loaded successful");
 
-            if ::($module).^find_method('probe') {
-                unless ::($module).probe {
+            if ::($short-name).^find_method('probe') {
+                unless ::($short-name).probe {
                     DEBUG($plugin, "\t(SKIP) Probing failed");
                     return;
                 }
@@ -175,19 +182,19 @@ package Zef {
 
             # add attribute `short-name` here to make filtering by name slightly easier
             # until a more elegant solution can be integrated into plugins themselves
-            my $class = ::($module).new(|($plugin<options> // []))\
+            my $class = ::($short-name).new(|($plugin<options> // []))\
                 but role :: { has $.short-name = $plugin<short-name> // '' };
 
             # make the class name more human readable for cli output,
             # i.e. Zef::Service::Shell::curl instead of Zef::Service::Shell::curl+{<anon|1>}
-            $class.^set_name($module);
+            $class.^set_name($short-name);
 
             unless ?$class {
                 DEBUG($plugin, "(SKIP) Plugin unusable: initialization failure");
                 return;
             }
 
-            DEBUG($plugin, "(OK) Plugin is now usable: {$module}");
+            DEBUG($plugin, "(OK) Plugin is now usable: {$short-name}");
             return $class;
         }
     }

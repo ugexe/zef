@@ -1,16 +1,15 @@
-use Zef;
-use Zef::Distribution;
-use Zef::Distribution::Local;
-use Zef::Distribution::DependencySpecification;
-use Zef::Repository;
-use Zef::Utils::FileSystem;
-
-use Zef::Fetch;
-use Zef::Extract;
-use Zef::Build;
-use Zef::Test;
-use Zef::Install;
-use Zef::Report;
+use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef::Distribution:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Distribution::Local:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Distribution::DependencySpecification:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Repository:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Utils::FileSystem:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Fetch:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Extract:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Build:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Test:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Install:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Report:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 
 class Zef::Client {
 

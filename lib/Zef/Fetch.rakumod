@@ -1,5 +1,5 @@
-use Zef;
-use Zef::Utils::FileSystem;
+use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef::Utils::FileSystem:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 
 class Zef::Fetch does Fetcher does Pluggable {
 

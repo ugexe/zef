@@ -89,12 +89,22 @@ class Zef::Service::Shell::DistributionBuilder does Builder {
             ?? "Distribution::Builder::MakeFromJSON"
             !!  "$dist.builder()";
 
+        my $tmp-meta-file = do given $*TMPDIR.child("zef-distribution-builder/") {
+            my $dir = $_.child(Date.today);
+            mkdir $dir;
+            $dir = $dir.child("{time}-{$*PID}-{$*THREAD.id}");
+            mkdir $dir;
+            $dir.child('META6.json').absolute;
+        }
+
+        $tmp-meta-file.IO.spurt(Zef::to-json($dist.meta.hash), :close);
+
         my $cmd = "exit((require ::(q|$dist-builder-compat|)).new("
-                ~ ':meta(EVAL($*IN.slurp(:close)))'
+                ~ ":meta(Distribution::Path.new({$tmp-meta-file.IO.parent.absolute.raku}\.IO).meta.hash)"
                 ~ ").build(q|$dist.path()|)"
                 ~ '??0!!1)';
 
-        my @exec = |($*EXECUTABLE.absolute, |@includes.grep(*.defined).map({ "-I{$_}" }), '-MMONKEY-SEE-NO-EVAL', '-e', "$cmd");
+        my @exec = |($*EXECUTABLE.absolute, |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
 
         $stdout.emit("Command: {@exec.join(' ')}");
 
@@ -105,7 +115,6 @@ class Zef::Service::Shell::DistributionBuilder does Builder {
             whenever $proc.stdout.lines { $stdout.emit($_) }
             whenever $proc.stderr.lines { $stderr.emit($_) }
             whenever $proc.start(:$ENV, :cwd($dist.path)) { $passed = $_.so }
-            whenever $proc.print($dist.meta.hash.perl) { $proc.close-stdin }
         }
         return $passed;
     }

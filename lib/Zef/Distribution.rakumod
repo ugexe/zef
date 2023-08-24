@@ -1,6 +1,6 @@
-use Zef;
-use Zef::Distribution::DependencySpecification;
-use Zef::Utils::SystemQuery;
+use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef::Distribution::DependencySpecification:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Utils::SystemQuery:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 
 class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecification {
 

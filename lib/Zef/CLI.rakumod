@@ -1,10 +1,10 @@
-use Zef;
-use Zef::Client;
-use Zef::Config;
-use Zef::Utils::FileSystem;
-use Zef::Identity;
-use Zef::Distribution;
-use Zef::Utils::URI :internals;
+use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef::Client:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Config:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Utils::FileSystem:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Identity:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Distribution:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Utils::URI:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth) :internals;
 use nqp;
 
 package Zef::CLI {

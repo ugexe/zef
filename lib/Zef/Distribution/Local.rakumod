@@ -1,5 +1,5 @@
-use Zef;
-use Zef::Distribution;
+use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef::Distribution:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 
 class Zef::Distribution::Local is Zef::Distribution {
 

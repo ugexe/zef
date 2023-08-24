@@ -1,7 +1,7 @@
-use Zef;
-use Zef::Utils::FileSystem;
-use Zef::Distribution;
-use Zef::Distribution::DependencySpecification;
+use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef::Distribution::DependencySpecification:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Distribution:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+use Zef::Utils::FileSystem:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 
 class Zef::Repository::Ecosystems does PackageRepository {
 

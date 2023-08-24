@@ -1,4 +1,4 @@
-package Zef {
+module Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>) {
     our sub zrun(*@_, *%_) is export { run (|@_).grep(*.?chars), |%_ }
     our sub zrun-async(*@_, *%_) is export { Proc::Async.new( (|@_).grep(*.?chars), |%_ ) }
 

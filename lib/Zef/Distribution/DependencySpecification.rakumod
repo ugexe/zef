@@ -1,5 +1,5 @@
-use Zef;
-use Zef::Identity;
+use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef::Identity:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 
 role DependencySpecification {
     method name(--> Str) { ... }

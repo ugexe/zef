@@ -1,5 +1,6 @@
-use Zef;
-use Zef::Distribution::Local;
+use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef::Distribution::Local:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
+
 
 class Zef::Service::Shell::LegacyBuild does Builder {
 

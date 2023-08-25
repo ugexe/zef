@@ -152,7 +152,7 @@ module Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth(
             use Zef::Identity:auth(Zef.^auth):api(Zef.^api):ver(Zef.^ver);
             my $identity        = Zef::Identity.new($plugin<module>);
             my $short-name      = $identity.name;
-            my $plugin-is-core  = so $?DISTRIBUTION.meta<provides>{$short-name}.?chars;
+            my $plugin-is-core  = so $?DISTRIBUTION.meta<provides>{$short-name}:exists;
             my $auth-matcher    = $identity.auth    || do { $plugin-is-core ?? Zef.^auth !! True };
             my $api-matcher     = $identity.api     || do { $plugin-is-core ?? Zef.^api  !! True };
             my $version-matcher = $identity.version || do { $plugin-is-core ?? Zef.^ver  !! True };

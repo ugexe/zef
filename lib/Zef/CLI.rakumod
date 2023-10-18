@@ -353,6 +353,12 @@ package Zef::CLI {
         my $client     = get-client(:config($CONFIG), :$force-test, :$test-timeout, :$test-degree);
         my @candidates = $client.link-candidates( @paths.map(*.&path2candidate) );
         abort "Failed to resolve any candidates. No reason to proceed" unless +@candidates;
+
+        # We don't use CURS for `zef test .` yet, so add the CURFS path of the dist to the includes.
+        for @candidates {
+            $_.dist.metainfo<includes>.prepend($_.dist.path);
+        }
+
         my @tested = $client.test(@candidates);
         my (:@test-pass, :@test-fail) := @tested.classify: {.test-results.grep(*.so) ?? <test-pass> !! <test-fail> }
 

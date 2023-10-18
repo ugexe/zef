@@ -814,6 +814,57 @@ class Zef::Client {
         return @installed;
     }
 
+    # Note that since adding CURS support some of the functions and apis feel
+    # a little odd now. For now we try to maintain the original output and
+    # design expectations as best we can, but in the next version of zef
+    # we'll design more around CURFS and less around CURI. For instance
+    # this 'deploy' method takes @candidates although we only use it for
+    # displaying what will be installed - since we copy $curs to the install
+    # target we don't need to know the individual candidates (and indeed we
+    # can get them from the repository itself).
+    #| Deploy all distributions installed to staging to a given repository
+    method deploy(:$curs, *@candidates ($, *@) --> Array[Candidate]) is implementation-detail {
+        for @candidates -> $candi {
+            self.logger.emit({
+                level   => INFO,
+                stage   => INSTALL,
+                phase   => BEFORE,
+                candi   => $candi,
+                message => "Installing: {$candi.dist.?identity // $candi.as}",
+            });
+        }
+
+        {
+            CATCH {
+                default {
+                    for @candidates -> $candi {
+                        self.logger.emit({
+                            level   => ERROR,
+                            stage   => INSTALL,
+                            phase   => AFTER,
+                            candi   => $candi,
+                            message => "Install [FAIL] for {$candi.dist.?identity // $candi.as}: {$_}",
+                        });
+                    }
+                    $_.rethrow;
+                }
+            }
+            $curs.deploy();
+        }
+
+        for @candidates -> $candi {
+            self.logger.emit({
+                level   => VERBOSE,
+                stage   => INSTALL,
+                phase   => AFTER,
+                candi   => $candi,
+                message => "Install [OK] for {$candi.dist.?identity // $candi.as}",
+            });
+        }
+
+        return Array[Candidate].new(@candidates);
+    }
+
     #| This organizes and executes multiples phases for multiples candidates (test/build/install/etc)
     method make-install(
         CompUnit::Repository :@to!, # target CompUnit::Repository
@@ -825,6 +876,12 @@ class Zef::Client {
         *@candidates ($, *@),
         *%_
     ) {
+        # Allowing multiple install targets complicates things too much.
+        # TODO: remove this ability from the code everywhere.
+        if @to.elems > 1 {
+            die "Installing to multiple repos is no longer supported."
+        }
+
         my @curs = @to.grep: -> $cur {
             UNDO {
                 self.logger.emit({
@@ -845,6 +902,8 @@ class Zef::Client {
             $cur.?can-install || next();
         }
         die "Need a valid installation target to continue" unless ?$dry || +@curs;
+
+        my $stage-for-repo = CompUnit::RepositoryRegistry.repository-for-name(@curs.head.?name // '');
 
         # XXX: Each loop block below essentially represents a phase, so they will probably
         # be moved into their own method/module related directly to their phase. For now
@@ -926,11 +985,17 @@ class Zef::Client {
         die "Something went terribly wrong linking the distributions" unless +@linked-candidates;
 
 
-        my $installer = sub (*@_) {
+        # Non staging workflow
+        my $curi-installer = sub (*@_) {
             # Build Phase:
             my @built-candidates = ?$build ?? self.build(@_) !! @_;
             die "No installable candidates remain after `build` failures" unless +@built-candidates;
 
+            # We aren't using the CURS workflow, so we need to add the distribution path / CURFS repo
+            # to each distribution includes listing.
+            for @sorted-candidates {
+                $_.dist.metainfo<includes>.prepend($_.dist.path);
+            }
 
             # Test Phase:
             my @tested-candidates = !$test
@@ -966,8 +1031,125 @@ class Zef::Client {
             }
 
             @installed-candidates;
-        } # sub installer
+        }
 
+        # This convoluted code should just be able to `use CompUnit::Repository::Staging; CompUnit::Repository::Staging.new(...)`
+        # but that creates precompilation issues, presumably because the repository chain includes e.g. -I. when zef is installing
+        # itself.
+        # See: https://github.com/rakudo/rakudo/issues/5199
+        my $staging-repo = !$stage-for-repo ?? Nil !! do {
+            # We do this here instead of inside the $curs-installer sub because we
+            # only want to create this repository once, even when using --serial
+            my $staging-at = %!config<TempDir>.IO.child("{time}.{$*PID}.{(^10000).rand}");
+            die "failed to create directory: {$staging-at.absolute}"
+                unless ($staging-at.IO.e || mkdir($staging-at));
+
+            # The first condition is preemptively trying to avoid any issue if/when CURS is moved to
+            # the core (where it wouldn't be found via $*REPO.resolve(...)). The second condition finds
+            # the CURFS module and then loads it's code CURAP because that won't precompile it.
+            # I've tried a lot of various work arounds using EVAL, no precompilation, etc and none of
+            # them have worked 100% (something might work for bin/zef and fail for `raku -e 'use Zef::CLI install .`
+            # for instance).
+            my %curfs-new-args = :prefix($staging-at), :name($stage-for-repo.name), :next-repo($stage-for-repo);
+            my $curfs-short-name = 'CompUnit::Repository::Staging';
+            (try ::($curfs-short-name))
+                ?? ::($curfs-short-name).new(|%curfs-new-args)
+                !! do {
+                    # Find CURS from the core repository so we can load it by path later
+                    my $core-repo = CompUnit::RepositoryRegistry.repository-for-name('core');
+                    my $curs-dist = $core-repo.resolve(CompUnit::DependencySpecification.new(:short-name($curfs-short-name))).distribution;
+
+                    # Load CURS by using CURAP (which doesn't precompile)
+                    my $curs-provides-entry = $curs-dist.meta<provides>{$curfs-short-name};
+                    my $curs-name-path = $curs-provides-entry.?keys.?head // $curs-provides-entry;
+                    my $curs-handle = $curs-dist.content($curs-name-path);
+                    $curs-handle.close(); # I think these handles shouldn't be opened already from ::InstalledDistribution :(
+                    $*REPO.load($curs-handle.path);
+                    ::($curfs-short-name).new(|%curfs-new-args);
+                }
+        }
+
+        # Staging workflow
+        my $curs-installer = sub (*@_) {
+            # Build Phase:
+            my @built-candidates = ?$build ?? self.build(@_) !! @_;
+            die "No installable candidates remain after `build` failures" unless +@built-candidates;
+
+            my @staged-candidates = ?$dry ?? @built-candidates !! @built-candidates.map({
+                self.logger.emit({
+                    level   => INFO,
+                    stage   => STAGING,
+                    phase   => BEFORE,
+                    message => "Staging {$_.dist.identity}",
+                });
+                my Str @includes = $staging-repo.path-spec;
+                $_.dist.metainfo<includes> = @includes;
+                $staging-repo.install($_.dist);
+                self.logger.emit({
+                    level   => INFO,
+                    stage   => STAGING,
+                    phase   => AFTER,
+                    message => "Staging [OK] for {$_.dist.identity}",
+                });
+
+                $_;
+            });
+
+            $staging-repo.remove-artifacts;
+
+            # Test Phase:
+            my @tested-candidates = !$test
+                ?? @built-candidates
+                !! self.test(@built-candidates).grep({ $!force-test || .test-results.grep(!*.so).elems == 0 });
+
+            # actually we *do* want to proceed here later so that the Report phase can know about the failed tests/build
+            die "All candidates failed building and/or testing. No reason to proceed" unless +@tested-candidates;
+
+            # Install Phase:
+            # Ideally `--dry` uses a special unique CompUnit::Repository that is meant to be deleted entirely
+            # and contain only the modules needed for this specific run/plan
+            my @installed-candidates = ?$dry ?? @tested-candidates !! do {
+                self.logger.emit({
+                    level   => VERBOSE,
+                    stage   => INSTALL,
+                    phase   => BEFORE,
+                    message => "Installing staged code",
+                });
+                self.deploy(|@tested-candidates, :curs($staging-repo));
+                self.logger.emit({
+                    level   => VERBOSE,
+                    stage   => INSTALL,
+                    phase   => AFTER,
+                    message => "Installation [OK]",
+                });
+
+                @tested-candidates;
+            }
+
+            # Report phase:
+            # Handle exit codes for various option permutations like --force
+            # Inform user of what was tested/built/installed and what failed
+            # Optionally report to any cpan testers type service (testers.perl6.org)
+            unless $dry {
+                # Get the name of the bin scripts
+                my sub bin-names($dist) { $dist.meta<files>.hash.keys.grep(*.starts-with("bin/")).map(*.substr(4)) };
+
+                if @installed-candidates.map(*.dist).map(*.&bin-names).flat.unique -> @bins {
+                    my $msg = "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins??' ['~@bins~']'!!''} installed to:"
+                    ~ "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
+                    self.logger.emit({
+                        level   => INFO,
+                        stage   => REPORT,
+                        phase   => LIVE,
+                        message => $msg,
+                    });
+                }
+            }
+
+            @installed-candidates;
+        }
+
+        my $installer = $stage-for-repo.so ?? $curs-installer !! $curi-installer;
         my Candidate @installed = ?$serial ?? @linked-candidates.map({ |$installer($_) }) !! $installer(@linked-candidates);
         return @installed;
     }

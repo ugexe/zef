@@ -104,7 +104,7 @@ class Zef::Service::TAP does Tester {
 
         my $result = try {
             require ::('TAP');
-            my @incdirs  = $path.absolute, |@includes;
+            my @incdirs  = @includes;
             my @handlers = ::("TAP::Harness::SourceHandler::Raku").new(:@incdirs);
             my $parser   = ::("TAP::Harness").new(:@handlers);
             my $promise  = $parser.run(

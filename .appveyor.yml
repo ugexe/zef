@@ -12,7 +12,7 @@ install:
     - md tmp
 
     # Install Perl
-    - appveyor-retry choco install strawberryperl --allow-empty-checksums
+    - appveyor-retry choco install strawberryperl --version=5.32.1.1 --allow-empty-checksums
     - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
     - appveyor-retry git clone https://github.com/rakudo/rakudo.git %APPVEYOR_BUILD_FOLDER%\..\rakudo
 

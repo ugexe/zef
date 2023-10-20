@@ -121,9 +121,8 @@ class Zef::Service::Shell::prove does Tester {
         my Str $test-path-cwd      = $path.absolute;
 
         my %ENV = %*ENV;
-        my @cur-lib  = %ENV<RAKULIB>.?chars ?? %ENV<RAKULIB>.split($*DISTRO.cur-sep) !! ();
-        my @new-lib  = $path.absolute, |@includes;
-        %ENV<RAKULIB> = (|@new-lib, |@cur-lib).join($*DISTRO.cur-sep);
+        my @cur-lib = %ENV<RAKULIB>.?chars ?? %ENV<RAKULIB>.split($*DISTRO.cur-sep) !! ();
+        %ENV<RAKULIB> = (|@includes, |@cur-lib).join($*DISTRO.cur-sep);
 
         my @args =
             '--ext', '.rakutest',

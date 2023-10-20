@@ -8,7 +8,11 @@ module Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth(
     our sub to-json(|c) { ::("Rakudo::Internals::JSON").to-json(|c) }
 
     enum LEVEL is export <FATAL ERROR WARN INFO VERBOSE DEBUG TRACE>;
-    enum STAGE is export <RESOLVE FETCH EXTRACT FILTER BUILD TEST INSTALL REPORT>;
+
+    # We have an entry called STAGING because STAGE was already taken by the enum. We
+    # should improve this situation in the future.
+    enum STAGE is export <RESOLVE FETCH EXTRACT FILTER BUILD STAGING TEST INSTALL REPORT>;
+
     enum PHASE is export <BEFORE START LIVE STOP AFTER>;
 
     # Get a resource located at a uri and save it to the local disk

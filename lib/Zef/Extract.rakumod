@@ -163,7 +163,7 @@ class Zef::Extract does Extractor does Pluggable {
         my $path       := $candi.uri;
         my $extractors := self!extractors($path);
         my $name-paths := $extractors.map(*.ls-files($path)).first(*.defined).map(*.IO);
-        my @files       = $name-paths.map({ .is-absolute ?? $path.child(.relative($path)).cleanup.relative($path) !! $_ });
+        my @files       = $name-paths.map({ .is-absolute ?? $path.IO.child(.relative($path)).cleanup.relative($path) !! $_ });
 
         my Str @results = @files.map(*.Str);
         return @results;

@@ -118,11 +118,6 @@
             "comment" : "used to checkout (extract) specific tags/sha1/commit/branch from a git repo"
         },
         {
-            "short-name" : "path",
-            "module" : "Zef::Service::FetchPath",
-            "comment" : "if this goes before git then git wont be able to extract/checkout local paths because this reaches it first :("
-        },
-        {
             "short-name" : "tar",
             "module" : "Zef::Service::Shell::tar"
         },
@@ -131,8 +126,9 @@
             "module" : "Zef::Service::Shell::unzip"
         },
         {
-            "short-name" : "psunzip",
-            "module" : "Zef::Service::Shell::PowerShell::unzip"
+            "short-name" : "path",
+            "module" : "Zef::Service::FetchPath",
+            "comment" : "if this goes before git then git wont be able to extract/checkout local paths because this reaches it first :("
         }
     ],
     "Build" : [

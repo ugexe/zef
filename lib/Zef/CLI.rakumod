@@ -448,12 +448,15 @@ package Zef::CLI {
             if +@paths.grep(!*.IO.e);
         abort "The following were recognized as directory paths but don't contain a META6.json file - {@paths.grep(*.IO.d).grep(!*.IO.add('META6.json').e)}"
             if +@paths.grep(*.IO.d).grep(!*.IO.add('META6.json').e);
-        my (:@wanted-paths, :@skip-paths) := @paths\
-            .classify: {$client.is-installed(Zef::Distribution::Local.new($_).identity, :@at) ?? <skip-paths> !! <wanted-paths>}
+        my (:@paths-to-files, :@paths-to-dirs) := @paths.classify: { $_.IO.d ?? <paths-to-dirs> !! <paths-to-files> }
+        my @dir-candidates = @paths-to-dirs.map({ Candidate.new(:as($_), :uri($_), :dist(Zef::Distribution::Local.new($_))) }) if @paths-to-dirs;
+        my @file-candidates = $client.fetch( @paths-to-files.map({ Candidate.new(:as($_), :uri($_)) }) ) if +@paths-to-files;
+        my @path-candidates-to-check = |@dir-candidates, |@file-candidates;
+        my (:@wanted-path-candidates, :@skip-paths) := @path-candidates-to-check\
+            .classify: {$client.is-installed($_.dist.identity, :@at) ?? <skip-paths> !! <wanted-path-candidates>}
         say "The following local path candidates are already installed: {@skip-paths.join(', ')}"\
             if ($verbosity >= VERBOSE) && +@skip-paths;
-        my @requested-paths = ?$force-install ?? @paths !! @wanted-paths;
-        my @path-candidates = @requested-paths.map(*.&path2candidate);
+        my @path-candidates = ?$force-install ?? @path-candidates-to-check !! @wanted-path-candidates;
 
 
         # URIS

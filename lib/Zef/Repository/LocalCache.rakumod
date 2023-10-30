@@ -73,10 +73,6 @@ class Zef::Repository::LocalCache does PackageRepository {
     =end pod
 
 
-    #| One or more URIs containing an ecosystem 'array-of-hash' database. URI types that work
-    #| are whatever the supplied $!fetcher supports (so generally local files and https)
-    has List $.mirrors;
-
     #| Int - the db will be lazily updated when it is $!auto-update hours old.
     #| Bool True - the db will be lazily updated regardless of how old the db is.
     #| Bool False - do not update the db.

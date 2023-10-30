@@ -126,10 +126,6 @@
             "module" : "Zef::Service::Shell::unzip"
         },
         {
-            "short-name" : "psunzip",
-            "module" : "Zef::Service::Shell::PowerShell::unzip"
-        },
-        {
             "short-name" : "path",
             "module" : "Zef::Service::FetchPath",
             "comment" : "if this goes before git then git wont be able to extract/checkout local paths because this reaches it first :("

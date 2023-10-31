@@ -116,7 +116,7 @@ class Zef::Repository::LocalCache does PackageRepository {
         # $.cache/level1/level2/ # dirs containing dist files
         my @dirs    = $!cache.IO.dir.grep(*.d).map(*.dir).flat.grep(*.d);
         my @dists   = grep { .defined }, map { try Zef::Distribution::Local.new($_) }, @dirs;
-        my $content = join "\n", @dists.map: { join "\0", (.identity, .path) }
+        my $content = join "\n", @dists.map: { join "\0", (.identity, .path.IO.relative($!cache)) }
         so $content ?? self!spurt-package-list($content) !! False;
     }
 
@@ -206,7 +206,7 @@ class Zef::Repository::LocalCache does PackageRepository {
             return if +@!distributions;
 
             for self!slurp-package-list -> $path {
-                with try Zef::Distribution::Local.new($path) -> $dist {
+                with try Zef::Distribution::Local.new($!cache.add($path)) -> $dist {
                     # Keep track of out namespaces we are going to index later
                     my @short-names-to-index;
 

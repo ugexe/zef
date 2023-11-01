@@ -7,6 +7,7 @@ on:
         description: Operating System to run on
         required: false
         default: ubuntu
+        type: string
       os_version:
         description: OS version
         required: false

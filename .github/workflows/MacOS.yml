@@ -1,0 +1,14 @@
+# save as .github/workflows/MacOS.yml
+name: MacOS
+
+on: [ push, pull_request ]
+
+jobs:
+  launch:
+    uses: ./.github/workflows/runner.yml
+    with:
+      os: ${{ github.workflow }}
+      os_version: latest
+      raku_version: latest
+      path_separator: '/'
+      tmp_dir: '/tmp'

@@ -4,3 +4,4 @@ tmp/
 lib/.precomp/
 .precomp/
 .idea/
+.DS_Store

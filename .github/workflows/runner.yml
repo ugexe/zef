@@ -1,0 +1,135 @@
+name: runner
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        description: Operating System to run on
+        required: true
+        type: string
+      os_version:
+        description: OS version
+        required: true
+        type: string
+      raku_version:
+        description: Raku version latest or 2023.10, etc.
+        required: true
+        type: string
+      path_separator:
+        description: OS specific path separator
+        required: true
+        type: string
+    # TMPDIR: Workaround for path length errors during precompilation of longer repo names
+      tmp_dir:
+        description: OS specific tmp dir
+        required: true
+        type: string
+
+jobs:
+  runner:
+    runs-on: ${{ inputs.os }}-${{ inputs.os_version }}
+
+    # frequently used
+    env:
+      BINZEF: bin${{ inputs.path_separator }}zef
+      XTTEST: xt${{ inputs.path_separator }}repository.rakutest
+
+    steps:
+      - uses: Raku/setup-raku@v1
+        with:
+          raku-version: ${{ inputs.raku_version }}
+
+      - uses: actions/checkout@v4
+
+      - name: Workaround for flakey GitHub Actions errors on Windows
+        if: runner.os == 'Windows'
+        run: |
+          echo "RAKUDO_MAX_THREADS=4" >> $env:GITHUB_ENV
+          echo "ZEF_FETCH_DEGREE=1" >> $env:GITHUB_ENV
+          echo "ZEF_FETCH_TIMEOUT=0" >> $env:GITHUB_ENV
+          echo "ZEF_EXTRACT_TIMEOUT=0" >> $env:GITHUB_ENV
+  
+      - name: Ensure TMPDIR exists
+        if: runner.os != 'Windows'
+        run: mkdir -p ${{ inputs.tmp_dir }}
+
+      - name: Create Windows TMPDIR
+        if: runner.os == 'Windows'
+        run: mkdir ${{ inputs.tmp_dir }}
+
+      - name: Remove non-core modules included in this github action
+        run: raku -e 'my $site = CompUnit::RepositoryRegistry.repository-for-name(q|site|); $site.uninstall($_) for $site.installed'
+
+      # test explicitly via `prove t/*` and `raku t/foo.rakutest && raku t/bar.rakutest`
+      # both should work, since all our CI envs have prove
+      - name: Run unit tests with '--prove'
+        run: raku -I. ${{ env.BINZEF }} --debug --/tap-harness --prove  --/raku-test test .
+      - name: Run unit tests with '--raku-test'
+        run: raku -I. ${{ env.BINZEF }} --debug --/tap-harness --/prove --raku-test  test .
+
+      # run xt/ tests
+      - name: Run xt/ tests - repository.rakutest
+        run: raku --ll-exception -I. ${{ env.XTTEST }} ${{ env.XTTEST }}
+      - name: Run xt/ tests - install.rakutest
+        run: raku --ll-exception -I. ${{ env.XTTEST }}
+        if: runner.os != 'Windows'
+
+      # run integration tests pre-install
+      - name: Test (and show for debugging purposes) --version
+        run: raku -I.  --version
+      - name: Run relative local path test + install
+        run: raku -I. ${{ env.BINZEF }} --debug install .
+      - name: Test uninstall
+        run: raku -I. ${{ env.BINZEF }} uninstall zef
+      - name: Run absolute local path test + install
+        run: raku -I. ${{ env.BINZEF }} install ${{ github.workspace }}
+
+      # run integration tests post-install
+      - name: Test 'update'
+        run: zef update --debug
+      - name: Test --version
+        run: zef --version
+      - name: Test --help
+        run: zef --help
+      - name: Test 'locate' with short-name
+        run: zef locate Zef::CLI
+      - name: Test 'locate' with path name
+        run: zef locate lib/Zef/CLI.rakumod
+      - name: Test 'browse'
+        run: zef browse zef bugtracker --/open
+      - name: Test 'info'
+        run: zef info zef
+      - name: Test 'search'
+        run: zef --debug search Base64
+      - name: Test 'rdepends'
+        run: zef --debug rdepends Base64
+      - name: Test 'depends'
+        run: zef --debug depends Cro::SSL
+      - name: Test 'fetch'
+        run: zef --debug fetch Base64
+      - name: Test installing from what 'fetch' put in ::LocalCache
+        run: zef --debug --/fez --/cpan --/p6c --/rea install Base64
+      - name: Test 'list'
+        run: zef --debug --max=10 list
+      - name: Test 'list --installed'
+        run: zef --debug --installed list
+      - name: Test reinstallation via 'install --force-install'
+        run: zef --debug --force-install install Base64
+      - name: Test installing .tar.gz
+        run: zef --debug install https://github.com/ugexe/Raku-PathTools/archive/0434191c56e0f3254ab1d756d90f9191577de5a0.tar.gz
+      - name: Test 'upgrade' on previously installed PathTools .tar.gz
+        run: zef --debug upgrade PathTools
+      - name: Test installing .zip
+        run: zef --debug install https://github.com/ugexe/Raku-Text--Table--Simple/archive/v0.0.3.zip
+      - name: Test remote git repo + tag
+        run: zef --debug install https://github.com/ugexe/Raku-Text--Table--Simple.git@v0.0.4
+      - name: Test self contained installation
+        run: |
+          zef install Distribution::Common --/test
+          zef install Distribution::Common::Remote -to=inst#foo --contained --/test
+          zef uninstall Distribution::Common
+          raku -I inst#foo -M Distribution::Common::Remote::Github -e ""
+      - name: Test 'nuke' on config paths
+        run: zef --/confirm nuke TempDir StoreDir
+      - name: Test single repository update ('cached' should be 0 after previous nuke)
+        run: zef update cached --debug

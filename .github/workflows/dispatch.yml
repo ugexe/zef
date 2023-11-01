@@ -1,0 +1,46 @@
+# save as .github/workflows/dispatch.yml
+# run on Terminal: gh workflow run 'dispatch' --ref branch-name -f verbosity=debug -f os=windows
+name: dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Operating System to run on
+        required: false
+        default: ubuntu
+        type: choice
+        options: 
+        - ubuntu
+        - macos
+        - windows
+      os_version:
+        description: OS version
+        required: true
+        default: latest
+        type: string
+      raku_version:
+        description: Raku version
+        required: true
+        default: latest
+        type: string
+      path_separator:
+        description: OS specific path separator
+        required: true
+        default: '\'
+        type: string
+      tmp_dir:
+        description: OS specific tmp dir
+        required: true
+        default: 'D:\tmp'
+        type: string
+
+jobs:
+  runner:
+    uses: ./.github/workflows/runner.yml
+    with:
+      os: ${{ inputs.os }}
+      os_version: ${{ inputs.os_version }}
+      raku_version: ${{ inputs.raku_version }}
+      path_separator: ${{ inputs.path_separator }}
+      tmp_dir: ${{ inputs.tmp_dir }}

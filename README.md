@@ -1,3 +1,5 @@
+[![Linux Status](https://github.com/ugexe/zef/actions/workflows/Linux.yml/badge.svg?event=push)](https://github.com/ugexe/zef/actions) [![MacOS Status](https://github.com/ugexe/zef/actions/workflows/MacOS.yml/badge.svg?event=push)](https://github.com/ugexe/zef/actions) [![Windows Status](https://github.com/ugexe/zef/actions/workflows/Windows.yml/badge.svg?event=push)](https://github.com/ugexe/zef/actions)
+
 ## Zef
 
 Raku Module Management

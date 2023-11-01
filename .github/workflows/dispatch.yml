@@ -8,7 +8,7 @@ on:
       os:
         description: Operating System to run on
         required: false
-        default: ubuntu
+        default: windows
         type: choice
         options: 
         - ubuntu
@@ -16,27 +16,27 @@ on:
         - windows
       os_version:
         description: OS version
-        required: true
+        required: false
         default: latest
         type: string
       raku_version:
         description: Raku version
-        required: true
+        required: false
         default: latest
         type: string
       path_separator:
         description: OS specific path separator
-        required: true
+        required: false
         default: '\'
         type: string
       tmp_dir:
         description: OS specific tmp dir
-        required: true
+        required: false
         default: 'D:\tmp'
         type: string
 
 jobs:
-  runner:
+  launch:
     uses: ./.github/workflows/runner.yml
     with:
       os: ${{ inputs.os }}

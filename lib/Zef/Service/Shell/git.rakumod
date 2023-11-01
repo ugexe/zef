@@ -1,4 +1,4 @@
-use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef:ver($?DISTRIBUTION.meta<version> // '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 use Zef::Utils::URI:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth) :internals;
 
 class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {

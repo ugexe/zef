@@ -1,4 +1,4 @@
-use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef:ver($?DISTRIBUTION.meta<version> // '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 
 module Zef::Config {
     our sub parse-file($path) {

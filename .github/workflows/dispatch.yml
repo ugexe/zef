@@ -29,11 +29,6 @@ on:
         required: false
         default: '\'
         type: string
-      tmp_dir:
-        description: OS specific tmp dir
-        required: false
-        default: 'tmp'
-        type: string
 
 jobs:
   launch:
@@ -43,4 +38,3 @@ jobs:
       os_version: ${{ inputs.os_version }}
       raku_version: ${{ inputs.raku_version }}
       path_separator: ${{ inputs.path_separator }}
-      tmp_dir: ${{ inputs.tmp_dir }}

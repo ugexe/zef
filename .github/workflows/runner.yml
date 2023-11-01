@@ -18,10 +18,7 @@ on:
       path_separator:
         description: OS specific path separator
         required: true
-        type: string
-      tmp_dir:
-        description: OS specific tmp dir
-        required: true
+        default: '/'
         type: string
 
 jobs:
@@ -32,14 +29,19 @@ jobs:
     env:
       BINZEF: bin${{ inputs.path_separator }}zef
       XTTEST: xt${{ inputs.path_separator }}repository.rakutest
-      TMPDIR: ${{ github.workspace }}${{ inputs.path_separator }}${{ inputs.tmp_dir }}
-      TMP:  ${{ github.workspace }}${{ inputs.path_separator }}${{ inputs.tmp_dir }}
-      TEMP: ${{ github.workspace }}${{ inputs.path_separator }}${{ inputs.tmp_dir }}
+      TMPDIR: ${{ github.workspace }}tmp
+      TMP:  ${{ github.workspace }}tmp
+      TEMP: ${{ github.workspace }}tmp
 
     steps:
       # TMPDIR: Workaround for path length errors during precompilation of longer repo names
       - name: Ensure TMPDIR exists
-        run: mkdir -p ${{ github.workspace }}${{ inputs.path_separator }}${{ inputs.tmp_dir }}
+        if: runner.os != 'Windows'
+        run: mkdir -p ${{ env.TMPDIR }}
+
+      - name: Ensure TMPDIR exists Windows
+        if: runner.os == 'Windows'
+        run: md -Force ${{ env.TMPDIR }}
 
       - uses: Raku/setup-raku@v1
         with:

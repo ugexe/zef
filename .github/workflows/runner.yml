@@ -6,16 +6,16 @@ on:
       os:
         description: Operating System to run on
         required: false
-        default: 'ubuntu'
+        default: ubuntu
       os_version:
         description: OS version
         required: false
-        default: 'latest'
+        default: latest
         type: string
       raku_version:
         description: Raku version latest or 2023.10, etc.
         required: false
-        default: 'latest'
+        default: latest
         type: string
       path_separator:
         description: OS specific path separator
@@ -43,7 +43,7 @@ jobs:
 
       - name: Ensure TMPDIR exists Windows
         if: runner.os == 'Windows'
-        run: md -Force ${{ env.TMPDIR }}
+        run: md -Force "${{ env.TMPDIR }}"
 
       - uses: Raku/setup-raku@v1
         with:

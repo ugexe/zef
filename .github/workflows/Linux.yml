@@ -1,0 +1,18 @@
+# save as .github/workflows/Linux.yml
+name: Linux
+
+on:
+  push:
+    branches:
+          - main
+          - 'releases/**'
+  pull_request:
+  schedule: # MIN HOUR DAYOFMONTH MONTH DAYOFWEEK - schedule a monthly run - just keeping an eye on long-time-not-touched repositories
+    - cron: '33 13 21 * *'
+
+jobs:
+  launch:
+    uses: ./.github/workflows/runner.yml
+    with:
+      os: ubuntu
+      

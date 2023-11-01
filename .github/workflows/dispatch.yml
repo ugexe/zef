@@ -1,0 +1,34 @@
+# save as .github/workflows/dispatch.yml
+# run on Terminal: gh workflow run 'dispatch' --ref branch-name -f verbosity=debug -f os=windows
+name: dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      os:
+        description: Operating System to run on
+        required: false
+        default: ubuntu
+        type: choice
+        options: 
+        - ubuntu
+        - macos
+        - windows
+      os_version:
+        description: OS version
+        required: true
+        default: latest
+        type: string
+      raku_version:
+        description: Raku version
+        required: true
+        default: latest
+        type: string
+
+jobs:
+  launch:
+    uses: ./.github/workflows/runner.yml
+    with:
+      os: ${{ inputs.os }}
+      os_version: ${{ inputs.os_version }}
+      raku_version: ${{ inputs.raku_version }}

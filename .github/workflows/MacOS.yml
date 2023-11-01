@@ -1,0 +1,17 @@
+# save as .github/workflows/MacOS.yml
+name: MacOS
+
+on:
+  push:
+    branches:
+          - main
+          - 'releases/**'
+  pull_request:
+  schedule: # MIN HOUR DAYOFMONTH MONTH DAYOFWEEK - schedule a monthly run - just keeping an eye on long-time-not-touched repositories
+    - cron: '10 22 20 * *'
+
+jobs:
+  launch:
+    uses: ./.github/workflows/runner.yml
+    with:
+      os: ${{ github.workflow }}

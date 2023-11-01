@@ -1,0 +1,35 @@
+# save as .github/workflows/runner.yml
+name: runner
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        description: Operating System to run on
+        required: false
+        default: ubuntu
+        type: string
+      os_version:
+        description: OS version
+        required: false
+        default: latest
+        type: string
+      raku_version:
+        description: Raku version latest or 2023.10, etc.
+        required: false
+        default: latest
+        type: string
+
+jobs:
+  runner:
+    runs-on: ${{ inputs.os }}-${{ inputs.os_version }}
+    steps:
+
+    - uses: Raku/setup-raku@v1
+      with:
+        raku-version: ${{ inputs.raku_version }}
+
+    - uses: actions/checkout@v4
+
+    - name: Install zef like users do
+      run: raku -I. bin/zef install .

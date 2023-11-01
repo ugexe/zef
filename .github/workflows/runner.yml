@@ -19,7 +19,6 @@ on:
         description: OS specific path separator
         required: true
         type: string
-    # TMPDIR: Workaround for path length errors during precompilation of longer repo names
       tmp_dir:
         description: OS specific tmp dir
         required: true
@@ -33,9 +32,15 @@ jobs:
     env:
       BINZEF: bin${{ inputs.path_separator }}zef
       XTTEST: xt${{ inputs.path_separator }}repository.rakutest
-      TMPDIR: ${{ inputs.tmp_dir }}
+      TMPDIR: ${{ github.workspace }}${{ inputs.path_separator }}${{ inputs.tmp_dir }}
+      TMP:  ${{ github.workspace }}${{ inputs.path_separator }}${{ inputs.tmp_dir }}
+      TEMP: ${{ github.workspace }}${{ inputs.path_separator }}${{ inputs.tmp_dir }}
 
     steps:
+      # TMPDIR: Workaround for path length errors during precompilation of longer repo names
+      - name: Ensure TMPDIR exists
+        run: mkdir -p ${{ github.workspace }}${{ inputs.path_separator }}${{ inputs.tmp_dir }}
+
       - uses: Raku/setup-raku@v1
         with:
           raku-version: ${{ inputs.raku_version }}
@@ -49,14 +54,6 @@ jobs:
           echo "ZEF_FETCH_DEGREE=1" >> $env:GITHUB_ENV
           echo "ZEF_FETCH_TIMEOUT=0" >> $env:GITHUB_ENV
           echo "ZEF_EXTRACT_TIMEOUT=0" >> $env:GITHUB_ENV
-  
-      - name: Ensure TMPDIR exists
-        if: runner.os != 'Windows'
-        run: mkdir -p ${{ inputs.tmp_dir }}
-
-      - name: Create Windows TMPDIR
-        if: runner.os == 'Windows'
-        run: mkdir ${{ inputs.tmp_dir }}
 
       - name: Remove non-core modules included in this github action
         run: raku -e 'my $site = CompUnit::RepositoryRegistry.repository-for-name(q|site|); $site.uninstall($_) for $site.installed'

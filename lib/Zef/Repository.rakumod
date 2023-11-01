@@ -1,4 +1,4 @@
-use Zef:ver($?DISTRIBUTION.meta<version> // '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
+use Zef:ver($?DISTRIBUTION.meta<version> // $?DISTRIBUTION.meta<ver>// '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 
 class Zef::Repository does PackageRepository does Pluggable {
 

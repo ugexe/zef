@@ -5,19 +5,21 @@ on:
     inputs:
       os:
         description: Operating System to run on
-        required: true
-        type: string
+        required: false
+        default: 'ubuntu'
       os_version:
         description: OS version
-        required: true
+        required: false
+        default: 'latest'
         type: string
       raku_version:
         description: Raku version latest or 2023.10, etc.
-        required: true
+        required: false
+        default: 'latest'
         type: string
       path_separator:
         description: OS specific path separator
-        required: true
+        required: false
         default: '/'
         type: string
 

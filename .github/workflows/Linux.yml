@@ -8,5 +8,3 @@ jobs:
     uses: ./.github/workflows/runner.yml
     with:
       os: ubuntu
-      os_version: latest
-      raku_version: latest

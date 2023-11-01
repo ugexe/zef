@@ -11,4 +11,4 @@ jobs:
       os_version: latest
       raku_version: latest
       path_separator: '\'
-      tmp_dir: 'D:\tmp'
+      tmp_dir: 'tmp'

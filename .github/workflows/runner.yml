@@ -33,6 +33,7 @@ jobs:
     env:
       BINZEF: bin${{ inputs.path_separator }}zef
       XTTEST: xt${{ inputs.path_separator }}repository.rakutest
+      TMPDIR: ${{ inputs.tmp_dir }}
 
     steps:
       - uses: Raku/setup-raku@v1

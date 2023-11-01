@@ -32,7 +32,7 @@ on:
       tmp_dir:
         description: OS specific tmp dir
         required: false
-        default: 'D:\tmp'
+        default: 'tmp'
         type: string
 
 jobs:

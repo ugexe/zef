@@ -1,4 +1,4 @@
-use Zef:ver($?DISTRIBUTION.meta<version>):api($?DISTRIBUTION.meta<api>):auth($?DISTRIBUTION.meta<auth>);
+use Zef:ver($?DISTRIBUTION.meta<version> // $?DISTRIBUTION.meta<ver>// '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 use Zef::Client:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 use Zef::Config:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 use Zef::Utils::FileSystem:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);

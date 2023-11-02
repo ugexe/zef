@@ -89,16 +89,12 @@ class Zef::Service::Shell::Test does Tester {
         return True unless +@rel-test-files;
 
         my @results = @rel-test-files.map: -> $rel-test-file {
-            my %ENV = %*ENV;
-            my @cur-lib = %ENV<RAKULIB>.?chars ?? %ENV<RAKULIB>.split($*DISTRO.cur-sep) !! ();
-            %ENV<RAKULIB> = (|@includes, |@cur-lib).join($*DISTRO.cur-sep);
-
             my $passed;
             react {
-                my $proc = Zef::zrun-async($*EXECUTABLE.absolute, $rel-test-file);
+                my $proc = Zef::zrun-async($*EXECUTABLE.absolute, @includes.map({ slip '-I', $_ }), $rel-test-file);
                 whenever $proc.stdout.lines { $stdout.emit($_) }
                 whenever $proc.stderr.lines { $stderr.emit($_) }
-                whenever $proc.start(:%ENV, :cwd($path)) { $passed = $_.so }
+                whenever $proc.start(:cwd($path)) { $passed = $_.so }
             }
             $passed;
         }

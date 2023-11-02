@@ -311,6 +311,9 @@ package Zef::CLI {
             note 'DEPRECATED: --depsonly is deprecated, please use --deps-only instead';
             take '--deps-only'
         }
+        elsif $arg eq '--prove' || $arg eq '--/prove' {
+            note "DEPRECATED: $arg will be ignored: The prove plugin has been removed and $arg may issue an error in the future.";
+        }
         else {
             take $arg
         }

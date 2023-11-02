@@ -19,7 +19,7 @@ class Zef::Test does Tester does Pluggable {
         # Setup with a single tester backend
         my $tester = Zef::Test.new(
             backends => [
-                { module  => "Zef::Service::Shell::prove" },
+                { module  => "Zef::Service::Shell::Test" },
             ],
         );
 

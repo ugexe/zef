@@ -35,7 +35,6 @@ subtest 'Plugins' => {
     use-ok("Zef::Service::Shell::DistributionBuilder");
     use-ok("Zef::Service::Shell::LegacyBuild");
     use-ok("Zef::Service::Shell::Test");
-    use-ok("Zef::Service::Shell::prove");
     use-ok("Zef::Service::Shell::unzip");
     use-ok("Zef::Service::Shell::tar");
     use-ok("Zef::Service::Shell::curl");

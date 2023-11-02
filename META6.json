@@ -40,7 +40,6 @@
 
         "Zef::Service::Shell::LegacyBuild"  : "lib/Zef/Service/Shell/LegacyBuild.rakumod",
         "Zef::Service::Shell::Test"         : "lib/Zef/Service/Shell/Test.rakumod",
-        "Zef::Service::Shell::prove"        : "lib/Zef/Service/Shell/prove.rakumod",
         "Zef::Service::Shell::unzip"        : "lib/Zef/Service/Shell/unzip.rakumod",
         "Zef::Service::Shell::tar"          : "lib/Zef/Service/Shell/tar.rakumod",
         "Zef::Service::Shell::curl"         : "lib/Zef/Service/Shell/curl.rakumod",

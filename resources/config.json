@@ -148,10 +148,6 @@
             "comment" : "Raku TAP::Harness adapter"
         },
         {
-            "short-name" : "prove",
-            "module" : "Zef::Service::Shell::prove"
-        },
-        {
             "short-name" : "raku-test",
             "module" : "Zef::Service::Shell::Test"
         }

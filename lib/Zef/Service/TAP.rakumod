@@ -39,8 +39,8 @@ class Zef::Service::TAP does Tester {
 
     You probably never want to use this unless its indirectly through C<Zef::Test>;
     handling files and spawning processes will generally be easier using core language functionality. This
-    class exists to provide the means for fetching a file using the C<Tester> interfaces that the e.g. Test/prove
-    adapters use.
+    class exists to provide the means for fetching a file using the C<Tester> interfaces that the e.g. Test
+    adapter uses.
 
     =head1 Methods
 

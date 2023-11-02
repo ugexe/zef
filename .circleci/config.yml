@@ -23,10 +23,8 @@ variables:
         raku -I. xt/repository.rakutest
         raku -I. xt/install.rakutest
 
-        # test explicitly via `prove t/*` and `raku t/foo.rakutest && raku t/bar.rakutest`
-        # both should work, since all our CI envs have prove
-        raku -I. bin/zef --debug --/tap-harness --/prove --raku-test  test .
-        raku -I. bin/zef --debug --/tap-harness --prove  --/raku-test test .
+        # test zef test
+        raku -I. bin/zef --debug test .
 
         # run relative local path test + install
         raku -I. bin/zef --debug install .

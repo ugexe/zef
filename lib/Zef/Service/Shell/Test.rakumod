@@ -62,7 +62,7 @@ class Zef::Service::Shell::Test does Tester {
         method test(IO() $path, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D)
 
     Test the files ending in C<.rakutest> C<.t6> or C<.t> in the C<t/> directory of the given C<$path> using the
-    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<prove> command. A C<Supplier> can be
+    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<raku> command. A C<Supplier> can be
     supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     Returns C<True> if all test files exited with 0.

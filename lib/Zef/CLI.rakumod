@@ -452,10 +452,10 @@ package Zef::CLI {
         my @dir-candidates = @paths-to-dirs.map({ Candidate.new(:as($_), :uri($_), :dist(Zef::Distribution::Local.new($_))) }) if @paths-to-dirs;
         my @file-candidates = $client.fetch( @paths-to-files.map({ Candidate.new(:as($_), :uri($_)) }) ) if +@paths-to-files;
         my @path-candidates-to-check = |@dir-candidates, |@file-candidates;
-        my (:@wanted-path-candidates, :@skip-paths) := @path-candidates-to-check\
-            .classify: {$client.is-installed($_.dist.identity, :@at) ?? <skip-paths> !! <wanted-path-candidates>}
-        say "The following local path candidates are already installed: {@skip-paths.join(', ')}"\
-            if ($verbosity >= VERBOSE) && +@skip-paths;
+        my (:@wanted-path-candidates, :@skip-path-candidates) := @path-candidates-to-check\
+            .classify: {$client.is-installed($_.dist.identity, :@at) ?? <skip-path-candidates> !! <wanted-path-candidates>}
+        say "The following local path candidates are already installed: {@skip-path-candidates.map(*.uri).join(', ')}"\
+            if ($verbosity >= VERBOSE) && +@skip-path-candidates;
         my @path-candidates = ?$force-install ?? @path-candidates-to-check !! @wanted-path-candidates;
 
 

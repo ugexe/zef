@@ -62,7 +62,7 @@ class Zef::Service::Shell::Test does Tester {
         method test(IO() $path, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D)
 
     Test the files ending in C<.rakutest> C<.t6> or C<.t> in the C<t/> directory of the given C<$path> using the
-    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<raku> command. A C<Supplier> can be
+    provided C<@includes> (e.g. C</foo/bar> or C<inst#/foo/bar>) via the C<prove> command. A C<Supplier> can be
     supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     Returns C<True> if all test files exited with 0.
@@ -89,16 +89,12 @@ class Zef::Service::Shell::Test does Tester {
         return True unless +@rel-test-files;
 
         my @results = @rel-test-files.map: -> $rel-test-file {
-            my %ENV = %*ENV;
-            my @cur-lib = %ENV<RAKULIB>.?chars ?? %ENV<RAKULIB>.split($*DISTRO.cur-sep) !! ();
-            %ENV<RAKULIB> = (|@includes, |@cur-lib).join($*DISTRO.cur-sep);
-
             my $passed;
             react {
-                my $proc = Zef::zrun-async($*EXECUTABLE.absolute, $rel-test-file);
+                my $proc = Zef::zrun-async($*EXECUTABLE.absolute, @includes.map({ slip '-I', $_ }), $rel-test-file);
                 whenever $proc.stdout.lines { $stdout.emit($_) }
                 whenever $proc.stderr.lines { $stderr.emit($_) }
-                whenever $proc.start(:%ENV, :cwd($path)) { $passed = $_.so }
+                whenever $proc.start(:cwd($path)) { $passed = $_.so }
             }
             $passed;
         }

@@ -1225,17 +1225,22 @@ package Zef::CLI {
         };
 
         with %_<update> {
+            my $stdout = Supplier.new;
+            my $stderr = Supplier.new;
+            $stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => RESOLVE, phase => LIVE, message => $out }) }
+            $stderr.Supply.act: -> $err { $logger.emit({ level => ERROR, stage => RESOLVE, phase => LIVE, message => $err }) }
+
             my @plugins = $client.recommendation-manager.plugins.map(*.Slip).grep(*.defined);
 
             if %_<update> === Bool::False {
                 @plugins.map({ try .auto-update = False });
             }
             elsif %_<update> === Bool::True {
-                @plugins.race(:batch(1)).map(*.?update);
+                @plugins.race(:batch(1)).map(*.?update(:$stdout, :$stderr));
             }
             else {
                 @plugins.grep({.short-name ~~ any(%_<update>.grep(*.not))}).map({ try .auto-update = False });
-                @plugins.grep({.short-name ~~ any(%_<update>.grep(*.so))}).race(:batch(1)).map(*.?update);
+                @plugins.grep({.short-name ~~ any(%_<update>.grep(*.so))}).race(:batch(1)).map(*.?update(:$stdout, :$stderr));
             }
         }
 

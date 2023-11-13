@@ -229,6 +229,9 @@ class Zef::Repository::Ecosystems does PackageRepository {
 
             for self!slurp-package-list -> $meta {
                 with try Zef::Distribution.new(|%($meta)) -> $dist {
+                    # If the distribution doesn't have a name or we can't parse the name then just skip it.
+                    next unless $dist.name;
+
                     # Keep track of out namespaces we are going to index later
                     my @short-names-to-index;
 
@@ -247,7 +250,7 @@ class Zef::Repository::Ecosystems does PackageRepository {
 
                     # Index the short name to the distribution. Make sure entries are
                     # unique since dist name and one module name will usually match.
-                    push %!short-name-lookup{$_}, $dist for @short-names-to-index.unique;
+                    push %!short-name-lookup{$_}, $dist for @short-names-to-index.grep(*.so).unique;
 
                     push @!distributions, $dist;
                 }

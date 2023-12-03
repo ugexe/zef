@@ -88,12 +88,10 @@ class Zef::Service::Shell::tar does Extractor {
             # it can support .zip files. So we have a special case to
             # probe for tar on OpenBSD (which doesn't support .zip).
             if BEGIN $*VM.osname.lc.contains('openbsd') {
-                # For OpenBSD run just `tar` and see if the output contains
-                # any of the following words (which suggest the command exists)
-                BEGIN my @needles = <archive file specify>;
-                my $proc = Zef::zrun('tar', :!out, :err);
-                my $stderr = $proc.err.slurp(:close).lc;
-                return $probe-cache = any($stderr.words) ~~ any(@needles);
+                # On OpenBSD `tar -cf -` should run successfully with no
+                # output.  This would cause a warning with GNU tar.
+                my $proc = Zef::zrun('tar', '-cf', '-', :!out, :!err);
+                return $probe-cache = so $proc;
             }
 
             my $proc = Zef::zrun('tar', '--help', :out, :!err);
@@ -141,7 +139,7 @@ class Zef::Service::Shell::tar does Extractor {
         react {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
-            my $proc = Zef::zrun-async('tar', '-t', '-f', $archive-file.basename);
+            my $proc = Zef::zrun-async('tar', '-zt', '-f', $archive-file.basename);
             whenever $proc.stdout(:bin) { $output.append($_) }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

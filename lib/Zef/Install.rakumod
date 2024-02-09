@@ -50,10 +50,10 @@ class Zef::Install does Installer does Pluggable {
 
     =head2 method install
 
-        method install(Candidate $candi, CompUnit::Repository :$cur!, Bool :$force, Supplier :$logger, Int :$timeout --> Bool:D)
+        method install(Candidate $candi, CompUnit::Repository :$cur!, Bool :$force, Bool :$precompile, Supplier :$logger, Int :$timeout --> Bool:D)
 
     Installs the distribution C<$candi.dist> to C<$cur> (see synopsis). Set C<$force> to C<True> to allow installing a distribution
-    that is already installed.
+    that is already installed. If C<$precompile> is C<False> then it will not precompile during installation.
 
     An optional C<:$logger> can be supplied to receive events about what is occurring.
 
@@ -83,7 +83,7 @@ class Zef::Install does Installer does Pluggable {
 
     #| Install the distribution in $candi.dist to the $cur CompUnit::Repository.
     #| Use :force to install over an existing distribution using the same name/auth/ver/api
-    method install(Candidate $candi, CompUnit::Repository :$cur!, Bool :$force, Supplier :$logger, Int :$timeout --> Bool:D) {
+    method install(Candidate $candi, CompUnit::Repository :$cur!, Bool :$force, Bool :$precompile, Supplier :$logger, Int :$timeout --> Bool:D) {
         my $dist      = $candi.dist;
         my $installer = self!install-matcher($dist).first(*.so);
         die "No installing backend available" unless ?$installer;

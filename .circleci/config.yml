@@ -26,8 +26,8 @@ variables:
         # test zef test
         raku -I. bin/zef --debug test .
 
-        # run relative local path test + install
-        raku -I. bin/zef --debug install .
+        # run relative local path test + install + disable precompilation
+        raku -I. bin/zef --debug --/precompile-install install .
 
         # test uninstall
         raku -I. bin/zef uninstall zef

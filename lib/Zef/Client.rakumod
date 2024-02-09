@@ -316,6 +316,9 @@ class Zef::Client {
     #| If test time dependencies should be considered when building distributions
     has Bool $.test-depends is rw = True;
 
+    #| If precompilation should occur during the installation stage
+    has Bool $.precompile-install is rw = True;
+
     submethod TWEAK(
         :$!cache                  = %!config<StoreDir>.IO,
         :$!fetcher                = Zef::Fetch.new(:backends(|%!config<Fetch>)),
@@ -807,7 +810,7 @@ class Zef::Client {
                     }
                 }
 
-                take $candi if $!installer.install($candi, :$cur, :force($!force-install), :$!logger, :timeout($!install-timeout));
+                take $candi if $!installer.install($candi, :$cur, :force($!force-install), :precompile($!precompile-install), :$!logger, :timeout($!install-timeout));
             }
         }
 
@@ -1084,7 +1087,7 @@ class Zef::Client {
                 });
                 my Str @includes = $staging-repo.path-spec;
                 $_.dist.metainfo<includes> = @includes;
-                $staging-repo.install($_.dist);
+                $staging-repo.install($_.dist, :precompile($!precompile-install));
                 self.logger.emit({
                     level   => INFO,
                     stage   => STAGING,

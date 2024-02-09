@@ -36,7 +36,9 @@ test_script:
     # test zef test
     - raku -I. bin/zef --debug --raku-test  test .
 
-    # run relative local path test + install
+    # run relative local path test + install + disable precompilation
+    # (we also test --/precompile-install in other ci tests here, but
+    # it doesn't seem to work right on appveyor)
     - raku -I. bin/zef --debug install .
 
     # test uninstall

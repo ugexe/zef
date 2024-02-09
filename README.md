@@ -127,12 +127,15 @@ to fulfill any dependencies of other requested identities.
     --test-timeout=3600
     --install-timeout=3600
 
+    # or set the default to all unset --*-timeout flags to 0
+    --timeout=0
+
     # Number of simultaneous distributions/jobs to process for the corresponding phases
     --fetch-degree=5
     --test-degree=1
 
-    # or set the default to all unset --*-timeout flags to 0
-    --timeout=0
+    # Disable precompilation during installation
+    --/precompile-install
 
     # Do everything except the actual installations
     --dry

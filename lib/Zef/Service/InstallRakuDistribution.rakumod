@@ -58,11 +58,12 @@ class Zef::Service::InstallRakuDistribution does Installer {
 
     =head2 method install
     
-        method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force, Supplier $stdout, Suppluer :$stderr --> Bool:D)
+        method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force, Bool :$precompile, Supplier $stdout, Suppluer :$stderr --> Bool:D)
 
     Install the distribution C<$dist> to the CompUnit::Repository C<$cur>. If C<$force> is C<True>
-    then it will allow reinstalling an already installed distribution. A C<Supplier> can be supplied
-    as C<:$stdout> and C<:$stderr> to receive any output.
+    then it will allow reinstalling an already installed distribution. If C<$precompile> is C<False>
+    then it will not precompile during installation. A C<Supplier> can be supplied as C<:$stdout>
+    and C<:$stderr> to receive any output.
 
     Returns C<True> if the install succeeded.
 
@@ -77,8 +78,8 @@ class Zef::Service::InstallRakuDistribution does Installer {
 
     #| Install the distribution in $candi.dist to the $cur CompUnit::Repository.
     #| Use :force to install over an existing distribution using the same name/auth/ver/api
-    method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force, Supplier :$stdout, Supplier :$stderr --> Bool:D) {
-        $cur.install($dist, :$force);
+    method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force, Bool :$precompile, Supplier :$stdout, Supplier :$stderr --> Bool:D) {
+        $cur.install($dist, :$precompile, :$force);
         return True;
     }
 }

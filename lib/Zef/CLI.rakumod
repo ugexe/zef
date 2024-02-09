@@ -123,6 +123,7 @@ package Zef::CLI {
             Int  :$degree,
             Int  :$fetch-degree   = %*ENV<ZEF_FETCH_DEGREE> || $degree || 5, # default different from Zef::Client
             Int  :$test-degree    = %*ENV<ZEF_TEST_DEGREE>  || $degree || 1,
+            Bool :$precompile-install,
             Bool :$dry,
             Bool :$upgrade,# Not Yet Implemented
             Bool :$deps-only,
@@ -175,6 +176,8 @@ package Zef::CLI {
     If C<$fetch-degree> is set zef will download up to that many distributions in parallel.
 
     If C<$test-degree> is set zef will test up to that many distributions in parallel.
+
+    If C<$precompile-install> is set to C<False> then Raku code won't be precompiled during installation.
 
     If C<$dry> is set to C<True> then the final step of actually installing the distribution will be skipped and considered a success.
 
@@ -414,6 +417,7 @@ package Zef::CLI {
         Int  :$degree,
         Int  :$fetch-degree   = %*ENV<ZEF_FETCH_DEGREE> || $degree || 5, # default different from Zef::Client
         Int  :$test-degree    = %*ENV<ZEF_TEST_DEGREE>  || $degree || 1,
+        Bool :$precompile-install = True,
         Bool :$dry,
         Bool :$upgrade,
         Bool :$deps-only,
@@ -441,7 +445,7 @@ package Zef::CLI {
             :$force-build,    :$force-test,      :$force-install,
             :$fetch-timeout,  :$extract-timeout, :$build-timeout,
             :$test-timeout,   :$install-timeout, :$fetch-degree,
-            :$test-degree,
+            :$test-degree,    :$precompile-install,
         );
 
         my CompUnit::Repository @at = $install-to.map(*.&str2cur);
@@ -595,6 +599,7 @@ package Zef::CLI {
         Int  :$degree,
         Int  :$fetch-degree   = %*ENV<ZEF_FETCH_DEGREE> || $degree || 5, # default different from Zef::Client,
         Int  :$test-degree    = %*ENV<ZEF_TEST_DEGREE>  || $degree || 1,
+        Bool :$precompile-install = True,
         Bool :$dry,
         Bool :$update,
         Bool :$serial,
@@ -613,7 +618,7 @@ package Zef::CLI {
             :$force-build,    :$force-test,      :$force-install,
             :$fetch-timeout,  :$extract-timeout, :$build-timeout,
             :$test-timeout,   :$install-timeout, :$fetch-degree,
-            :$test-degree
+            :$test-degree,    :$precompile-install,
         );
 
         my @missing = @identities.grep: { not $client.is-installed($_) };
@@ -656,6 +661,7 @@ package Zef::CLI {
             :$test-timeout,
             :$fetch-degree,
             :$test-degree,
+            :$precompile-install,
             :$dry,
             :$serial,
         );
@@ -936,6 +942,7 @@ package Zef::CLI {
         Int  :$degree,
         Int  :$fetch-degree   = %*ENV<ZEF_FETCH_DEGREE> || $degree || 5, # default different from Zef::Client,
         Int  :$test-degree    = %*ENV<ZEF_TEST_DEGREE>  || $degree || 1,
+        Bool :$precompile-install,
         Bool :$update,
         Bool :$upgrade,
         Bool :$dry,
@@ -950,7 +957,7 @@ package Zef::CLI {
             :$force-build,    :$force-test,      :$force-install,
             :$fetch-timeout,  :$extract-timeout, :$build-timeout,
             :$test-timeout,   :$install-timeout, :$fetch-degree,
-            :$test-degree,
+            :$test-degree,    :$precompile-install,
         );
 
         my @identities = $client.list-available.map(*.dist.identity).unique;
@@ -979,6 +986,7 @@ package Zef::CLI {
             :$test-timeout,
             :$fetch-degree,
             :$test-degree,
+            :$precompile-install,
             :$dry,
             :$serial,
         );
@@ -1080,6 +1088,8 @@ package Zef::CLI {
                 --config-path=[path]    Load a specific Zef config file
                 --[phase]-timeout=[int] Set a timeout (in seconds) for the corresponding phase ( phase: fetch, extract, build, test, install )
                 --[phase]-degree=[int]  Number of simultaneous distributions/jobs to process for the corresponding phase ( phase : fetch, test )
+
+                --/precompile-install   Skip precompiling during installation
 
                 --update                Force a refresh for all module indexes
                 --update=[ecosystem]    Force a refresh for a specific ecosystem module index

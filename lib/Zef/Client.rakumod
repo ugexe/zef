@@ -1075,7 +1075,7 @@ class Zef::Client {
             my @built-candidates = ?$build ?? self.build(@_) !! @_;
             die "No installable candidates remain after `build` failures" unless +@built-candidates;
 
-            my @staged-candidates = ?$dry ?? @built-candidates !! @built-candidates.map({
+            my @staged-candidates = @built-candidates.map({
                 self.logger.emit({
                     level   => INFO,
                     stage   => STAGING,

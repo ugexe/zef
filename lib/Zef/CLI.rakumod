@@ -1089,8 +1089,6 @@ package Zef::CLI {
                 --[phase]-timeout=[int] Set a timeout (in seconds) for the corresponding phase ( phase: fetch, extract, build, test, install )
                 --[phase]-degree=[int]  Number of simultaneous distributions/jobs to process for the corresponding phase ( phase : fetch, test )
 
-                --/precompile-install   Skip precompiling during installation
-
                 --update                Force a refresh for all module indexes
                 --update=[ecosystem]    Force a refresh for a specific ecosystem module index
 
@@ -1115,6 +1113,7 @@ package Zef::CLI {
                 --dry                   Run all phases except the actual installations
                 --serial                Install each dependency after passing testing and before building/testing the next dependency
                 --contained (BETA)      Install all transitive and direct dependencies regardless if they are already installed globally
+                --/precompile-install   Skip precompiling during installation
 
                 --/test                 Skip the testing phase
                 --/build                Skip the building phase

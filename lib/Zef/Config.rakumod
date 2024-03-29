@@ -4,10 +4,13 @@ module Zef::Config {
     our sub parse-file($path) {
         my %config = %(Zef::from-json( $path.IO.slurp ));
 
+        my $homedir = $*HOME.IO.absolute;
+        my $tempdir = $*TMPDIR.IO.absolute;
+
         for %config -> $node {
             if $node.key.ends-with('Dir') {
-                %config{$node.key} = $node.value.subst(/'{$*HOME}' || '$*HOME'/, $*HOME // $*TMPDIR, :g);
-                %config{$node.key} = $node.value.subst(/'{$*TMPDIR}' || '$*TMPDIR'/, $*TMPDIR, :g);
+                %config{$node.key} = $node.value.subst(/'{$*HOME}' || '$*HOME'/, $homedir // $tempdir, :g);
+                %config{$node.key} = $node.value.subst(/'{$*TMPDIR}' || '$*TMPDIR'/, $tempdir, :g);
                 %config{$node.key} = $node.value.subst(/'{$*PID}' || '$*PID'/, $*PID, :g);
                 %config{$node.key} = $node.value.subst(/'{time}'/, time, :g);
             }

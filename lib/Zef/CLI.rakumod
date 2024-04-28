@@ -135,7 +135,8 @@ package Zef::CLI {
             *@wants ($, *@)
         )
 
-    Fetch, extract, build, test, and install C<@wanted> distributions and their prerequisites.
+    Fetch, extract, build, test, and install C<@wanted> distributions and their prerequisites. If C<@wanted> contains a
+    value of C<-> then each line of STDIN will be added to C<@wanted>.
 
     If C<$fetch> is set to C<False> then the fetch phase will be skipped.
 

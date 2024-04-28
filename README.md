@@ -90,8 +90,12 @@ if both passed all their tests. For example: if module A failed its tests, then 
     zef -v install https://github.com/ugexe/zef/archive/main.tar.gz
     zef -v install https://github.com/ugexe/zef.git@v0.1.22
 
+    # STDIN
+    echo "Net::HTTP" | zef install -
+
 A request may contain any number and combination of these. Paths and URLs will be resolved first so they are available
-to fulfill any dependencies of other requested identities.
+to fulfill any dependencies of other requested identities. An identity of `-` will treat each line of STDIN as an
+identity.
 
 **Options**
 

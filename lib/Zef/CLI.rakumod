@@ -428,6 +428,7 @@ package Zef::CLI {
         :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
         *@wants ($, *@)
     ) {
+        @wants = @wants.map({ $_ eq '-' ?? $*IN.lines.Slip !! $_ }).unique;
 
         @wants .= map: *.&str2identity;
         my (:@paths, :@uris, :@identities) := @wants.classify: -> $wanted {
@@ -607,6 +608,8 @@ package Zef::CLI {
         :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
         *@identities
     ) {
+        @identities = @identities.map({ $_ eq '-' ?? $*IN.lines.Slip !! $_ }).unique;
+
         # XXX: This is a very inefficient prototype. Not sure how to handle an 'upgrade' when
         # multiple versions are already installed, so for now an 'upgrade' always means we
         # leave the previous version installed.
@@ -1202,7 +1205,7 @@ package Zef::CLI {
 
             my $arg-as  = $arg.subst(/^["--" | "--\/"]/, '');
             my $enabled = $arg.starts-with('--/') ?? 0 !! 1;
-            $arg.starts-with('-')
+            $arg.starts-with('-') && $arg ne '-'
                 ?? $arg-as ~~ any($plugin-lookup.keys)
                     ?? (for |$plugin-lookup{$arg-as} -> $p { $p<enabled> = $enabled })
                     !! @named.append($arg)

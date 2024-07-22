@@ -30,6 +30,74 @@ jobs:
       - name: Remove non-core modules included in this github action
         run: raku -e 'my $site = CompUnit::RepositoryRegistry.repository-for-name(q|site|); $site.uninstall($_) for $site.installed'
 
+      - name: Force precompilation order
+        run: |
+          raku -e 'say "Zef::Distribution::DependencySpecification"';
+          raku -I. -e 'use Zef::Distribution::DependencySpecification;'
+          raku -e 'say "Zef::Service::Shell::DistributionBuilder"';
+          raku -I. -e 'use Zef::Service::Shell::DistributionBuilder;'
+          raku -e 'say "Zef::Service::InstallRakuDistribution"';
+          raku -I. -e 'use Zef::Service::InstallRakuDistribution;'
+          raku -e 'say "Zef::Service::Shell::LegacyBuild"';
+          raku -I. -e 'use Zef::Service::Shell::LegacyBuild;'
+          raku -e 'say "Zef::Repository::LocalCache"';
+          raku -I. -e 'use Zef::Repository::LocalCache;'
+          raku -e 'say "Zef::Repository::Ecosystems"';
+          raku -I. -e 'use Zef::Repository::Ecosystems;'
+          raku -e 'say "Zef::Service::Shell::unzip"';
+          raku -I. -e 'use Zef::Service::Shell::unzip;'
+          raku -e 'say "Zef::Service::FileReporter"';
+          raku -I. -e 'use Zef::Service::FileReporter;'
+          raku -e 'say "Zef::Service::Shell::wget"';
+          raku -I. -e 'use Zef::Service::Shell::wget;'
+          raku -e 'say "Zef::Service::Shell::Test"';
+          raku -I. -e 'use Zef::Service::Shell::Test;'
+          raku -e 'say "Zef::Service::Shell::curl"';
+          raku -I. -e 'use Zef::Service::Shell::curl;'
+          raku -e 'say "Zef::Service::Shell::git"';
+          raku -I. -e 'use Zef::Service::Shell::git;'
+          raku -e 'say "Zef::Service::Shell::tar"';
+          raku -I. -e 'use Zef::Service::Shell::tar;'
+          raku -e 'say "Zef::Distribution::Local"';
+          raku -I. -e 'use Zef::Distribution::Local;'
+          raku -e 'say "Zef::Utils::SystemQuery"';
+          raku -I. -e 'use Zef::Utils::SystemQuery;'
+          raku -e 'say "Zef::Service::FetchPath"';
+          raku -I. -e 'use Zef::Service::FetchPath;'
+          raku -e 'say "Zef::Utils::FileSystem"';
+          raku -I. -e 'use Zef::Utils::FileSystem;'
+          raku -e 'say "Zef::Distribution"';
+          raku -I. -e 'use Zef::Distribution;'
+          raku -e 'say "Zef::Service::TAP"';
+          raku -I. -e 'use Zef::Service::TAP;'
+          raku -e 'say "Zef::Utils::URI"';
+          raku -I. -e 'use Zef::Utils::URI;'
+          raku -e 'say "Zef::Repository"';
+          raku -I. -e 'use Zef::Repository;'
+          raku -e 'say "Zef::Identity"';
+          raku -I. -e 'use Zef::Identity;'
+          raku -e 'say "Zef::Extract"';
+          raku -I. -e 'use Zef::Extract;'
+          raku -e 'say "Zef::Install"';
+          raku -I. -e 'use Zef::Install;'
+          raku -e 'say "Zef::Report"';
+          raku -I. -e 'use Zef::Report;'
+          raku -e 'say "Zef::Client"';
+          raku -I. -e 'use Zef::Client;'
+          raku -e 'say "Zef::Config"';
+          raku -I. -e 'use Zef::Config;'
+          raku -e 'say "Zef::Fetch"';
+          raku -I. -e 'use Zef::Fetch;'
+          raku -e 'say "Zef::Build"';
+          raku -I. -e 'use Zef::Build;'
+          raku -e 'say "Zef::Test"';
+          raku -I. -e 'use Zef::Test;'
+          raku -e 'say "Zef::CLI"';
+          raku -I. -e 'use Zef::CLI;'
+          raku -e 'say "Zef"';
+          raku -I. -e 'use Zef;'
+        if: runner.os == 'Windows'
+
       # run xt/ tests
       - name: Run xt/ tests - repository.rakutest
         run: raku --ll-exception -I. xt/repository.rakutest

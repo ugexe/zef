@@ -1,6 +1,12 @@
 use Zef:ver($?DISTRIBUTION.meta<version> // $?DISTRIBUTION.meta<ver>// '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 use Zef::Utils::FileSystem:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 
+# Preload default plugins
+use Zef::Service::FetchPath;
+use Zef::Service::Shell::git;
+use Zef::Service::Shell::tar;
+use Zef::Service::Shell::unzip;
+
 class Zef::Extract does Extractor does Pluggable {
 
     =begin pod

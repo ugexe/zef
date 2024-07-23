@@ -1,5 +1,8 @@
 use Zef:ver($?DISTRIBUTION.meta<version> // $?DISTRIBUTION.meta<ver>// '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 
+# Preload default plugins
+use Zef::Service::FileReporter;
+
 class Zef::Report does Pluggable does Reporter {
 
     =begin pod

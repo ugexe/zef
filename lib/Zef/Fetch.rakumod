@@ -1,6 +1,12 @@
 use Zef:ver($?DISTRIBUTION.meta<version> // $?DISTRIBUTION.meta<ver>// '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 use Zef::Utils::FileSystem:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 
+# Preload default plugins
+use Zef::Service::FetchPath;
+use Zef::Service::Shell::curl;
+use Zef::Service::Shell::git;
+use Zef::Service::Shell::wget;
+
 class Zef::Fetch does Fetcher does Pluggable {
 
     =begin pod

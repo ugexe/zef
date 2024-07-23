@@ -1,6 +1,10 @@
 use Zef:ver($?DISTRIBUTION.meta<version> // $?DISTRIBUTION.meta<ver>// '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 use Zef::Distribution:ver(Zef.^ver):api(Zef.^api):auth(Zef.^auth);
 
+# Preload default plugins
+use Zef::Service::Shell::DistributionBuilder;
+use Zef::Service::Shell::LegacyBuild;
+
 class Zef::Build does Builder does Pluggable {
 
     =begin pod

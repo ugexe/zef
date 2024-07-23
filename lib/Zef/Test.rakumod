@@ -1,5 +1,9 @@
 use Zef:ver($?DISTRIBUTION.meta<version> // $?DISTRIBUTION.meta<ver>// '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 
+# Preload default plugins
+use Zef::Service::Shell::Test;
+use Zef::Service::TAP;
+
 class Zef::Test does Tester does Pluggable {
 
     =begin pod

@@ -8,6 +8,7 @@ install:
 
     # Workaround for path length errors during precompilation of longer repo names
     - SET ZEF_CONFIG_TEMPDIR=C:\tmp
+    - SET CFLAGS=/EP
     - cd C:\
     - md tmp
 

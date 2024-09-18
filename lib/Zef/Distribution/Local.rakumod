@@ -131,7 +131,7 @@ class Zef::Distribution::Local is Zef::Distribution {
         my $lib-path = $res-path.child('libraries');
 
         return %meta<resources>.grep(*.defined).map(-> $resource {
-            my $resource-path = $resource ~~ m/^libraries\/(.*)/
+            my $resource-path = $resource ~~ m/^libraries\/(.+)/
                 ?? $lib-path.child($*VM.platform-library-name(IO::Path.new($0, :CWD($!path))))
                 !! $res-path.child($resource);
             $resource => $resource-path.IO.is-relative

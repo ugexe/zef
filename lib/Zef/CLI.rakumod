@@ -894,7 +894,7 @@ package Zef::CLI {
         my $candi  = $client.resolve($identity).head
                 ||   $client.search($identity, :strict, :max-results(1))[0]\
                 ||   abort "!!!> Found no candidates matching identity: {$identity}";
-        my %support  = $candi.dist.meta<support>;
+        my %support  = $candi.dist.meta<support>.hash;
         my $url      = %support{$url-type};
         my @has-urls = grep { %support{$_} }, <homepage bugtracker source>;
         unless $url && $url.starts-with('http://' | 'https://') {

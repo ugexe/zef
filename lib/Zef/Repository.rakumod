@@ -211,17 +211,18 @@ class Zef::Repository does PackageRepository does Pluggable {
             $plugin.can('update');
         }
 
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        if ?$logger {
+            $stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => RESOLVE, phase => LIVE, message => $out }) }
+            $stderr.Supply.act: -> $err { $logger.emit({ level => ERROR, stage => RESOLVE, phase => LIVE, message => $err }) }
+        }
+
         @can-update.race(:batch(1)).map({
-            my $stdout = Supplier.new;
-            my $stderr = Supplier.new;
-            if ?$logger {
-                $stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => RESOLVE, phase => LIVE, message => $out }) }
-                $stderr.Supply.act: -> $err { $logger.emit({ level => ERROR, stage => RESOLVE, phase => LIVE, message => $err }) }
-            }
-
             $_.update(:$stdout, :$stderr);
-
-            $stderr.done()
         });
+
+        $stdout.done();
+        $stderr.done();
     }
 }

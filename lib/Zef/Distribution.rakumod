@@ -213,11 +213,11 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
     }
 
     method !long-name($name --> Str) {
-        return sprintf '%s:ver<%s>:auth<%s>:api<%s>',
-            $name,
-            (self.ver  // ''),
-            (self.auth // '').trans(['<', '>'] => ['\<', '\>']),
-            (self.api  // ''),
+        return $name
+	    ~ ':ver<' ~ (self.ver // '')
+	    ~ '>:auth<' ~ (self.auth // '').trans(['<', '>'] => ['\<', '\>'])
+            ~ '>:api<' ~ (self.api  // '')
+            ~ '>'
         ;
     }
 

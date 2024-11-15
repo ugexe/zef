@@ -88,12 +88,11 @@ class Zef::Service::Shell::LegacyBuild does Builder {
         my $cmd        = "require '$build-file'; ::('Build').new.build('$dist.path.IO.absolute()') ?? exit(0) !! exit(1);";
         my @exec       = |($*EXECUTABLE.absolute, |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
 
-        $stdout.emit("Command: {@exec.join(' ')}");
-
         my $ENV := %*ENV;
         my $passed;
         react {
             my $proc = Zef::zrun-async(@exec);
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout.lines { $stdout.emit($_) }
             whenever $proc.stderr.lines { $stderr.emit($_) }
             whenever $proc.start(:$ENV, :cwd($dist.path)) { $passed = $_.so }

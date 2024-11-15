@@ -584,7 +584,7 @@ class Zef::Client {
             die "failed to create directory: {$tmp.absolute}"
                 unless ($tmp.IO.e || mkdir($tmp));
 
-            my $meta6-prefix = '' R// $!extractor.ls-files($candi).sort.first({ .IO.basename eq 'META6.json' });
+            my $meta6-prefix = '' R// $!extractor.ls-files($candi, :$!logger).sort.first({ .IO.basename eq 'META6.json' });
 
             self.logger.emit({
                 level   => WARN,

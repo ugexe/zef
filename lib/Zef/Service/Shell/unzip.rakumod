@@ -63,9 +63,10 @@ class Zef::Service::Shell::unzip does Extractor {
 
     =head2 method ls-files
 
-        method ls-files(IO() $archive-file --> Array[Str])
+        method ls-files(IO() $archive-file, Supplier :$stdout, Supplier :$stderr --> Array[Str])
 
     On success it returns an C<Array> of relative paths that are available to be extracted from C<$archive-file>.
+    A C<Supplier> can be supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     =end pod
 
@@ -98,6 +99,7 @@ class Zef::Service::Shell::unzip does Extractor {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
             my $proc = Zef::zrun-async('unzip', '-o', '-qq', $archive-file.basename, '-d', $extract-to.absolute);
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
@@ -107,7 +109,7 @@ class Zef::Service::Shell::unzip does Extractor {
     }
 
     #| Returns an array of strings, where each string is a relative path representing a file that can be extracted from the given $archive-file
-    method ls-files(IO() $archive-file) {
+    method ls-files(IO() $archive-file, Supplier :$stdout, Supplier :$stderr) {
         die "archive file does not exist: {$archive-file.absolute}"
             unless $archive-file.e && $archive-file.f;
 
@@ -117,6 +119,7 @@ class Zef::Service::Shell::unzip does Extractor {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
             my $proc = Zef::zrun-async('unzip', '-Z', '-1', $archive-file.basename);
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { $output.append($_) }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

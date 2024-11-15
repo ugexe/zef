@@ -87,9 +87,10 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
 
     =head2 method ls-files
 
-        method ls-files(IO() $repo-path --> Array[Str])
+        method ls-files(IO() $repo-path, Supplier :$stdout, Supplier :$stderr --> Array[Str])
 
     On success it returns an C<Array> of relative paths that are available to be extracted from C<$repo-path>.
+    A C<Supplier> can be supplied as C<:$stdout> and C<:$stderr> to receive any output.
 
     =end pod
 
@@ -128,7 +129,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
     #| Fetch the given url.
     #| First attempts to clone the repository, but if it already exists (or fails) it attempts to pull down new changes
     method fetch(Str() $uri, IO() $save-as, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
-        return self!clone(self!repo-url($uri), $save-as) || self!pull($save-as);
+        return self!clone(self!repo-url($uri), $save-as, :$stdout, :$stderr) || self!pull($save-as, :$stdout, :$stderr);
     }
 
     #| Extracts the given path.
@@ -137,7 +138,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
         die "target repo directory {$repo-path.absolute} does not contain a .git/ folder"
             unless $repo-path.child('.git').d;
 
-        my $sha1 = self!rev-parse(self!fetch($repo-path)).head;
+        my $sha1 = self!rev-parse(self!fetch($repo-path, :$stdout, :$stderr), :$stdout, :$stderr).head;
         die "target repo directory {$repo-path.absolute} failed to locate checkout revision"
             unless $sha1;
 
@@ -145,11 +146,11 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
         die "target repo directory {$extract-to.absolute} does not exist and could not be created"
             unless ($checkout-to.e && $checkout-to.d) || mkdir($checkout-to);
 
-        return self!checkout($repo-path, $checkout-to, $sha1);
+        return self!checkout($repo-path, $checkout-to, $sha1, :$stdout, :$stderr);
     }
 
     #| Returns an array of strings, where each string is a relative path representing a file that can be extracted from the given $repo-path
-    method ls-files(IO() $repo-path --> Array[Str]) {
+    method ls-files(IO() $repo-path, Supplier :$stdout, Supplier :$stderr --> Array[Str]) {
         die "target repo directory {$repo-path.absolute} does not contain a .git/ folder"
             unless $repo-path.child('.git').d;
 
@@ -159,6 +160,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
             my $cwd := $repo-path.absolute;
             my $ENV := %*ENV;
             my $proc = Zef::zrun-async('git', 'ls-tree', '-r', '--name-only', self!checkout-name($repo-path));
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { $output.append($_) }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
@@ -171,7 +173,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
     }
 
     #| On success returns an IO::Path to where a `git clone ...` has put files
-    method !clone($url, IO() $save-as --> IO::Path) {
+    method !clone($url, IO() $save-as, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         die "target download directory {$save-as.absolute} does not exist and could not be created"
             unless $save-as.d || mkdir($save-as);
 
@@ -180,6 +182,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
             my $cwd := $save-as.parent;
             my $ENV := %*ENV;
             my $proc = Zef::zrun-async('git', 'clone', $url, $save-as.basename, '--quiet');
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
@@ -189,7 +192,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
     }
 
     #| Does a `git pull` on an existing local git repo
-    method !pull(IO() $repo-path --> IO::Path) {
+    method !pull(IO() $repo-path, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         die "target download directory {$repo-path.absolute} does not contain a .git/ folder"
             unless $repo-path.child('.git').d;
 
@@ -198,6 +201,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
             my $cwd := $repo-path.absolute;
             my $ENV := %*ENV;
             my $proc = Zef::zrun-async('git', 'pull', '--quiet');
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
@@ -207,7 +211,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
     }
 
     #| Does a `git fetch` on an existing local git repo. Not really related to self.fetch(...)
-    method !fetch(IO() $repo-path --> IO::Path) {
+    method !fetch(IO() $repo-path, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         die "target download directory {$repo-path.absolute} does not contain a .git/ folder"
             unless $repo-path.child('.git').d;
 
@@ -216,6 +220,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
             my $cwd := $repo-path.absolute;
             my $ENV := %*ENV;
             my $proc = Zef::zrun-async('git', 'fetch', '--quiet');
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
@@ -225,12 +230,13 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
     }
 
     #| Does a `git checkout ...`, allowing git source urls to have e.g. trailing @tag
-    method !checkout(IO() $repo-path, IO() $extract-to, $target --> IO::Path) {
+    method !checkout(IO() $repo-path, IO() $extract-to, $target, Supplier :$stdout, Supplier :$stderr --> IO::Path) {
         my $passed;
         react {
             my $cwd := $repo-path.absolute;
             my $ENV := %*ENV;
             my $proc = Zef::zrun-async('git', '--work-tree', $extract-to, 'checkout', $target, '.');
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }
@@ -240,7 +246,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
     }
 
     #| Does a `git rev-parse ...` (used to get a sha1 for saving a copy of a specific checkout)
-    method !rev-parse(IO() $save-as --> Array[Str]) {
+    method !rev-parse(IO() $save-as, Supplier :$stdout, Supplier :$stderr --> Array[Str]) {
         die "target repo directory {$save-as.absolute} does not contain a .git/ folder"
             unless $save-as.child('.git').d;
 
@@ -250,6 +256,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
             my $cwd := $save-as.absolute;
             my $ENV := %*ENV;
             my $proc = Zef::zrun-async('git', 'rev-parse', self!checkout-name($save-as));
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { $output.append($_) }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

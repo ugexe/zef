@@ -70,9 +70,11 @@ class Zef::Extract does Extractor does Pluggable {
 
     =head2 method ls-files
 
-        method ls-files(IO() $archive-file --> Array[Str])
+        method ls-files(IO() $archive-file, Supplier :$logger --> Array[Str])
 
     On success it returns an C<Array> of relative paths that are available to be extracted from C<$archive-file>.
+
+    An optional C<:$logger> can be supplied to receive events about what is occurring.
 
     =end pod
 
@@ -159,11 +161,21 @@ class Zef::Extract does Extractor does Pluggable {
     #| each string is a relative path representing a file that can be extracted from the given $candi.uri
     #| Note this differs from other 'Extract' adapters .extract() which take a $uri as the first
     #| parameter, not a $candi
-    method ls-files($candi --> Array[Str]) {
+    method ls-files($candi, Supplier :$logger --> Array[Str]) {
+        my $stdout = Supplier.new;
+        my $stderr = Supplier.new;
+        if ?$logger {
+            $stdout.Supply.act: -> $out { $logger.emit({ level => VERBOSE, stage => EXTRACT, phase => LIVE, candi => $candi, message => $out }) }
+            $stderr.Supply.act: -> $err { $logger.emit({ level => ERROR,   stage => EXTRACT, phase => LIVE, candi => $candi, message => $err }) }
+        }
+
         my $path       := $candi.uri;
         my $extractors := self!extractors($path);
-        my $name-paths := $extractors.map(*.ls-files($path)).first(*.defined).map(*.IO);
+        my $name-paths := $extractors.map(*.ls-files($path, :$stdout, :$stderr)).first(*.defined).map(*.IO);
         my @files       = $name-paths.map({ .is-absolute ?? $path.IO.child(.relative($path)).cleanup.relative($path) !! $_ });
+
+        $stdout.done();
+        $stderr.done();
 
         my Str @results = @files.map(*.Str);
         return @results;

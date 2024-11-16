@@ -106,6 +106,7 @@ class Zef::Service::Shell::wget does Fetcher does Probeable {
             my $ENV := %*ENV;
             my $cmd := self!command();
             my $proc = Zef::zrun-async($cmd, '-P', $cwd, '--quiet', $uri, '-O', $save-as.absolute);
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
             whenever $proc.start(:$ENV, :$cwd) { $passed = $_.so }

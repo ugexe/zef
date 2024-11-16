@@ -92,6 +92,7 @@ class Zef::Service::Shell::Test does Tester {
             my $passed;
             react {
                 my $proc = Zef::zrun-async($*EXECUTABLE.absolute, @includes.map({ slip '-I', $_ }), $rel-test-file);
+                $stdout.emit("Command: {$proc.command}");
                 whenever $proc.stdout.lines { $stdout.emit($_) }
                 whenever $proc.stderr.lines { $stderr.emit($_) }
                 whenever $proc.start(:cwd($path)) { $passed = $_.so }

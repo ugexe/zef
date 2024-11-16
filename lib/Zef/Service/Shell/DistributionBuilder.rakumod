@@ -106,12 +106,11 @@ class Zef::Service::Shell::DistributionBuilder does Builder {
 
         my @exec = |($*EXECUTABLE.absolute, |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
 
-        $stdout.emit("Command: {@exec.join(' ')}");
-
         my $ENV := %*ENV;
         my $passed;
         react {
             my $proc = Zef::zrun-async(@exec, :w);
+            $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout.lines { $stdout.emit($_) }
             whenever $proc.stderr.lines { $stderr.emit($_) }
             whenever $proc.start(:$ENV, :cwd($dist.path)) { $passed = $_.so }

@@ -1,0 +1,90 @@
+name: test
+
+on: [ push, pull_request ]
+
+jobs:
+  raku:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, windows-latest, ubuntu-latest ]
+        raku-version: [ latest ]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: Raku/setup-raku@v1
+        with:
+          raku-version: ${{ matrix.raku-version }}
+
+      - name: Remove non-core modules included in this github action
+        run: raku -e 'my $site = CompUnit::RepositoryRegistry.repository-for-name(q|site|); $site.uninstall($_) for $site.installed'
+
+      # run xt/ tests
+      - name: Run xt/ tests - repository.rakutest
+        run: raku --ll-exception -I. xt/repository.rakutest
+      - name: Run xt/ tests - install.rakutest
+        run: raku --ll-exception -I. xt/install.rakutest
+
+      # run integration tests pre-install
+      - name: Test (and show for debugging purposes) --version
+        run: raku -I. bin/zef --version
+      - name: Run relative local path test + install
+        run: raku -I. bin/zef --debug install .
+      - name: Test uninstall
+        run: raku -I. bin/zef uninstall zef
+      - name: Run absolute local path test + install
+        run: raku -I. bin/zef install ${{ github.workspace }}
+
+      # run integration tests post-install
+      - name: Test 'update'
+        run: zef update --debug
+      - name: Test --version
+        run: zef --version
+      - name: Test --help
+        run: zef --help
+      - name: Test 'locate' with short-name
+        run: zef locate Zef::CLI
+      - name: Test 'locate' with path name
+        run: zef locate lib/Zef/CLI.rakumod
+      - name: Test 'browse'
+        run: zef browse zef bugtracker --/open
+      - name: Test 'info'
+        run: zef info zef
+      - name: Test 'search'
+        run: zef --debug search Base64
+      - name: Test 'rdepends'
+        run: zef --debug rdepends Base64
+      - name: Test 'depends'
+        run: zef --debug depends Cro::SSL
+      - name: Test 'fetch'
+        run: zef --debug fetch Base64
+      - name: Test installing from what 'fetch' put in ::LocalCache
+        run: zef --debug --/fez --/cpan --/p6c --/rea install Base64
+      - name: Test 'list'
+        run: zef --debug --max=10 list
+      - name: Test 'list --installed'
+        run: zef --debug --installed list
+      - name: Test reinstallation via 'install --force-install'
+        run: zef --debug --force-install install Base64
+      - name: Test installing .tar.gz
+        run: zef --debug install https://github.com/ugexe/Raku-PathTools/archive/0434191c56e0f3254ab1d756d90f9191577de5a0.tar.gz
+      - name: Test 'upgrade' on previously installed PathTools .tar.gz
+        run: zef --debug upgrade PathTools
+      - name: Test installing .zip
+        run: zef --debug install https://github.com/ugexe/Raku-Text--Table--Simple/archive/v0.0.3.zip
+      - name: Test remote git repo + tag
+        run: zef --debug install https://github.com/ugexe/Raku-Text--Table--Simple.git@v0.0.4
+      - name: Test self contained installation
+        run: |
+          zef install Distribution::Common --/test
+          zef install Distribution::Common::Remote -to=inst#foo --contained --/test
+          zef uninstall Distribution::Common
+          raku -I inst#foo -M Distribution::Common::Remote::Github -e ""
+      - name: Test 'nuke' on config paths
+        run: zef --/confirm nuke TempDir StoreDir
+      - name: Test single repository update ('cached' should be 0 after previous nuke)
+        run: zef update cached --debug

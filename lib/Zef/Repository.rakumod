@@ -138,7 +138,7 @@ class Zef::Repository does PackageRepository does Pluggable {
 
             my $group-results := @repo-group.hyper(:batch(1)).map: -> $repo {
                 my @search-for = $repo.id eq 'Zef::Repository::LocalCache' ?? @identities !! @look-for;
-                $repo.search(@search-for, :strict);
+                $repo.search(@search-for, :strict).grep(*.so);
             }
 
             for $group-results.flat -> $dist {

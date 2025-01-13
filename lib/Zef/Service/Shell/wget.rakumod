@@ -68,8 +68,8 @@ class Zef::Service::Shell::wget does Fetcher does Probeable {
     method !command {
         $command-lock.protect: {
             return $command-cache if $command-cache.defined;
-            if BEGIN { $*DISTRO.is-win } && try so Zef::zrun('curl.exe', '--help', :!out, :!err) {
-                # When running under powershell we don't want to use the curl Invoke-WebRequest
+            if BEGIN { $*DISTRO.is-win } && try so Zef::zrun('wget.exe', '--help', :!out, :!err) {
+                # When running under powershell we don't want to use the wget Invoke-WebRequest
                 # alias so explicitly add the .exe
                 return $command-cache = 'wget.exe';
             }

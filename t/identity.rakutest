@@ -1,3 +1,4 @@
+use v6.d;
 use Test;
 plan 6;
 

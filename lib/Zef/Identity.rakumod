@@ -1,3 +1,5 @@
+use v6.d;
+
 class Zef::Identity {
     has $.name;
     has $.version;

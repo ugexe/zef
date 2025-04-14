@@ -4,7 +4,7 @@
     "name"          : "zef",
     "api"           : "0",
     "version"       : "0.22.8",
-    "auth"          : "github:ugexe",
+    "auth"          : "zef:ugexe",
     "description"   : "Raku Module Management",
     "license"       : "Artistic-2.0",
     "build-depends" : [ ],

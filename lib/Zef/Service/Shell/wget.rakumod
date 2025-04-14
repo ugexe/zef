@@ -81,7 +81,7 @@ class Zef::Service::Shell::wget does Fetcher does Probeable {
     my Lock $probe-lock = Lock.new;
     my Bool $probe-cache;
 
-    #| Return true if the `curl` command is available to use
+    #| Return true if the `wget` command is available to use
     method probe(--> Bool:D) {
         $probe-lock.protect: {
             return $probe-cache if $probe-cache.defined;

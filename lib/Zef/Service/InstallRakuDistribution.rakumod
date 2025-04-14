@@ -28,7 +28,7 @@ class Zef::Service::InstallRakuDistribution does Installer {
         # with no dependencies or all dependencies already installed...
         my $dist-to-install = Zef::Distribution::Local.new($*CWD);
         my $cur = CompUnit::RepositoryRegistry.repository-for-name("site"); # default install location
-        my $passed = so $installer.install($dist-to-test, :$cur, :$stdout, :$stderr);
+        my $passed = so $installer.install($dist-to-install, :$cur, :$stdout, :$stderr);
         say $passed ?? "PASS" !! "FAIL";
 
     =end code
@@ -59,7 +59,7 @@ class Zef::Service::InstallRakuDistribution does Installer {
 
     =head2 method install
     
-        method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force, Bool :$precompile, Supplier $stdout, Suppluer :$stderr --> Bool:D)
+        method install(Distribution $dist, CompUnit::Repository :$cur, Bool :$force, Bool :$precompile, Supplier $stdout, Supplier :$stderr --> Bool:D)
 
     Install the distribution C<$dist> to the CompUnit::Repository C<$cur>. If C<$force> is C<True>
     then it will allow reinstalling an already installed distribution. If C<$precompile> is C<False>

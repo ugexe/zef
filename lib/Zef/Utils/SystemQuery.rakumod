@@ -1,3 +1,5 @@
+use v6.d;
+
 module Zef::Utils::SystemQuery {
 
     =begin pod

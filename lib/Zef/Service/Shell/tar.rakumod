@@ -1,3 +1,4 @@
+use v6.d;
 use Zef:ver($?DISTRIBUTION.meta<version> // $?DISTRIBUTION.meta<ver>// '*'):api($?DISTRIBUTION.meta<api> // '*'):auth($?DISTRIBUTION.meta<auth> // '');
 
 # Note: when passing command line arguments to tar in this module be sure to use relative

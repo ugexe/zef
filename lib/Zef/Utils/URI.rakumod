@@ -1,3 +1,5 @@
+use v6.d;
+
 class Zef::Utils::URI {
     has $.is-relative;
     has $.match;

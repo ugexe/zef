@@ -1044,7 +1044,7 @@ class Zef::Client {
 
                 if @installed-candidates.map(*.dist).map(*.&bin-names).flat.unique -> @bins {
                     my $msg = "\n{+@bins} bin/ script{+@bins>1??'s'!!''}{+@bins??' ['~@bins~']'!!''} installed to:"
-                    ~ "\n" ~ @curs.map(*.prefix.child('bin')).join("\n");
+                    ~ "\n" ~ @curs.map(*.prefix.resolve.child('bin')).join("\n");
                     self.logger.emit({
                         level   => INFO,
                         stage   => REPORT,

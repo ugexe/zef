@@ -132,7 +132,7 @@ package Zef::CLI {
             Bool :$contained,
             :$update,
             :$exclude,
-            :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
+            :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> || $CONFIG<DefaultCUR>,
             *@wants ($, *@)
         )
 
@@ -427,7 +427,7 @@ package Zef::CLI {
         Bool :$contained,
         :$update,
         :$exclude,
-        :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
+        :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> || $CONFIG<DefaultCUR>,
         *@wants ($, *@)
     ) {
         @wants = @wants.map({ $_ eq '-' ?? $*IN.lines.Slip !! $_ }).unique;
@@ -607,7 +607,7 @@ package Zef::CLI {
         Bool :$update,
         Bool :$serial,
         :$exclude,
-        :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
+        :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> || $CONFIG<DefaultCUR>,
         *@identities
     ) {
         @identities = @identities.map({ $_ eq '-' ?? $*IN.lines.Slip !! $_ }).unique;
@@ -953,7 +953,7 @@ package Zef::CLI {
         Bool :$dry,
         Bool :$serial,
         :$exclude,
-        :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> // $CONFIG<DefaultCUR>,
+        :to(:$install-to) = %*ENV<ZEF_INSTALL_TO> || $CONFIG<DefaultCUR>,
     ) {
         my $client = get-client(
             :config($CONFIG), :exclude($exclude.grep(*.defined).map({ Zef::Distribution::DependencySpecification.new($_) })),

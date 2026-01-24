@@ -143,13 +143,14 @@
     ],
     "Test" : [
         {
-            "short-name" : "tap-harness",
-            "module" : "Zef::Service::TAP",
-            "comment" : "Raku TAP::Harness adapter"
-        },
-        {
             "short-name" : "raku-test",
             "module" : "Zef::Service::Shell::Test"
+        },
+        {
+            "short-name" : "tap-harness",
+            "module" : "Zef::Service::TAP",
+            "comment" : "Raku TAP::Harness adapter",
+            "enabled" : 0
         }
     ]
 }

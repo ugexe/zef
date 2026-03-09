@@ -284,7 +284,7 @@ class Zef::Service::Shell::git does Fetcher does Extractor does Probeable {
 
     #| Given a $url like http://foo.com/project.git@v1 or ./project.git@v1 will return 'v1'
     method !checkout-name($url --> Str) {
-        my $uri      = uri($url) || return False;
+        my $uri      = uri($url) || return '';
         my $checkout = ($uri.path // '').match(/\@(.*)[\/|\@|\?|\#]?/)[0];
         return $checkout ?? $checkout.Str !! 'HEAD';
     }

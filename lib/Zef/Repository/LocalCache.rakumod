@@ -90,7 +90,7 @@ class Zef::Repository::LocalCache does PackageRepository {
 
     #| see role Repository in lib/Zef.rakumod
     method available(--> Array[Candidate]) {
-        self!populate-distributions;
+        self!maybe-populate-distributions;
 
         my Candidate @candidates = @!distributions.map: -> $dist {
             Candidate.new(
@@ -131,7 +131,7 @@ class Zef::Repository::LocalCache does PackageRepository {
         return Nil unless @searchable-identities;
 
         # populate %!short-name-lookup
-        self!populate-distributions;
+        self!maybe-populate-distributions;
 
         my $grouped-results := @searchable-identities.map: -> $searchable-identity {
             my $wanted-spec         := %specs{$searchable-identity};
@@ -204,7 +204,6 @@ class Zef::Repository::LocalCache does PackageRepository {
     method !populate-distributions(--> Nil) {
         $!populate-distributions-lock.protect: {
             self!update if $.auto-update || !self!package-list-path.e;
-            return if +@!distributions;
 
             for self!slurp-package-list -> $path {
                 with try Zef::Distribution::Local.new($!cache.add($path)) -> $dist {
@@ -234,6 +233,13 @@ class Zef::Repository::LocalCache does PackageRepository {
                     push @!distributions, $dist;
                 }
             }
+        }
+    }
+
+    method !maybe-populate-distributions(--> Nil) {
+        $!populate-distributions-lock.protect: {
+            return if +@!distributions;
+            self!populate-distributions;
         }
     }
 }

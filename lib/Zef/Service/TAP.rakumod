@@ -103,20 +103,18 @@ class Zef::Service::TAP does Tester {
             list-paths($test-path.absolute, :f, :!d, :r).sort;
         return True unless +@test-files;
 
-        my $result = try {
-            require ::('TAP');
-            my @incdirs  = @includes;
-            my @handlers = ::("TAP::Harness::SourceHandler::Raku").new(:@incdirs);
-            my $parser   = ::("TAP::Harness").new(:@handlers);
-            my $promise  = $parser.run(
-                @test-files.map(*.relative($path)),
-                :cwd($path),
-                :out($stdout),
-                :err($stderr),
-            );
-            $promise.result;
-        }
+        require ::('TAP');
+        my @incdirs  = @includes;
+        my @handlers = ::('TAP::Harness::SourceHandler::Raku').new(:@incdirs);
+        my $parser   = ::('TAP::Harness').new(:@handlers);
+        my $promise  = $parser.run(
+            @test-files.map(*.relative($path)),
+            :cwd($path),
+            :out($stdout),
+            :err($stderr),
+        );
 
+        my $result = $promise.result;
         my $passed = $result.failed == 0 && not $result.errors ?? True !! False;
         return $passed;
     }

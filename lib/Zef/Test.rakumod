@@ -111,7 +111,7 @@ class Zef::Test does Tester does Pluggable {
         my $todo    = start { try $tester.test($path, :@includes, :$stdout, :$stderr) };
         my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
         await Promise.anyof: $todo, $time-up;
-        $logger.emit({ level => DEBUG, stage => TEST, phase => LIVE, message => "Testing $path timed out" })
+        $logger.emit({ level => DEBUG, stage => TEST, phase => LIVE, candi => $candi, message => "Testing $path timed out" })
             if ?$logger && $time-up.so && $todo.not;
 
         my Bool @results = $todo.so ?? $todo.result !! False;

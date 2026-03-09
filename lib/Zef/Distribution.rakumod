@@ -152,10 +152,13 @@ class Zef::Distribution does Distribution is Zef::Distribution::DependencySpecif
 
     # 'new-depends' refers to the hash form of `depends`
     has $!new-depends-cache;
+    has $!new-depends-cache-lock = Lock.new;
     method !new-depends($type) {
         return Empty unless $.depends ~~ Hash;
-        $!new-depends-cache := system-collapse($.depends) unless $!new-depends-cache.defined;
-        return system-collapse($.depends){$type}.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.flat);
+        $!new-depends-cache-lock.protect: {
+            $!new-depends-cache := system-collapse($.depends) unless $!new-depends-cache.defined;
+            return $!new-depends-cache{$type}.grep(*.defined).grep(*.<requires>).map(*.<requires>).map(*.flat);
+        }
     }
     method !depends2specs(*@depends --> Array[DependencySpecification]) {
         my $depends := @depends.map({$_ ~~ List ?? $_.Slip !! $_ }).grep(*.defined);

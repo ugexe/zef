@@ -60,7 +60,7 @@ class Zef::Utils::URI {
         }
         token h16  { <.xdigit> ** 1..4 }
         token ls32 { [<.h16> ':' <.h16>] || <.IPv4address> }
-        token IPv4address { <.dec-octet> '.' <.dec-octet> '.' <.dec-octet> '.' <.decoctet> }
+        token IPv4address { <.dec-octet> '.' <.dec-octet> '.' <.dec-octet> '.' <.dec-octet> }
         token dec-octet {
             || <.digit>
             || [\x[31]..\x[39]] <.digit>

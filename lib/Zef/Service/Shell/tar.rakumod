@@ -122,7 +122,7 @@ class Zef::Service::Shell::tar does Extractor {
         react {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
-            my $proc = Zef::zrun-async('tar', '-zxvf', self!cli-path($archive-file.basename), '-C', $extract-to.relative($cwd));
+            my $proc = Zef::zrun-async('tar', '-xvf', self!cli-path($archive-file.basename), '-C', $extract-to.relative($cwd));
             $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }
@@ -142,7 +142,7 @@ class Zef::Service::Shell::tar does Extractor {
         react {
             my $cwd := $archive-file.parent;
             my $ENV := %*ENV;
-            my $proc = Zef::zrun-async('tar', '-zt', '-f', self!cli-path($archive-file.basename));
+            my $proc = Zef::zrun-async('tar', '-t', '-f', self!cli-path($archive-file.basename));
             $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { $output.append($_) }
             whenever $proc.stderr(:bin) { }

@@ -218,6 +218,7 @@ class Zef::Repository::Ecosystems does PackageRepository {
     #| Check if our package list should be updated
     method !is-package-list-stale(--> Bool:D) {
         return so !self!package-list-path.e
+            || ($!auto-update === Bool::True)
             || ($!auto-update && self!package-list-path.modified < now.DateTime.earlier(:hours($!auto-update)).Instant);
     }
 

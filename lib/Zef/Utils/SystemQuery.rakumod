@@ -98,10 +98,15 @@ module Zef::Utils::SystemQuery {
                 }
                 when /^'by-env'/ {
                     my $key = $idx.split('.')[1];
-                    my $value = %*ENV{$key};
-                    die "Unable to resolve path: {$idx} in \%*ENV\nhad: {$value // ''}"
-                        unless defined($value) && ($data{$idx}{$value}:exists);
-                    return system-collapse($data{$idx}{$value});
+                    my $value = %*ENV{$key} // '';
+                    my $fkey  = ($data{$idx}{$value}:exists)
+                        ?? $value
+                        !! ($data{$idx}{''}:exists)
+                            ?? ''
+                            !! Any;
+                    die "Unable to resolve path: {$idx} in \%*ENV\nhad: {$value}"
+                        if Any ~~ $fkey;
+                    return system-collapse($data{$idx}{$fkey});
                 }
                 when /^'by-' (distro|kernel|perl|raku|vm)/ {
                     my $query-source = do given $/[0] {

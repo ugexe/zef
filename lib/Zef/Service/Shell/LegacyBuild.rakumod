@@ -85,9 +85,10 @@ class Zef::Service::Shell::LegacyBuild does Builder {
     method build(Zef::Distribution::Local $dist, Str :@includes, Supplier :$stdout, Supplier :$stderr --> Bool:D) {
         die "path does not exist: {$dist.path}" unless $dist.path.IO.e;
 
-        my $build-file = self!guess-build-file($dist.path).absolute;
-        my $cmd        = "require '$build-file'; ::('Build').new.build('$dist.path.IO.absolute()') ?? exit(0) !! exit(1);";
-        my @exec       = |($*EXECUTABLE.absolute, |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
+        my $escaped-build-file = self!guess-build-file($dist.path).absolute.trans(["'"] => ["\\'"]);
+        my $escaped-dist-path  = $dist.path.IO.absolute.trans(["'"] => ["\\'"]);
+        my $cmd  = "require '$escaped-build-file'; ::('Build').new.build('$escaped-dist-path') ?? exit(0) !! exit(1);";
+        my @exec = |($*EXECUTABLE.absolute, |@includes.grep(*.defined).map({ "-I{$_}" }), '-e', "$cmd");
 
         my $ENV := %*ENV;
         my $passed;

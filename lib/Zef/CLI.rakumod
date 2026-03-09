@@ -871,7 +871,7 @@ package Zef::CLI {
         if $dist.meta<support> {
             say "Support:";
             for $dist.meta<support>.kv -> $k, $v {
-                say "#   $k:\t$v";
+                say "#   $k:\t$v" if $v;
             }
         }
 

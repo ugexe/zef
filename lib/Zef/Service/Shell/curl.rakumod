@@ -106,7 +106,7 @@ class Zef::Service::Shell::curl does Fetcher does Probeable {
             my $cwd := $save-as.parent;
             my $ENV := %*ENV;
             my $cmd := self!command();
-            my $proc = Zef::zrun-async($cmd, '--silent', '-L', '-z', $save-as.absolute, '-o', $save-as.absolute, $uri);
+            my $proc = Zef::zrun-async($cmd, '--silent', '-L', '-o', $save-as.absolute, $uri);
             $stdout.emit("Command: {$proc.command}");
             whenever $proc.stdout(:bin) { }
             whenever $proc.stderr(:bin) { }

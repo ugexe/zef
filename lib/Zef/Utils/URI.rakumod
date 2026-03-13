@@ -44,7 +44,7 @@ class Zef::Utils::URI {
         token userinfo    { [<.unreserved> || <.pct-encoded> || <.sub-delims> || ':']*  }
         token host        { <.IP-literal> || <.IPv4address> || <.reg-name>              }
         token IP-literal  { '[' [<.IPv6address> || <.IPv6addrz> || <.IPvFuture>] ']'    }
-        token IPv6addz    { <.IPv6address> '%25' <.ZoneID>    }
+        token IPv6addrz   { <.IPv6address> '%25' <.ZoneID>    }
         token ZoneID      { [<.unreserved> || <.pct-encoded>]+ }
         token IPvFuture   { 'v' <.xdigit>+ '.' [<.unreserved> || <.sub-delims> || ':']+ }
         token IPv6address {

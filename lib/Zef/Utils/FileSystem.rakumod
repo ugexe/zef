@@ -161,8 +161,10 @@ module Zef::Utils::FileSystem {
 
     sub lock-file-protect(IO() $path, &code, Bool :$shared = False) is export {
         do given ($shared ?? $path.IO.open(:r) !! $path.IO.open(:w)) {
-            LEAVE {.close}
-            LEAVE {try .path.unlink}
+            LEAVE {
+                .close;
+                try .path.unlink;
+            }
             .lock(:$shared);
             code();
         }

@@ -1026,7 +1026,10 @@ package Zef::CLI {
         }
         my sub confirm-delete(*@dirs) {
             for @dirs -> $dir {
-                next() R, say "$dir does not exist. Skipping..." unless $dir.IO.e;
+                unless $dir.IO.e {
+                    say "$dir does not exist. Skipping...";
+                    next;
+                }
                 given prompt("Delete {$dir.IO.absolute}/* [y/n]: ") {
                     when any(<y Y>) { dir-delete($dir)   }
                     when any(<n N>) { say "Skipping..." }

@@ -1076,7 +1076,7 @@ class Zef::Client {
             # for instance).
             my %curfs-new-args = :prefix($staging-at), :name($stage-for-repo.name), :next-repo($stage-for-repo);
             my $curfs-short-name = 'CompUnit::Repository::Staging';
-            (try ::($curfs-short-name))
+            (::($curfs-short-name) !~~ Failure)
                 ?? ::($curfs-short-name).new(|%curfs-new-args)
                 !! do {
                     # Find CURS from the core repository so we can load it by path later

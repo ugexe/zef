@@ -1076,9 +1076,10 @@ class Zef::Client {
             # for instance).
             my %curfs-new-args = :prefix($staging-at), :name($stage-for-repo.name), :next-repo($stage-for-repo);
             my $curfs-short-name = 'CompUnit::Repository::Staging';
-            (::($curfs-short-name) !~~ Failure)
-                ?? ::($curfs-short-name).new(|%curfs-new-args)
-                !! do {
+            my $curfs-class := do given ::($curfs-short-name) {
+                when Failure {
+                    .handled = True;
+
                     # Find CURS from the core repository so we can load it by path later
                     my $core-repo = CompUnit::RepositoryRegistry.repository-for-name('core');
                     my $curs-dist = $core-repo.resolve(CompUnit::DependencySpecification.new(:short-name($curfs-short-name))).distribution;
@@ -1089,8 +1090,11 @@ class Zef::Client {
                     my $curs-handle = $curs-dist.content($curs-name-path);
                     $curs-handle.close(); # I think these handles shouldn't be opened already from ::InstalledDistribution :(
                     $*REPO.load($curs-handle.path);
-                    ::($curfs-short-name).new(|%curfs-new-args);
+                    ::($curfs-short-name);
                 }
+                default { $_ }
+            }
+            $curfs-class.new(|%curfs-new-args);
         }
 
         # Staging workflow

@@ -51,7 +51,7 @@ class Zef::Install does Installer does Pluggable {
 
     =head2 method install
 
-        method install(Candidate $candi, CompUnit::Repository :$cur!, Bool :$force, Bool :$precompile, Supplier :$logger, Int :$timeout --> Bool:D)
+        method install(Candidate $candi, CompUnit::Repository :$cur!, Bool :$force, Bool :$precompile = True, Supplier :$logger, Int :$timeout --> Bool:D)
 
     Installs the distribution C<$candi.dist> to C<$cur> (see synopsis). Set C<$force> to C<True> to allow installing a distribution
     that is already installed. If C<$precompile> is C<False> then it will not precompile during installation.
@@ -84,7 +84,7 @@ class Zef::Install does Installer does Pluggable {
 
     #| Install the distribution in $candi.dist to the $cur CompUnit::Repository.
     #| Use :force to install over an existing distribution using the same name/auth/ver/api
-    method install(Candidate $candi, CompUnit::Repository :$cur!, Bool :$force, Bool :$precompile, Supplier :$logger, Int :$timeout --> Bool:D) {
+    method install(Candidate $candi, CompUnit::Repository :$cur!, Bool :$force, Bool :$precompile = True, Supplier :$logger, Int :$timeout --> Bool:D) {
         my $dist      = $candi.dist;
         my $installer = self!install-matcher($dist).first(*.so);
         die "No installing backend available" unless ?$installer;
@@ -97,7 +97,7 @@ class Zef::Install does Installer does Pluggable {
             $stderr.Supply.grep(*.defined).act: -> $err { $logger.emit({ level => ERROR,   stage => INSTALL, phase => LIVE, candi => $candi, message => $err }) }
         }
 
-        my $todo    = start { $installer.install($dist, :$cur, :$force, :$stdout, :$stderr) };
+        my $todo    = start { $installer.install($dist, :$cur, :$force, :$precompile, :$stdout, :$stderr) };
         my $time-up = ($timeout ?? Promise.in($timeout) !! Promise.new);
         await Promise.anyof: $todo, $time-up;
         $logger.emit({ level => DEBUG, stage => INSTALL, phase => LIVE, candi => $candi, message => "Installing {$dist.path} timed out" })

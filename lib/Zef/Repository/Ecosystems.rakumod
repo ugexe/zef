@@ -197,9 +197,11 @@ class Zef::Repository::Ecosystems does PackageRepository {
 
     #| Read our package db
     method !slurp-package-list(--> List) {
-        return [ ] unless self!package-list-path.e;
+        my $path = self!package-list-path;
+        return [ ] unless $path.e;
 
-        try |Zef::from-json(self!package-list-path.slurp);
+        CATCH { default { die "Failed to parse the $!name package list at $path: {.message}" } }
+        |Zef::from-json($path.slurp);
     }
 
     #| Write our package db. Readers in other processes only ever see the old or the new file, never a partial one

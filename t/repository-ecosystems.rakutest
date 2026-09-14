@@ -1,6 +1,6 @@
 use v6.d;
 use Test;
-plan 1;
+plan 2;
 
 use Zef;
 use Zef::Fetch;
@@ -41,6 +41,25 @@ subtest 'Concurrent updates of the same index' => {
     is-deeply $index.slurp(:bin), $mirror.slurp(:bin), 'the index matches the mirror after the updates';
     is-deeply $index.parent.dir.map(*.basename).List, ('test.json',), 'only the index is left in the repository directory';
     is-deeply $cache.dir.grep(*.f).List, (), 'no fetched mirror files are left in the cache';
+}
+
+
+subtest 'Index that cannot be parsed' => {
+    my $root = $*TMPDIR.child(100000.rand).mkdir;
+    LEAVE try delete-paths($root);
+
+    my $mirror = $root.child('index.json');
+    $mirror.spurt: Zef::to-json([%( name => 'Dist42', version => '1', auth => 'zef:test', provides => %( Dist42 => 'lib/Dist42.rakumod' ) ),]);
+    my $cache   = $root.child('store').mkdir;
+    my $fetcher = Zef::Fetch.new(backends => [{ module => 'Zef::Service::FetchPath' },]);
+
+    my $index = $cache.child('test').mkdir.child('test.json');
+    $index.spurt('[{"name": "Dist42", "vers');
+    my $repo = Zef::Repository::Ecosystems.new(:name<test>, :$fetcher, :$cache, :auto-update(0), :mirrors[$mirror.absolute]);
+    throws-like { $repo.search('Dist42', :strict) }, Exception,
+        message  => /'Failed to parse the test package list at ' .* 'test.json'/,
+        'a truncated index is reported instead of being searched as an empty ecosystem';
+    is $index.slurp, '[{"name": "Dist42", "vers', 'the truncated index is left alone when auto-update is off';
 }
 
 

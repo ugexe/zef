@@ -126,7 +126,9 @@ class Zef::Repository::Ecosystems does PackageRepository {
             UNDO $stderr.emit("!!!> Failed to update $!name mirror: $uri");
             KEEP $stderr.emit("===> Updated $!name mirror: $uri");
 
-            my $save-as  = $!cache.IO.child($uri.IO.basename);
+            # Other zef processes may be updating this mirror at the same time, so never fetch to a shared path
+            my $save-as  = $!cache.IO.child("{$uri.IO.basename}.{time}.{$*PID}.{(^10000).rand}");
+            LEAVE try delete-paths($save-as) if $save-as.e;
             my $saved-as = try {
                 CATCH { default { $stderr.emit($_) } }
                 $!fetcher.fetch(Candidate.new(:$uri), $save-as, :timeout(180));
@@ -138,9 +140,7 @@ class Zef::Repository::Ecosystems does PackageRepository {
             $saved-as .= child("{$!name}.json") if $saved-as.d;
             next unless $saved-as.e;
 
-            lock-file-protect("{$saved-as}.lock", -> {
-                self!spurt-package-list($saved-as.slurp(:bin))
-            });
+            next unless self!spurt-package-list($saved-as.slurp(:bin));
         }
     }
 
@@ -199,20 +199,15 @@ class Zef::Repository::Ecosystems does PackageRepository {
     method !slurp-package-list(--> List) {
         return [ ] unless self!package-list-path.e;
 
-        do given self!package-list-path.open(:r) {
-            LEAVE {.close}
-            .lock: :shared;
-            try |Zef::from-json(.slurp);
-        }
+        try |Zef::from-json(self!package-list-path.slurp);
     }
 
-    #| Write our package db
+    #| Write our package db. Readers in other processes only ever see the old or the new file, never a partial one
     method !spurt-package-list($content --> Bool) {
-        do given self!package-list-path.open(:w) {
-            LEAVE {.close}
-            .lock;
-            try .spurt($content);
-        }
+        my $path = self!package-list-path;
+        my $temp = $path.sibling("{$path.basename}.{time}.{$*PID}.{(^10000).rand}");
+        LEAVE try $temp.unlink if $temp.e;
+        so try { $temp.spurt($content); $temp.rename($path) }
     }
 
     #| Check if our package list should be updated

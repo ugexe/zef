@@ -1,6 +1,6 @@
 use v6.d;
 use Test;
-plan 4;
+plan 5;
 
 use Zef::Utils::FileSystem;
 
@@ -168,6 +168,64 @@ subtest "list-paths and delete-paths :f :r" => {
         isnt $path-to-delete, $not-deleted, 'Did not delete sub-file or delete non-empty directory';
     }
 }
+
+
+
+subtest "lock-file-protect only lets one process at a time into the protected code" => {
+    temp $save-to = $save-to.child(++$dir-id);
+    mkdir $save-to;
+    LEAVE try delete-paths($save-to);
+
+    my $lock   = $save-to.child('shared.lock');
+    my $worker = q:to/END/;
+        use Zef::Utils::FileSystem;
+        my ($lock, $acquired, $release) = @*ARGS;
+        lock-file-protect($lock, -> {
+            $acquired.IO.spurt('');
+            sleep 0.01 until $release.IO.e;
+        });
+        END
+    my $lib = $?FILE.IO.parent.parent.absolute;
+
+    my sub start-worker($name) {
+        my %worker =
+            acquired => $save-to.child("$name.acquired"),
+            release  => $save-to.child("$name.release");
+        %worker<done> = Proc::Async.new(
+            $*EXECUTABLE.absolute, '-I', $lib, '-e', $worker,
+            $lock.absolute, %worker<acquired>.absolute, %worker<release>.absolute,
+        ).start;
+        return %worker;
+    }
+    my sub took-lock(%worker, $seconds = 60) {
+        my $give-up = now + $seconds;
+        sleep 0.01 until %worker<acquired>.e || now > $give-up;
+        return %worker<acquired>.e;
+    }
+    my sub release(%worker) {
+        %worker<release>.spurt('');
+        await %worker<done>;
+    }
+
+    my %first = start-worker('first');
+    ok took-lock(%first), 'the first process takes the lock';
+
+    my %second = start-worker('second');
+    sleep 2;
+    nok %second<acquired>.e, 'a second process waits while the first holds the lock';
+
+    release(%first);
+    ok took-lock(%second), 'the second process takes the lock once the first is done';
+
+    my %third = start-worker('third');
+    sleep 2;
+    nok %third<acquired>.e, 'a process that arrives after an earlier holder exited still waits';
+
+    release(%second);
+    ok took-lock(%third), 'the third process takes the lock once the second is done';
+    release(%third);
+}
+
 
 try rmdir($save-to);
 

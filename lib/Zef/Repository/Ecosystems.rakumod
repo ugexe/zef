@@ -132,9 +132,13 @@ class Zef::Repository::Ecosystems does PackageRepository {
             UNDO $stderr.emit("!!!> Failed to update $!name mirror: $uri");
             KEEP $stderr.emit("===> Updated $!name mirror: $uri");
 
-            # Other zef processes may be updating this mirror at the same time, so never fetch to a shared path
-            my $save-as  = $!cache.IO.child("{$uri.IO.basename}.{time}.{$*PID}.{(^10000).rand}");
-            LEAVE try delete-paths($save-as) if $save-as.e;
+            # Other zef processes may be updating this mirror at the same time, so never fetch to a shared path.
+            # The fetcher leaves a lock file next to what it fetched, so take a directory of our own to remove.
+            my $stage-at = $!cache.IO.child("{time}.{$*PID}.{(^10000).rand}");
+            LEAVE try delete-paths($stage-at) if $stage-at.e;
+            next unless $stage-at.e || mkdir($stage-at);
+
+            my $save-as  = $stage-at.child($uri.IO.basename);
             my $saved-as = try {
                 CATCH { default { $stderr.emit($_) } }
                 $!fetcher.fetch(Candidate.new(:$uri), $save-as, :timeout(180));

@@ -161,10 +161,9 @@ module Zef::Utils::FileSystem {
 
     sub lock-file-protect(IO() $path, &code, Bool :$shared = False) is export {
         do given ($shared ?? $path.IO.open(:r) !! $path.IO.open(:w)) {
-            LEAVE {
-                .close;
-                try .path.unlink;
-            }
+            # The lock file outlives this call. Deleting it would hand the lock on a file that no longer has a
+            # name to whoever is waiting for it, while the next caller creates a new file and locks that instead.
+            LEAVE .close;
             .lock(:$shared);
             code();
         }

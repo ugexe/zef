@@ -51,7 +51,7 @@ subtest 'Concurrent updates of the same index' => {
     is-deeply (await $watcher), ($mirror.s,), 'the index is only ever seen with the complete mirror content';
     is-deeply $index.slurp(:bin), $mirror.slurp(:bin), 'the index matches the mirror after the updates';
     is-deeply $index.parent.dir.map(*.basename).List, ('test.json',), 'only the index is left in the repository directory';
-    is-deeply $cache.dir.grep(*.f).List, (), 'no fetched mirror files are left in the cache';
+    is-deeply $cache.dir.map(*.basename).List, ('test',), 'nothing the update fetched is left in the cache';
 }
 
 

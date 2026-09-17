@@ -1,6 +1,6 @@
 use v6.d;
 use Test;
-plan 2;
+plan 3;
 
 use Zef;
 use Zef::Fetch;
@@ -8,18 +8,32 @@ use Zef::Repository::Ecosystems;
 use Zef::Utils::FileSystem;
 
 
+sub make-mirror(IO() $path, Int $dists = 1) {
+    $path.spurt: Zef::to-json([
+        (^$dists).map({ %( name => "Dist$_", version => '1', auth => 'zef:test', provides => %( "Dist$_" => "lib/Dist$_.rakumod" ) ) })
+    ]);
+    return $path;
+}
+
+
 subtest 'Concurrent updates of the same index' => {
     my $root = $*TMPDIR.child(100000.rand).mkdir;
     LEAVE try delete-paths($root);
 
     # A large index keeps each write slow enough to be observed while it happens
-    my $mirror = $root.child('index.json');
-    $mirror.spurt: Zef::to-json([
-        (^20000).map({ %( name => "Dist$_", version => '1', auth => 'zef:test', provides => %( "Dist$_" => "lib/Dist$_.rakumod" ) ) })
-    ]);
-    my $cache   = $root.child('store').mkdir;
-    my $fetcher = Zef::Fetch.new(backends => [{ module => 'Zef::Service::FetchPath' },]);
-    my $index   = $cache.child('test').child('test.json');
+    my $mirror = make-mirror($root.child('index.json'), 20000);
+    my $cache  = $root.child('store').mkdir;
+    my $index  = $cache.child('test').child('test.json');
+
+    my $update = q:to/END/;
+        use Zef::Fetch;
+        use Zef::Repository::Ecosystems;
+        my ($cache, $mirror) = @*ARGS;
+        my $fetcher = Zef::Fetch.new(backends => [{ module => 'Zef::Service::FetchPath' },]);
+        my $repo = Zef::Repository::Ecosystems.new(:name<test>, :$fetcher, :cache($cache.IO), :auto-update(True), :mirrors[$mirror]);
+        $repo.update for ^3;
+        END
+    my $lib = $?FILE.IO.parent.parent.absolute;
 
     my $updating = True;
     my $watcher  = start {
@@ -30,10 +44,7 @@ subtest 'Concurrent updates of the same index' => {
         %sizes.keys.map(*.Int).sort.List;
     }
     await (^4).map: {
-        start {
-            my $repo = Zef::Repository::Ecosystems.new(:name<test>, :$fetcher, :$cache, :auto-update(0), :mirrors[$mirror.absolute]);
-            $repo.update for ^5;
-        }
+        Proc::Async.new($*EXECUTABLE.absolute, '-I', $lib, '-e', $update, $cache.absolute, $mirror.absolute).start;
     }
     $updating = False;
 
@@ -48,18 +59,42 @@ subtest 'Index that cannot be parsed' => {
     my $root = $*TMPDIR.child(100000.rand).mkdir;
     LEAVE try delete-paths($root);
 
-    my $mirror = $root.child('index.json');
-    $mirror.spurt: Zef::to-json([%( name => 'Dist42', version => '1', auth => 'zef:test', provides => %( Dist42 => 'lib/Dist42.rakumod' ) ),]);
+    my $mirror  = make-mirror($root.child('index.json'));
     my $cache   = $root.child('store').mkdir;
     my $fetcher = Zef::Fetch.new(backends => [{ module => 'Zef::Service::FetchPath' },]);
 
     my $index = $cache.child('test').mkdir.child('test.json');
-    $index.spurt('[{"name": "Dist42", "vers');
+    $index.spurt('[{"name": "Dist0", "vers');
     my $repo = Zef::Repository::Ecosystems.new(:name<test>, :$fetcher, :$cache, :auto-update(0), :mirrors[$mirror.absolute]);
-    throws-like { $repo.search('Dist42', :strict) }, Exception,
+    throws-like { $repo.search('Dist0', :strict) }, Exception,
         message  => /'Failed to parse the test package list at ' .* 'test.json'/,
         'a truncated index is reported instead of being searched as an empty ecosystem';
-    is $index.slurp, '[{"name": "Dist42", "vers', 'the truncated index is left alone when auto-update is off';
+    is $index.slurp, '[{"name": "Dist0", "vers', 'the truncated index is left alone when auto-update is off';
+}
+
+
+subtest 'Mirror that does not provide a package list' => {
+    my $root = $*TMPDIR.child(100000.rand).mkdir;
+    LEAVE try delete-paths($root);
+
+    my $error-page = $root.child('error.json');
+    $error-page.spurt('<html><body>504 Gateway Time-out</body></html>');
+    my $mirror  = make-mirror($root.child('index.json'));
+    my $fetcher = Zef::Fetch.new(backends => [{ module => 'Zef::Service::FetchPath' },]);
+
+    {
+        my $cache = $root.child('store-error').mkdir;
+        my $repo  = Zef::Repository::Ecosystems.new(:name<test>, :$fetcher, :$cache, :auto-update(True), :mirrors[$error-page.absolute]);
+        is (try $repo.search('Dist0', :strict).elems), 0, 'a mirror that does not provide a package list gives no results';
+        nok $cache.child('test').child('test.json').e, 'a mirror that does not provide a package list is not saved as the index';
+    }
+
+    {
+        my $cache = $root.child('store-first').mkdir;
+        my $repo  = Zef::Repository::Ecosystems.new(:name<test>, :$fetcher, :$cache, :auto-update(True), :mirrors[$mirror.absolute, $error-page.absolute]);
+        is (try $repo.search('Dist0', :strict).elems), 1, 'the first mirror that provides a package list is used';
+        is-deeply $cache.child('test').child('test.json').slurp(:bin), $mirror.slurp(:bin), 'later mirrors do not replace the index of the one that was used';
+    }
 }
 
 

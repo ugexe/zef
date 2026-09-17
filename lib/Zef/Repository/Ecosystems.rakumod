@@ -118,9 +118,15 @@ class Zef::Repository::Ecosystems does PackageRepository {
     #| see role Repository in lib/Zef.rakumod
     has Int $!update-counter; # Keep track if we already did an update during this runtime
     method update(Supplier :$stdout = Supplier.new, Supplier :$stderr = Supplier.new --> Nil) {
+        self!update-package-list(:$stdout, :$stderr);
+        return;
+    }
+
+    #| Fetch mirrors until one of them provides a package list we can parse, and return that parsed list
+    method !update-package-list(Supplier :$stdout = Supplier.new, Supplier :$stderr = Supplier.new) {
         $!update-counter++;
 
-        $!mirrors.first: -> $uri {
+        return $!mirrors.map(-> $uri {
             # TODO: use the logger to send these as events
             $stderr.emit("===> Updating $!name mirror: $uri");
             UNDO $stderr.emit("!!!> Failed to update $!name mirror: $uri");
@@ -140,8 +146,14 @@ class Zef::Repository::Ecosystems does PackageRepository {
             $saved-as .= child("{$!name}.json") if $saved-as.d;
             next unless $saved-as.e;
 
-            next unless self!spurt-package-list($saved-as.slurp(:bin));
-        }
+            # A mirror can respond with something that is not a package list at all, such as an error page
+            my $content = $saved-as.slurp(:bin);
+            my $parsed  = try Zef::from-json($content.decode);
+            next without $parsed;
+
+            next unless self!spurt-package-list($content);
+            $parsed;
+        }).head;
     }
 
     #| see role Repository in lib/Zef.rakumod
@@ -223,10 +235,13 @@ class Zef::Repository::Ecosystems does PackageRepository {
     has $!populate-distributions-lock = Lock.new;
     method !populate-distributions(--> Nil) {
         $!populate-distributions-lock.protect: {
-            self.update if !$!update-counter && self!is-package-list-stale;
+            # An update parses the package list it fetched, so there is no need to read it back here
+            my $package-list = !$!update-counter && self!is-package-list-stale
+                ?? self!update-package-list
+                !! Nil;
             return if +@!distributions;
 
-            for self!slurp-package-list -> $meta {
+            for @($package-list // self!slurp-package-list) -> $meta {
                 with try Zef::Distribution.new(|%($meta)) -> $dist {
                     # If the distribution doesn't have a name or we can't parse the name then just skip it.
                     next unless $dist.name;
